@@ -1,44 +1,50 @@
-# TeamTalk VoiceOver Client (macOS)
+# TeamTalk VoiceOver Client (macOS / Windows)
 
 Minimaler Python/wxPython-Client auf Basis des TeamTalk SDK v5.19a (Standard Edition).
 Das SDK liegt unter third_party/teamtalk/ und darf nur gemaess Lizenzbedingungen von BearWare verwendet werden.
 Das Projekt bundelt espeak-ng (GPLv3) fuer TTS.
 
 ## Voraussetzungen
+
+### macOS
 - macOS 10.13+
 - Python 3.10+
 - TeamTalk SDK v5.19a (bereits in third_party/)
 - wxPython (siehe requirements.txt)
 
+### Windows
+- Windows 10+
+- Python 3.10+
+- TeamTalk SDK v5.19a fuer Windows unter third_party/teamtalk/tt5sdk_v5.19a_win64/
+- wxPython (siehe requirements.txt)
+- espeak-ng fuer Windows (espeak-ng.exe + espeak-ng-data) unter third_party/espeak-ng/
+
 ## Start
-Setup:
+
+### macOS
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 PYTHONPATH=src python src/app.py
 
+### Windows
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+set PYTHONPATH=src
+python src/app.py
+
 ## Build (macOS App)
-Build:
 source .venv/bin/activate
 PYINSTALLER_CONFIG_DIR="$(pwd)/.pyinstaller" pyinstaller --noconfirm "TeamTalk VO Client.spec"
 
 Die App liegt danach unter dist/TeamTalk VO Client.app.
 
-## Windows-Port (Hinweise fuer Claude)
-- SDK: TeamTalk SDK fuer Windows (DLLs) statt macOS dylib. Erwartet wird
-  third_party/teamtalk/tt5sdk_v5.19a_windows/ mit TeamTalk_DLL/TeamTalk5.dll.
-- Python/GUI: wxPython fuer Windows. Teste auf Python 3.10+.
-- TTS:
-  - espeak-ng Windows-Bundle mit espeak-ng.exe und espeak-ng-data.
-  - Im Code: afplay ersetzen (Windows: winsound oder ffplay).
-  - Pfade und ESPEAK_DATA_PATH an Windows anpassen.
-- PyInstaller:
-  - .spec anpassen: Windows-binarys als binaries, datas fuer espeak-ng-data.
-  - App-Ausgabe ist .exe in dist/.
-- Audio:
-  - Geraete-Namen unterscheiden sich. Pruefen, ob TeamTalk Audio-Enums identisch sind.
-- Signing:
-  - Optional Windows Code Signing (nicht Teil dieses Repos).
+## Build (Windows)
+.venv\Scripts\activate
+pyinstaller --noconfirm "TeamTalk VO Client_win.spec"
+
+Die .exe liegt danach unter dist/TeamTalk VO Client/.
 
 ## Hinweise zu Accessibility (VoiceOver)
 - Alle Felder besitzen explizite Labels und Names.

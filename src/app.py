@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import threading
 import time
@@ -9,14 +10,18 @@ from typing import Dict, List, Optional, Tuple
 
 
 def _init_startup_logging() -> None:
-    log_dir = Path.home() / "Library" / "Logs" / "TeamTalkVOClient"
+    from platform_paths import log_dir as _log_dir
+    log_path = _log_dir()
     try:
-        log_dir.mkdir(parents=True, exist_ok=True)
+        log_path.mkdir(parents=True, exist_ok=True)
     except Exception:
-        log_dir = Path("/tmp") / "TeamTalkVOClient"
-        log_dir.mkdir(parents=True, exist_ok=True)
+        if sys.platform == "win32":
+            log_path = Path(os.environ.get("TEMP", "C:\\Temp")) / "TeamTalkVOClient"
+        else:
+            log_path = Path("/tmp") / "TeamTalkVOClient"
+        log_path.mkdir(parents=True, exist_ok=True)
 
-    log_file = log_dir / "startup.log"
+    log_file = log_path / "startup.log"
     try:
         stream = log_file.open("a", encoding="utf-8")
         sys.stdout = stream
@@ -79,7 +84,8 @@ class MainFrame(wx.Frame):
         self._speak_tab_added = False
 
         # Paths
-        app_dir = Path.home() / "Library" / "Application Support" / "TeamTalkVOClient"
+        from platform_paths import app_data_dir
+        app_dir = app_data_dir()
         app_dir.mkdir(parents=True, exist_ok=True)
         self.store = ServerStore(app_dir / "servers.json")
         self.logger = FileLogger(app_dir / "client.log")
@@ -695,7 +701,7 @@ class MainFrame(wx.Frame):
 
     def on_close(self, event):
         self.Hide()
-        self.tray.SetIcon(self.tray.GetIcon(), "TeamTalk VoiceOver Client (im Tray)")
+        self.tray.SetIcon(self.tray._icon, "TeamTalk VoiceOver Client (im Tray)")
         self.set_status("Im Tray ausgeblendet")
         event.Veto()
 
@@ -728,12 +734,16 @@ if __name__ == "__main__":
         app = App(False)
         app.MainLoop()
     except Exception:
-        log_dir = Path.home() / "Library" / "Logs" / "TeamTalkVOClient"
+        from platform_paths import log_dir as _log_dir
+        crash_dir = _log_dir()
         try:
-            log_dir.mkdir(parents=True, exist_ok=True)
+            crash_dir.mkdir(parents=True, exist_ok=True)
         except Exception:
-            log_dir = Path("/tmp") / "TeamTalkVOClient"
-            log_dir.mkdir(parents=True, exist_ok=True)
-        crash_log = log_dir / "last_crash.txt"
+            if sys.platform == "win32":
+                crash_dir = Path(os.environ.get("TEMP", "C:\\Temp")) / "TeamTalkVOClient"
+            else:
+                crash_dir = Path("/tmp") / "TeamTalkVOClient"
+            crash_dir.mkdir(parents=True, exist_ok=True)
+        crash_log = crash_dir / "last_crash.txt"
         crash_log.write_text(traceback.format_exc(), encoding="utf-8")
         raise

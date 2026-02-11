@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:bearware.dk)",
+      "Bash(gh api:*)",
+      "Bash(where:*)",
+      "Bash(where \"C:\\\\Program Files\\\\7-Zip\\\\7z.exe\")",
+      "Bash(dir \"C:\\\\Program Files\\\\7-Zip\\\\7z.exe\")",
+      "Bash(curl:*)",
+      "Bash(msiexec:*)",
+      "Bash(ESPEAK_DATA_PATH=\"C:/garo/code/proj/TeamTalk-VO-Client/third_party/espeak-ng/espeak-ng-data\" \"C:/garo/code/proj/TeamTalk-VO-Client/third_party/espeak-ng/bin/espeak-ng.exe\":*)",
+      "Bash(PATH=\"C:/garo/code/proj/TeamTalk-VO-Client/third_party/espeak-ng/bin:$PATH\" \"C:/garo/code/proj/TeamTalk-VO-Client/third_party/espeak-ng/bin/espeak-ng.exe\":*)",
+      "Bash(cmd /c:*)",
+      "Bash(cmd //c \"set ESPEAK_DATA_PATH=C:\\\\garo\\\\code\\\\proj\\\\TeamTalk-VO-Client\\\\third_party\\\\espeak-ng\\\\espeak-ng-data && C:\\\\garo\\\\code\\\\proj\\\\TeamTalk-VO-Client\\\\third_party\\\\espeak-ng\\\\bin\\\\espeak-ng.exe --version\")",
+      "Bash(powershell -Command \"$env:ESPEAK_DATA_PATH=''C:\\\\garo\\\\code\\\\proj\\\\TeamTalk-VO-Client\\\\third_party\\\\espeak-ng\\\\espeak-ng-data''; & ''C:\\\\garo\\\\code\\\\proj\\\\TeamTalk-VO-Client\\\\third_party\\\\espeak-ng\\\\bin\\\\espeak-ng.exe'' --version\")",
+      "Bash(ESPEAK_DATA_PATH=C:/garo/code/proj/TeamTalk-VO-Client/third_party/espeak-ng/espeak-ng-data PATH=\"C:/garo/code/proj/TeamTalk-VO-Client/third_party/espeak-ng/bin:$PATH\" espeak-ng.exe:*)",
+      "Bash(ESPEAK_DATA_PATH=\"C:/garo/code/proj/TeamTalk-VO-Client/third_party/espeak-ng/espeak-ng-data\" \"C:/garo/code/proj/TeamTalk-VO-Client/third_party/espeak-ng/bin/espeak_ng.exe\":*)",
+      "Bash(git -C \"C:/garo/code/proj/TeamTalk-VO-Client\" ls-files third_party/teamtalk/)",
+      "Bash(python -c:*)",
+      "Bash(PYTHONPATH=src python:*)",
+      "Bash(PYTHONPATH=src timeout 10 python:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(set PYTHONPATH=src:*)",
+      "Bash(python:*)",
+      "Bash(powershell:*)",
+      "Bash(timeout:*)"
+    ]
+  }
+}

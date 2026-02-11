@@ -1,0 +1,24 @@
+var searchData=
+[
+  ['callback_0',['CallBack',['../group__serverapi.html#ga106033ecdfb0d867f5d355cf6beccafb',1,'BearWare::TeamTalkSrvBase::CallBack']]],
+  ['cancelfiletranfer_1',['CancelFileTranfer',['../group__channels.html#gaeb6ffbbb7f508b0006e6a0bfb458ac8b',1,'BearWare::TeamTalkBase']]],
+  ['channelcreated_2',['ChannelCreated',['../group__serverlogevents.html#gaeb9cdd286c86e0938a85a76564f064f6',1,'BearWare::TeamTalk5Srv']]],
+  ['channelremoved_3',['ChannelRemoved',['../group__serverlogevents.html#ga21873796a927f632035705a3b884519e',1,'BearWare::TeamTalk5Srv']]],
+  ['channelupdate_4',['ChannelUpdate',['../group__events.html#ga603a8ff4bb8ab80cd1ffbe3ae7fc1717',1,'BearWare::TeamTalkBase']]],
+  ['channelupdated_5',['ChannelUpdated',['../group__serverlogevents.html#gaa89f2d32a3af5e0a032cb9861f95038b',1,'BearWare::TeamTalk5Srv']]],
+  ['close_6',['Close',['../group__serverapi.html#ga0e9a8fedc42419a53ddae5737b52b731',1,'BearWare::TeamTalkSrvBase']]],
+  ['closedesktopwindow_7',['CloseDesktopWindow',['../group__desktopshare.html#gaa0e061a7fb4b97db32d5d307c323c261',1,'BearWare::TeamTalkBase']]],
+  ['closesoundduplexdevices_8',['CloseSoundDuplexDevices',['../group__sounddevices.html#ga34c9f84646979aa7cb737195ed9e125c',1,'BearWare::TeamTalkBase']]],
+  ['closesoundinputdevice_9',['CloseSoundInputDevice',['../group__sounddevices.html#gaf75a64d1660dab7c4270fb35a0fbcf2b',1,'BearWare::TeamTalkBase']]],
+  ['closesoundloopbacktest_10',['CloseSoundLoopbackTest',['../group__sounddevices.html#gad67c0141b2d7604b93625347a8ea06de',1,'BearWare::TeamTalkBase']]],
+  ['closesoundoutputdevice_11',['CloseSoundOutputDevice',['../group__sounddevices.html#ga880bebacfba99e302058a786598a8317',1,'BearWare::TeamTalkBase']]],
+  ['closevideocapturedevice_12',['CloseVideoCaptureDevice',['../group__videocapture.html#gaa88d83b599f19bf90c66f59756142354',1,'BearWare::TeamTalkBase']]],
+  ['commanderror_13',['CommandError',['../group__events.html#gad128b8849fc07576a72ab297c1cde291',1,'BearWare::TeamTalkBase']]],
+  ['commandprocessing_14',['CommandProcessing',['../group__events.html#gaa7aa92f6d197464f0dae27f3172b4a10',1,'BearWare::TeamTalkBase']]],
+  ['commandsuccess_15',['CommandSuccess',['../group__events.html#ga221ef4cb73c5501680e9e0c0b14fa56a',1,'BearWare::TeamTalkBase']]],
+  ['compare_16',['Compare',['../group__serverapi.html#gafbb0611e342224ee8563fa16fdd777b5',1,'BearWare::TeamTalkSrvBase::CallBack']]],
+  ['connect_17',['Connect',['../group__connectivity.html#ga0159bdbad6f5a5b7e376e7992991bc52',1,'BearWare::TeamTalkBase']]],
+  ['connectex_18',['ConnectEx',['../group__connectivity.html#gab5831b3207b6cb807526f92c0e39a4d9',1,'BearWare::TeamTalkBase']]],
+  ['connection_19',['Connection',['../group__events.html#gae6f78d09cf7bd5c7271cf64c7b99b449',1,'BearWare::TeamTalkBase']]],
+  ['connectsysid_20',['ConnectSysID',['../group__connectivity.html#ga51bc5797620202ccee17f516aedb15a2',1,'BearWare::TeamTalkBase']]]
+];

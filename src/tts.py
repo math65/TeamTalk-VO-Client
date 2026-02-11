@@ -40,16 +40,16 @@ class TTSManager:
         self._local_espeak_dir: Optional[Path] = None
 
     def ensure_local_espeak(self) -> Optional[Path]:
-        """Copy bundled espeak-ng into App Support to avoid Documents access prompts."""
+        """Copy bundled espeak-ng into App Support / AppData to avoid access prompts."""
         if not getattr(sys, "frozen", False) or not hasattr(sys, "_MEIPASS"):
             return None
-        app_support = Path.home() / "Library" / "Application Support" / "TeamTalkVOClient"
-        target = app_support / "espeak-ng"
+        from platform_paths import app_data_dir
+        target = app_data_dir() / "espeak-ng"
         if target.exists():
             self._local_espeak_dir = target
             return target
         try:
-            app_support.mkdir(parents=True, exist_ok=True)
+            target.parent.mkdir(parents=True, exist_ok=True)
             bundled = Path(sys._MEIPASS) / "espeak-ng"
             if bundled.exists():
                 shutil.copytree(bundled, target, dirs_exist_ok=True)
@@ -73,22 +73,23 @@ class TTSManager:
     def _resolve_binary(self) -> Optional[str]:
         if self.settings.espeak_path:
             return self.settings.espeak_path
-        # Prefer local app-support copy if available
+        exe_name = "espeak-ng.exe" if sys.platform == "win32" else "espeak-ng"
+        # Prefer local app-data copy if available
         if self._local_espeak_dir:
-            cand = self._local_espeak_dir / "bin" / "espeak-ng"
+            cand = self._local_espeak_dir / "bin" / exe_name
             if cand.exists():
                 return str(cand)
-        # Prefer system-installed espeak-ng to avoid accessing app bundle in Documents
+        # Prefer system-installed espeak-ng
         system_bin = shutil.which("espeak-ng") or shutil.which("espeak")
         if system_bin:
             return system_bin
         # Bundled binary (PyInstaller)
         if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-            bundled = Path(sys._MEIPASS) / "espeak-ng" / "bin" / "espeak-ng"
+            bundled = Path(sys._MEIPASS) / "espeak-ng" / "bin" / exe_name
             if bundled.exists():
                 return str(bundled)
         # Repo binary
-        local = Path(__file__).resolve().parent.parent / "third_party" / "espeak-ng" / "bin" / "espeak-ng"
+        local = Path(__file__).resolve().parent.parent / "third_party" / "espeak-ng" / "bin" / exe_name
         if local.exists():
             return str(local)
         return None
@@ -213,7 +214,10 @@ class TTSManager:
             if data_dir.exists():
                 env["ESPEAK_DATA_PATH"] = str(data_dir)
             if lib_dir.exists():
-                env["DYLD_LIBRARY_PATH"] = f"{lib_dir}:{env.get('DYLD_LIBRARY_PATH', '')}".strip(":")
+                if sys.platform == "darwin":
+                    env["DYLD_LIBRARY_PATH"] = f"{lib_dir}:{env.get('DYLD_LIBRARY_PATH', '')}".strip(":")
+                else:
+                    env["PATH"] = f"{lib_dir}{os.pathsep}{env.get('PATH', '')}"
         try:
             proc = subprocess.run(
                 [binary, "--voices"],
@@ -325,10 +329,13 @@ class TTSManager:
             if data_dir.exists():
                 env["ESPEAK_DATA_PATH"] = str(data_dir)
             if lib_dir.exists():
-                env["DYLD_LIBRARY_PATH"] = f"{lib_dir}:{env.get('DYLD_LIBRARY_PATH', '')}".strip(":")
+                if sys.platform == "darwin":
+                    env["DYLD_LIBRARY_PATH"] = f"{lib_dir}:{env.get('DYLD_LIBRARY_PATH', '')}".strip(":")
+                else:
+                    env["PATH"] = f"{lib_dir}{os.pathsep}{env.get('PATH', '')}"
             mbrola_bin = self._resolve_mbrola_bin()
             if mbrola_bin:
-                env["PATH"] = f"{mbrola_bin.parent}:{env.get('PATH','')}"
+                env["PATH"] = f"{mbrola_bin.parent}{os.pathsep}{env.get('PATH','')}"
             try:
                 selected = self.settings.voice or self.settings.language or "de"
                 if sys.platform == "darwin":
@@ -374,6 +381,51 @@ class TTSManager:
                                 stderr=subprocess.DEVNULL,
                             )
                             self._current_proc.wait()
+                        finally:
+                            try:
+                                os.unlink(tmp_path)
+                            except Exception:
+                                pass
+                elif sys.platform == "win32":
+                    # On Windows, write WAV to temp file and play with winsound
+                    import winsound
+                    fallback_lang = self.settings.language or "en"
+                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                        tmp_path = tmp.name
+                    def run_espeak(voice: str):
+                        cmd = [
+                            binary,
+                            "-v",
+                            voice,
+                            "-s",
+                            str(self.settings.rate),
+                            "-a",
+                            str(self.settings.volume),
+                            "--stdout",
+                            text,
+                        ]
+                        return subprocess.run(
+                            cmd,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            env=env,
+                        )
+
+                    proc = run_espeak(selected)
+                    if proc.returncode != 0 and fallback_lang and fallback_lang != selected:
+                        proc = run_espeak(fallback_lang)
+                    if proc.returncode != 0:
+                        try:
+                            self.frame.logger.write(
+                                f"TTS: espeak-ng failed {proc.stderr.decode('utf-8', 'ignore')}"
+                            )
+                        except Exception:
+                            pass
+                    else:
+                        try:
+                            with open(tmp_path, "wb") as f:
+                                f.write(proc.stdout)
+                            winsound.PlaySound(tmp_path, winsound.SND_FILENAME)
                         finally:
                             try:
                                 os.unlink(tmp_path)

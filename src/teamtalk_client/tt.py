@@ -10,7 +10,10 @@ def ensure_teamtalk_sdk_on_path() -> None:
         sdk_py = Path(sys._MEIPASS) / "TeamTalkPy"
     else:
         root = here.parents[2]
-        sdk_py = root / "third_party" / "teamtalk" / "tt5sdk_v5.19a_macos_universal" / "Library" / "TeamTalkPy"
+        if sys.platform == "win32":
+            sdk_py = root / "third_party" / "teamtalk" / "tt5sdk_v5.19a_win64" / "Library" / "TeamTalkPy"
+        else:
+            sdk_py = root / "third_party" / "teamtalk" / "tt5sdk_v5.19a_macos_universal" / "Library" / "TeamTalkPy"
     if str(sdk_py) not in sys.path:
         sys.path.insert(0, str(sdk_py))
 

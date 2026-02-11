@@ -40,6 +40,7 @@ class ChannelsTab(wx.Panel):
         self.user_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_user_selected)
         self.user_list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.on_user_deselected)
         self.user_list.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_user_right_click)
+        self.user_list.Bind(wx.EVT_KEY_DOWN, self._on_user_list_key)
 
         splitter.SplitVertically(self.channel_tree, self.user_list, sashPosition=260)
         splitter.SetMinimumPaneSize(180)
@@ -69,6 +70,7 @@ class ChannelsTab(wx.Panel):
         sizer.Add(members_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
+        self._set_tab_order()
 
     # ------------------------------------------------------------------
     # Channel tree
@@ -279,6 +281,18 @@ class ChannelsTab(wx.Panel):
     # User context menu (right-click)
     # ------------------------------------------------------------------
 
+    def _on_user_list_key(self, event):
+        key = event.GetKeyCode()
+        if key == wx.WXK_WINDOWS_MENU or (key == wx.WXK_F10 and event.ShiftDown()):
+            idx = self.user_list.GetFirstSelected()
+            if idx >= 0:
+                class _FakeEvent:
+                    def GetIndex(self):
+                        return idx
+                self.on_user_right_click(_FakeEvent())
+                return
+        event.Skip()
+
     def on_user_right_click(self, event):
         idx = event.GetIndex()
         if idx < 0 or idx >= len(self._current_users):
@@ -348,16 +362,27 @@ class ChannelsTab(wx.Panel):
 
     def _on_user_kick(self, user_id: int):
         my_ch = self.frame.client.get_my_channel_id()
-        if my_ch:
-            self.frame.client.do_kick_user(user_id, int(my_ch))
-            self.frame.set_status("Benutzer gekickt")
+        if not my_ch:
+            return
+        dlg = wx.MessageDialog(
+            self, "Benutzer wirklich kicken?",
+            "Kick", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+        )
+        if dlg.ShowModal() != wx.ID_YES:
+            dlg.Destroy()
+            return
+        dlg.Destroy()
+        self.frame.client.do_kick_user(user_id, int(my_ch))
+        self.frame.set_status("Benutzer gekickt")
 
     def _on_user_subscribe_toggle(self, user_id: int, flag: int):
         self.frame.client.do_subscribe(user_id, flag)
         self.frame.set_status("Abonnement geaendert")
 
-    def get_tab_order(self):
-        return [
-            self.channel_tree, self.user_list, self.channel_list,
+    def _set_tab_order(self):
+        order = [
+            self.channel_list,
             self.channel_join_btn, self.channel_members,
         ]
+        for i in range(1, len(order)):
+            order[i].MoveAfterInTabOrder(order[i - 1])

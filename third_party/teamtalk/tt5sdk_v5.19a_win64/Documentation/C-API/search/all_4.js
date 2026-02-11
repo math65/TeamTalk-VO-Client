@@ -1,0 +1,27 @@
+var searchData=
+[
+  ['4_200a_0',['4 0a',['../changelog.html#v40aapi',1,'API Changes in v. 4.0a'],['../changelog.html#v40afeatures',1,'New Features in v. 4.0a']]],
+  ['4_200c_1',['4 0c',['../changelog.html#v40cbugfixes',1,'Bug fixes in v. 4.0c'],['../changelog.html#v40cfeatures',1,'New Features in v. 4.0c']]],
+  ['4_201a_2',['New Features in v. 4.1a',['../changelog.html#v41afeatures',1,'']]],
+  ['4_202a_3',['New features in v. 4.2a',['../changelog.html#v42afeatures',1,'']]],
+  ['4_203a_4',['New features in v. 4.3a',['../changelog.html#v43afeatures',1,'']]],
+  ['4_204a_5',['New features in v. 4.4a',['../changelog.html#v44afeatures',1,'']]],
+  ['4_205a_6',['New features in v. 4.5a',['../changelog.html#v45afeatures',1,'']]],
+  ['4_206a_7',['New features in v. 4.6a',['../changelog.html#v46afeatures',1,'']]],
+  ['4_206b_8',['New features in v. 4.6b',['../changelog.html#v46bfeatures',1,'']]],
+  ['4_20sdk_20v_204_200a_20release_20november_2022nd_202009_9',['TeamTalk 4 SDK v. 4.0a release, November 22nd 2009',['../changelog.html#v40arelease',1,'']]],
+  ['4_20sdk_20v_204_200c_20release_20march_207th_202010_10',['TeamTalk 4 SDK v. 4.0c release, March 7th 2010',['../changelog.html#v40crelease',1,'']]],
+  ['4_20sdk_20v_204_201a_20release_20october_2030th_202010_11',['TeamTalk 4 SDK v. 4.1a release, October 30th 2010',['../changelog.html#v41arelease',1,'']]],
+  ['4_20sdk_20v_204_202a_20release_20november_201st_202011_12',['TeamTalk 4 SDK v. 4.2a release, November 1st 2011',['../changelog.html#v42arelease',1,'']]],
+  ['4_20sdk_20v_204_203a_20release_20march_2018th_202012_13',['TeamTalk 4 SDK v. 4.3a release, March 18th 2012',['../changelog.html#v43arelease',1,'']]],
+  ['4_20sdk_20v_204_204a_20release_20september_2025th_202012_14',['TeamTalk 4 SDK v. 4.4a release, September 25th 2012',['../changelog.html#v44arelease',1,'']]],
+  ['4_20sdk_20v_204_205a_20release_20may_2012th_202013_15',['TeamTalk 4 SDK v. 4.5a release, May 12th 2013',['../changelog.html#v45arelease',1,'']]],
+  ['4_20sdk_20v_204_206a_20release_20february_2020th_202014_16',['TeamTalk 4 SDK v. 4.6a release, February 20th 2014',['../changelog.html#v46arelease',1,'']]],
+  ['4_20sdk_20v_204_206b_20release_20june_2028th_202014_17',['TeamTalk 4 SDK v. 4.6b release, June 28th 2014',['../changelog.html#v46brelease',1,'']]],
+  ['4000_18',['Max channels limited to 4000',['../changelog.html#v50amaxchannels',1,'']]],
+  ['4_3a_20log_20on_20to_20a_20teamtalk_20server_19',['Step 4: Log on to a TeamTalk Server',['../stepbystep.html#steplogon',1,'']]],
+  ['4a_20',['4a',['../changelog.html#v4aaapi',1,'API Changes in v4.4a'],['../changelog.html#v54aapi',1,'API changes in v5.4a'],['../changelog.html#v54abugfixes',1,'Bug fixes in v5.4a'],['../changelog.html#v44afeatures',1,'New features in v. 4.4a'],['../changelog.html#v54afeatures',1,'New features in v5.4a']]],
+  ['4a_20release_20june_2025th_202019_21',['TeamTalk 5 SDK v. 5.4a release, June 25th 2019',['../changelog.html#v54arelease',1,'']]],
+  ['4a_20release_20september_2025th_202012_22',['TeamTalk 4 SDK v. 4.4a release, September 25th 2012',['../changelog.html#v44arelease',1,'']]],
+  ['4th_202021_23',['TeamTalk 5 SDK v. 5.7a release, March 4th 2021',['../changelog.html#v57arelease',1,'']]]
+];
