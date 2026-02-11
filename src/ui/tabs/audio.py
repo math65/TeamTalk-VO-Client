@@ -25,14 +25,17 @@ class AudioTab(wx.Panel):
         dev_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         dev_form.AddGrowableCol(1)
 
+        # Create label immediately before control for NVDA association
+        lbl_in = wx.StaticText(self, label="Eingabegeraet")
         self.input_device = wx.Choice(self)
         self.input_device.SetName("Eingabegeraet")
+        lbl_out = wx.StaticText(self, label="Ausgabegeraet")
         self.output_device = wx.Choice(self)
         self.output_device.SetName("Ausgabegeraet")
 
-        dev_form.Add(wx.StaticText(self, label="Eingabegeraet"), 0, wx.ALIGN_CENTER_VERTICAL)
+        dev_form.Add(lbl_in, 0, wx.ALIGN_CENTER_VERTICAL)
         dev_form.Add(self.input_device, 1, wx.EXPAND)
-        dev_form.Add(wx.StaticText(self, label="Ausgabegeraet"), 0, wx.ALIGN_CENTER_VERTICAL)
+        dev_form.Add(lbl_out, 0, wx.ALIGN_CENTER_VERTICAL)
         dev_form.Add(self.output_device, 1, wx.EXPAND)
 
         sizer.Add(dev_form, 0, wx.ALL | wx.EXPAND, 8)
@@ -41,26 +44,34 @@ class AudioTab(wx.Panel):
         ctrl_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         ctrl_form.AddGrowableCol(1)
 
+        # Each label created right before its control
+        lbl_va = wx.StaticText(self, label="Voice Activation")
         self.voice_activation = wx.CheckBox(self, label="Voice Activation")
         self.voice_activation.SetName("Voice Activation")
         self.voice_activation.Bind(wx.EVT_CHECKBOX, self.on_voice_activation)
+
+        lbl_vl = wx.StaticText(self, label="Voice Level")
         self.voice_level = wx.Slider(self, value=30, minValue=0, maxValue=100)
-        self.voice_level.SetName("Voice Aktivierungslevel")
+        self.voice_level.SetName("Voice Level")
         self.voice_level.Bind(wx.EVT_SLIDER, self.on_voice_level)
+
+        lbl_ig = wx.StaticText(self, label="Mikrofon Gain")
         self.input_gain = wx.Slider(self, value=2000, minValue=0, maxValue=32000)
         self.input_gain.SetName("Mikrofon Gain")
         self.input_gain.Bind(wx.EVT_SLIDER, self.on_input_gain)
+
+        lbl_ov = wx.StaticText(self, label="Ausgabe Lautstaerke")
         self.output_volume = wx.Slider(self, value=1000, minValue=0, maxValue=32000)
         self.output_volume.SetName("Ausgabe Lautstaerke")
         self.output_volume.Bind(wx.EVT_SLIDER, self.on_output_volume)
 
-        ctrl_form.Add(wx.StaticText(self, label="Voice Activation"), 0, wx.ALIGN_CENTER_VERTICAL)
+        ctrl_form.Add(lbl_va, 0, wx.ALIGN_CENTER_VERTICAL)
         ctrl_form.Add(self.voice_activation, 0)
-        ctrl_form.Add(wx.StaticText(self, label="Voice Level"), 0, wx.ALIGN_CENTER_VERTICAL)
+        ctrl_form.Add(lbl_vl, 0, wx.ALIGN_CENTER_VERTICAL)
         ctrl_form.Add(self.voice_level, 1, wx.EXPAND)
-        ctrl_form.Add(wx.StaticText(self, label="Mikrofon Gain"), 0, wx.ALIGN_CENTER_VERTICAL)
+        ctrl_form.Add(lbl_ig, 0, wx.ALIGN_CENTER_VERTICAL)
         ctrl_form.Add(self.input_gain, 1, wx.EXPAND)
-        ctrl_form.Add(wx.StaticText(self, label="Ausgabe Lautstaerke"), 0, wx.ALIGN_CENTER_VERTICAL)
+        ctrl_form.Add(lbl_ov, 0, wx.ALIGN_CENTER_VERTICAL)
         ctrl_form.Add(self.output_volume, 1, wx.EXPAND)
 
         sizer.Add(ctrl_form, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
@@ -75,7 +86,8 @@ class AudioTab(wx.Panel):
 
         # --- VA stop delay ---
         delay_row = wx.BoxSizer(wx.HORIZONTAL)
-        delay_row.Add(wx.StaticText(self, label="VA Nachlauf (ms)"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        lbl_delay = wx.StaticText(self, label="VA Nachlauf (ms)")
+        delay_row.Add(lbl_delay, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.va_delay = wx.Slider(self, value=0, minValue=0, maxValue=5000)
         self.va_delay.SetName("VA Nachlauf")
         self.va_delay.Bind(wx.EVT_SLIDER, self.on_va_delay)
@@ -108,7 +120,8 @@ class AudioTab(wx.Panel):
 
         # --- Preprocessing ---
         preprocess_row = wx.BoxSizer(wx.HORIZONTAL)
-        preprocess_row.Add(wx.StaticText(self, label="Vorverarbeitung"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        lbl_pp = wx.StaticText(self, label="Vorverarbeitung")
+        preprocess_row.Add(lbl_pp, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.preprocess_choice = wx.Choice(self, choices=["Keine", "SpeexDSP", "WebRTC"])
         self.preprocess_choice.SetName("Vorverarbeitung")
         self.preprocess_choice.SetSelection(0)

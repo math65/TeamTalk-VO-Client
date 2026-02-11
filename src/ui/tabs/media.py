@@ -145,6 +145,7 @@ class MediaTab(wx.Panel):
         stream_sizer = wx.StaticBoxSizer(stream_box, wx.VERTICAL)
 
         file_row = wx.BoxSizer(wx.HORIZONTAL)
+        lbl_media_path = wx.StaticText(self.stream_panel, label="Mediendatei Pfad")
         self.media_path = wx.TextCtrl(self.stream_panel)
         self.media_path.SetName("Mediendatei Pfad")
         self.browse_btn = wx.Button(self.stream_panel, label="Durchsuchen...")
@@ -172,6 +173,7 @@ class MediaTab(wx.Panel):
             ctrl_row.Add(btn, 0, wx.RIGHT, 8)
         stream_sizer.Add(ctrl_row, 0, wx.ALL, 4)
 
+        lbl_seek = wx.StaticText(self.stream_panel, label="Position")
         self.seek_slider = wx.Slider(self.stream_panel, value=0, minValue=0, maxValue=1000)
         self.seek_slider.SetName("Position")
         self.seek_slider.Bind(wx.EVT_SLIDER, self.on_seek)
@@ -194,6 +196,7 @@ class MediaTab(wx.Panel):
         yt_sizer = wx.StaticBoxSizer(yt_box, wx.VERTICAL)
 
         yt_row = wx.BoxSizer(wx.HORIZONTAL)
+        lbl_yt_url = wx.StaticText(self.yt_panel, label="YouTube-Link")
         self.yt_url = wx.TextCtrl(self.yt_panel)
         self.yt_url.SetName("YouTube-Link")
         self.yt_btn = wx.Button(self.yt_panel, label="Download & streamen")
@@ -234,12 +237,14 @@ class MediaTab(wx.Panel):
         radio_box = wx.StaticBox(self.radio_panel, label="Webradio")
         radio_sizer = wx.StaticBoxSizer(radio_box, wx.VERTICAL)
 
+        lbl_radio_choice = wx.StaticText(self.radio_panel, label="Webradio Senderliste")
         self.radio_choice = wx.Choice(self.radio_panel)
         self.radio_choice.SetName("Webradio Senderliste")
         self.radio_choice.Bind(wx.EVT_CHOICE, self.on_radio_selected)
         radio_sizer.Add(self.radio_choice, 0, wx.ALL | wx.EXPAND, 4)
 
         radio_url_row = wx.BoxSizer(wx.HORIZONTAL)
+        lbl_radio_url = wx.StaticText(self.radio_panel, label="Webradio Stream-URL")
         self.radio_url = wx.TextCtrl(self.radio_panel)
         self.radio_url.SetName("Webradio Stream-URL")
         self.radio_play_btn = wx.Button(self.radio_panel, label="Webradio streamen")
@@ -277,6 +282,7 @@ class MediaTab(wx.Panel):
         podcast_sizer = wx.StaticBoxSizer(podcast_box, wx.VERTICAL)
 
         search_row = wx.BoxSizer(wx.HORIZONTAL)
+        lbl_podcast_search = wx.StaticText(self.podcast_panel, label="Podcast Suche")
         self.podcast_search = wx.TextCtrl(self.podcast_panel)
         self.podcast_search.SetName("Podcast Suche")
         self.podcast_search_btn = wx.Button(self.podcast_panel, label="Suchen")
@@ -287,6 +293,7 @@ class MediaTab(wx.Panel):
         podcast_sizer.Add(search_row, 0, wx.ALL | wx.EXPAND, 4)
 
         feed_row = wx.BoxSizer(wx.HORIZONTAL)
+        lbl_podcast_feed = wx.StaticText(self.podcast_panel, label="Podcast Feed URL")
         self.podcast_feed = wx.TextCtrl(self.podcast_panel)
         self.podcast_feed.SetName("Podcast Feed URL")
         self.podcast_feed_btn = wx.Button(self.podcast_panel, label="Feed laden")
