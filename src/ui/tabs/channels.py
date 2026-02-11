@@ -381,7 +381,7 @@ class ChannelsTab(wx.Panel):
 
     def _set_tab_order(self):
         order = [
-            self.channel_tree, self.user_list, self.channel_list,
+            self.channel_list,
             self.channel_join_btn, self.channel_members,
         ]
         for i in range(1, len(order)):

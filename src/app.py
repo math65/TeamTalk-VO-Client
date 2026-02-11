@@ -701,7 +701,7 @@ class MainFrame(wx.Frame):
 
     def on_close(self, event):
         self.Hide()
-        self.tray.SetIcon(self.tray.GetIcon(), "TeamTalk VoiceOver Client (im Tray)")
+        self.tray.SetIcon(self.tray._icon, "TeamTalk VoiceOver Client (im Tray)")
         self.set_status("Im Tray ausgeblendet")
         event.Veto()
 

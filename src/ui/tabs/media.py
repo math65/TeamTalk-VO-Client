@@ -470,21 +470,36 @@ class MediaTab(wx.Panel):
         return max(0.1, float(val) / 100.0)
 
     def _set_tab_order(self):
-        order = [
+        # Top-level controls (direct children of self)
+        top_order = [
             self.rec_format, self.rec_start_btn, self.rec_stop_btn,
             self.stream_mode,
+        ]
+        for i in range(1, len(top_order)):
+            top_order[i].MoveAfterInTabOrder(top_order[i - 1])
+        # Each sub-panel has its own tab order (children are siblings within their panel)
+        file_order = [
             self.media_path, self.browse_btn, self.play_btn,
-            self.pause_btn, self.stop_btn, self.seek_slider,
-            self.stream_gain,
-            self.yt_url, self.yt_btn, self.yt_pause_btn, self.yt_stop_btn, self.yt_stream_gain,
-            self.radio_choice, self.radio_url, self.radio_play_btn, self.radio_pause_btn, self.radio_stop_btn,
-            self.radio_stream_gain,
+            self.pause_btn, self.stop_btn, self.seek_slider, self.stream_gain,
+        ]
+        for i in range(1, len(file_order)):
+            file_order[i].MoveAfterInTabOrder(file_order[i - 1])
+        yt_order = [self.yt_url, self.yt_btn, self.yt_pause_btn, self.yt_stop_btn, self.yt_stream_gain]
+        for i in range(1, len(yt_order)):
+            yt_order[i].MoveAfterInTabOrder(yt_order[i - 1])
+        radio_order = [
+            self.radio_choice, self.radio_url, self.radio_play_btn,
+            self.radio_pause_btn, self.radio_stop_btn, self.radio_stream_gain,
+        ]
+        for i in range(1, len(radio_order)):
+            radio_order[i].MoveAfterInTabOrder(radio_order[i - 1])
+        pod_order = [
             self.podcast_search, self.podcast_search_btn, self.podcast_feed, self.podcast_feed_btn,
             self.podcast_list, self.episode_list, self.episode_stream_btn,
             self.podcast_pause_btn, self.podcast_stop_btn, self.podcast_stream_gain,
         ]
-        for i in range(1, len(order)):
-            order[i].MoveAfterInTabOrder(order[i - 1])
+        for i in range(1, len(pod_order)):
+            pod_order[i].MoveAfterInTabOrder(pod_order[i - 1])
 
     def on_stream_mode(self, _event):
         self._update_stream_mode()
