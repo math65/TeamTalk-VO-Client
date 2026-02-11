@@ -103,6 +103,7 @@ class SystemTab(wx.Panel):
         sizer.Add(tts_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
+        self._set_tab_order()
 
         self._bind_events()
         self._sync_from_manager()
@@ -271,8 +272,9 @@ class SystemTab(wx.Panel):
     def append_system(self, text: str) -> None:
         self.system_log.AppendText(text + "\n")
 
-    def get_tab_order(self):
-        return [
+    def _set_tab_order(self):
+        order = [
+            self.system_log,
             self.tts_enabled,
             self.tts_interrupt,
             self.tts_chat,
@@ -288,3 +290,5 @@ class SystemTab(wx.Panel):
             self.tts_refresh,
             self.tts_test,
         ]
+        for i in range(1, len(order)):
+            order[i].MoveAfterInTabOrder(order[i - 1])

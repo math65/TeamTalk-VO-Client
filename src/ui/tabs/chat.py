@@ -37,8 +37,9 @@ class ChatTab(wx.Panel):
         sizer.Add(self.chat_log, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         input_row = wx.BoxSizer(wx.HORIZONTAL)
-        self.chat_input = wx.TextCtrl(self)
+        self.chat_input = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.chat_input.SetName("Chatnachricht")
+        self.chat_input.Bind(wx.EVT_TEXT_ENTER, self.on_chat_send)
         self.chat_send = wx.Button(self, label="Senden")
         self.chat_send.SetName("Nachricht senden")
         self.chat_send.Bind(wx.EVT_BUTTON, self.on_chat_send)
@@ -47,6 +48,7 @@ class ChatTab(wx.Panel):
         sizer.Add(input_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
+        self._set_tab_order()
 
     def append_chat(self, text: str, kind: str = "chat", speak: bool = True) -> None:
         self.chat_log.AppendText(text + "\n")
@@ -101,7 +103,9 @@ class ChatTab(wx.Panel):
         else:
             self.frame.set_status("Senden fehlgeschlagen")
 
-    def get_tab_order(self):
-        return [
-            self.private_chat, self.private_user, self.chat_input, self.chat_send,
+    def _set_tab_order(self):
+        order = [
+            self.private_chat, self.private_user, self.chat_log, self.chat_input, self.chat_send,
         ]
+        for i in range(1, len(order)):
+            order[i].MoveAfterInTabOrder(order[i - 1])

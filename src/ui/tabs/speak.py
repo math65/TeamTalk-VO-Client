@@ -110,6 +110,7 @@ class SpeakTab(wx.Panel):
 
         sizer.Add(tts_sizer, 1, wx.ALL | wx.EXPAND, 8)
         self.SetSizer(sizer)
+        self._set_tab_order()
 
     # ------------------------------------------------------------------
     # API key & data loading
@@ -309,9 +310,11 @@ class SpeakTab(wx.Panel):
             pass
         self._cleanup_temp()
 
-    def get_tab_order(self):
-        return [
+    def _set_tab_order(self):
+        order = [
             self.voice_choice, self.refresh_btn, self.model_choice,
             self.stability_slider, self.similarity_slider, self.style_slider,
             self.speaker_boost, self.text_input, self.speak_btn, self.stop_btn,
         ]
+        for i in range(1, len(order)):
+            order[i].MoveAfterInTabOrder(order[i - 1])

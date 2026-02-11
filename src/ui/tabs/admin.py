@@ -107,6 +107,7 @@ class AdminTab(wx.Panel):
         sizer.Add(srv_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
+        self._set_tab_order()
 
     def _add_field(self, sizer, label, value):
         lbl = wx.StaticText(self, label=label)
@@ -161,6 +162,14 @@ class AdminTab(wx.Panel):
             self.frame.set_status("Bitte ein Konto auswaehlen")
             return
         username = self.frame.tt_str(self._accounts[sel].szUsername)
+        dlg = wx.MessageDialog(
+            self, f"Konto '{username}' wirklich loeschen?",
+            "Konto loeschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+        )
+        if dlg.ShowModal() != wx.ID_YES:
+            dlg.Destroy()
+            return
+        dlg.Destroy()
         self.frame.client.do_delete_user_account(username)
         self.frame.set_status(f"Konto geloescht: {username}")
         wx.CallLater(500, self.on_load_accounts, None)
@@ -217,13 +226,15 @@ class AdminTab(wx.Panel):
         self.frame.client.do_save_config()
         self.frame.set_status("Konfiguration gespeichert")
 
-    def get_tab_order(self):
-        return [
+    def _set_tab_order(self):
+        order = [
             self.account_list, self.load_accounts_btn, self.add_account_btn,
             self.del_account_btn, self.ban_list, self.load_bans_btn, self.unban_btn,
             self.srv_name, self.srv_motd, self.srv_maxusers,
             self.load_props_btn, self.save_props_btn, self.save_config_btn,
         ]
+        for i in range(1, len(order)):
+            order[i].MoveAfterInTabOrder(order[i - 1])
 
 
 class _NewAccountDialog(wx.Dialog):

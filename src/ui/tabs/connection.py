@@ -61,7 +61,7 @@ class ConnectionTab(wx.Panel):
 
         self.encrypted = wx.CheckBox(self, label="Verschluesselt (Encrypted)")
         self.encrypted.SetName("Verschluesselt")
-        form.Add(wx.StaticText(self, label=""), 0)  # leere Zelle links
+        form.AddSpacer(0)
         form.Add(self.encrypted, 0)
 
         server_sizer.Add(form, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
@@ -101,6 +101,8 @@ class ConnectionTab(wx.Panel):
 
         sizer.Add(server_sizer, 1, wx.ALL | wx.EXPAND, 8)
         self.SetSizer(sizer)
+
+        self._set_tab_order()
 
         # Stats timer
         self._stats_timer = wx.Timer(self)
@@ -194,6 +196,14 @@ class ConnectionTab(wx.Panel):
             self.frame.set_status("Bitte einen Server auswaehlen")
             return
         name = self.frame.store.items()[idx].name
+        dlg = wx.MessageDialog(
+            self, f"Server '{name}' wirklich entfernen?",
+            "Server entfernen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+        )
+        if dlg.ShowModal() != wx.ID_YES:
+            dlg.Destroy()
+            return
+        dlg.Destroy()
         self.frame.store.remove(idx)
         self.reload_server_list()
         self.frame.set_status(f"Server entfernt: {name}")
@@ -242,10 +252,13 @@ class ConnectionTab(wx.Panel):
         tcp_ms = int(stats.nTcpPingTimeMs)
         self.stats_label.SetLabel(f"UDP Ping: {udp_ms} ms  |  TCP Ping: {tcp_ms} ms")
 
-    def get_tab_order(self):
-        return [
+    def _set_tab_order(self):
+        order = [
             self.server_list, self.server_add, self.server_edit, self.server_remove,
             self.host, self.tcp_port, self.udp_port, self.nickname, self.username,
-            self.password, self.client_name, self.elevenlabs_key, self.connect_btn, self.reconnect_btn,
+            self.password, self.client_name, self.elevenlabs_key, self.encrypted,
+            self.connect_btn, self.reconnect_btn,
             self.join_root_btn, self.leave_btn, self.logout_btn, self.auto_reconnect,
         ]
+        for i in range(1, len(order)):
+            order[i].MoveAfterInTabOrder(order[i - 1])

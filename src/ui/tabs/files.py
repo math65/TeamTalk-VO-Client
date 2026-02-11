@@ -50,6 +50,7 @@ class FilesTab(wx.Panel):
         sizer.Add(self.transfer_gauge, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
+        self._set_tab_order()
 
         self._file_ids = []  # parallel to list rows
 
@@ -135,6 +136,15 @@ class FilesTab(wx.Panel):
         ch_id = self.frame.client.get_my_channel_id()
         if not ch_id:
             return
+        name = self.file_list.GetString(sel).split(" | ")[0]
+        dlg = wx.MessageDialog(
+            self, f"Datei '{name}' wirklich loeschen?",
+            "Datei loeschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+        )
+        if dlg.ShowModal() != wx.ID_YES:
+            dlg.Destroy()
+            return
+        dlg.Destroy()
         self.frame.client.delete_file(int(ch_id), file_id)
         self.frame.set_status("Datei geloescht")
         wx.CallLater(500, self.refresh_file_list)
@@ -154,8 +164,10 @@ class FilesTab(wx.Panel):
             self.frame.set_status("Dateitransfer abgeschlossen")
             wx.CallLater(500, self.refresh_file_list)
 
-    def get_tab_order(self):
-        return [
+    def _set_tab_order(self):
+        order = [
             self.file_list, self.upload_btn, self.download_btn,
             self.delete_btn, self.refresh_btn,
         ]
+        for i in range(1, len(order)):
+            order[i].MoveAfterInTabOrder(order[i - 1])

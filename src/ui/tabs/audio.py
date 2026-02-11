@@ -138,6 +138,7 @@ class AudioTab(wx.Panel):
         sizer.Add(btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         self.SetSizer(sizer)
+        self._set_tab_order()
 
         # VU timer
         self._vu_timer = wx.Timer(self)
@@ -316,8 +317,8 @@ class AudioTab(wx.Panel):
                 self._loopback_handle = None
             self.frame.set_status("Mikrofontest beendet")
 
-    def get_tab_order(self):
-        return [
+    def _set_tab_order(self):
+        order = [
             self.input_device, self.output_device, self.voice_activation,
             self.voice_level, self.input_gain, self.output_volume,
             self.va_delay, self.output_mute, self.agc_check,
@@ -325,3 +326,5 @@ class AudioTab(wx.Panel):
             self.preprocess_choice, self.refresh_audio_btn, self.apply_audio_btn,
             self.ptt_toggle, self.loopback_toggle,
         ]
+        for i in range(1, len(order)):
+            order[i].MoveAfterInTabOrder(order[i - 1])

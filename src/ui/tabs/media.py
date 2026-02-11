@@ -31,59 +31,58 @@ class MediaTab(wx.Panel):
     RADIO_ENTRIES = [
         ("localradio Aachen und region", "https://stream.dashitradio.de/dashitradio/mp3-128/stream.mp3"),
         ("hitradion1", "https://frontend.streamonkey.net/fhn-hitradion1"),
-        ("nord ostsewelle", "https://ostseewelle-nord.cast.addradio.de/ostseewelle/nord/mp3/high"),
-        ("nord ostsewelle", "https://ostseewelle-ost.cast.addradio.de/ostseewelle/ost/mp3/high"),
-        ("nord ostsewelle", "https://ostseewelle-west.cast.addradio.de/ostseewelle/west/mp3/high"),
-        ("nord ostsewelle", "https://www.ostseewelle.de/audiothek/Livestream-amp-Regionalstreams--ostseewelle_347911/detail/Region-Mecklenburg-364506"),
-        ("nord ostsewelle", "https://www.ostseewelle.de/audiothek/Livestream-amp-Regionalstreams--ostsewelle_347911/detail/Region-MuritzUsedom-364503"),
-        ("nord ostsewelle", "https://www.ostseewelle.de/audiothek/Livestream-amp-Regionalstreams--ostseewelle_347911/detail/Region-Ostseekuste-364499"),
-        ("90er", "https://streams.90s90s.de/90s00s/mp3-128/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/inthemix/mp3-192/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/trance/mp3-128/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/technoessentials/mp3-128/streams.90s90s.de/play.m3u"),
-        ("90er", "https://streams.90s90s.de/techno/mp3-128/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/sachsenradio/mp3-192/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/rock/mp3-192/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/reggae/mp3-192/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/pop/mp3-128/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/nrw/mp3-128/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/mayday/mp3-128/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/main/mp3-128/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/loveparade/mp3-128/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/house/mp3-192/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/hiphop-german/mp3-128/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/hiphop/mp3-128/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/eurodance/mp3-128/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/danceradio/mp3-192/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/RAVE/mp3-192/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/90s90s-sommerhits/mp3-128/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/xmas/mp3-192/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/trance/mp3-192/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/trance/mp3-192/streams.90s90s.de/"),
-        ("90er", "https://streams.90s90s.de/rnb/mp3-192/streams.90s90s.de/"),
-        ("80er", "https://streams.80s80s.de/christmas/mp3-128/streams.80s80s.de/"),
-        ("80er", "https://streams.80s80s.de/dance/mp3-192/streams.80s80s.de/"),
-        ("80er", "https://streams.80s80s.de/deutsch/mp3-192/streams.80s80s.de/"),
-        ("80er", "https://streams.80s80s.de/maxis/mp3-192/streams.80s80s.de/"),
-        ("80er", "https://streams.80s80s.de/ndw/mp3-128/streams.80s80s.de/"),
-        ("80er", "https://streams.80s80s.de/party/mp3-192/streams.80s80s.de/"),
-        ("80er", "https://streams.80s80s.de/reggae/mp3-192/streams.80s80s.de/"),
-        ("80er", "https://streams.80s80s.de/rock/mp3-192/streams.80s80s.de/"),
-        ("80er", "https://streams.80s80s.de/romanticrock/mp3-192/streams.80s80s.de/"),
-        ("80er", "https://streams.80s80s.de/summerhits/mp3-192/streams.80s80s.de/"),
-        ("80er", "https://streams.80s80s.de/techno/mp3-192/streams.80s80s.de/"),
-        ("we are one", "http://listen.technobase.fm/tunein-mp3"),
-        ("we are one", "http://listen.housetime.fm/listen.mp3.m3u"),
-        ("we are one", "http://listen.hardbase.fm/listen.mp3.m3u"),
-        ("we are one", "http://listen.trancebase.fm/listen.mp3.m3u"),
-        ("we are one", "http://listen.coretime.fm/listen.mp3.m3u"),
-        ("we are one", "http://listen.clubtime.fm/listen.mp3.m3u"),
-        ("we are one", "http://listen.teatime.fm/listen.mp3.m3u"),
-        ("we are one", "http://listen.replay.fm/listen.mp3.m3u"),
-        ("Hörspiele rund um die Uhr", "https://stream.laut.fm/hoerspiel"),
-        ("musiksender von radiorobbe", "http://stream.powerradio4u.de:8010/radio.mp3"),
-        ("außenstream von radiorobbe", "http://stream.powerradio4u.de:8000/opr_outside"),
-        ("für freunde mechanicher musikinstromente", "https://global.citrus3.com:2020/stream/mechanicalmusicradio"),
+        ("Ostseewelle - Nord", "https://ostseewelle-nord.cast.addradio.de/ostseewelle/nord/mp3/high"),
+        ("Ostseewelle - Ost", "https://ostseewelle-ost.cast.addradio.de/ostseewelle/ost/mp3/high"),
+        ("Ostseewelle - West", "https://ostseewelle-west.cast.addradio.de/ostseewelle/west/mp3/high"),
+        ("Ostseewelle - Mecklenburg", "https://www.ostseewelle.de/audiothek/Livestream-amp-Regionalstreams--ostseewelle_347911/detail/Region-Mecklenburg-364506"),
+        ("Ostseewelle - Mueritz/Usedom", "https://www.ostseewelle.de/audiothek/Livestream-amp-Regionalstreams--ostsewelle_347911/detail/Region-MuritzUsedom-364503"),
+        ("Ostseewelle - Ostseekueste", "https://www.ostseewelle.de/audiothek/Livestream-amp-Regionalstreams--ostseewelle_347911/detail/Region-Ostseekuste-364499"),
+        ("90s90s - 2000er", "https://streams.90s90s.de/90s00s/mp3-128/streams.90s90s.de/"),
+        ("90s90s - In the Mix", "https://streams.90s90s.de/inthemix/mp3-192/streams.90s90s.de/"),
+        ("90s90s - Trance", "https://streams.90s90s.de/trance/mp3-128/streams.90s90s.de/"),
+        ("90s90s - Techno Essentials", "https://streams.90s90s.de/technoessentials/mp3-128/streams.90s90s.de/play.m3u"),
+        ("90s90s - Techno", "https://streams.90s90s.de/techno/mp3-128/streams.90s90s.de/"),
+        ("90s90s - Sachsenradio", "https://streams.90s90s.de/sachsenradio/mp3-192/streams.90s90s.de/"),
+        ("90s90s - Rock", "https://streams.90s90s.de/rock/mp3-192/streams.90s90s.de/"),
+        ("90s90s - Reggae", "https://streams.90s90s.de/reggae/mp3-192/streams.90s90s.de/"),
+        ("90s90s - Pop", "https://streams.90s90s.de/pop/mp3-128/streams.90s90s.de/"),
+        ("90s90s - NRW", "https://streams.90s90s.de/nrw/mp3-128/streams.90s90s.de/"),
+        ("90s90s - Mayday", "https://streams.90s90s.de/mayday/mp3-128/streams.90s90s.de/"),
+        ("90s90s - Main", "https://streams.90s90s.de/main/mp3-128/streams.90s90s.de/"),
+        ("90s90s - Loveparade", "https://streams.90s90s.de/loveparade/mp3-128/streams.90s90s.de/"),
+        ("90s90s - House", "https://streams.90s90s.de/house/mp3-192/streams.90s90s.de/"),
+        ("90s90s - HipHop German", "https://streams.90s90s.de/hiphop-german/mp3-128/streams.90s90s.de/"),
+        ("90s90s - HipHop", "https://streams.90s90s.de/hiphop/mp3-128/streams.90s90s.de/"),
+        ("90s90s - Eurodance", "https://streams.90s90s.de/eurodance/mp3-128/streams.90s90s.de/"),
+        ("90s90s - Danceradio", "https://streams.90s90s.de/danceradio/mp3-192/streams.90s90s.de/"),
+        ("90s90s - Rave", "https://streams.90s90s.de/RAVE/mp3-192/streams.90s90s.de/"),
+        ("90s90s - Sommerhits", "https://streams.90s90s.de/90s90s-sommerhits/mp3-128/streams.90s90s.de/"),
+        ("90s90s - Xmas", "https://streams.90s90s.de/xmas/mp3-192/streams.90s90s.de/"),
+        ("90s90s - Trance HQ", "https://streams.90s90s.de/trance/mp3-192/streams.90s90s.de/"),
+        ("90s90s - RnB", "https://streams.90s90s.de/rnb/mp3-192/streams.90s90s.de/"),
+        ("80s80s - Christmas", "https://streams.80s80s.de/christmas/mp3-128/streams.80s80s.de/"),
+        ("80s80s - Dance", "https://streams.80s80s.de/dance/mp3-192/streams.80s80s.de/"),
+        ("80s80s - Deutsch", "https://streams.80s80s.de/deutsch/mp3-192/streams.80s80s.de/"),
+        ("80s80s - Maxis", "https://streams.80s80s.de/maxis/mp3-192/streams.80s80s.de/"),
+        ("80s80s - NDW", "https://streams.80s80s.de/ndw/mp3-128/streams.80s80s.de/"),
+        ("80s80s - Party", "https://streams.80s80s.de/party/mp3-192/streams.80s80s.de/"),
+        ("80s80s - Reggae", "https://streams.80s80s.de/reggae/mp3-192/streams.80s80s.de/"),
+        ("80s80s - Rock", "https://streams.80s80s.de/rock/mp3-192/streams.80s80s.de/"),
+        ("80s80s - Romantic Rock", "https://streams.80s80s.de/romanticrock/mp3-192/streams.80s80s.de/"),
+        ("80s80s - Summerhits", "https://streams.80s80s.de/summerhits/mp3-192/streams.80s80s.de/"),
+        ("80s80s - Techno", "https://streams.80s80s.de/techno/mp3-192/streams.80s80s.de/"),
+        ("TechnoBase.FM", "http://listen.technobase.fm/tunein-mp3"),
+        ("HouseTime.FM", "http://listen.housetime.fm/listen.mp3.m3u"),
+        ("HardBase.FM", "http://listen.hardbase.fm/listen.mp3.m3u"),
+        ("TranceBase.FM", "http://listen.trancebase.fm/listen.mp3.m3u"),
+        ("CoreTime.FM", "http://listen.coretime.fm/listen.mp3.m3u"),
+        ("ClubTime.FM", "http://listen.clubtime.fm/listen.mp3.m3u"),
+        ("TeaTime.FM", "http://listen.teatime.fm/listen.mp3.m3u"),
+        ("Replay.FM", "http://listen.replay.fm/listen.mp3.m3u"),
+        ("Hoerspiele rund um die Uhr", "https://stream.laut.fm/hoerspiel"),
+        ("Musiksender von Radiorobbe", "http://stream.powerradio4u.de:8010/radio.mp3"),
+        ("Aussenstream von Radiorobbe", "http://stream.powerradio4u.de:8000/opr_outside"),
+        ("Mechanische Musikinstrumente", "https://global.citrus3.com:2020/stream/mechanicalmusicradio"),
     ]
 
     def __init__(self, parent: wx.Window, frame: MainFrame) -> None:
@@ -337,6 +336,7 @@ class MediaTab(wx.Panel):
         self.SetSizer(sizer)
         self._load_radio_list()
         self._update_stream_mode()
+        self._set_tab_order()
 
     def stop_all(self):
         if self._recording:
@@ -469,8 +469,8 @@ class MediaTab(wx.Panel):
             val = self.stream_gain.GetValue()
         return max(0.1, float(val) / 100.0)
 
-    def get_tab_order(self):
-        return [
+    def _set_tab_order(self):
+        order = [
             self.rec_format, self.rec_start_btn, self.rec_stop_btn,
             self.stream_mode,
             self.media_path, self.browse_btn, self.play_btn,
@@ -483,6 +483,8 @@ class MediaTab(wx.Panel):
             self.podcast_list, self.episode_list, self.episode_stream_btn,
             self.podcast_pause_btn, self.podcast_stop_btn, self.podcast_stream_gain,
         ]
+        for i in range(1, len(order)):
+            order[i].MoveAfterInTabOrder(order[i - 1])
 
     def on_stream_mode(self, _event):
         self._update_stream_mode()
@@ -499,6 +501,16 @@ class MediaTab(wx.Panel):
         self.podcast_panel.Show(show_podcast)
         self.Layout()
         self.GetParent().Layout()
+        # Move focus to the first control in the visible panel
+        focus_targets = {
+            0: self.media_path,
+            1: self.yt_url,
+            2: self.radio_choice,
+            3: self.podcast_search,
+        }
+        target = focus_targets.get(mode)
+        if target:
+            target.SetFocus()
 
     # --- Podcasts ---
 
