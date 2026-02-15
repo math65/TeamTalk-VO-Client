@@ -210,6 +210,7 @@ class MainFrame(wx.Frame):
                     password=tab.password.GetValue().strip(),
                     client_name=tab.client_name.GetValue().strip(),
                     encrypted=tab.encrypted.GetValue(),
+                    timeout_ms=8000,
                 )
                 wx.CallAfter(self.handle_connect_result, result)
             except Exception as exc:

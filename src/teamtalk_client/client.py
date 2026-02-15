@@ -73,9 +73,27 @@ class TeamTalkClient:
         password: str,
         client_name: str,
         encrypted: bool = False,
-        timeout_ms: int = 2000,
+        timeout_ms: int = 8000,
     ) -> ConnectResult:
         self._last_connect = (host, tcp_port, udp_port, nickname, username, password, client_name, encrypted)
+        # Ensure prior sessions do not block reconnect/server-switch.
+        try:
+            self.client.disconnect()
+        except Exception:
+            pass
+        self._connected = False
+
+        if encrypted:
+            try:
+                ctx = self.tt.EncryptionContext()
+                # Allow encrypted connections even when server uses self-signed certs.
+                ctx.bVerifyPeer = False
+                ctx.bVerifyClientOnce = False
+                ctx.nVerifyDepth = 0
+                self.client.setEncryptionContext(ctx)
+            except Exception:
+                pass
+
         if not self.client.connect(self.tt.ttstr(host), tcp_port, udp_port, 0, 0, encrypted):
             return ConnectResult(False, "Verbindung konnte nicht gestartet werden")
 
@@ -671,7 +689,7 @@ class TeamTalkClient:
             self._event_thread.join(timeout)
         self._event_thread = None
 
-    def reconnect(self, timeout_ms: int = 2000) -> ConnectResult:
+    def reconnect(self, timeout_ms: int = 8000) -> ConnectResult:
         if not self._last_connect:
             return ConnectResult(False, "Keine gespeicherten Verbindungsdaten")
         return self.connect_and_login(*self._last_connect, timeout_ms=timeout_ms)
