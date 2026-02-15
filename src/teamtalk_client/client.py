@@ -63,6 +63,13 @@ class TeamTalkClient:
                 return False, msg
         return False, self.tt.TTMessage()
 
+    def _drain_message_queue(self, max_messages: int = 200) -> None:
+        """Drop stale SDK events before starting a new connect sequence."""
+        for _ in range(max_messages):
+            msg = self.client.getMessage(0)
+            if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_NONE:
+                break
+
     def connect_and_login(
         self,
         host: str,
@@ -82,6 +89,7 @@ class TeamTalkClient:
         except Exception:
             pass
         self._connected = False
+        self._drain_message_queue()
 
         if encrypted:
             try:
@@ -91,6 +99,12 @@ class TeamTalkClient:
                 ctx.bVerifyClientOnce = False
                 ctx.nVerifyDepth = 0
                 self.client.setEncryptionContext(ctx)
+            except Exception:
+                pass
+        else:
+            try:
+                # Reset any previous TLS context when using plain connections.
+                self.client.setEncryptionContext(self.tt.EncryptionContext())
             except Exception:
                 pass
 
