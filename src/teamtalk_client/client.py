@@ -19,6 +19,7 @@ class TeamTalkClient:
     def __init__(self) -> None:
         self.tt = load_teamtalk_module()
         self.client = self.tt.TeamTalk()
+        self._connect_lock = threading.Lock()
         self._event_thread: Optional[threading.Thread] = None
         self._event_stop = threading.Event()
         self._last_connect: Optional[Tuple[str, int, int, str, str, str, str, bool]] = None
@@ -70,20 +71,7 @@ class TeamTalkClient:
             if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_NONE:
                 break
 
-    def connect_and_login(
-        self,
-        host: str,
-        tcp_port: int,
-        udp_port: int,
-        nickname: str,
-        username: str,
-        password: str,
-        client_name: str,
-        encrypted: bool = False,
-        timeout_ms: int = 8000,
-    ) -> ConnectResult:
-        self._last_connect = (host, tcp_port, udp_port, nickname, username, password, client_name, encrypted)
-        # Ensure prior sessions do not block reconnect/server-switch.
+    def _disconnect_and_drain(self) -> None:
         try:
             self.client.disconnect()
         except Exception:
@@ -91,23 +79,39 @@ class TeamTalkClient:
         self._connected = False
         self._drain_message_queue()
 
-        if encrypted:
-            try:
+    def _recreate_client(self) -> None:
+        try:
+            self.client.closeTeamTalk()
+        except Exception:
+            pass
+        self.client = self.tt.TeamTalk()
+        self._connected = False
+        self._drain_message_queue()
+
+    def _apply_encryption_context(self, encrypted: bool) -> None:
+        try:
+            if encrypted:
                 ctx = self.tt.EncryptionContext()
                 # Allow encrypted connections even when server uses self-signed certs.
                 ctx.bVerifyPeer = False
                 ctx.bVerifyClientOnce = False
                 ctx.nVerifyDepth = 0
                 self.client.setEncryptionContext(ctx)
-            except Exception:
-                pass
-        else:
-            try:
+            else:
                 # Reset any previous TLS context when using plain connections.
                 self.client.setEncryptionContext(self.tt.EncryptionContext())
-            except Exception:
-                pass
+        except Exception:
+            pass
 
+    def _connect_transport(
+        self,
+        host: str,
+        tcp_port: int,
+        udp_port: int,
+        encrypted: bool,
+        timeout_ms: int,
+    ) -> ConnectResult:
+        self._apply_encryption_context(encrypted)
         if not self.client.connect(self.tt.ttstr(host), tcp_port, udp_port, 0, 0, encrypted):
             return ConnectResult(False, "Verbindung konnte nicht gestartet werden")
 
@@ -125,27 +129,59 @@ class TeamTalkClient:
             return ConnectResult(False, "Verbindung fehlgeschlagen")
         if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_CON_CRYPT_ERROR:
             return ConnectResult(False, "Verschluesselungsfehler")
+        return ConnectResult(True, "ok")
 
-        cmdid = self.client.doLogin(
-            self.tt.ttstr(nickname),
-            self.tt.ttstr(username),
-            self.tt.ttstr(password),
-            self.tt.ttstr(client_name),
-        )
+    def connect_and_login(
+        self,
+        host: str,
+        tcp_port: int,
+        udp_port: int,
+        nickname: str,
+        username: str,
+        password: str,
+        client_name: str,
+        encrypted: bool = False,
+        timeout_ms: int = 8000,
+    ) -> ConnectResult:
+        with self._connect_lock:
+            self._last_connect = (host, tcp_port, udp_port, nickname, username, password, client_name, encrypted)
 
-        ok, _ = self._wait_for_event(self.tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN, timeout_ms)
-        if not ok:
-            return ConnectResult(False, "Login fehlgeschlagen")
+            # First attempt: disconnect existing session and reuse current client.
+            self._disconnect_and_drain()
+            transport_result = self._connect_transport(host, tcp_port, udp_port, encrypted, timeout_ms)
+            if not transport_result.ok:
+                # Second attempt: full SDK client re-init to recover from poisoned TLS/connect state.
+                self._recreate_client()
+                transport_result = self._connect_transport(host, tcp_port, udp_port, encrypted, timeout_ms)
+                if not transport_result.ok and encrypted and udp_port > 0:
+                    # Third attempt for encrypted sessions: TCP-only fallback.
+                    self._recreate_client()
+                    transport_result = self._connect_transport(host, tcp_port, 0, encrypted, timeout_ms)
+                if not transport_result.ok:
+                    return transport_result
 
-        ok, msg = self._wait_for_cmd_result(cmdid, timeout_ms)
-        if not ok:
-            if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_CMD_ERROR:
-                err = self.tt.ttstr(msg.clienterrormsg.szErrorMsg)
-                return ConnectResult(False, f"Login fehlgeschlagen: {err}")
-            return ConnectResult(False, "Server antwortet nicht auf Login")
+            cmdid = self.client.doLogin(
+                self.tt.ttstr(nickname),
+                self.tt.ttstr(username),
+                self.tt.ttstr(password),
+                self.tt.ttstr(client_name),
+            )
 
-        self._connected = True
-        return ConnectResult(True, f"Eingeloggt in Kanal: {self.tt.ttstr(msg.channel.szName)}")
+            ok, _ = self._wait_for_event(self.tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN, timeout_ms)
+            if not ok:
+                self._disconnect_and_drain()
+                return ConnectResult(False, "Login fehlgeschlagen")
+
+            ok, msg = self._wait_for_cmd_result(cmdid, timeout_ms)
+            if not ok:
+                self._disconnect_and_drain()
+                if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_CMD_ERROR:
+                    err = self.tt.ttstr(msg.clienterrormsg.szErrorMsg)
+                    return ConnectResult(False, f"Login fehlgeschlagen: {err}")
+                return ConnectResult(False, "Server antwortet nicht auf Login")
+
+            self._connected = True
+            return ConnectResult(True, f"Eingeloggt in Kanal: {self.tt.ttstr(msg.channel.szName)}")
 
     def join_root_channel(self, timeout_ms: int = 2000) -> ConnectResult:
         cmdid = self.client.doJoinChannelByID(self.client.getRootChannelID(), self.tt.ttstr(""))
