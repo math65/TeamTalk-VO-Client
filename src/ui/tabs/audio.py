@@ -186,13 +186,14 @@ class AudioTab(wx.Panel):
     # --- Device refresh & apply ---
 
     def on_refresh_audio(self, _event):
-        self.refresh_audio_devices(announce=True, prefer_previous=True, auto_apply=False)
+        self.refresh_audio_devices(announce=True, prefer_previous=True, auto_apply=False, restart_sound=True)
 
     def refresh_audio_devices(
         self,
         announce: bool = False,
         prefer_previous: bool = True,
         auto_apply: bool = False,
+        restart_sound: bool = True,
         _attempt: int = 0,
     ):
         client = self.frame.client
@@ -206,7 +207,7 @@ class AudioTab(wx.Panel):
         if 0 <= prev_out_idx < len(self._output_devices):
             prev_out_id = int(self._output_devices[prev_out_idx].nDeviceID)
 
-        restarted = client.restart_sound_system()
+        restarted = client.restart_sound_system() if restart_sound else True
         devices = list(client.get_sound_devices())
         if not devices and _attempt < 2:
             # Hotplug events can arrive a bit later after restart.
@@ -216,19 +217,28 @@ class AudioTab(wx.Panel):
                     announce=announce,
                     prefer_previous=prefer_previous,
                     auto_apply=auto_apply,
+                    restart_sound=restart_sound,
                     _attempt=_attempt + 1,
                 ),
             )
             return
         inputs = [d for d in devices if d.nMaxInputChannels > 0]
         outputs = [d for d in devices if d.nMaxOutputChannels > 0]
+        input_labels = [tt_str(d.szDeviceName) for d in inputs]
+        output_labels = [tt_str(d.szDeviceName) for d in outputs]
+        input_ids = tuple(int(d.nDeviceID) for d in inputs)
+        output_ids = tuple(int(d.nDeviceID) for d in outputs)
+
+        input_list_changed = input_ids != tuple(int(d.nDeviceID) for d in self._input_devices)
+        output_list_changed = output_ids != tuple(int(d.nDeviceID) for d in self._output_devices)
+
         self._input_devices = inputs
         self._output_devices = outputs
 
-        input_labels = [tt_str(d.szDeviceName) for d in inputs]
-        output_labels = [tt_str(d.szDeviceName) for d in outputs]
-        self.input_device.Set(input_labels)
-        self.output_device.Set(output_labels)
+        if input_list_changed:
+            self.input_device.Set(input_labels)
+        if output_list_changed:
+            self.output_device.Set(output_labels)
 
         indev, outdev = client.get_default_sound_devices()
         indev_val = getattr(indev, "value", indev)
@@ -244,7 +254,7 @@ class AudioTab(wx.Panel):
         self._select_device(self.input_device, inputs, in_candidates)
         self._select_device(self.output_device, outputs, out_candidates)
 
-        snapshot = (tuple(input_labels), tuple(output_labels))
+        snapshot = (input_ids, output_ids)
         changed = snapshot != self._last_device_snapshot
         self._last_device_snapshot = snapshot
         defaults_changed = (int(indev_val), int(outdev_val)) != self._last_default_ids
@@ -271,13 +281,20 @@ class AudioTab(wx.Panel):
                 continue
             for idx, dev in enumerate(devices):
                 if int(dev.nDeviceID) == int(target):
-                    choice.SetSelection(idx)
+                    if choice.GetSelection() != idx:
+                        choice.SetSelection(idx)
                     return
         if devices:
-            choice.SetSelection(0)
+            if choice.GetSelection() != 0:
+                choice.SetSelection(0)
 
     def _on_device_poll_timer(self, _event):
-        self.refresh_audio_devices(announce=False, prefer_previous=False, auto_apply=True)
+        self.refresh_audio_devices(
+            announce=False,
+            prefer_previous=False,
+            auto_apply=True,
+            restart_sound=False,
+        )
 
     def on_apply_audio(self, _event):
         client = self.frame.client
