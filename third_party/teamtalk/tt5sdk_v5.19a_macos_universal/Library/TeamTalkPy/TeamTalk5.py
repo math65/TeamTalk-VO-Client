@@ -35,10 +35,35 @@ if sys.platform == "win32":
     TTCHAR_P = c_wchar_p
     from ctypes.wintypes import BOOL
 elif sys.platform == "darwin":
-    # Load the SDK dylib via absolute path to avoid SIP/loader path issues.
+    # Prefer a newer system TeamTalk dylib when available (for TLS compatibility),
+    # then fall back to the bundled SDK dylib.
     _here = os.path.dirname(os.path.abspath(__file__))
-    _dylib = os.path.join(_here, "..", "TeamTalk_DLL", "libTeamTalk5.dylib")
-    dll = cdll.LoadLibrary(_dylib)
+    _candidates = []
+    _env_dylib = os.environ.get("TEAMTALK_DYLIB", "").strip()
+    if _env_dylib:
+        _candidates.append(_env_dylib)
+    _candidates.append("/Applications/TeamTalk5.app/Contents/Frameworks/libTeamTalk5.dylib")
+    _candidates.append(os.path.join(_here, "..", "TeamTalk_DLL", "libTeamTalk5.dylib"))
+
+    dll = None
+    _last_error = None
+    _loaded = None
+    for _dylib in _candidates:
+        try:
+            if not os.path.exists(_dylib):
+                continue
+            dll = cdll.LoadLibrary(_dylib)
+            _loaded = _dylib
+            break
+        except OSError as _err:
+            _last_error = _err
+    if dll is None:
+        raise OSError(
+            "Unable to load TeamTalk dylib. Tried: {0}. Last error: {1}".format(
+                ", ".join(_candidates), _last_error
+            )
+        )
+    print("TeamTalk dylib loaded:", _loaded)
     TTCHAR = c_char
     TTCHAR_P = c_char_p
     BOOL = c_int
