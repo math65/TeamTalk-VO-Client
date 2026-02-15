@@ -121,10 +121,10 @@ class MainFrame(wx.Frame):
         self.notebook.AddPage(self.connection_tab, "Verbindung")
         self.notebook.AddPage(self.channels_tab, "Kanaele")
         self.notebook.AddPage(self.chat_tab, "Chat")
-        self.notebook.AddPage(self.settings_tab, "Einstellungen")
         self.notebook.AddPage(self.media_tab, "Aufnahme & Medien")
         self.notebook.AddPage(self.files_tab, "Dateien")
         self.notebook.AddPage(self.admin_tab, "Administration")
+        self.notebook.AddPage(self.settings_tab, "Einstellungen")
 
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.on_tab_changed)
         main_sizer.Add(self.notebook, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 12)
