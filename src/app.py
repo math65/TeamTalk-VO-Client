@@ -615,7 +615,7 @@ class MainFrame(wx.Frame):
             getattr(tt.ClientEvent, "CLIENTEVENT_SOUNDDEVICE_NEW_DEFAULT_INPUT_COMDEVICE", -1),
             getattr(tt.ClientEvent, "CLIENTEVENT_SOUNDDEVICE_NEW_DEFAULT_OUTPUT_COMDEVICE", -1),
         ):
-            wx.CallAfter(self.audio_tab.refresh_audio_devices, False)
+            wx.CallAfter(self.audio_tab.refresh_audio_devices, False, False, True)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USERACCOUNT:
             wx.CallAfter(self.admin_tab.add_account_to_list, msg.useraccount)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_BANNEDUSER:
