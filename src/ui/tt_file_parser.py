@@ -92,7 +92,7 @@ def _profile_from_mapping(payload: dict, path: Path) -> Optional[ParsedTeamTalkF
     tcp = pick("tcpport", "tcp_port", "port", default="10333")
     udp = pick("udpport", "udp_port", default="10333")
     nickname = pick("nickname", "nick", default="VoiceOverUser")
-    username = pick("username", "user", default="guest")
+    username = pick("username", "user", default="")
     password = pick("password", "pass", default="")
     client_name = pick("clientname", "client_name", default="TeamTalk VO")
     name = pick("name", default=path.stem)
@@ -146,7 +146,7 @@ def _parse_teamtalk_xml(root: ET.Element, path: Path) -> Optional[ParsedTeamTalk
     udp = text_of(host_node.find("udpport"), "10333")
 
     auth = host_node.find("auth")
-    username = text_of(auth.find("username") if auth is not None else None, "guest")
+    username = text_of(auth.find("username") if auth is not None else None, "")
     password = text_of(auth.find("password") if auth is not None else None, "")
     nickname = text_of(auth.find("nickname") if auth is not None else None, "VoiceOverUser")
 
