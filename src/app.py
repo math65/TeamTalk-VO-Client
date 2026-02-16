@@ -67,6 +67,40 @@ from ui.tabs.settings import SettingsTab
 from tts import TTSManager
 
 
+class ServerCheckDialog(wx.Dialog):
+    def __init__(self, parent: wx.Window, rows: List[Tuple[str, str, str]]) -> None:
+        super().__init__(parent, title="Server-Status", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self.SetMinSize((760, 420))
+
+        panel = wx.Panel(self)
+        root = wx.BoxSizer(wx.VERTICAL)
+
+        info = wx.StaticText(panel, label=f"Gepruefte Server: {len(rows)}")
+        root.Add(info, 0, wx.ALL, 10)
+
+        table = wx.ListCtrl(panel, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
+        table.InsertColumn(0, "Server")
+        table.InsertColumn(1, "Status")
+        table.InsertColumn(2, "Details")
+
+        for idx, (server, status, details) in enumerate(rows):
+            table.InsertItem(idx, server)
+            table.SetItem(idx, 1, status)
+            table.SetItem(idx, 2, details)
+
+        table.SetColumnWidth(0, 240)
+        table.SetColumnWidth(1, 140)
+        table.SetColumnWidth(2, 900)
+        root.Add(table, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 10)
+
+        buttons = self.CreateButtonSizer(wx.OK)
+        if buttons:
+            root.Add(buttons, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+
+        panel.SetSizer(root)
+        self.CentreOnParent()
+
+
 class MainFrame(wx.Frame):
     """Main window -- thin orchestrator that creates notebook tabs and dispatches events."""
 
@@ -248,13 +282,6 @@ class MainFrame(wx.Frame):
         self.connection_tab.server_check_btn.Disable()
         self.set_status("Pruefe Serverliste...")
 
-        def _user_display_name(scanner: TeamTalkClient, user) -> str:
-            nickname = scanner.tt.ttstr(getattr(user, "szNickname", "")).strip()
-            username = scanner.tt.ttstr(getattr(user, "szUsername", "")).strip()
-            if nickname and username and nickname != username:
-                return f"{nickname} ({username})"
-            return nickname or username or ""
-
         def _short_error(text: str, max_len: int = 220) -> str:
             cleaned = " ".join((text or "").split())
             if len(cleaned) <= max_len:
@@ -262,7 +289,7 @@ class MainFrame(wx.Frame):
             return cleaned[: max_len - 3] + "..."
 
         def worker():
-            lines: List[str] = []
+            rows: List[Tuple[str, str, str]] = []
             restore_result: Optional[ConnectResult] = None
             had_active_connection = self.client.is_connected()
             saved_connect = self.client._last_connect
@@ -281,8 +308,6 @@ class MainFrame(wx.Frame):
             for profile in sorted_servers:
                 out_file = None
                 try:
-                    with tempfile.NamedTemporaryFile(prefix="tt_probe_", suffix=".json", delete=False) as tf:
-                        out_file = tf.name
                     payload = {
                         "host": profile.host,
                         "tcp_port": profile.tcp_port,
@@ -293,40 +318,53 @@ class MainFrame(wx.Frame):
                         "client_name": profile.client_name,
                         "encrypted": bool(profile.encrypted),
                     }
-                    cmd = [
-                        sys.executable,
-                        "--probe-server",
-                        json.dumps(payload, ensure_ascii=False),
-                        "--probe-out",
-                        out_file,
-                    ]
-                    subprocess.run(cmd, check=False, timeout=20)
-
-                    data = {}
-                    try:
-                        with open(out_file, "r", encoding="utf-8") as f:
-                            data = json.load(f)
-                    except Exception:
-                        lines.append(f"{profile.name}: Fehler (Probe-Ausgabe fehlt)")
-                        continue
+                    data: Dict[str, object] = {}
+                    max_attempts = 2
+                    for attempt in range(max_attempts):
+                        with tempfile.NamedTemporaryFile(prefix="tt_probe_", suffix=".json", delete=False) as tf:
+                            out_file = tf.name
+                        cmd = [
+                            sys.executable,
+                            "--probe-server",
+                            json.dumps(payload, ensure_ascii=False),
+                            "--probe-out",
+                            out_file,
+                        ]
+                        try:
+                            subprocess.run(cmd, check=False, timeout=25)
+                            with open(out_file, "r", encoding="utf-8") as f:
+                                data = json.load(f)
+                        except Exception as exc:
+                            data = {"ok": False, "message": str(exc), "names": []}
+                        finally:
+                            try:
+                                if out_file and os.path.exists(out_file):
+                                    os.remove(out_file)
+                            except Exception:
+                                pass
+                            out_file = None
+                        if bool(data.get("ok", False)):
+                            break
+                        if attempt + 1 < max_attempts:
+                            time.sleep(0.35)
 
                     if not bool(data.get("ok", False)):
-                        lines.append(f"{profile.name}: nicht erreichbar ({_short_error(str(data.get('message', 'Unbekannter Fehler')))})")
+                        rows.append(
+                            (
+                                profile.name,
+                                "Nicht erreichbar",
+                                _short_error(str(data.get("message", "Unbekannter Fehler"))),
+                            )
+                        )
                         continue
 
                     names = [str(n) for n in data.get("names", []) if str(n).strip()]
                     if names:
-                        lines.append(f"{profile.name}: {len(names)} online - {', '.join(names)}")
+                        rows.append((profile.name, f"{len(names)} online", ", ".join(names)))
                     else:
-                        lines.append(f"{profile.name}: niemand online")
+                        rows.append((profile.name, "Niemand online", ""))
                 except Exception as exc:
-                    lines.append(f"{profile.name}: Fehler ({_short_error(str(exc))})")
-                finally:
-                    try:
-                        if out_file and os.path.exists(out_file):
-                            os.remove(out_file)
-                    except Exception:
-                        pass
+                    rows.append((profile.name, "Fehler", _short_error(str(exc))))
 
             self.client._last_connect = saved_connect
 
@@ -336,14 +374,25 @@ class MainFrame(wx.Frame):
                 except Exception as exc:
                     restore_result = ConnectResult(False, f"Reconnect fehlgeschlagen: {exc}")
 
-            report = "\n".join(lines) if lines else "Keine Daten."
-            wx.CallAfter(self._finish_server_presence_scan, report, restore_result)
+            wx.CallAfter(self._finish_server_presence_scan, rows, restore_result)
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def _finish_server_presence_scan(self, report: str, restore_result: Optional[ConnectResult] = None):
+    def _finish_server_presence_scan(
+        self,
+        rows: List[Tuple[str, str, str]],
+        restore_result: Optional[ConnectResult] = None,
+    ):
         self.connection_tab.server_check_btn.Enable()
-        for line in report.splitlines():
+        for server, status, details in rows:
+            if status == "Nicht erreichbar":
+                line = f"{server}: nicht erreichbar ({details})"
+            elif status.endswith("online"):
+                line = f"{server}: {status}" + (f" - {details}" if details else "")
+            elif status == "Niemand online":
+                line = f"{server}: niemand online"
+            else:
+                line = f"{server}: {status}" + (f" ({details})" if details else "")
             self.logger.write(f"Servercheck: {line}")
 
         if restore_result is not None:
@@ -354,7 +403,7 @@ class MainFrame(wx.Frame):
                 wx.CallLater(800, self.files_tab.refresh_file_list)
 
         self.set_status("Servercheck abgeschlossen")
-        dlg = wx.MessageDialog(self, report, "Server-Status", wx.OK | wx.ICON_INFORMATION)
+        dlg = ServerCheckDialog(self, rows)
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -911,37 +960,45 @@ def _run_probe_server_once(argv: List[str]) -> int:
     scanner = TeamTalkClient()
     try:
         payload = json.loads(payload_json)
-        result = scanner.connect_and_login(
-            host=str(payload.get("host", "")),
-            tcp_port=int(payload.get("tcp_port", 0)),
-            udp_port=int(payload.get("udp_port", 0)),
-            nickname=str(payload.get("nickname", "VoiceOverUser")),
-            username=str(payload.get("username", "")),
-            password=str(payload.get("password", "")),
-            client_name=str(payload.get("client_name", "TeamTalk VO")),
-            encrypted=bool(payload.get("encrypted", False)),
-            remember_last_connect=False,
-            timeout_ms=5000,
-        )
+        host = str(payload.get("host", ""))
+        tcp_port = int(payload.get("tcp_port", 0))
+        udp_port = int(payload.get("udp_port", 0))
+        nickname = str(payload.get("nickname", "VoiceOverUser"))
+        username = str(payload.get("username", ""))
+        password = str(payload.get("password", ""))
+        client_name = str(payload.get("client_name", "TeamTalk VO"))
+        encrypted = bool(payload.get("encrypted", False))
+
+        def _probe_connect(user: str, pwd: str, retries: int) -> ConnectResult:
+            last = ConnectResult(False, "Unbekannter Fehler")
+            for attempt in range(max(1, retries)):
+                last = scanner.connect_and_login(
+                    host=host,
+                    tcp_port=tcp_port,
+                    udp_port=udp_port,
+                    nickname=nickname,
+                    username=user,
+                    password=pwd,
+                    client_name=client_name,
+                    encrypted=encrypted,
+                    remember_last_connect=False,
+                    timeout_ms=8000,
+                )
+                if last.ok:
+                    return last
+                if attempt + 1 < retries:
+                    time.sleep(0.3)
+            return last
+
+        result = _probe_connect(username, password, 6 if encrypted else 1)
         if (
             not result.ok
-            and bool(payload.get("encrypted", False))
-            and not str(payload.get("username", "")).strip()
-            and not str(payload.get("password", "")).strip()
+            and encrypted
+            and not username.strip()
+            and not password.strip()
         ):
             # Some public encrypted servers still expect the legacy "guest" user.
-            result = scanner.connect_and_login(
-                host=str(payload.get("host", "")),
-                tcp_port=int(payload.get("tcp_port", 0)),
-                udp_port=int(payload.get("udp_port", 0)),
-                nickname=str(payload.get("nickname", "VoiceOverUser")),
-                username="guest",
-                password="",
-                client_name=str(payload.get("client_name", "TeamTalk VO")),
-                encrypted=True,
-                remember_last_connect=False,
-                timeout_ms=5000,
-            )
+            result = _probe_connect("guest", "", 4)
         if not result.ok:
             result_data = {"ok": False, "message": result.message, "names": []}
         else:
