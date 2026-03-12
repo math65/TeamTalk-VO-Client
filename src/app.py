@@ -46,6 +46,7 @@ if str(_third_party) not in sys.path:
 
 import wx
 import wx.adv
+import wx.dataview as dv
 
 from teamtalk_client.client import TeamTalkClient, ConnectResult
 from ui.models import (
@@ -68,7 +69,7 @@ from tts import TTSManager
 
 
 class ServerCheckDialog(wx.Dialog):
-    def __init__(self, parent: wx.Window, rows: List[Tuple[str, str, str]]) -> None:
+    def __init__(self, parent: wx.Window, rows: List[Tuple[str, str, str, str]]) -> None:
         super().__init__(parent, title="Server-Status", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self.SetMinSize((760, 420))
 
@@ -78,24 +79,20 @@ class ServerCheckDialog(wx.Dialog):
         info = wx.StaticText(panel, label=f"Gepruefte Server: {len(rows)}")
         root.Add(info, 0, wx.ALL, 10)
 
-        table = wx.ListCtrl(panel, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
-        table.InsertColumn(0, "Server")
-        table.InsertColumn(1, "Status")
-        table.InsertColumn(2, "Details")
-
-        for idx, (server, status, details) in enumerate(rows):
-            table.InsertItem(idx, server)
-            table.SetItem(idx, 1, status)
-            table.SetItem(idx, 2, details)
-
-        table.SetColumnWidth(0, 240)
-        table.SetColumnWidth(1, 140)
-        table.SetColumnWidth(2, 900)
+        table = dv.DataViewListCtrl(panel, style=wx.BORDER_SUNKEN)
+        table.AppendTextColumn("Server", width=220)
+        table.AppendTextColumn("TLS", width=70)
+        table.AppendTextColumn("Ergebnis", width=120)
+        table.AppendTextColumn("Nutzer / Details", width=560)
+        for server, tls, result, details in rows:
+            table.AppendItem([server, tls, result, details])
         root.Add(table, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 10)
 
-        buttons = self.CreateButtonSizer(wx.OK)
-        if buttons:
-            root.Add(buttons, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+        btn_sizer = wx.StdDialogButtonSizer()
+        ok_btn = wx.Button(panel, wx.ID_OK)
+        btn_sizer.AddButton(ok_btn)
+        btn_sizer.Realize()
+        root.Add(btn_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
 
         panel.SetSizer(root)
         self.CentreOnParent()
@@ -289,7 +286,7 @@ class MainFrame(wx.Frame):
             return cleaned[: max_len - 3] + "..."
 
         def worker():
-            rows: List[Tuple[str, str, str]] = []
+            rows: List[Tuple[str, str, str, str]] = []
             restore_result: Optional[ConnectResult] = None
             had_active_connection = self.client.is_connected()
             saved_connect = self.client._last_connect
@@ -352,7 +349,8 @@ class MainFrame(wx.Frame):
                         rows.append(
                             (
                                 profile.name,
-                                "Nicht erreichbar",
+                                "Ja" if profile.encrypted else "Nein",
+                                "Fehler",
                                 _short_error(str(data.get("message", "Unbekannter Fehler"))),
                             )
                         )
@@ -360,11 +358,18 @@ class MainFrame(wx.Frame):
 
                     names = [str(n) for n in data.get("names", []) if str(n).strip()]
                     if names:
-                        rows.append((profile.name, f"{len(names)} online", ", ".join(names)))
+                        rows.append(
+                            (
+                                profile.name,
+                                "Ja" if profile.encrypted else "Nein",
+                                f"{len(names)} online",
+                                ", ".join(names),
+                            )
+                        )
                     else:
-                        rows.append((profile.name, "Niemand online", ""))
+                        rows.append((profile.name, "Ja" if profile.encrypted else "Nein", "0 online", "-"))
                 except Exception as exc:
-                    rows.append((profile.name, "Fehler", _short_error(str(exc))))
+                    rows.append((profile.name, "Ja" if profile.encrypted else "Nein", "Fehler", _short_error(str(exc))))
 
             self.client._last_connect = saved_connect
 
@@ -380,19 +385,17 @@ class MainFrame(wx.Frame):
 
     def _finish_server_presence_scan(
         self,
-        rows: List[Tuple[str, str, str]],
+        rows: List[Tuple[str, str, str, str]],
         restore_result: Optional[ConnectResult] = None,
     ):
         self.connection_tab.server_check_btn.Enable()
-        for server, status, details in rows:
-            if status == "Nicht erreichbar":
+        for server, _tls, status, details in rows:
+            if status == "Fehler":
                 line = f"{server}: nicht erreichbar ({details})"
-            elif status.endswith("online"):
-                line = f"{server}: {status}" + (f" - {details}" if details else "")
-            elif status == "Niemand online":
+            elif status == "0 online":
                 line = f"{server}: niemand online"
             else:
-                line = f"{server}: {status}" + (f" ({details})" if details else "")
+                line = f"{server}: {status}" + (f" - {details}" if details else "")
             self.logger.write(f"Servercheck: {line}")
 
         if restore_result is not None:
@@ -723,6 +726,16 @@ class MainFrame(wx.Frame):
 
     def _on_activate(self, event):
         self._window_focused = event.GetActive()
+        # Pause audio polling when app is not focused to reduce CPU usage.
+        if not self._window_focused:
+            self.audio_tab.set_active(False)
+        else:
+            try:
+                idx = self.notebook.GetSelection()
+                if self.notebook.GetPage(idx) is self.audio_tab:
+                    self.audio_tab.set_active(True)
+            except Exception:
+                pass
         event.Skip()
 
     def _send_notification(self, title: str, message: str):
@@ -739,6 +752,10 @@ class MainFrame(wx.Frame):
             idx = event.GetSelection()
             if self.notebook.GetPage(idx) is self.files_tab:
                 wx.CallAfter(self.files_tab.refresh_file_list)
+            if self.notebook.GetPage(idx) is self.audio_tab and self._window_focused:
+                self.audio_tab.set_active(True)
+            else:
+                self.audio_tab.set_active(False)
         finally:
             event.Skip()
 

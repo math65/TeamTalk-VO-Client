@@ -158,12 +158,12 @@ class AudioTab(wx.Panel):
         # VU timer
         self._vu_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._on_vu_timer, self._vu_timer)
-        self._vu_timer.Start(100)
 
         # Polling fallback for OS/device changes when SDK hotplug events are missing
         self._device_poll_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._on_device_poll_timer, self._device_poll_timer)
-        self._device_poll_timer.Start(2000)
+
+        self._timers_active = False
 
         # Init device list
         self.refresh_audio_devices(announce=False)
@@ -175,9 +175,26 @@ class AudioTab(wx.Panel):
             self.frame.client.close_sound_loopback_test(self._loopback_handle)
             self._loopback_handle = None
 
+    def set_active(self, active: bool) -> None:
+        if active:
+            if not self._timers_active:
+                # VU updates are only needed while the audio tab is visible.
+                self._vu_timer.Start(250)
+                # Device polling is only needed while the tab is visible.
+                self._device_poll_timer.Start(5000)
+                self._timers_active = True
+        else:
+            if self._timers_active:
+                self._vu_timer.Stop()
+                self._device_poll_timer.Stop()
+                self._timers_active = False
+
     # --- VU ---
 
     def _on_vu_timer(self, _event):
+        if not self.frame.client.is_connected():
+            self.vu_gauge.SetValue(0)
+            return
         level = self.frame.client.get_sound_input_level()
         # SDK returns 0-100 (roughly)
         clamped = max(0, min(100, int(level)))
