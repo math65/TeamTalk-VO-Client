@@ -398,5 +398,8 @@ class ChannelsTab(wx.Panel):
             parent = item.GetParent()
             prev = prev_by_parent.get(parent)
             if prev is not None:
-                item.MoveAfterInTabOrder(prev)
+                try:
+                    item.MoveAfterInTabOrder(prev)
+                except Exception:
+                    pass
             prev_by_parent[parent] = item

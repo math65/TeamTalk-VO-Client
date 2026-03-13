@@ -15,6 +15,7 @@ Hinweis: Die Versionen 0.1.0 bis 0.6.x sind grob geschaetzt aus unserem Verlauf.
 - CI: Gitea Actions Workflow fuer Windows-Builds hinzugefuegt.
 - UI: Kanaele-Ansicht gruppiert, Bezeichnungen vereinheitlicht, Chat-Ziel klarer.
 - UI: Verbindung/Dateien/Admin/Sprechen/System mit klareren Gruppen und Labels.
+- Fix: Startabsturz durch Tab-Order bei Kanaele/Chat behoben.
 - Changelog in Hilfe-Menue integriert.
 - Versionierung: App-Version 0.7.0 und Bundle/Windows-Metadaten gesetzt.
 

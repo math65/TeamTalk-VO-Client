@@ -117,5 +117,15 @@ class ChatTab(wx.Panel):
         order = [
             self.private_chat, self.private_user, self.chat_log, self.chat_input, self.chat_send,
         ]
-        for i in range(1, len(order)):
-            order[i].MoveAfterInTabOrder(order[i - 1])
+        prev_by_parent = {}
+        for item in order:
+            if item is None:
+                continue
+            parent = item.GetParent()
+            prev = prev_by_parent.get(parent)
+            if prev is not None:
+                try:
+                    item.MoveAfterInTabOrder(prev)
+                except Exception:
+                    pass
+            prev_by_parent[parent] = item
