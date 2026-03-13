@@ -9,6 +9,8 @@ a = Analysis(
         ('src/teamtalk_client', 'teamtalk_client'),
         ('src/platform_paths.py', '.'),
         ('src/ui', 'ui'),
+        ('licenses', 'licenses'),
+        ('CHANGELOG.txt', '.'),
         ('third_party/teamtalk/tt5sdk_v5.19a_win64/Library/TeamTalkPy', 'TeamTalkPy'),
         ('third_party/teamtalk/tt5sdk_v5.19a_win64/Library/TeamTalk_DLL', 'TeamTalk_DLL'),
         ('third_party/yt-dlp', 'yt-dlp'),

@@ -401,6 +401,7 @@ class MainFrame(wx.Frame):
         help_menu = wx.Menu()
         help_settings = help_menu.Append(wx.ID_PREFERENCES, "Einstellungen...\tCmd+,")
         help_logs = help_menu.Append(wx.ID_ANY, "Logs exportieren...")
+        help_changelog = help_menu.Append(wx.ID_ANY, "Changelog")
         help_about = help_menu.Append(wx.ID_ANY, "Über")
         menubar.Append(help_menu, "Hilfe")
 
@@ -444,6 +445,7 @@ class MainFrame(wx.Frame):
 
         self.Bind(wx.EVT_MENU, self.on_menu_settings, help_settings)
         self.Bind(wx.EVT_MENU, self.on_menu_export_logs, help_logs)
+        self.Bind(wx.EVT_MENU, self.on_menu_changelog, help_changelog)
         self.Bind(wx.EVT_MENU, self.on_menu_about, help_about)
 
     # ------------------------------------------------------------------
@@ -947,6 +949,24 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
+    def on_menu_changelog(self, _event):
+        text = self._build_changelog_text()
+        dlg = wx.Dialog(self, title="Changelog", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        root = wx.BoxSizer(wx.VERTICAL)
+        info = wx.TextCtrl(
+            dlg,
+            value=text,
+            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2,
+        )
+        info.SetMinSize((720, 520))
+        root.Add(info, 1, wx.ALL | wx.EXPAND, 10)
+        btns = dlg.CreateButtonSizer(wx.OK)
+        root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+        dlg.SetSizerAndFit(root)
+        dlg.CentreOnParent()
+        dlg.ShowModal()
+        dlg.Destroy()
+
     def _build_about_text(self) -> str:
         parts: List[str] = []
         parts.append("TeamTalk VoiceOver Client")
@@ -983,6 +1003,16 @@ class MainFrame(wx.Frame):
         parts.append("Weitere Abhaengigkeiten sind enthalten; falls Lizenztexte fehlen,")
         parts.append("bitte die jeweiligen Projekte konsultieren.")
         return "\n".join(parts)
+
+    def _build_changelog_text(self) -> str:
+        base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+        changelog_path = base / "CHANGELOG.txt"
+        if not changelog_path.exists():
+            return "Kein Changelog vorhanden."
+        try:
+            return changelog_path.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            return "Changelog konnte nicht geladen werden."
 
     # ------------------------------------------------------------------
     # Connection logic (shared across tabs)

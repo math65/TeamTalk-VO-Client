@@ -1,0 +1,12 @@
+Changelog
+=========
+
+2026-03-13
+- Server-Check zeigt Zusammenfassung (Gesamt, Online, Fehler, Nutzer) und sortiert Ergebnisse.
+- Server-Check fragt vor Start nach Bestaetigung.
+- Server-Check nutzt Inline-Probe (kein Subprozess) fuer stabilere Ergebnisse.
+- Server-Check fuer unverschluesselte Server mit mehr Retries und kurzer Pause zwischen Servern.
+- Verbindung: automatischer TLS-Fallback, wenn ein Plain-Server TLS erwartet.
+- Audio/Settings: PTT-Hotkey Aufnahme, Audiooptionen neu strukturiert.
+- UI: Kanaele und Chat zusammengefuehrt, Einstellungen in separates Fenster verlagert.
+- Ueber-Dialog aktualisiert und Lizenzen eingebunden.
