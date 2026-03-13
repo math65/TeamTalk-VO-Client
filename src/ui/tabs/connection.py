@@ -236,8 +236,9 @@ class ConnectionTab(wx.Panel):
             self,
             message,
             "Server-Check starten",
-            style=wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+            style=wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION,
         ) as dlg:
+            dlg.SetYesNoLabels("Ja", "Nein")
             if dlg.ShowModal() != wx.ID_YES:
                 self.frame.set_status("Server-Check abgebrochen")
                 return
