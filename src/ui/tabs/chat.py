@@ -18,22 +18,25 @@ class ChatTab(wx.Panel):
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.chat_target = wx.StaticText(self, label="Ziel: (kein)")
+        target_box = wx.StaticBox(self, label="Chat-Ziel")
+        target_sizer = wx.StaticBoxSizer(target_box, wx.VERTICAL)
+        self.chat_target = wx.StaticText(target_box, label="Ziel: (kein)")
         self.chat_target.SetName("Chat-Ziel")
-        sizer.Add(self.chat_target, 0, wx.ALL, 8)
+        target_sizer.Add(self.chat_target, 0, wx.ALL, 8)
 
         target_row = wx.BoxSizer(wx.HORIZONTAL)
-        self.private_chat = wx.CheckBox(self, label="Privat")
+        self.private_chat = wx.CheckBox(target_box, label="Privat")
         self.private_chat.SetName("Privat")
         self.private_chat.Bind(wx.EVT_CHECKBOX, lambda e: self.update_chat_target())
         # Label created immediately before control for NVDA
-        lbl_private = wx.StaticText(self, label="Privat an")
-        self.private_user = wx.Choice(self)
+        lbl_private = wx.StaticText(target_box, label="Privat an:")
+        self.private_user = wx.Choice(target_box)
         self.private_user.SetName("Privat an")
         target_row.Add(self.private_chat, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 8)
         target_row.Add(lbl_private, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 4)
         target_row.Add(self.private_user, 1, wx.EXPAND)
-        sizer.Add(target_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        target_sizer.Add(target_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        sizer.Add(target_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         lbl_log = wx.StaticText(self, label="Chatverlauf")
         sizer.Add(lbl_log, 0, wx.LEFT | wx.RIGHT, 8)
@@ -42,7 +45,7 @@ class ChatTab(wx.Panel):
         sizer.Add(self.chat_log, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         input_row = wx.BoxSizer(wx.HORIZONTAL)
-        lbl_msg = wx.StaticText(self, label="Nachricht")
+        lbl_msg = wx.StaticText(self, label="Nachricht eingeben")
         self.chat_input = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.chat_input.SetName("Nachricht")
         self.chat_input.Bind(wx.EVT_TEXT_ENTER, self.on_chat_send)
