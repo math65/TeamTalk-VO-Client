@@ -76,7 +76,28 @@ class ServerCheckDialog(wx.Dialog):
         panel = wx.Panel(self)
         root = wx.BoxSizer(wx.VERTICAL)
 
-        info = wx.StaticText(panel, label=f"Gepruefte Server: {len(rows)}")
+        def _parse_online_count(result: str) -> int:
+            text = (result or "").strip().lower()
+            if text.endswith("online"):
+                try:
+                    return int(text.split()[0])
+                except Exception:
+                    return 0
+            return 0
+
+        total = len(rows)
+        errors = sum(1 for _s, _t, result, _d in rows if (result or "").strip().lower() == "fehler")
+        empty = sum(1 for _s, _t, result, _d in rows if (result or "").strip().lower() == "0 online")
+        online_servers = total - errors - empty
+        online_users = sum(_parse_online_count(result) for _s, _t, result, _d in rows)
+
+        info = wx.StaticText(
+            panel,
+            label=(
+                f"Gepruefte Server: {total}  |  Online-Server: {online_servers}  |  "
+                f"Leere Server: {empty}  |  Fehler: {errors}  |  Nutzer online: {online_users}"
+            ),
+        )
         root.Add(info, 0, wx.ALL, 10)
 
         table = dv.DataViewListCtrl(panel, style=wx.BORDER_SUNKEN)
@@ -84,7 +105,19 @@ class ServerCheckDialog(wx.Dialog):
         table.AppendTextColumn("TLS", width=110)
         table.AppendTextColumn("Ergebnis", width=120)
         table.AppendTextColumn("Nutzer / Details", width=560)
-        for server, tls, result, details in rows:
+        def _sort_key(row: Tuple[str, str, str, str]) -> Tuple[int, int, str]:
+            server, _tls, result, _details = row
+            result_text = (result or "").strip().lower()
+            if result_text == "fehler":
+                priority = 0
+            elif result_text == "0 online":
+                priority = 2
+            else:
+                priority = 1
+            online_count = _parse_online_count(result)
+            return (priority, -online_count, server.lower())
+
+        for server, tls, result, details in sorted(rows, key=_sort_key):
             table.AppendItem([server, tls, result, details])
         root.Add(table, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 10)
 
