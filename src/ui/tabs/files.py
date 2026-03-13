@@ -19,15 +19,20 @@ class FilesTab(wx.Panel):
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        header = wx.StaticText(self, label="Dateiname | Groesse | Hochgeladen von | Datum")
+        list_box = wx.StaticBox(self, label="Dateien im aktuellen Kanal")
+        list_sizer = wx.StaticBoxSizer(list_box, wx.VERTICAL)
+        header = wx.StaticText(list_box, label="Dateiname | Groesse | Hochgeladen von | Datum")
         header.SetName("Dateiliste Kopfzeile")
-        sizer.Add(header, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
+        list_sizer.Add(header, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
 
         # ListBox ist fuer VoiceOver verlaesslicher als ListCtrl auf macOS.
-        self.file_list = wx.ListBox(self)
+        self.file_list = wx.ListBox(list_box)
         self.file_list.SetName("Dateiliste")
-        sizer.Add(self.file_list, 1, wx.ALL | wx.EXPAND, 8)
+        list_sizer.Add(self.file_list, 1, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(list_sizer, 1, wx.ALL | wx.EXPAND, 8)
 
+        action_box = wx.StaticBox(self, label="Aktionen")
+        action_sizer = wx.StaticBoxSizer(action_box, wx.VERTICAL)
         btn_row = wx.BoxSizer(wx.HORIZONTAL)
         self.upload_btn = wx.Button(self, label="Hochladen")
         self.upload_btn.SetName("Datei hochladen")
@@ -43,11 +48,15 @@ class FilesTab(wx.Panel):
         self.refresh_btn.Bind(wx.EVT_BUTTON, self.on_refresh)
         for btn in (self.upload_btn, self.download_btn, self.delete_btn, self.refresh_btn):
             btn_row.Add(btn, 0, wx.RIGHT, 8)
-        sizer.Add(btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        action_sizer.Add(btn_row, 0, wx.ALL, 8)
+        sizer.Add(action_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
-        self.transfer_gauge = wx.Gauge(self, range=100)
+        transfer_box = wx.StaticBox(self, label="Transfer")
+        transfer_sizer = wx.StaticBoxSizer(transfer_box, wx.VERTICAL)
+        self.transfer_gauge = wx.Gauge(transfer_box, range=100)
         self.transfer_gauge.SetName("Transfer-Fortschritt")
-        sizer.Add(self.transfer_gauge, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        transfer_sizer.Add(self.transfer_gauge, 0, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(transfer_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
         self._set_tab_order()

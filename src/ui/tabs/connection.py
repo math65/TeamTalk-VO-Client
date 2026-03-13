@@ -64,9 +64,14 @@ class ConnectionTab(wx.Panel):
         form.AddSpacer(0)
         form.Add(self.encrypted, 0)
 
-        server_sizer.Add(form, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        form_box = wx.StaticBox(self, label="Verbindungsdaten")
+        form_sizer = wx.StaticBoxSizer(form_box, wx.VERTICAL)
+        form_sizer.Add(form, 0, wx.ALL | wx.EXPAND, 8)
+        server_sizer.Add(form_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # --- Action buttons ---
+        action_box = wx.StaticBox(self, label="Aktionen")
+        action_sizer = wx.StaticBoxSizer(action_box, wx.VERTICAL)
         action_row = wx.BoxSizer(wx.HORIZONTAL)
         self.connect_btn = wx.Button(self, label="Verbinden")
         self.connect_btn.SetName("Verbinden")
@@ -95,12 +100,16 @@ class ConnectionTab(wx.Panel):
             action_row.Add(btn, 0, wx.RIGHT, 8)
         action_row.Add(self.auto_reconnect, 0)
 
-        server_sizer.Add(action_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        action_sizer.Add(action_row, 0, wx.ALL, 8)
+        server_sizer.Add(action_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # --- Connection stats ---
+        stats_box = wx.StaticBox(self, label="Verbindungsstatus")
+        stats_sizer = wx.StaticBoxSizer(stats_box, wx.VERTICAL)
         self.stats_label = wx.StaticText(self, label="UDP Ping: -- ms  |  TCP Ping: -- ms")
         self.stats_label.SetName("Verbindungsstatistik")
-        server_sizer.Add(self.stats_label, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        stats_sizer.Add(self.stats_label, 0, wx.ALL, 8)
+        server_sizer.Add(stats_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         sizer.Add(server_sizer, 1, wx.ALL | wx.EXPAND, 8)
         self.SetSizer(sizer)

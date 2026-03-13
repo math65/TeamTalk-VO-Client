@@ -29,7 +29,7 @@ class SystemTab(wx.Panel):
         sizer.Add(sys_sizer, 1, wx.ALL | wx.EXPAND, 8)
 
         # TTS settings
-        tts_box = wx.StaticBox(self, label="TTS Einstellungen (espeak-ng)")
+        tts_box = wx.StaticBox(self, label="Sprachausgabe (espeak-ng)")
         tts_sizer = wx.StaticBoxSizer(tts_box, wx.VERTICAL)
 
         row1 = wx.BoxSizer(wx.HORIZONTAL)
@@ -64,7 +64,7 @@ class SystemTab(wx.Panel):
         self.tts_language.SetName("TTS Sprache")
         grid.Add(self.tts_language, 1, wx.EXPAND)
 
-        grid.Add(wx.StaticText(self, label="Stimme Filter"), 0, wx.ALIGN_CENTER_VERTICAL)
+        grid.Add(wx.StaticText(self, label="Stimmenfilter"), 0, wx.ALIGN_CENTER_VERTICAL)
         self.tts_voice_filter = wx.TextCtrl(self)
         self.tts_voice_filter.SetName("TTS Stimme Filter")
         grid.Add(self.tts_voice_filter, 1, wx.EXPAND)

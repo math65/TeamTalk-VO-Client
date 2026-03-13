@@ -56,26 +56,26 @@ class SpeakTab(wx.Panel):
         settings_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         settings_form.AddGrowableCol(1)
 
-        settings_form.Add(wx.StaticText(self, label="Stability"), 0, wx.ALIGN_CENTER_VERTICAL)
+        settings_form.Add(wx.StaticText(self, label="Stabilitaet"), 0, wx.ALIGN_CENTER_VERTICAL)
         self.stability_slider = wx.Slider(self, value=50, minValue=0, maxValue=100)
         self.stability_slider.SetName("Stability")
         self.stability_slider.SetHelpText("Stimmstabilitaet (0-100)")
         settings_form.Add(self.stability_slider, 1, wx.EXPAND)
 
-        settings_form.Add(wx.StaticText(self, label="Similarity"), 0, wx.ALIGN_CENTER_VERTICAL)
+        settings_form.Add(wx.StaticText(self, label="Aehnlichkeit"), 0, wx.ALIGN_CENTER_VERTICAL)
         self.similarity_slider = wx.Slider(self, value=75, minValue=0, maxValue=100)
         self.similarity_slider.SetName("Similarity")
         self.similarity_slider.SetHelpText("Aehnlichkeit zur Originalstimme (0-100)")
         settings_form.Add(self.similarity_slider, 1, wx.EXPAND)
 
-        settings_form.Add(wx.StaticText(self, label="Style"), 0, wx.ALIGN_CENTER_VERTICAL)
+        settings_form.Add(wx.StaticText(self, label="Stil"), 0, wx.ALIGN_CENTER_VERTICAL)
         self.style_slider = wx.Slider(self, value=0, minValue=0, maxValue=100)
         self.style_slider.SetName("Style")
         self.style_slider.SetHelpText("Stil-Uebertreibung (0-100)")
         settings_form.Add(self.style_slider, 1, wx.EXPAND)
 
         settings_form.Add(wx.StaticText(self, label=""), 0)
-        self.speaker_boost = wx.CheckBox(self, label="Speaker Boost")
+        self.speaker_boost = wx.CheckBox(self, label="Sprecher-Boost")
         self.speaker_boost.SetName("Speaker Boost")
         self.speaker_boost.SetHelpText("Sprecherklarheit verstaerken (nicht bei v3)")
         self.speaker_boost.SetValue(True)
@@ -84,7 +84,7 @@ class SpeakTab(wx.Panel):
         tts_sizer.Add(settings_form, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
 
         # --- Text input ---
-        tts_sizer.Add(wx.StaticText(self, label="Text"), 0, wx.LEFT | wx.TOP, 8)
+        tts_sizer.Add(wx.StaticText(self, label="Text zum Sprechen"), 0, wx.LEFT | wx.TOP, 8)
         self.text_input = wx.TextCtrl(self, style=wx.TE_MULTILINE)
         self.text_input.SetName("Text zum Sprechen")
         self.text_input.SetHelpText("Text eingeben der vorgelesen werden soll")

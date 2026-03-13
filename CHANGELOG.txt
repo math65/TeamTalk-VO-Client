@@ -12,3 +12,4 @@ Changelog
 - Ueber-Dialog aktualisiert und Lizenzen eingebunden.
 - CI: Gitea Actions Workflow fuer Windows-Builds hinzugefuegt.
 - UI: Kanaele-Ansicht gruppiert, Bezeichnungen vereinheitlicht, Chat-Ziel klarer.
+- UI: Verbindung/Dateien/Admin/Sprechen/System mit klareren Gruppen und Labels.

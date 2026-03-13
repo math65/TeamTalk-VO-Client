@@ -54,22 +54,22 @@ class AdminTab(wx.Panel):
         sizer.Add(acc_sizer, 1, wx.ALL | wx.EXPAND, 8)
 
         # --- Bans ---
-        ban_box = wx.StaticBox(self, label="Bans")
+        ban_box = wx.StaticBox(self, label="Sperren")
         ban_sizer = wx.StaticBoxSizer(ban_box, wx.VERTICAL)
 
         self.ban_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
-        self.ban_list.SetName("Ban-Liste")
+        self.ban_list.SetName("Sperrliste")
         self.ban_list.InsertColumn(0, "IP-Adresse", width=140)
         self.ban_list.InsertColumn(1, "Benutzername", width=120)
         self.ban_list.InsertColumn(2, "Zeitpunkt", width=140)
         ban_sizer.Add(self.ban_list, 1, wx.ALL | wx.EXPAND, 4)
 
         ban_btn_row = wx.BoxSizer(wx.HORIZONTAL)
-        self.load_bans_btn = wx.Button(self, label="Bans laden")
-        self.load_bans_btn.SetName("Bans laden")
+        self.load_bans_btn = wx.Button(self, label="Sperren laden")
+        self.load_bans_btn.SetName("Sperren laden")
         self.load_bans_btn.Bind(wx.EVT_BUTTON, self.on_load_bans)
-        self.unban_btn = wx.Button(self, label="Unban")
-        self.unban_btn.SetName("Unban")
+        self.unban_btn = wx.Button(self, label="Entsperren")
+        self.unban_btn.SetName("Entsperren")
         self.unban_btn.Bind(wx.EVT_BUTTON, self.on_unban)
         ban_btn_row.Add(self.load_bans_btn, 0, wx.RIGHT, 8)
         ban_btn_row.Add(self.unban_btn, 0)
@@ -180,7 +180,7 @@ class AdminTab(wx.Panel):
         self.ban_list.DeleteAllItems()
         self._bans = []
         self.frame.client.do_list_bans()
-        self.frame.set_status("Bans werden geladen...")
+        self.frame.set_status("Sperren werden geladen...")
 
     def add_ban_to_list(self, ban):
         tt_str = self.frame.tt_str
@@ -192,11 +192,11 @@ class AdminTab(wx.Panel):
     def on_unban(self, _event):
         sel = self.ban_list.GetFirstSelected()
         if sel < 0 or sel >= len(self._bans):
-            self.frame.set_status("Bitte einen Ban auswaehlen")
+            self.frame.set_status("Bitte eine Sperre auswaehlen")
             return
         ip = self.frame.tt_str(self._bans[sel].szIPAddress)
         self.frame.client.do_unban_user(ip)
-        self.frame.set_status(f"Unban: {ip}")
+        self.frame.set_status(f"Entsperrt: {ip}")
         wx.CallLater(500, self.on_load_bans, None)
 
     # --- Server properties ---
