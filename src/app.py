@@ -952,16 +952,66 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
 
     def on_menu_changelog(self, _event):
-        text = self._build_changelog_text()
+        sections = self._build_changelog_sections()
+        if not sections:
+            text = self._build_changelog_text()
+            dlg = wx.Dialog(self, title="Changelog", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+            root = wx.BoxSizer(wx.VERTICAL)
+            info = wx.TextCtrl(
+                dlg,
+                value=text,
+                style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2,
+            )
+            info.SetMinSize((720, 520))
+            root.Add(info, 1, wx.ALL | wx.EXPAND, 10)
+            btns = dlg.CreateButtonSizer(wx.OK)
+            root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+            dlg.SetSizerAndFit(root)
+            dlg.CentreOnParent()
+            dlg.ShowModal()
+            dlg.Destroy()
+            return
+
         dlg = wx.Dialog(self, title="Changelog", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         root = wx.BoxSizer(wx.VERTICAL)
-        info = wx.TextCtrl(
-            dlg,
-            value=text,
-            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2,
-        )
-        info.SetMinSize((720, 520))
-        root.Add(info, 1, wx.ALL | wx.EXPAND, 10)
+        splitter = wx.SplitterWindow(dlg, style=wx.SP_LIVE_UPDATE)
+        left = wx.Panel(splitter)
+        right = wx.Panel(splitter)
+
+        left_sizer = wx.BoxSizer(wx.VERTICAL)
+        left_label = wx.StaticText(left, label="Versionen")
+        left_sizer.Add(left_label, 0, wx.ALL, 8)
+        version_list = wx.ListBox(left)
+        version_list.SetName("Changelog Versionen")
+        left_sizer.Add(version_list, 1, wx.ALL | wx.EXPAND, 8)
+        left.SetSizer(left_sizer)
+
+        right_sizer = wx.BoxSizer(wx.VERTICAL)
+        right_label = wx.StaticText(right, label="Details")
+        right_sizer.Add(right_label, 0, wx.ALL, 8)
+        detail = wx.TextCtrl(right, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+        detail.SetName("Changelog Details")
+        right_sizer.Add(detail, 1, wx.ALL | wx.EXPAND, 8)
+        right.SetSizer(right_sizer)
+
+        titles = [title for title, _ in sections]
+        version_list.Set(titles)
+        if titles:
+            version_list.SetSelection(0)
+            detail.SetValue("\n".join(sections[0][1]).strip() + "\n")
+
+        def on_select(_evt):
+            idx = version_list.GetSelection()
+            if idx == wx.NOT_FOUND:
+                return
+            detail.SetValue("\n".join(sections[idx][1]).strip() + "\n")
+
+        version_list.Bind(wx.EVT_LISTBOX, on_select)
+
+        splitter.SplitVertically(left, right, sashPosition=220)
+        splitter.SetMinimumPaneSize(160)
+        splitter.SetSashGravity(0.2)
+        root.Add(splitter, 1, wx.ALL | wx.EXPAND, 10)
         btns = dlg.CreateButtonSizer(wx.OK)
         root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
         dlg.SetSizerAndFit(root)
@@ -1015,6 +1065,27 @@ class MainFrame(wx.Frame):
             return changelog_path.read_text(encoding="utf-8", errors="replace")
         except Exception:
             return "Changelog konnte nicht geladen werden."
+
+    def _build_changelog_sections(self) -> List[Tuple[str, List[str]]]:
+        text = self._build_changelog_text()
+        if not text or text.startswith("Kein Changelog"):
+            return []
+        lines = [ln.rstrip() for ln in text.splitlines()]
+        sections: List[Tuple[str, List[str]]] = []
+        current_title = ""
+        current_lines: List[str] = []
+        for line in lines:
+            if line.strip() and line.startswith("20") and "(v" in line:
+                if current_title:
+                    sections.append((current_title, current_lines))
+                current_title = line.strip()
+                current_lines = []
+                continue
+            if current_title:
+                current_lines.append(line)
+        if current_title:
+            sections.append((current_title, current_lines))
+        return sections
 
     # ------------------------------------------------------------------
     # Connection logic (shared across tabs)
