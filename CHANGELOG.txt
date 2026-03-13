@@ -10,3 +10,4 @@ Changelog
 - Audio/Settings: PTT-Hotkey Aufnahme, Audiooptionen neu strukturiert.
 - UI: Kanaele und Chat zusammengefuehrt, Einstellungen in separates Fenster verlagert.
 - Ueber-Dialog aktualisiert und Lizenzen eingebunden.
+- CI: Gitea Actions Workflow fuer Windows-Builds hinzugefuegt.
