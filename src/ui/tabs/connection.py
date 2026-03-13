@@ -225,6 +225,22 @@ class ConnectionTab(wx.Panel):
         threading.Thread(target=worker, daemon=True).start()
 
     def on_server_check(self, _event):
+        message = (
+            "Der Server-Check baut kurzzeitig Verbindungen zu allen Servern in der Liste auf, "
+            "um die aktiven Nutzer abzufragen.\n\n"
+            "Wenn du gerade verbunden bist, wird die Verbindung fuer den Check kurz getrennt "
+            "und danach automatisch wiederhergestellt.\n\n"
+            "Moechtest du den Server-Check jetzt starten?"
+        )
+        with wx.MessageDialog(
+            self,
+            message,
+            "Server-Check starten",
+            style=wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_YES:
+                self.frame.set_status("Server-Check abgebrochen")
+                return
         self.frame.scan_saved_servers_presence()
 
     def on_join_root(self, _event):
