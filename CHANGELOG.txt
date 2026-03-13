@@ -1,6 +1,10 @@
 Changelog
 =========
 
+2026-03-13 (v0.7.2)
+- Anpassung: Changelog als Liste mit Ueberschriften fuer bessere Lesbarkeit.
+- Fix: Startabsturz durch Tab-Order bei Kanaele/Chat behoben.
+
 2026-03-13 (v0.7.1)
 - Fix: Startabsturz durch Tab-Order bei Kanaele/Chat behoben.
 

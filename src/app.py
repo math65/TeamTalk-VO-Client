@@ -11,7 +11,7 @@ import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-APP_VERSION = "0.7.1"
+APP_VERSION = "0.7.2"
 
 
 def _init_startup_logging() -> None:
