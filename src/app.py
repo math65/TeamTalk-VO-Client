@@ -1042,7 +1042,7 @@ class MainFrame(wx.Frame):
         self.connection_tab.server_check_btn.Disable()
         self.set_status("Pruefe Serverliste...")
 
-        def _short_error(text: str, max_len: int = 220) -> str:
+        def _short_error(text: str, max_len: int = 380) -> str:
             cleaned = " ".join((text or "").split())
             if len(cleaned) <= max_len:
                 return cleaned
@@ -1091,11 +1091,18 @@ class MainFrame(wx.Frame):
                             out_file,
                         ]
                         try:
-                            subprocess.run(cmd, check=False, timeout=25)
+                            subprocess.run(cmd, check=False, timeout=35)
                             with open(out_file, "r", encoding="utf-8") as f:
                                 data = json.load(f)
                         except Exception as exc:
-                            data = {"ok": False, "message": str(exc), "names": []}
+                            # Fallback: run probe inline if the subprocess fails (timeout/launch error).
+                            self.logger.write(
+                                f"Servercheck-Debug: Probe-Subprozess fehlgeschlagen fuer {profile.name}: {exc}"
+                            )
+                            data = _probe_server_payload(payload)
+                            if not bool(data.get("ok", False)):
+                                msg = str(data.get("message", "")).strip() or str(exc)
+                                data["message"] = f"{msg} (Fallback nach: {exc})"
                         finally:
                             try:
                                 if out_file and os.path.exists(out_file):
@@ -1802,25 +1809,10 @@ class App(wx.App):
         return True
 
 
-def _run_probe_server_once(argv: List[str]) -> int:
-    out_path = ""
-    payload_json = ""
-    try:
-        if "--probe-server" in argv:
-            idx = argv.index("--probe-server")
-            payload_json = argv[idx + 1]
-        if "--probe-out" in argv:
-            idx = argv.index("--probe-out")
-            out_path = argv[idx + 1]
-    except Exception:
-        return 2
-    if not payload_json or not out_path:
-        return 2
-
+def _probe_server_payload(payload: Dict[str, object]) -> Dict[str, object]:
     result_data: Dict[str, object] = {"ok": False, "message": "Probe-Parameter ungueltig", "names": []}
     scanner = TeamTalkClient()
     try:
-        payload = json.loads(payload_json)
         host = str(payload.get("host", ""))
         tcp_port = int(payload.get("tcp_port", 0))
         udp_port = int(payload.get("udp_port", 0))
@@ -1895,11 +1887,35 @@ def _run_probe_server_once(argv: List[str]) -> int:
             scanner.close()
         except Exception:
             pass
-        try:
-            with open(out_path, "w", encoding="utf-8") as f:
-                json.dump(result_data, f, ensure_ascii=False)
-        except Exception:
-            return 3
+    return result_data
+
+
+def _run_probe_server_once(argv: List[str]) -> int:
+    out_path = ""
+    payload_json = ""
+    try:
+        if "--probe-server" in argv:
+            idx = argv.index("--probe-server")
+            payload_json = argv[idx + 1]
+        if "--probe-out" in argv:
+            idx = argv.index("--probe-out")
+            out_path = argv[idx + 1]
+    except Exception:
+        return 2
+    if not payload_json or not out_path:
+        return 2
+
+    try:
+        payload = json.loads(payload_json)
+    except Exception:
+        return 2
+
+    result_data = _probe_server_payload(payload)
+    try:
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(result_data, f, ensure_ascii=False)
+    except Exception:
+        return 3
     return 0
 
 
