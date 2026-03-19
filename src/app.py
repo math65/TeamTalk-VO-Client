@@ -29,7 +29,7 @@ from ui.tabs.admin import AdminTab
 from ui.tabs.speak import SpeakTab
 from ui.tabs.settings import SettingsTab
 from ui.tabs.desktop import DesktopTab
-from ui.server_tools import BroadcastMessageDialog, OnlineUsersDialog, ServerStatisticsDialog
+from ui.server_tools import BroadcastMessageDialog, OnlineUsersDialog, ServerStatisticsDialog, BanListDialog
 from ui.user_status import ChangeStatusDialog
 from ui.client_stats import ClientStatisticsDialog
 from tts import TTSManager
@@ -305,6 +305,7 @@ class MainFrame(wx.Frame):
         self.system_tab = self.settings_tab.system_tab
         self.server_stats_dialog: Optional[ServerStatisticsDialog] = None
         self.online_users_dialog: Optional[OnlineUsersDialog] = None
+        self.ban_dialog: Optional[BanListDialog] = None
         media_placeholder = LazyTabPlaceholder(self.notebook, "Aufnahme & Medien")
         desktop_placeholder = LazyTabPlaceholder(self.notebook, "Desktop")
         files_placeholder = LazyTabPlaceholder(self.notebook, "Dateien")
@@ -417,6 +418,7 @@ class MainFrame(wx.Frame):
         chan_info_speak = chan_menu.Append(wx.ID_ANY, "Kanalinfo vorlesen")
         chan_stats_speak = chan_menu.Append(wx.ID_ANY, "Kanalstatistik vorlesen")
         chan_tt_url = chan_menu.Append(wx.ID_ANY, "TT-URL fuer Kanal kopieren")
+        chan_bans = chan_menu.Append(wx.ID_ANY, "Sperren im Kanal anzeigen...")
         chan_msg = chan_menu.Append(wx.ID_ANY, "Kanalnachricht senden...")
         menubar.Append(chan_menu, "Kanal")
 
@@ -514,6 +516,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_channel_info_speak, chan_info_speak)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_stats_speak, chan_stats_speak)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_tt_url, chan_tt_url)
+        self.Bind(wx.EVT_MENU, self.on_menu_channel_bans, chan_bans)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_message, chan_msg)
 
         self.Bind(wx.EVT_MENU, self.on_menu_user_info, user_info)
@@ -1239,6 +1242,28 @@ class MainFrame(wx.Frame):
             self.set_status("TT-URL kopiert")
         else:
             self.set_status("Zwischenablage konnte nicht geoeffnet werden")
+
+    def on_menu_channel_bans(self, _event):
+        if not self._require_connected("Sperren im Kanal anzeigen"):
+            return
+        channel_id = self._get_selected_channel_id()
+        if not channel_id:
+            self.set_status("Kein Kanal ausgewaehlt")
+            return
+        dlg = BanListDialog(self, self, "Sperren im Kanal")
+        self.ban_dialog = dlg
+        dlg.clear()
+
+        def worker():
+            try:
+                self.client.do_list_bans(int(channel_id))
+            except Exception as exc:
+                wx.CallAfter(self.set_status, f"Sperren laden fehlgeschlagen: {exc}")
+
+        threading.Thread(target=worker, daemon=True).start()
+        dlg.ShowModal()
+        dlg.Destroy()
+        self.ban_dialog = None
 
     def on_menu_channel_message(self, _event):
         if not self._require_connected("Kanalnachricht senden"):
@@ -2430,6 +2455,8 @@ class MainFrame(wx.Frame):
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_BANNEDUSER:
             if self.admin_tab is not None:
                 wx.CallAfter(self.admin_tab.add_ban_to_list, msg.banneduser)
+            if self.ban_dialog is not None:
+                wx.CallAfter(self.ban_dialog.add_ban, msg.banneduser)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_SERVERSTATISTICS:
             if self.server_stats_dialog is not None:
                 wx.CallAfter(self.server_stats_dialog.update_stats, msg.serverstatistics)

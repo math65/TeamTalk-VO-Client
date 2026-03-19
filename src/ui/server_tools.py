@@ -174,3 +174,51 @@ class ServerStatisticsDialog(wx.Dialog):
         if minutes:
             return f"{minutes}m {seconds}s"
         return f"{seconds}s"
+
+
+class BanListDialog(wx.Dialog):
+    def __init__(self, parent: wx.Window, frame: MainFrame, title: str) -> None:
+        super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self.frame = frame
+        self.SetName("Sperrliste")
+        self._bans: List = []
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        header = wx.StaticText(self, label="IP | Benutzername | Zeitpunkt")
+        header.SetName("Sperrliste Kopfzeile")
+        sizer.Add(header, 0, wx.ALL, 8)
+
+        self.list_box = wx.ListBox(self)
+        self.list_box.SetName("Sperrliste Liste")
+        self.list_box.SetMinSize((520, 260))
+        sizer.Add(self.list_box, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.refresh_btn = wx.Button(self, label="Sperren laden")
+        self.refresh_btn.SetName("Sperren laden")
+        self.refresh_btn.Bind(wx.EVT_BUTTON, self.on_refresh)
+        close_btn = wx.Button(self, id=wx.ID_CLOSE, label="Schliessen")
+        close_btn.SetName("Sperrliste schliessen")
+        close_btn.Bind(wx.EVT_BUTTON, lambda _evt: self.Close())
+        btn_row.Add(self.refresh_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(close_btn, 0)
+        sizer.Add(btn_row, 0, wx.ALL, 8)
+
+        self.SetSizerAndFit(sizer)
+
+    def on_refresh(self, _event) -> None:
+        self.refresh()
+
+    def refresh(self) -> None:
+        self.list_box.Set(["Sperren werden geladen..."])
+
+    def clear(self) -> None:
+        self._bans = []
+        self.list_box.Set([])
+
+    def add_ban(self, ban) -> None:
+        tt_str = self.frame.tt_str
+        self._bans.append(ban)
+        label = f"{tt_str(ban.szIPAddress)} | {tt_str(ban.szUsername)} | {tt_str(ban.szBanTime)}"
+        self.list_box.Append(label)

@@ -16,6 +16,7 @@ Changelog
     - Kanalinfo vorlesen.
     - Kanalstatistik vorlesen.
     - TT-URL fuer Kanal kopieren.
+    - Sperren im Kanal anzeigen.
 - Benutzer:
     - Benutzerinfo vorlesen.
     - Zielkanal merken + Benutzer in Zielkanal verschieben.
