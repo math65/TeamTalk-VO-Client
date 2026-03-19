@@ -545,6 +545,60 @@ class TeamTalkClient:
         codec.nCodec = int(self.tt.Codec.NO_CODEC)
         return codec
 
+    def build_default_speex_codec(self) -> Any:
+        codec = self.tt.AudioCodec()
+        codec.nCodec = int(self.tt.Codec.SPEEX_CODEC)
+        codec.speex.nBandmode = 1
+        codec.speex.nQuality = 4
+        codec.speex.nTxIntervalMSec = 40
+        codec.speex.bStereoPlayback = False
+        return codec
+
+    def build_default_speex_vbr_codec(self) -> Any:
+        codec = self.tt.AudioCodec()
+        codec.nCodec = int(self.tt.Codec.SPEEX_VBR_CODEC)
+        codec.speex_vbr.nBandmode = 1
+        codec.speex_vbr.nQuality = 4
+        codec.speex_vbr.nBitRate = 0
+        codec.speex_vbr.nMaxBitRate = 0
+        codec.speex_vbr.bDTX = True
+        codec.speex_vbr.nTxIntervalMSec = 40
+        codec.speex_vbr.bStereoPlayback = False
+        return codec
+
+    def make_temporary_channel(
+        self,
+        name: str,
+        parent_id: int,
+        topic: str = "",
+        password: str = "",
+        channel_type: Optional[int] = None,
+        audio_codec: Optional[Any] = None,
+        timeout_ms: int = 4000,
+    ) -> ConnectResult:
+        ch = self.tt.Channel()
+        ch.nParentID = int(parent_id)
+        ch.nChannelID = 0
+        ch.szName = self.tt.ttstr(name)
+        ch.szTopic = self.tt.ttstr(topic)
+        if password:
+            ch.szPassword = self.tt.ttstr(password)
+            ch.bPassword = True
+        if channel_type is not None:
+            ch.uChannelType = int(channel_type)
+        if audio_codec is not None:
+            ch.audiocodec = audio_codec
+        cmdid = self.client.doJoinChannel(ch)
+        ok, msg = self._wait_for_cmd_result(cmdid, timeout_ms)
+        if not ok:
+            if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_CMD_ERROR:
+                err = self.tt.ttstr(msg.clienterrormsg.szErrorMsg)
+                return ConnectResult(False, f"Kanal erstellen fehlgeschlagen: {err}")
+            if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_NONE:
+                return ConnectResult(False, "Kanal erstellen fehlgeschlagen: Timeout")
+            return ConnectResult(False, "Kanal erstellen fehlgeschlagen")
+        return ConnectResult(True, "Kanal erstellt (temporaer)")
+
     def update_channel(self, channel, timeout_ms: int = 4000) -> ConnectResult:
         cmdid = self.client.doUpdateChannel(channel)
         ok, msg = self._wait_for_cmd_result(cmdid, timeout_ms)

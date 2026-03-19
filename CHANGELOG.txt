@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2026-03-19 (v0.9.0)
+- Kanal-Erstellung/Bearbeitung erweitert:
+    - Audio-Codec um Speex/Speex VBR ergaenzt (Standardprofile).
+    - Temporaere Kanaele werden korrekt ueber Join erstellt, falls keine Serverrechte.
+
 2026-03-19 (v0.8.0)
 - Kanal-Erstellung/Bearbeitung erweitert:
     - Audio-Codec (Opus/Kein Audio/Elternkanal) und Operator-Passwort.
@@ -16,7 +21,6 @@ Changelog
     - Audio-Codec Auswahl (Opus/Kein Audio/Elternkanal).
     - Datei-Quota (MB), Max. Benutzer, Operator-Passwort.
     - Zusaetzliche Kanaltypen (Solo, Classroom, Operator-RecvOnly, Hidden, No-VA, No-Recording).
-- Navigation: Bereichsauswahl + Infozeile fuer bessere Screenreader-Navigation.
 
 2026-03-15 (v0.7.3)
 - Optimierung und Fehlerbehebung im Code:

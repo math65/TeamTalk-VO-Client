@@ -32,7 +32,7 @@ from tts import TTSManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.8.0"
+APP_VERSION = "0.9.0"
 
 
 def _init_startup_logging() -> None:
@@ -619,6 +619,8 @@ class MainFrame(wx.Frame):
         codec_choices = [
             ("Vom Elternkanal uebernehmen", "inherit"),
             ("Opus (Standard)", "opus"),
+            ("Speex (Standard)", "speex"),
+            ("Speex VBR (Standard)", "speex_vbr"),
             ("Kein Audio", "none"),
         ]
         if audio_codec_mode == "keep":
@@ -779,20 +781,34 @@ class MainFrame(wx.Frame):
             audio_codec = parent_channel.audiocodec
         elif codec_mode == "opus":
             audio_codec = self.client.build_default_opus_codec()
+        elif codec_mode == "speex":
+            audio_codec = self.client.build_default_speex_codec()
+        elif codec_mode == "speex_vbr":
+            audio_codec = self.client.build_default_speex_vbr_codec()
         elif codec_mode == "none":
             audio_codec = self.client.build_no_audio_codec()
-        result = self.client.make_channel(
-            name=data["name"],
-            parent_id=parent_id,
-            topic=data.get("topic", ""),
-            password=data.get("password", "") if data.get("set_password") else "",
-            permanent=bool(data.get("permanent") and can_modify),
-            channel_type=channel_type,
-            audio_codec=audio_codec,
-            disk_quota=int(data.get("disk_quota_mb", 0)) * 1024 * 1024,
-            max_users=int(data.get("max_users", 0)),
-            op_password=str(data.get("op_password", "")),
-        )
+        if can_modify:
+            result = self.client.make_channel(
+                name=data["name"],
+                parent_id=parent_id,
+                topic=data.get("topic", ""),
+                password=data.get("password", "") if data.get("set_password") else "",
+                permanent=bool(data.get("permanent") and can_modify),
+                channel_type=channel_type,
+                audio_codec=audio_codec,
+                disk_quota=int(data.get("disk_quota_mb", 0)) * 1024 * 1024,
+                max_users=int(data.get("max_users", 0)),
+                op_password=str(data.get("op_password", "")),
+            )
+        else:
+            result = self.client.make_temporary_channel(
+                name=data["name"],
+                parent_id=parent_id,
+                topic=data.get("topic", ""),
+                password=data.get("password", "") if data.get("set_password") else "",
+                channel_type=channel_type,
+                audio_codec=audio_codec,
+            )
         self.set_status(result.message)
         if result.ok:
             self.channels_tab.refresh_channels_and_users()
@@ -854,6 +870,10 @@ class MainFrame(wx.Frame):
             if not users_in_channel and codec_mode:
                 if codec_mode == "opus":
                     channel.audiocodec = self.client.build_default_opus_codec()
+                elif codec_mode == "speex":
+                    channel.audiocodec = self.client.build_default_speex_codec()
+                elif codec_mode == "speex_vbr":
+                    channel.audiocodec = self.client.build_default_speex_vbr_codec()
                 elif codec_mode == "none":
                     channel.audiocodec = self.client.build_no_audio_codec()
         result = self.client.update_channel(channel)
