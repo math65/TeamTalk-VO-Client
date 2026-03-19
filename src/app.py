@@ -295,6 +295,56 @@ class MainFrame(wx.Frame):
         nav_panel.SetSizer(nav_sizer)
         main_sizer.Add(nav_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 12)
 
+        # --- Quick-Actions Panel (toolbar equivalent) ---
+        qa_panel = wx.Panel(panel)
+        qa_panel.SetName("Schnellaktionen")
+        qa_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.tb_ptt = wx.ToggleButton(qa_panel, label="PTT")
+        self.tb_ptt.SetName("Push-to-Talk")
+        self.tb_va = wx.ToggleButton(qa_panel, label="VA")
+        self.tb_va.SetName("Voice Activation")
+        self.tb_video = wx.ToggleButton(qa_panel, label="Video")
+        self.tb_video.SetName("Video senden")
+        self.tb_desktop = wx.ToggleButton(qa_panel, label="Desktop")
+        self.tb_desktop.SetName("Desktop freigeben")
+        self.tb_mute = wx.ToggleButton(qa_panel, label="Mute")
+        self.tb_mute.SetName("Alles stummschalten")
+        self.tb_record = wx.ToggleButton(qa_panel, label="Aufnahme")
+        self.tb_record.SetName("Aufnahme")
+        self.tb_question = wx.ToggleButton(qa_panel, label="?-Modus")
+        self.tb_question.SetName("Frage-Modus")
+
+        for btn in (self.tb_ptt, self.tb_va, self.tb_video, self.tb_desktop,
+                    self.tb_mute, self.tb_record, self.tb_question):
+            qa_sizer.Add(btn, 0, wx.RIGHT, 4)
+
+        qa_sizer.AddSpacer(16)
+
+        # Master volume slider (output)
+        qa_sizer.Add(wx.StaticText(qa_panel, label="Ausgabe:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
+        self.master_volume_slider = wx.Slider(qa_panel, value=100, minValue=0, maxValue=200, style=wx.SL_HORIZONTAL)
+        self.master_volume_slider.SetName("Ausgabelautstaerke")
+        self.master_volume_slider.SetMinSize((100, -1))
+        qa_sizer.Add(self.master_volume_slider, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 12)
+
+        # Mic gain slider
+        qa_sizer.Add(wx.StaticText(qa_panel, label="Mikrofon:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
+        self.mic_gain_slider = wx.Slider(qa_panel, value=100, minValue=0, maxValue=200, style=wx.SL_HORIZONTAL)
+        self.mic_gain_slider.SetName("Mikrofon-Gain")
+        self.mic_gain_slider.SetMinSize((100, -1))
+        qa_sizer.Add(self.mic_gain_slider, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 12)
+
+        # VU meter
+        qa_sizer.Add(wx.StaticText(qa_panel, label="Pegel:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
+        self.vu_meter = wx.Gauge(qa_panel, range=100, style=wx.GA_HORIZONTAL)
+        self.vu_meter.SetName("Eingangspegel")
+        self.vu_meter.SetMinSize((80, -1))
+        qa_sizer.Add(self.vu_meter, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        qa_panel.SetSizer(qa_sizer)
+        main_sizer.Add(qa_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 12)
+
         self.notebook = wx.Notebook(panel)
         self.notebook.SetName("Hauptnavigation")
 
@@ -381,6 +431,107 @@ class MainFrame(wx.Frame):
             )
             self.SetAcceleratorTable(accel)
             self.Bind(wx.EVT_MENU, self.on_menu_settings, id=wx.ID_PREFERENCES)
+
+        # Toolbar button bindings
+        self.tb_ptt.Bind(wx.EVT_TOGGLEBUTTON, self._on_tb_ptt)
+        self.tb_va.Bind(wx.EVT_TOGGLEBUTTON, self._on_tb_va)
+        self.tb_video.Bind(wx.EVT_TOGGLEBUTTON, self._on_tb_video)
+        self.tb_desktop.Bind(wx.EVT_TOGGLEBUTTON, self._on_tb_desktop)
+        self.tb_mute.Bind(wx.EVT_TOGGLEBUTTON, self._on_tb_mute)
+        self.tb_record.Bind(wx.EVT_TOGGLEBUTTON, self._on_tb_record)
+        self.tb_question.Bind(wx.EVT_TOGGLEBUTTON, self._on_tb_question)
+        self.master_volume_slider.Bind(wx.EVT_SLIDER, self._on_master_volume_slider)
+        self.mic_gain_slider.Bind(wx.EVT_SLIDER, self._on_mic_gain_slider)
+        # VU meter timer
+        self._vu_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_vu_timer, self._vu_timer)
+        self._vu_timer.Start(100)
+
+    # ------------------------------------------------------------------
+    # Toolbar / Quick-Actions handlers
+    # ------------------------------------------------------------------
+
+    def _on_tb_ptt(self, event):
+        val = event.GetEventObject().GetValue()
+        self._ptt_enabled = val
+        if not val and self._ptt_active:
+            self._ptt_active = False
+            self.client.enable_voice_transmission(False)
+        try:
+            self.audio_tab.ptt_toggle.SetValue(val)
+        except Exception:
+            pass
+        self.set_status("PTT aktiv" if val else "PTT deaktiviert")
+
+    def _on_tb_va(self, event):
+        self.on_menu_audio_va(event)
+        try:
+            self.tb_va.SetValue(self.audio_tab.va_toggle.GetValue())
+        except Exception:
+            pass
+
+    def _on_tb_video(self, event):
+        val = event.GetEventObject().GetValue()
+        self._video_tx_enabled = val
+        self.video_tab.set_transmission_enabled(val)
+        self.tb_video.SetValue(val)
+
+    def _on_tb_desktop(self, event):
+        self.on_menu_desktop_sharing(event)
+        try:
+            val = bool(self.client.is_desktop_sharing_active() if hasattr(self.client, 'is_desktop_sharing_active') else False)
+            self.tb_desktop.SetValue(val)
+        except Exception:
+            pass
+
+    def _on_tb_mute(self, event):
+        val = event.GetEventObject().GetValue()
+        self._mute_all = val
+        self.client.set_sound_output_mute(val)
+        self.set_status("Ausgabe stummgeschaltet" if val else "Ausgabe aktiv")
+
+    def _on_tb_record(self, event):
+        val = event.GetEventObject().GetValue()
+        if val:
+            self.on_menu_record_start(None)
+        else:
+            self.on_menu_record_stop(None)
+
+    def _on_tb_question(self, event):
+        val = event.GetEventObject().GetValue()
+        self._status_mode = 1 if val else 0
+        try:
+            self.client.set_away_status(self._status_mode, self._status_message)
+        except Exception:
+            pass
+        self.set_status("Frage-Modus aktiv" if val else "Frage-Modus deaktiviert")
+
+    def _on_master_volume_slider(self, event):
+        level = event.GetEventObject().GetValue()
+        # 0-200 -> 0-32000 (SDK range); 100 = default 16000
+        sdk_level = int(level * 160)
+        try:
+            self.client.set_sound_output_volume(sdk_level)
+            self.audio_tab.output_volume.SetValue(level)
+        except Exception:
+            pass
+
+    def _on_mic_gain_slider(self, event):
+        level = event.GetEventObject().GetValue()
+        sdk_level = int(level * 160)
+        try:
+            self.client.set_sound_input_gain(sdk_level)
+            self.audio_tab.input_gain.SetValue(level)
+        except Exception:
+            pass
+
+    def _on_vu_timer(self, _event):
+        try:
+            level = self.client.get_sound_input_level()
+            if level is not None:
+                self.vu_meter.SetValue(min(100, int(level * 100 / 32768)))
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Menu
@@ -956,6 +1107,107 @@ class MainFrame(wx.Frame):
             audio_box.Add(wx.StaticText(dlg, label="Audio-Codec kann nicht geaendert werden, wenn Nutzer im Kanal sind."), 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         root.Add(audio_box, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 10)
 
+        # OPUS settings panel
+        opus_box = wx.StaticBoxSizer(wx.StaticBox(dlg, label="OPUS Einstellungen"), wx.VERTICAL)
+        opus_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
+        opus_form.AddGrowableCol(1)
+
+        lbl_opus_app = wx.StaticText(dlg, label="Anwendung")
+        opus_app = wx.Choice(dlg, choices=["VoIP", "Musik"])
+        opus_app.SetSelection(0)
+        lbl_opus_sr = wx.StaticText(dlg, label="Samplerate (Hz)")
+        opus_sr = wx.Choice(dlg, choices=["8000", "12000", "16000", "24000", "48000"])
+        opus_sr.SetStringSelection("48000")
+        lbl_opus_ch = wx.StaticText(dlg, label="Kanaele")
+        opus_ch = wx.Choice(dlg, choices=["Mono", "Stereo"])
+        opus_ch.SetSelection(0)
+        lbl_opus_br = wx.StaticText(dlg, label="Bitrate (kbps)")
+        opus_br = wx.SpinCtrl(dlg, min=6, max=510, initial=64)
+        opus_vbr = wx.CheckBox(dlg, label="Variable Bitrate (VBR)")
+        opus_dtx = wx.CheckBox(dlg, label="Silence ignorieren (DTX)")
+        lbl_opus_tx = wx.StaticText(dlg, label="Intervall (ms)")
+        opus_tx = wx.SpinCtrl(dlg, min=20, max=1000, initial=40)
+        lbl_opus_frame = wx.StaticText(dlg, label="Frame-Groesse (ms)")
+        opus_frame = wx.SpinCtrl(dlg, min=2, max=60, initial=20)
+
+        for lbl, ctrl in [(lbl_opus_app, opus_app), (lbl_opus_sr, opus_sr),
+                          (lbl_opus_ch, opus_ch), (lbl_opus_br, opus_br),
+                          (lbl_opus_tx, opus_tx), (lbl_opus_frame, opus_frame)]:
+            opus_form.Add(lbl, 0, wx.ALIGN_CENTER_VERTICAL)
+            opus_form.Add(ctrl, 1, wx.EXPAND)
+        opus_form.AddSpacer(0)
+        opus_form.Add(opus_vbr, 0)
+        opus_form.AddSpacer(0)
+        opus_form.Add(opus_dtx, 0)
+        opus_box.Add(opus_form, 0, wx.ALL | wx.EXPAND, 8)
+        root.Add(opus_box, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 10)
+
+        # Speex settings panel
+        speex_box = wx.StaticBoxSizer(wx.StaticBox(dlg, label="Speex Einstellungen"), wx.VERTICAL)
+        speex_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
+        speex_form.AddGrowableCol(1)
+        lbl_spx_sr = wx.StaticText(dlg, label="Samplerate (Hz)")
+        spx_sr = wx.Choice(dlg, choices=["8000", "16000", "32000"])
+        spx_sr.SetStringSelection("16000")
+        lbl_spx_q = wx.StaticText(dlg, label="Qualitaet (0-10)")
+        spx_q = wx.SpinCtrl(dlg, min=0, max=10, initial=4)
+        lbl_spx_tx = wx.StaticText(dlg, label="Intervall (ms)")
+        spx_tx = wx.SpinCtrl(dlg, min=20, max=1000, initial=40)
+        spx_vbr = wx.CheckBox(dlg, label="Variable Bitrate (VBR)")
+        lbl_spx_maxbr = wx.StaticText(dlg, label="Max. Bitrate (bps, 0=aus)")
+        spx_maxbr = wx.SpinCtrl(dlg, min=0, max=128000, initial=0)
+        spx_dtx = wx.CheckBox(dlg, label="DTX")
+        for lbl, ctrl in [(lbl_spx_sr, spx_sr), (lbl_spx_q, spx_q),
+                          (lbl_spx_tx, spx_tx), (lbl_spx_maxbr, spx_maxbr)]:
+            speex_form.Add(lbl, 0, wx.ALIGN_CENTER_VERTICAL)
+            speex_form.Add(ctrl, 1, wx.EXPAND)
+        speex_form.AddSpacer(0)
+        speex_form.Add(spx_vbr, 0)
+        speex_form.AddSpacer(0)
+        speex_form.Add(spx_dtx, 0)
+        speex_box.Add(speex_form, 0, wx.ALL | wx.EXPAND, 8)
+        root.Add(speex_box, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 10)
+
+        # Fixed audio volume + stream timeouts
+        audio_adv_box = wx.StaticBoxSizer(wx.StaticBox(dlg, label="Audio-Optionen"), wx.VERTICAL)
+        audio_adv_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
+        audio_adv_form.AddGrowableCol(1)
+        fixed_vol_check = wx.CheckBox(dlg, label="Feste Lautstaerke fuer alle Nutzer")
+        fixed_vol_spin = wx.SpinCtrl(dlg, min=0, max=32000, initial=0)
+        lbl_voice_timeout = wx.StaticText(dlg, label="Max. Sprachdauer (Sek., 0=aus)")
+        voice_timeout = wx.SpinCtrl(dlg, min=0, max=3600, initial=0)
+        lbl_media_timeout = wx.StaticText(dlg, label="Max. Mediadauer (Sek., 0=aus)")
+        media_timeout = wx.SpinCtrl(dlg, min=0, max=3600, initial=0)
+        audio_adv_form.AddSpacer(0)
+        audio_adv_form.Add(fixed_vol_check, 0)
+        audio_adv_form.Add(wx.StaticText(dlg, label="Lautstaerke"), 0, wx.ALIGN_CENTER_VERTICAL)
+        audio_adv_form.Add(fixed_vol_spin, 1, wx.EXPAND)
+        audio_adv_form.Add(lbl_voice_timeout, 0, wx.ALIGN_CENTER_VERTICAL)
+        audio_adv_form.Add(voice_timeout, 1, wx.EXPAND)
+        audio_adv_form.Add(lbl_media_timeout, 0, wx.ALIGN_CENTER_VERTICAL)
+        audio_adv_form.Add(media_timeout, 1, wx.EXPAND)
+        audio_adv_box.Add(audio_adv_form, 0, wx.ALL | wx.EXPAND, 8)
+        root.Add(audio_adv_box, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 10)
+
+        def _update_codec_panels():
+            sel = codec_choices[codec_choice.GetSelection()][1]
+            opus_box.GetStaticBox().Show(sel in ("opus",))
+            speex_box.GetStaticBox().Show(sel in ("speex", "speex_vbr"))
+            for child in opus_box.GetChildren():
+                try:
+                    child.GetWindow().Show(sel == "opus")
+                except Exception:
+                    pass
+            for child in speex_box.GetChildren():
+                try:
+                    child.GetWindow().Show(sel in ("speex", "speex_vbr"))
+                except Exception:
+                    pass
+            dlg.Layout()
+
+        codec_choice.Bind(wx.EVT_CHOICE, lambda e: _update_codec_panels())
+        _update_codec_panels()
+
         rights_note = None
         try:
             rights = int(self.client.get_my_user_rights() or 0)
@@ -996,6 +1248,23 @@ class MainFrame(wx.Frame):
             "max_users": int(max_ctrl.GetValue()),
             "op_password": op_ctrl.GetValue().strip(),
             "audio_codec_mode": codec_choices[codec_choice.GetSelection()][1],
+            "opus_app": opus_app.GetSelection(),
+            "opus_samplerate": int(opus_sr.GetStringSelection()),
+            "opus_channels": opus_ch.GetSelection() + 1,
+            "opus_bitrate": int(opus_br.GetValue()),
+            "opus_vbr": bool(opus_vbr.GetValue()),
+            "opus_dtx": bool(opus_dtx.GetValue()),
+            "opus_tx_interval": int(opus_tx.GetValue()),
+            "opus_frame_size": int(opus_frame.GetValue()),
+            "speex_samplerate": int(spx_sr.GetStringSelection()),
+            "speex_quality": int(spx_q.GetValue()),
+            "speex_tx_interval": int(spx_tx.GetValue()),
+            "speex_vbr": bool(spx_vbr.GetValue()),
+            "speex_max_bitrate": int(spx_maxbr.GetValue()),
+            "speex_dtx": bool(spx_dtx.GetValue()),
+            "fixed_volume": int(fixed_vol_spin.GetValue()) if fixed_vol_check.GetValue() else 0,
+            "voice_timeout_sec": int(voice_timeout.GetValue()),
+            "media_timeout_sec": int(media_timeout.GetValue()),
         }
         if allow_password and pw_check and pw_ctrl:
             result["set_password"] = bool(pw_check.GetValue())
@@ -1328,10 +1597,41 @@ class MainFrame(wx.Frame):
             audio_codec = parent_channel.audiocodec
         elif codec_mode == "opus":
             audio_codec = self.client.build_default_opus_codec()
+            try:
+                tt_mod = self.client.tt
+                audio_codec.opus.nSampleRate = int(data.get("opus_samplerate", 48000))
+                audio_codec.opus.nChannels = int(data.get("opus_channels", 1))
+                audio_codec.opus.nBitRate = int(data.get("opus_bitrate", 64)) * 1000
+                audio_codec.opus.bVBR = bool(data.get("opus_vbr", True))
+                audio_codec.opus.bDTX = bool(data.get("opus_dtx", False))
+                audio_codec.opus.nTxIntervalMSec = int(data.get("opus_tx_interval", 40))
+                audio_codec.opus.nFrameSizeMSec = int(data.get("opus_frame_size", 0))
+                opus_app_idx = int(data.get("opus_app", 0))
+                audio_codec.opus.nApplication = int(
+                    tt_mod.OPUS_APPLICATION_VOIP if opus_app_idx == 0 else tt_mod.OPUS_APPLICATION_MUSIC
+                )
+            except Exception:
+                pass
         elif codec_mode == "speex":
             audio_codec = self.client.build_default_speex_codec()
+            try:
+                sr = int(data.get("speex_samplerate", 16000))
+                audio_codec.speex.nBandmode = {8000: 0, 16000: 1, 32000: 2}.get(sr, 1)
+                audio_codec.speex.nQuality = int(data.get("speex_quality", 4))
+                audio_codec.speex.nTxIntervalMSec = int(data.get("speex_tx_interval", 40))
+            except Exception:
+                pass
         elif codec_mode == "speex_vbr":
             audio_codec = self.client.build_default_speex_vbr_codec()
+            try:
+                sr = int(data.get("speex_samplerate", 16000))
+                audio_codec.speex_vbr.nBandmode = {8000: 0, 16000: 1, 32000: 2}.get(sr, 1)
+                audio_codec.speex_vbr.nQuality = int(data.get("speex_quality", 4))
+                audio_codec.speex_vbr.nTxIntervalMSec = int(data.get("speex_tx_interval", 40))
+                audio_codec.speex_vbr.nMaxBitRate = int(data.get("speex_max_bitrate", 0))
+                audio_codec.speex_vbr.bDTX = bool(data.get("speex_dtx", True))
+            except Exception:
+                pass
         elif codec_mode == "none":
             audio_codec = self.client.build_no_audio_codec()
         if can_modify:
@@ -2044,6 +2344,23 @@ class MainFrame(wx.Frame):
         target_id = ids[idx]
         self.client.do_move_user(int(user.nUserID), int(target_id))
         self.set_status("Benutzer verschoben")
+
+    def on_menu_user_allow_desktop_access(self, _event):
+        if not self._require_connected("Desktop-Zugriff"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        tt = self.client.tt
+        current = int(getattr(user, "uLocalSubscriptions", 0) or 0)
+        flag = int(tt.Subscription.SUBSCRIBE_DESKTOPINPUT)
+        if current & flag:
+            self.client.do_unsubscribe(int(user.nUserID), flag)
+            self.set_status("Desktop-Zugriff entzogen")
+        else:
+            self.client.do_subscribe(int(user.nUserID), flag)
+            self.set_status("Desktop-Zugriff erlaubt")
 
     def on_menu_audio_settings(self, _event):
         if not self.settings_window.IsShown():
@@ -2845,6 +3162,9 @@ class MainFrame(wx.Frame):
         key = event.GetKeyCode()
         if key == wx.WXK_F2:
             self.on_menu_connect(None)
+            return
+        if key == wx.WXK_F6:
+            self.on_menu_user_message(None)
             return
         if key == wx.WXK_F5:
             if self.client.is_connected():

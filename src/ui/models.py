@@ -114,6 +114,23 @@ class AppSettings:
     hotkey_mute_all: int = 0
     hotkey_voice_activation: int = 0
     hotkey_video_tx: int = 0
+    # Allgemein
+    gender: str = ""
+    away_timer_min: int = 0
+    bearware_username: str = ""
+    bearware_password: str = ""
+    bearware_login: bool = False
+    # Verbindung
+    default_subscriptions: int = 0
+    tcp_bind_port: int = 0
+    udp_bind_port: int = 0
+    # Anzeige
+    minimize_to_tray: bool = False
+    always_on_top: bool = False
+    show_server_in_title: bool = True
+    chat_history_format: str = "Liste"
+    # Sound-Ereignisse
+    sound_events: Dict[str, str] = field(default_factory=dict)
 
 
 class SettingsStore:
@@ -144,6 +161,20 @@ class SettingsStore:
             self.settings.hotkey_mute_all = int(data.get("hotkey_mute_all", 0) or 0)
             self.settings.hotkey_voice_activation = int(data.get("hotkey_voice_activation", 0) or 0)
             self.settings.hotkey_video_tx = int(data.get("hotkey_video_tx", 0) or 0)
+            self.settings.gender = str(data.get("gender", "") or "")
+            self.settings.away_timer_min = int(data.get("away_timer_min", 0) or 0)
+            self.settings.bearware_username = str(data.get("bearware_username", "") or "")
+            self.settings.bearware_password = str(data.get("bearware_password", "") or "")
+            self.settings.bearware_login = bool(data.get("bearware_login", False))
+            self.settings.default_subscriptions = int(data.get("default_subscriptions", 0) or 0)
+            self.settings.tcp_bind_port = int(data.get("tcp_bind_port", 0) or 0)
+            self.settings.udp_bind_port = int(data.get("udp_bind_port", 0) or 0)
+            self.settings.minimize_to_tray = bool(data.get("minimize_to_tray", False))
+            self.settings.always_on_top = bool(data.get("always_on_top", False))
+            self.settings.show_server_in_title = bool(data.get("show_server_in_title", True))
+            self.settings.chat_history_format = str(data.get("chat_history_format", "Liste") or "Liste")
+            sound_events = data.get("sound_events", {})
+            self.settings.sound_events = sound_events if isinstance(sound_events, dict) else {}
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -159,5 +190,18 @@ class SettingsStore:
             "hotkey_mute_all": int(self.settings.hotkey_mute_all or 0),
             "hotkey_voice_activation": int(self.settings.hotkey_voice_activation or 0),
             "hotkey_video_tx": int(self.settings.hotkey_video_tx or 0),
+            "gender": str(self.settings.gender or ""),
+            "away_timer_min": int(self.settings.away_timer_min or 0),
+            "bearware_username": str(self.settings.bearware_username or ""),
+            "bearware_password": str(self.settings.bearware_password or ""),
+            "bearware_login": bool(self.settings.bearware_login),
+            "default_subscriptions": int(self.settings.default_subscriptions or 0),
+            "tcp_bind_port": int(self.settings.tcp_bind_port or 0),
+            "udp_bind_port": int(self.settings.udp_bind_port or 0),
+            "minimize_to_tray": bool(self.settings.minimize_to_tray),
+            "always_on_top": bool(self.settings.always_on_top),
+            "show_server_in_title": bool(self.settings.show_server_in_title),
+            "chat_history_format": str(self.settings.chat_history_format or "Liste"),
+            "sound_events": self.settings.sound_events or {},
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

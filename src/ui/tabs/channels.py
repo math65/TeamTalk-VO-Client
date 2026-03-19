@@ -365,6 +365,7 @@ class ChannelsTab(wx.Panel):
         move_item = menu.Append(wx.ID_ANY, "Benutzer verschieben...")
         kick_item = menu.Append(wx.ID_ANY, "Kick")
         kick_ban_item = menu.Append(wx.ID_ANY, "Kick + Ban")
+        desktop_access_item = menu.Append(wx.ID_ANY, "Desktop-Zugriff erlauben")
 
         # Bind handlers
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_info(user_id), info_item)
@@ -377,6 +378,7 @@ class ChannelsTab(wx.Panel):
         self.Bind(wx.EVT_MENU, lambda e: self.frame.on_menu_user_move(None), move_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_kick(user_id), kick_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_kick_ban(user_id), kick_ban_item)
+        self.Bind(wx.EVT_MENU, lambda e: self.frame.on_menu_user_allow_desktop_access(None), desktop_access_item)
         for mi, flag in sub_items:
             self.Bind(wx.EVT_MENU, lambda e, f=flag: self._on_user_subscribe_toggle(user_id, f, e.IsChecked()), mi)
 

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import threading
-from typing import Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
 import wx
 
-from ..tt_file_parser import build_teamtalk_url, build_teamtalk_xml
+from ..tt_file_parser import build_teamtalk_url, build_teamtalk_xml, parse_teamtalk_file
 
 from ..models import ServerProfile
 
@@ -27,9 +27,25 @@ class ConnectionTab(wx.Panel):
         server_box = wx.StaticBox(self, label="Server")
         server_sizer = wx.StaticBoxSizer(server_box, wx.VERTICAL)
 
-        self.server_list = wx.ListBox(self, choices=[p.name for p in frame.store.items()])
+        self._all_server_names: List[str] = [p.name for p in frame.store.items()]
+        self._filtered_indices: List[int] = list(range(len(self._all_server_names)))
+
+        # Filter row
+        filter_row = wx.BoxSizer(wx.HORIZONTAL)
+        filter_lbl = wx.StaticText(self, label="Filter:")
+        self.server_filter = wx.TextCtrl(self, value="")
+        self.server_filter.SetName("Serverfilter")
+        self.server_filter.Bind(wx.EVT_TEXT, self._on_filter_changed)
+        filter_row.Add(filter_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
+        filter_row.Add(self.server_filter, 1, wx.EXPAND)
+        server_sizer.Add(filter_row, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
+
+        self.server_list = wx.ListBox(self, choices=self._all_server_names)
         self.server_list.SetName("Serverliste")
         self.server_list.Bind(wx.EVT_LISTBOX, self.on_server_selected)
+        self.server_list.Bind(wx.EVT_LISTBOX_DCLICK, self.on_server_dclick)
+        self.server_list.Bind(wx.EVT_RIGHT_DOWN, self.on_server_list_context)
+        self.server_list.Bind(wx.EVT_KEY_DOWN, self.on_server_list_key)
 
         btn_row = wx.BoxSizer(wx.HORIZONTAL)
         self.server_add = wx.Button(self, label="Neu")
@@ -41,9 +57,13 @@ class ConnectionTab(wx.Panel):
         self.server_remove = wx.Button(self, label="Entfernen")
         self.server_remove.SetName("Server entfernen")
         self.server_remove.Bind(wx.EVT_BUTTON, self.on_server_remove)
+        self.join_code_btn = wx.Button(self, label="Beitrittscode eingeben")
+        self.join_code_btn.SetName("Beitrittscode eingeben")
+        self.join_code_btn.Bind(wx.EVT_BUTTON, self.on_enter_join_code)
         btn_row.Add(self.server_add, 0, wx.RIGHT, 8)
         btn_row.Add(self.server_edit, 0, wx.RIGHT, 8)
-        btn_row.Add(self.server_remove, 0)
+        btn_row.Add(self.server_remove, 0, wx.RIGHT, 8)
+        btn_row.Add(self.join_code_btn, 0)
 
         server_sizer.Add(self.server_list, 0, wx.ALL | wx.EXPAND, 8)
         server_sizer.Add(btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
@@ -182,15 +202,29 @@ class ConnectionTab(wx.Panel):
         )
 
     def reload_server_list(self):
-        self.server_list.Set([p.name for p in self.frame.store.items()])
+        self._all_server_names = [p.name for p in self.frame.store.items()]
+        self._filtered_indices = list(range(len(self._all_server_names)))
+        filt = self.server_filter.GetValue().strip().lower() if hasattr(self, "server_filter") else ""
+        if filt:
+            self._filtered_indices = [i for i, n in enumerate(self._all_server_names) if filt in n.lower()]
+        self.server_list.Set([self._all_server_names[i] for i in self._filtered_indices])
 
     # --- events ---
 
-    def on_server_selected(self, _event):
+    def _get_real_index(self) -> Optional[int]:
+        """Return real store index from current filtered listbox selection."""
         idx = self.server_list.GetSelection()
         if idx == wx.NOT_FOUND:
+            return None
+        if idx < len(self._filtered_indices):
+            return self._filtered_indices[idx]
+        return None
+
+    def on_server_selected(self, _event):
+        real_idx = self._get_real_index()
+        if real_idx is None:
             return
-        self.fill_form(self.frame.store.items()[idx])
+        self.fill_form(self.frame.store.items()[real_idx])
 
     def on_server_add(self, _event):
         profile = self.profile_from_form()
@@ -201,23 +235,23 @@ class ConnectionTab(wx.Panel):
         self.frame.set_status(f"Server gespeichert: {profile.name}")
 
     def on_server_edit(self, _event):
-        idx = self.server_list.GetSelection()
-        if idx == wx.NOT_FOUND:
+        real_idx = self._get_real_index()
+        if real_idx is None:
             self.frame.set_status("Bitte einen Server auswaehlen")
             return
         profile = self.profile_from_form()
         if not profile:
             return
-        self.frame.store.update(idx, profile)
+        self.frame.store.update(real_idx, profile)
         self.reload_server_list()
         self.frame.set_status(f"Server aktualisiert: {profile.name}")
 
     def on_server_remove(self, _event):
-        idx = self.server_list.GetSelection()
-        if idx == wx.NOT_FOUND:
+        real_idx = self._get_real_index()
+        if real_idx is None:
             self.frame.set_status("Bitte einen Server auswaehlen")
             return
-        name = self.frame.store.items()[idx].name
+        name = self.frame.store.items()[real_idx].name
         dlg = wx.MessageDialog(
             self, f"Server '{name}' wirklich entfernen?",
             "Server entfernen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
@@ -226,7 +260,7 @@ class ConnectionTab(wx.Panel):
             dlg.Destroy()
             return
         dlg.Destroy()
-        self.frame.store.remove(idx)
+        self.frame.store.remove(real_idx)
         self.reload_server_list()
         self.frame.set_status(f"Server entfernt: {name}")
 
@@ -353,3 +387,149 @@ class ConnectionTab(wx.Panel):
         ]
         for i in range(1, len(order)):
             order[i].MoveAfterInTabOrder(order[i - 1])
+
+    # --- Filter ---
+
+    def _on_filter_changed(self, _event):
+        filt = self.server_filter.GetValue().strip().lower()
+        all_names = self._all_server_names
+        if filt:
+            self._filtered_indices = [i for i, n in enumerate(all_names) if filt in n.lower()]
+        else:
+            self._filtered_indices = list(range(len(all_names)))
+        self.server_list.Set([all_names[i] for i in self._filtered_indices])
+
+    # --- Context menu and keyboard ---
+
+    def on_server_dclick(self, _event):
+        self.on_connect(None)
+
+    def on_server_list_key(self, event):
+        key = event.GetKeyCode()
+        if key in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
+            self.on_connect(None)
+            return
+        event.Skip()
+
+    def on_server_list_context(self, _event):
+        real_idx = self._get_real_index()
+        menu = wx.Menu()
+        connect_item = menu.Append(wx.ID_ANY, "Verbinden")
+        edit_item = menu.Append(wx.ID_ANY, "Bearbeiten")
+        dup_item = menu.Append(wx.ID_ANY, "Duplizieren")
+        gen_tt_item = menu.Append(wx.ID_ANY, "TT-Datei generieren")
+        remove_item = menu.Append(wx.ID_ANY, "Entfernen")
+        menu.AppendSeparator()
+        join_code_item = menu.Append(wx.ID_ANY, "Beitrittscode eingeben")
+
+        connect_item.Enable(real_idx is not None)
+        edit_item.Enable(real_idx is not None)
+        dup_item.Enable(real_idx is not None)
+        gen_tt_item.Enable(real_idx is not None)
+        remove_item.Enable(real_idx is not None)
+
+        self.Bind(wx.EVT_MENU, lambda e: self.on_connect(None), connect_item)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_server_edit(None), edit_item)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_server_duplicate(None), dup_item)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_server_generate_tt(None), gen_tt_item)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_server_remove(None), remove_item)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_enter_join_code(None), join_code_item)
+
+        self.PopupMenu(menu)
+        menu.Destroy()
+
+    def on_server_duplicate(self, _event):
+        real_idx = self._get_real_index()
+        if real_idx is None:
+            self.frame.set_status("Bitte einen Server auswaehlen")
+            return
+        import dataclasses
+        original = self.frame.store.items()[real_idx]
+        copy = dataclasses.replace(original, name=original.name + " (Kopie)")
+        self.frame.store.add(copy)
+        self.reload_server_list()
+        self.frame.set_status(f"Server dupliziert: {copy.name}")
+
+    def on_server_generate_tt(self, _event):
+        real_idx = self._get_real_index()
+        if real_idx is None:
+            self.frame.set_status("Bitte einen Server auswaehlen")
+            return
+        profile = self.frame.store.items()[real_idx]
+        default_name = f"{profile.name or profile.host}.tt"
+        with wx.FileDialog(
+            self,
+            "TT-Datei generieren",
+            wildcard="TeamTalk Datei (*.tt)|*.tt|Alle Dateien|*.*",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+            defaultFile=default_name,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        try:
+            xml_text = build_teamtalk_xml(profile)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(xml_text)
+            self.frame.set_status("TT-Datei gespeichert")
+        except Exception as exc:
+            self.frame.set_status(f"TT-Datei speichern fehlgeschlagen: {exc}")
+
+    def on_enter_join_code(self, _event):
+        dlg = wx.TextEntryDialog(self, "tt:// URL oder TT-Dateipfad eingeben:", "Beitrittscode eingeben", "")
+        if dlg.ShowModal() != wx.ID_OK:
+            dlg.Destroy()
+            return
+        raw = dlg.GetValue().strip()
+        dlg.Destroy()
+        if not raw:
+            return
+
+        parsed = None
+        if raw.startswith("tt://"):
+            try:
+                from urllib.parse import urlparse, parse_qs
+                pr = urlparse(raw)
+                qs = parse_qs(pr.query)
+                def _first(k):
+                    return qs.get(k, [""])[0]
+                host = pr.hostname or ""
+                tcp_port = int(_first("tcpport") or 10333)
+                udp_port = int(_first("udpport") or tcp_port)
+                name = host
+                username = _first("username")
+                password = _first("password")
+                channel_path = _first("channel") or None
+                encrypted = _first("encrypted").lower() in ("1", "true")
+                profile = ServerProfile(
+                    name=name, host=host, tcp_port=tcp_port, udp_port=udp_port,
+                    nickname="VoiceOverUser", username=username, password=password,
+                    client_name="TeamTalk VO", encrypted=encrypted,
+                )
+                from ..models import ParsedTeamTalkFile
+                parsed = ParsedTeamTalkFile(profile=profile, channel_path=channel_path)
+            except Exception as exc:
+                self.frame.set_status(f"URL konnte nicht geparst werden: {exc}")
+                return
+        else:
+            from pathlib import Path
+            try:
+                parsed = parse_teamtalk_file(Path(raw))
+            except Exception as exc:
+                self.frame.set_status(f"Datei konnte nicht geparst werden: {exc}")
+                return
+
+        if parsed is None:
+            self.frame.set_status("Beitrittscode konnte nicht verarbeitet werden")
+            return
+
+        self.fill_form(parsed.profile)
+        confirm = wx.MessageDialog(
+            self,
+            f"Server '{parsed.profile.name}' wurde eingefuellt.\nJetzt verbinden?",
+            "Verbinden?",
+            wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION,
+        )
+        if confirm.ShowModal() == wx.ID_YES:
+            self.on_connect(None)
+        confirm.Destroy()
