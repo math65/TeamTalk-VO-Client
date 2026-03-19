@@ -954,6 +954,10 @@ class TeamTalkClient:
     def do_kick_user(self, user_id: int, channel_id: int) -> int:
         return self.client.doKickUser(user_id, channel_id)
 
+    def do_channel_user_transmit(self, user_id: int, channel_id: int, stream_types: int) -> int:
+        """Togglet die Sende-Erlaubnis eines Benutzers im Kanal (Sendekontrolle)."""
+        return self.client.doChannelUserTransmit(int(user_id), int(channel_id), int(stream_types))
+
     def do_ban_user_ex(self, user_id: int, ban_types: int) -> int:
         return self.client.doBanUserEx(user_id, int(ban_types))
 

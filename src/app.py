@@ -428,7 +428,7 @@ class MainFrame(wx.Frame):
 
         # Kanal
         chan_menu = wx.Menu()
-        chan_create = chan_menu.Append(wx.ID_ANY, "Kanal erstellen...")
+        chan_create = chan_menu.Append(wx.ID_ANY, "Kanal erstellen...\tF7")
         chan_edit = chan_menu.Append(wx.ID_ANY, "Kanal bearbeiten...")
         chan_delete = chan_menu.Append(wx.ID_ANY, "Kanal loeschen...")
         chan_menu.AppendSeparator()
@@ -438,6 +438,7 @@ class MainFrame(wx.Frame):
         chan_info = chan_menu.Append(wx.ID_ANY, "Kanalinfo...")
         chan_info_speak = chan_menu.Append(wx.ID_ANY, "Kanalinfo vorlesen")
         chan_stats_speak = chan_menu.Append(wx.ID_ANY, "Kanalstatistik vorlesen")
+        chan_state_speak = chan_menu.Append(wx.ID_ANY, "Kanalzustand vorlesen")
         chan_tt_url = chan_menu.Append(wx.ID_ANY, "TT-URL fuer Kanal kopieren")
         chan_bans = chan_menu.Append(wx.ID_ANY, "Sperren im Kanal anzeigen...")
         chan_msg = chan_menu.Append(wx.ID_ANY, "Kanalnachricht senden...")
@@ -462,22 +463,41 @@ class MainFrame(wx.Frame):
         user_info = user_menu.Append(wx.ID_ANY, "Benutzerinfo...")
         user_info_speak = user_menu.Append(wx.ID_ANY, "Benutzerinfo vorlesen")
         user_message = user_menu.Append(wx.ID_ANY, "Private Nachricht...")
-        user_mute = user_menu.Append(wx.ID_ANY, "Benutzer stummschalten")
+        user_mute_menu = wx.Menu()
+        user_mute_voice = user_mute_menu.Append(wx.ID_ANY, "Sprache stummschalten")
+        user_mute_media = user_mute_menu.Append(wx.ID_ANY, "Mediendatei stummschalten")
+        user_menu.AppendSubMenu(user_mute_menu, "Stummschalten")
         user_volume = user_menu.Append(wx.ID_ANY, "Benutzer-Lautstaerke...")
         user_adv = wx.Menu()
         user_vol_up = user_adv.Append(wx.ID_ANY, "Lauter\tCtrl+Right")
         user_vol_down = user_adv.Append(wx.ID_ANY, "Leiser\tCtrl+Left")
+        user_relay_voice = user_adv.Append(wx.ID_ANY, "Voice Stream weiterleiten")
+        user_relay_media = user_adv.Append(wx.ID_ANY, "Media Stream weiterleiten")
         user_menu.AppendSubMenu(user_adv, "Erweitert")
         user_menu.AppendSeparator()
         user_op = user_menu.Append(wx.ID_ANY, "Operator geben/nehmen")
-        user_kick = user_menu.Append(wx.ID_ANY, "Benutzer kicken...")
-        user_ban = user_menu.Append(wx.ID_ANY, "Benutzer bannen...")
-        user_kick_ban = user_menu.Append(wx.ID_ANY, "Kick + Ban...")
+        user_kick_menu = wx.Menu()
+        user_kick = user_kick_menu.Append(wx.ID_ANY, "Aus Kanal kicken...")
+        user_kick_ban = user_kick_menu.Append(wx.ID_ANY, "Aus Kanal kicken + Bannen...")
+        user_kick_server = user_kick_menu.Append(wx.ID_ANY, "Vom Server kicken...")
+        user_kick_ban_server = user_kick_menu.Append(wx.ID_ANY, "Vom Server kicken + Bannen...")
+        user_kick_menu.AppendSeparator()
+        user_ban = user_kick_menu.Append(wx.ID_ANY, "Bannen...")
+        user_menu.AppendSubMenu(user_kick_menu, "Kick / Sperren")
+        user_tx_menu = wx.Menu()
+        user_tx_voice = user_tx_menu.AppendCheckItem(wx.ID_ANY, "Sprache senden")
+        user_tx_video = user_tx_menu.AppendCheckItem(wx.ID_ANY, "Video senden")
+        user_tx_desktop = user_tx_menu.AppendCheckItem(wx.ID_ANY, "Desktop senden")
+        user_tx_media = user_tx_menu.AppendCheckItem(wx.ID_ANY, "Mediendatei senden")
+        user_tx_msg = user_tx_menu.AppendCheckItem(wx.ID_ANY, "Kanalnachricht senden")
+        user_menu.AppendSubMenu(user_tx_menu, "Sendekontrolle")
         user_menu.AppendSeparator()
         user_subs = user_menu.Append(wx.ID_ANY, "Abonnements...")
         user_move = user_menu.Append(wx.ID_ANY, "Benutzer verschieben...")
         user_store_move = user_menu.Append(wx.ID_ANY, "Zielkanal merken")
         user_move_stored = user_menu.Append(wx.ID_ANY, "In Zielkanal verschieben")
+        user_menu.AppendSeparator()
+        user_mute_all = user_menu.AppendCheckItem(wx.ID_ANY, "Alles stummschalten")
         menubar.Append(user_menu, "Benutzer")
 
         # Server
@@ -550,6 +570,9 @@ class MainFrame(wx.Frame):
         help_logs = help_menu.Append(wx.ID_ANY, "Logs exportieren...")
         help_stats = help_menu.Append(wx.ID_ANY, "Verbindungsstatistiken...")
         help_stats_speak = help_menu.Append(wx.ID_ANY, "Statistiken vorlesen")
+        help_manual = help_menu.Append(wx.ID_ANY, "Handbuch...")
+        help_website = help_menu.Append(wx.ID_ANY, "BearWare.dk Website")
+        help_menu.AppendSeparator()
         help_changelog = help_menu.Append(wx.ID_ANY, "Changelog")
         help_about = help_menu.Append(wx.ID_ANY, "Über")
         menubar.Append(help_menu, "Hilfe")
@@ -585,6 +608,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_channel_info, chan_info)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_info_speak, chan_info_speak)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_stats_speak, chan_stats_speak)
+        self.Bind(wx.EVT_MENU, self.on_menu_channel_state_speak, chan_state_speak)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_tt_url, chan_tt_url)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_bans, chan_bans)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_message, chan_msg)
@@ -601,18 +625,29 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_user_info, user_info)
         self.Bind(wx.EVT_MENU, self.on_menu_user_info_speak, user_info_speak)
         self.Bind(wx.EVT_MENU, self.on_menu_user_message, user_message)
-        self.Bind(wx.EVT_MENU, self.on_menu_user_mute, user_mute)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_mute_voice, user_mute_voice)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_mute_media, user_mute_media)
         self.Bind(wx.EVT_MENU, self.on_menu_user_volume, user_volume)
         self.Bind(wx.EVT_MENU, self.on_menu_user_volume_up, user_vol_up)
         self.Bind(wx.EVT_MENU, self.on_menu_user_volume_down, user_vol_down)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_relay_voice, user_relay_voice)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_relay_media, user_relay_media)
         self.Bind(wx.EVT_MENU, self.on_menu_user_operator, user_op)
         self.Bind(wx.EVT_MENU, self.on_menu_user_kick, user_kick)
-        self.Bind(wx.EVT_MENU, self.on_menu_user_ban, user_ban)
         self.Bind(wx.EVT_MENU, self.on_menu_user_kick_ban, user_kick_ban)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_kick_server, user_kick_server)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_kick_ban_server, user_kick_ban_server)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_ban, user_ban)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_user_tx_toggle("voice", e), user_tx_voice)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_user_tx_toggle("video", e), user_tx_video)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_user_tx_toggle("desktop", e), user_tx_desktop)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_user_tx_toggle("media", e), user_tx_media)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_user_tx_toggle("msg", e), user_tx_msg)
         self.Bind(wx.EVT_MENU, self.on_menu_user_subscriptions, user_subs)
         self.Bind(wx.EVT_MENU, self.on_menu_user_move, user_move)
         self.Bind(wx.EVT_MENU, self.on_menu_store_move_target, user_store_move)
         self.Bind(wx.EVT_MENU, self.on_menu_move_to_target, user_move_stored)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_mute_all, user_mute_all)
 
         self.Bind(wx.EVT_MENU, self.on_menu_online_users, server_online)
         self.Bind(wx.EVT_MENU, self.on_menu_server_broadcast, server_broadcast)
@@ -657,6 +692,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_export_logs, help_logs)
         self.Bind(wx.EVT_MENU, self.on_menu_client_stats, help_stats)
         self.Bind(wx.EVT_MENU, self.on_menu_client_stats_speak, help_stats_speak)
+        self.Bind(wx.EVT_MENU, self.on_menu_help_manual, help_manual)
+        self.Bind(wx.EVT_MENU, self.on_menu_help_website, help_website)
         self.Bind(wx.EVT_MENU, self.on_menu_changelog, help_changelog)
         self.Bind(wx.EVT_MENU, self.on_menu_about, help_about)
 
@@ -1489,6 +1526,35 @@ class MainFrame(wx.Frame):
         count = len(users)
         self.tts.speak(f"{count} Benutzer im Kanal.", kind="system")
 
+    def on_menu_channel_state_speak(self, _event):
+        if not self._require_connected("Kanalzustand vorlesen"):
+            return
+        channel_id = self._get_selected_channel_id() or self.client.get_my_channel_id()
+        if not channel_id:
+            self.set_status("Kein Kanal ausgewaehlt")
+            return
+        tt = self.client.tt
+        users = list(self.client.get_channel_users(int(channel_id)))
+        transmitting = []
+        for u in users:
+            state = int(getattr(u, "uUserState", 0) or 0)
+            voice_active = bool(state & tt.UserState.USERSTATE_VOICE)
+            media_active = bool(state & tt.UserState.USERSTATE_MEDIAFILE_AUDIO) if hasattr(tt.UserState, "USERSTATE_MEDIAFILE_AUDIO") else False
+            if voice_active or media_active:
+                nick = self.tt_str(getattr(u, "szNickname", "")) or self.tt_str(getattr(u, "szUsername", "")) or f"Benutzer {u.nUserID}"
+                suffix = ""
+                if voice_active and media_active:
+                    suffix = " (Sprache + Medien)"
+                elif media_active:
+                    suffix = " (Medien)"
+                transmitting.append(nick + suffix)
+        if transmitting:
+            text = "Sendet gerade: " + ", ".join(transmitting) + "."
+        else:
+            text = "Niemand sendet gerade."
+        self.tts.speak(text, kind="system")
+        self.set_status(text)
+
     def on_menu_channel_tt_url(self, _event):
         if not self._require_connected("TT-URL fuer Kanal"):
             return
@@ -1664,7 +1730,11 @@ class MainFrame(wx.Frame):
         self.tts.speak(text, kind="system")
 
     def on_menu_user_mute(self, _event):
-        if not self._require_connected("Benutzer stummschalten"):
+        # Compat-Wrapper: stummschaltet Sprache (wird noch von altem Code genutzt)
+        self.on_menu_user_mute_voice(_event)
+
+    def on_menu_user_mute_voice(self, _event):
+        if not self._require_connected("Sprache stummschalten"):
             return
         user = self._get_selected_user()
         if not user:
@@ -1673,7 +1743,59 @@ class MainFrame(wx.Frame):
         tt = self.client.tt
         muted = bool(user.uUserState & tt.UserState.USERSTATE_MUTE_VOICE)
         self.client.set_user_mute(int(user.nUserID), int(tt.StreamType.STREAMTYPE_VOICE), not muted)
-        self.set_status("Benutzer stummgeschaltet" if not muted else "Benutzer entstummt")
+        self.set_status("Sprache stummgeschaltet" if not muted else "Sprache entstummt")
+
+    def on_menu_user_mute_media(self, _event):
+        if not self._require_connected("Mediendatei stummschalten"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        tt = self.client.tt
+        muted = bool(user.uUserState & tt.UserState.USERSTATE_MUTE_MEDIAFILE)
+        self.client.set_user_mute(int(user.nUserID), int(tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO), not muted)
+        self.set_status("Mediendatei stummgeschaltet" if not muted else "Mediendatei entstummt")
+
+    def on_menu_user_mute_all(self, _event):
+        self._mute_all = not self._mute_all
+        self.client.set_sound_output_mute(self._mute_all)
+        self.set_status("Ausgabe stummgeschaltet" if self._mute_all else "Ausgabe aktiv")
+
+    def on_menu_user_relay_voice(self, _event):
+        if not self._require_connected("Voice Stream weiterleiten"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        tt = self.client.tt
+        # Intercept-Abonnement toggeln: weiterleiten = SUBSCRIBE_INTERCEPT_VOICE aktivieren
+        current = int(getattr(user, "uLocalSubscriptions", 0) or 0)
+        flag = int(tt.Subscription.SUBSCRIBE_INTERCEPT_VOICE)
+        if current & flag:
+            self.client.do_unsubscribe(int(user.nUserID), flag)
+            self.set_status("Voice Stream Weiterleitung deaktiviert")
+        else:
+            self.client.do_subscribe(int(user.nUserID), flag)
+            self.set_status("Voice Stream wird weitergeleitet")
+
+    def on_menu_user_relay_media(self, _event):
+        if not self._require_connected("Media Stream weiterleiten"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        tt = self.client.tt
+        current = int(getattr(user, "uLocalSubscriptions", 0) or 0)
+        flag = int(tt.Subscription.SUBSCRIBE_INTERCEPT_MEDIAFILE)
+        if current & flag:
+            self.client.do_unsubscribe(int(user.nUserID), flag)
+            self.set_status("Media Stream Weiterleitung deaktiviert")
+        else:
+            self.client.do_subscribe(int(user.nUserID), flag)
+            self.set_status("Media Stream wird weitergeleitet")
 
     def on_menu_user_volume(self, _event):
         if not self._require_connected("Benutzer-Lautstaerke"):
@@ -1760,7 +1882,7 @@ class MainFrame(wx.Frame):
         self.set_status("Benutzer gebannt")
 
     def on_menu_user_kick_ban(self, _event):
-        if not self._require_connected("Kick + Ban"):
+        if not self._require_connected("Kick + Ban (Kanal)"):
             return
         user = self._get_selected_user()
         if not user:
@@ -1779,6 +1901,67 @@ class MainFrame(wx.Frame):
         if channel_id:
             self.client.do_kick_user(int(user.nUserID), channel_id)
         self.set_status("Benutzer gekickt und gebannt")
+
+    def on_menu_user_kick_server(self, _event):
+        if not self._require_connected("Vom Server kicken"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        dlg = wx.MessageDialog(self, "Benutzer wirklich vom Server kicken?", "Vom Server kicken", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        if dlg.ShowModal() != wx.ID_YES:
+            dlg.Destroy()
+            return
+        dlg.Destroy()
+        # channel_id=0 bedeutet Server-Kick laut TeamTalk SDK
+        self.client.do_kick_user(int(user.nUserID), 0)
+        self.set_status("Benutzer vom Server gekickt")
+
+    def on_menu_user_kick_ban_server(self, _event):
+        if not self._require_connected("Vom Server kicken + Bannen"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        ban_types = self._ask_ban_types(user)
+        if ban_types is None:
+            return
+        dlg = wx.MessageDialog(self, "Benutzer wirklich vom Server kicken und bannen?", "Kick + Ban (Server)", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        if dlg.ShowModal() != wx.ID_YES:
+            dlg.Destroy()
+            return
+        dlg.Destroy()
+        self.client.do_ban_user_ex(int(user.nUserID), int(ban_types))
+        self.client.do_kick_user(int(user.nUserID), 0)
+        self.set_status("Benutzer vom Server gekickt und gebannt")
+
+    def on_menu_user_tx_toggle(self, kind: str, _event):
+        if not self._require_connected("Sendekontrolle"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        my_ch = self.client.get_my_channel_id()
+        if not my_ch:
+            self.set_status("Nicht in einem Kanal")
+            return
+        tt = self.client.tt
+        stream_map = {
+            "voice":   int(tt.StreamType.STREAMTYPE_VOICE),
+            "video":   int(tt.StreamType.STREAMTYPE_VIDEOCAPTURE),
+            "desktop": int(tt.StreamType.STREAMTYPE_DESKTOP),
+            "media":   int(tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO),
+            "msg":     int(tt.StreamType.STREAMTYPE_CHANNELMSG) if hasattr(tt.StreamType, "STREAMTYPE_CHANNELMSG") else 0,
+        }
+        stream_type = stream_map.get(kind, 0)
+        if not stream_type:
+            self.set_status("Unbekannter Stream-Typ")
+            return
+        self.client.do_channel_user_transmit(int(user.nUserID), int(my_ch), stream_type)
+        self.set_status(f"Sendekontrolle ({kind}) umgeschaltet")
 
     def on_menu_user_subscriptions(self, _event):
         if not self._require_connected("Abonnements"):
@@ -2045,6 +2228,14 @@ class MainFrame(wx.Frame):
             self.settings_window.Show()
         self.settings_window.Raise()
         wx.CallAfter(self.settings_window.settings_tab.section_choice.SetFocus)
+
+    def on_menu_help_manual(self, _event):
+        import webbrowser
+        webbrowser.open("https://bearware.dk/teamtalk/manual/")
+
+    def on_menu_help_website(self, _event):
+        import webbrowser
+        webbrowser.open("https://bearware.dk")
 
     def on_menu_about(self, _event):
         text = self._build_about_text()
@@ -2652,6 +2843,9 @@ class MainFrame(wx.Frame):
 
     def on_key_hook(self, event):
         key = event.GetKeyCode()
+        if key == wx.WXK_F2:
+            self.on_menu_connect(None)
+            return
         if key == wx.WXK_F5:
             if self.client.is_connected():
                 self.channels_tab.refresh_channels_and_users()
