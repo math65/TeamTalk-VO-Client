@@ -216,7 +216,7 @@ class ConnectionWindow(wx.Frame):
 
 
 class MainFrame(wx.Frame):
-    """Main window -- thin orchestrator that creates notebook tabs and dispatches events."""
+    """Main window -- thin orchestrator that manages tab panels and dispatches events."""
 
     def __init__(self) -> None:
         super().__init__(None, title=f"TeamTalk VoiceOver Client {APP_VERSION}")
@@ -340,14 +340,15 @@ class MainFrame(wx.Frame):
         qa_sizer.Add(self.vu_meter, 0, wx.ALIGN_CENTER_VERTICAL)
 
         qa_panel.SetSizer(qa_sizer)
-        main_sizer.Add(qa_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 12)
 
-        self.notebook = wx.Notebook(panel)
-        self.notebook.SetName("Hauptnavigation")
+        # --- Panel switcher (replaces wx.Notebook to avoid dual-navigation in VoiceOver) ---
+        self.content_panel = wx.Panel(panel)
+        self.content_panel.SetName("Hauptinhalt")
+        self.content_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.connection_window = ConnectionWindow(self)
         self.connection_tab = self.connection_window.connection_tab
-        self.channels_chat_tab = ChannelsChatTab(self.notebook, self)
+        self.channels_chat_tab = ChannelsChatTab(self.content_panel, self)
         self.channels_tab = self.channels_chat_tab.channels_tab
         self.chat_tab = self.channels_chat_tab.chat_tab
         self.settings_window = SettingsWindow(self)
@@ -359,23 +360,16 @@ class MainFrame(wx.Frame):
         self.server_stats_dialog: Optional[ServerStatisticsDialog] = None
         self.online_users_dialog: Optional[OnlineUsersDialog] = None
         self.ban_dialog: Optional[BanListDialog] = None
-        media_placeholder = LazyTabPlaceholder(self.notebook, "Aufnahme & Medien")
-        desktop_placeholder = LazyTabPlaceholder(self.notebook, "Desktop")
-        files_placeholder = LazyTabPlaceholder(self.notebook, "Dateien")
-        admin_placeholder = LazyTabPlaceholder(self.notebook, "Administration")
+        media_placeholder = LazyTabPlaceholder(self.content_panel, "Aufnahme & Medien")
+        desktop_placeholder = LazyTabPlaceholder(self.content_panel, "Desktop")
+        files_placeholder = LazyTabPlaceholder(self.content_panel, "Dateien")
+        admin_placeholder = LazyTabPlaceholder(self.content_panel, "Administration")
         self._lazy_pages = {
             "media": media_placeholder,
             "desktop": desktop_placeholder,
             "files": files_placeholder,
             "admin": admin_placeholder,
         }
-
-        self.notebook.AddPage(self.channels_chat_tab, "Kanäle und Chat")
-        self.notebook.AddPage(media_placeholder, "Aufnahme & Medien")
-        self.notebook.AddPage(desktop_placeholder, "Desktop")
-        self.notebook.AddPage(files_placeholder, "Dateien")
-        self.notebook.AddPage(admin_placeholder, "Administration")
-        # Settings live in a separate window (opened via Help menu).
 
         self._tab_info_map = {
             "Kanäle und Chat": "Kanäle, Nutzerliste, Chat und Privatnachrichten.",
@@ -384,13 +378,26 @@ class MainFrame(wx.Frame):
             "Dateien": "Kanaldateien hoch-/runterladen und verwalten.",
             "Administration": "Benutzerkonten, Sperren, Servereigenschaften.",
         }
-        self.tab_choice.SetItems(list(self._tab_info_map.keys()))
+        self._panels: Dict[str, wx.Panel] = {
+            "Kanäle und Chat": self.channels_chat_tab,
+            "Aufnahme & Medien": media_placeholder,
+            "Desktop": desktop_placeholder,
+            "Dateien": files_placeholder,
+            "Administration": admin_placeholder,
+        }
+        self._panel_order: List[str] = list(self._panels.keys())
+
+        for label, p in self._panels.items():
+            self.content_sizer.Add(p, 1, wx.EXPAND)
+            self.content_sizer.Show(p, label == "Kanäle und Chat")
+        self.content_panel.SetSizer(self.content_sizer)
+
+        self.tab_choice.SetItems(self._panel_order)
         self.tab_choice.SetSelection(0)
         self._update_tab_info(0)
         self.tab_choice.Bind(wx.EVT_CHOICE, self.on_tab_choice_changed)
 
-        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.on_tab_changed)
-        main_sizer.Add(self.notebook, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 12)
+        main_sizer.Add(self.content_panel, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 12)
 
         # --- Global status + log ---
         self.status = wx.StaticText(panel, label="Bereit")
@@ -403,6 +410,7 @@ class MainFrame(wx.Frame):
         self.log.SetHelpText("Ausgaben und Servermeldungen")
         main_sizer.Add(self.log, 0, wx.ALL | wx.EXPAND, 12)
         self.log.SetMinSize((-1, 100))
+        main_sizer.Add(qa_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 12)
 
         panel.SetSizer(main_sizer)
         self.SetSize((980, 700))
@@ -902,22 +910,15 @@ class MainFrame(wx.Frame):
             return None
 
     def _select_tab_by_label(self, label: str) -> bool:
-        for i in range(self.notebook.GetPageCount()):
-            try:
-                if self.notebook.GetPageText(i) != label:
-                    continue
-            except Exception:
-                continue
-            self.notebook.SetSelection(i)
-            try:
-                page = self.notebook.GetPage(i)
-            except Exception:
-                page = None
-            if page is not None:
-                self._ensure_lazy_tab(page)
-            self._update_tab_info(i)
-            return True
-        return False
+        if label not in self._panels:
+            return False
+        self._switch_to_panel(label)
+        try:
+            idx = self._panel_order.index(label)
+            self._update_tab_info(idx)
+        except ValueError:
+            pass
+        return True
 
     def _open_files_tab(self) -> Optional[FilesTab]:
         if not self._select_tab_by_label("Dateien"):
@@ -2928,19 +2929,27 @@ class MainFrame(wx.Frame):
     def _update_speak_tab(self, api_key: str) -> None:
         if api_key:
             if self.speak_tab is None:
-                self.speak_tab = SpeakTab(self.notebook, self)
+                self.speak_tab = SpeakTab(self.content_panel, self)
             if not self._speak_tab_added:
-                # Insert after "Kanäle und Chat" tab (index 1)
-                self.notebook.InsertPage(1, self.speak_tab, "Sprechen")
+                # Insert after "Kanäle und Chat" (index 1)
+                self._panel_order.insert(1, "Sprechen")
+                self._panels["Sprechen"] = self.speak_tab
+                sizer = self.content_panel.GetSizer()
+                sizer.Add(self.speak_tab, 1, wx.EXPAND)
+                sizer.Show(self.speak_tab, False)
+                self.tab_choice.SetItems(self._panel_order)
+                self.tab_choice.SetSelection(self._panel_order.index("Kanäle und Chat"))
                 self._speak_tab_added = True
             self.speak_tab.set_api_key(api_key)
         else:
             if self._speak_tab_added:
-                # Find and remove the Sprechen page
-                for i in range(self.notebook.GetPageCount()):
-                    if self.notebook.GetPageText(i) == "Sprechen":
-                        self.notebook.RemovePage(i)
-                        break
+                sizer = self.content_panel.GetSizer()
+                sizer.Detach(self.speak_tab)
+                self.speak_tab.Hide()
+                self._panels.pop("Sprechen", None)
+                if "Sprechen" in self._panel_order:
+                    self._panel_order.remove("Sprechen")
+                self.tab_choice.SetItems(self._panel_order)
                 self._speak_tab_added = False
 
     def _auto_init_sound_devices(self):
@@ -3293,38 +3302,54 @@ class MainFrame(wx.Frame):
             pass
 
     def on_tab_changed(self, event):
-        try:
-            idx = event.GetSelection()
-            page = self.notebook.GetPage(idx)
-            self._ensure_lazy_tab(page)
-            page = self.notebook.GetPage(idx)
-            self._update_tab_info(idx)
-            if self.files_tab is not None and page is self.files_tab:
-                wx.CallAfter(self.files_tab.refresh_file_list)
-            if self.settings_window.IsShown() and self._window_focused:
-                self.audio_tab.set_active(True)
-            else:
-                self.audio_tab.set_active(False)
-        finally:
-            event.Skip()
+        # Legacy handler — no longer used (panel switcher replaces wx.Notebook)
+        pass
 
     def on_tab_choice_changed(self, event):
         idx = event.GetSelection()
         if idx == wx.NOT_FOUND:
             return
-        self.notebook.SetSelection(idx)
+        try:
+            label = self._panel_order[idx]
+        except IndexError:
+            return
+        self._switch_to_panel(label)
         self._update_tab_info(idx)
 
     def _update_tab_info(self, idx: int) -> None:
         try:
-            label = self.notebook.GetPageText(idx)
-        except Exception:
+            label = self._panel_order[idx]
+        except (IndexError, TypeError):
             label = ""
         if label:
             info = self._tab_info_map.get(label, "")
             self.tab_info.SetLabel(info)
             if self.tab_choice.GetSelection() != idx:
                 self.tab_choice.SetSelection(idx)
+
+    def _switch_to_panel(self, label: str) -> None:
+        """Show the panel for *label* and hide all others."""
+        # Lazy-load if needed
+        lazy_map = {
+            "Aufnahme & Medien": ("media", MediaTab),
+            "Desktop": ("desktop", DesktopTab),
+            "Dateien": ("files", FilesTab),
+            "Administration": ("admin", AdminTab),
+        }
+        if label in lazy_map:
+            key, factory = lazy_map[label]
+            if self._lazy_pages.get(key) is not None:
+                self._replace_lazy_tab(key, factory)
+
+        sizer = self.content_panel.GetSizer()
+        for lbl, p in self._panels.items():
+            if p is not None:
+                sizer.Show(p, lbl == label)
+        sizer.Layout()
+
+        p = self._panels.get(label)
+        if self.files_tab is not None and p is self.files_tab:
+            wx.CallAfter(self.files_tab.refresh_file_list)
 
     def _ensure_lazy_tab(self, page: wx.Panel) -> None:
         # Replace placeholder panels with real tabs on first access.
@@ -3341,30 +3366,27 @@ class MainFrame(wx.Frame):
         placeholder = self._lazy_pages.get(key)
         if placeholder is None:
             return
-        idx = wx.NOT_FOUND
-        for i in range(self.notebook.GetPageCount()):
-            if self.notebook.GetPage(i) is placeholder:
-                idx = i
-                break
-        if idx == wx.NOT_FOUND:
-            return
-        if key == "media":
-            self.media_tab = factory(self.notebook, self)
-            self.notebook.DeletePage(idx)
-            self.notebook.InsertPage(idx, self.media_tab, "Aufnahme & Medien")
-        elif key == "desktop":
-            self.desktop_tab = factory(self.notebook, self)
-            self.notebook.DeletePage(idx)
-            self.notebook.InsertPage(idx, self.desktop_tab, "Desktop")
-        elif key == "files":
-            self.files_tab = factory(self.notebook, self)
-            self.notebook.DeletePage(idx)
-            self.notebook.InsertPage(idx, self.files_tab, "Dateien")
-        elif key == "admin":
-            self.admin_tab = factory(self.notebook, self)
-            self.notebook.DeletePage(idx)
-            self.notebook.InsertPage(idx, self.admin_tab, "Administration")
+        label_map = {
+            "media": "Aufnahme & Medien",
+            "desktop": "Desktop",
+            "files": "Dateien",
+            "admin": "Administration",
+        }
+        attr_map = {
+            "media": "media_tab",
+            "desktop": "desktop_tab",
+            "files": "files_tab",
+            "admin": "admin_tab",
+        }
+        label = label_map[key]
+        new_tab = factory(self.content_panel, self)
+        setattr(self, attr_map[key], new_tab)
+        self._panels[label] = new_tab
+        sizer = self.content_panel.GetSizer()
+        sizer.Replace(placeholder, new_tab)
+        placeholder.Destroy()
         self._lazy_pages[key] = None
+        sizer.Layout()
 
     # ------------------------------------------------------------------
     # Event handler (dispatches to tabs)

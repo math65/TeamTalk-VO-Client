@@ -129,7 +129,7 @@ class AppSettings:
     always_on_top: bool = False
     show_server_in_title: bool = True
     chat_history_format: str = "Liste"
-    show_toolbar: bool = False       # Standard: versteckt (Screenreader-freundlich)
+    show_toolbar: bool = True        # Standard: sichtbar (jetzt unten, Screen-reader-freundlich)
     show_event_log: bool = False     # Standard: versteckt (Screenreader-freundlich)
     # Sound-Ereignisse
     sound_events: Dict[str, str] = field(default_factory=dict)
