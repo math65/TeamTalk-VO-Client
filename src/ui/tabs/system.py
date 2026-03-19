@@ -103,7 +103,7 @@ class SystemTab(wx.Panel):
         sizer.Add(tts_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
-        self._set_tab_order()
+
 
         self._bind_events()
         self._sync_from_manager()
@@ -188,7 +188,7 @@ class SystemTab(wx.Panel):
             self._voice_label_to_id[label] = v["voice"]
         filt = self.tts_voice_filter.GetValue().strip().lower()
         if filt:
-            labels = [l for l in labels if filt in l.lower()]
+            labels = [label_item for label_item in labels if filt in label_item.lower()]
         self._voice_labels = labels
         self.tts_voice.Set(labels)
         if not labels and self._get_language_value():
@@ -208,7 +208,7 @@ class SystemTab(wx.Panel):
         variant_label = "Varianten"
         de_all_label = "de + Varianten"
         if "variant" in langs:
-            langs = [all_label, variant_label, de_all_label] + [l for l in langs if l != "variant"]
+            langs = [all_label, variant_label, de_all_label] + [lang_item for lang_item in langs if lang_item != "variant"]
         else:
             langs = [all_label, de_all_label] + langs
         self._lang_items = langs
@@ -272,23 +272,4 @@ class SystemTab(wx.Panel):
     def append_system(self, text: str) -> None:
         self.system_log.AppendText(text + "\n")
 
-    def _set_tab_order(self):
-        order = [
-            self.system_log,
-            self.tts_enabled,
-            self.tts_interrupt,
-            self.tts_chat,
-            self.tts_private,
-            self.tts_system,
-            self.tts_own,
-            self.tts_language,
-            self.tts_voice_filter,
-            self.tts_voice,
-            self.tts_rate,
-            self.tts_volume,
-            self.tts_path,
-            self.tts_refresh,
-            self.tts_test,
-        ]
-        for i in range(1, len(order)):
-            order[i].MoveAfterInTabOrder(order[i - 1])
+

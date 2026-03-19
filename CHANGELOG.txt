@@ -1,6 +1,40 @@
 Changelog
 =========
 
+2026-03-19 (v0.8.0)
+- Kanal-Erstellung/Bearbeitung erweitert:
+    - Audio-Codec (Opus/Kein Audio/Elternkanal) und Operator-Passwort.
+    - Datei-Quota, Max. Benutzer, zusaetzliche Kanaltypen.
+    - Rechtebezug: Optionen werden bei fehlenden Serverrechten gesperrt.
+- Benutzer-Kontextmenue:
+    - Ban-Auswahl (IP/Benutzername, Kanal/Server) und Kick+Ban mit Auswahl.
+- Navigation:
+    - Bereichsauswahl + Infozeile fuer Screenreader/NVDA-Remote.
+
+2026-03-18 (v0.7.4)
+- Kanal-Erstellung/Bearbeitung ausgebaut:
+    - Audio-Codec Auswahl (Opus/Kein Audio/Elternkanal).
+    - Datei-Quota (MB), Max. Benutzer, Operator-Passwort.
+    - Zusaetzliche Kanaltypen (Solo, Classroom, Operator-RecvOnly, Hidden, No-VA, No-Recording).
+- Navigation: Bereichsauswahl + Infozeile fuer bessere Screenreader-Navigation.
+
+2026-03-15 (v0.7.3)
+- Optimierung und Fehlerbehebung im Code:
+    - `TTMessage` undefined name error behoben.
+    - `Module level import not at top of file` in `app.py` behoben.
+    - Ungenutzte lokale Variablen in `media.py` entfernt.
+    - Mehrdeutige Variablennamen in `system.py` umbenannt.
+    - Server-Check-Robustheit verbessert durch erhoehte Wiederholungsversuche und Timeout fuer Verbindungen.
+    - `wxAssertionError` durch Entfernen expliziter Tab-Order-Definitionen in UI-Tabs behoben.
+    - `AttributeError: 'TeamTalk' object has no attribute 'enableVoiceActivation'` durch Korrektur des Funktionsaufrufs behoben.
+    - Verbesserte Fehlermeldungen fuer den Server-Check durch detailliertere Tracebacks.
+    - `ModuleNotFoundError: No module named 'CoreVideo'` (und verwandte Fehler in `screen_share.py`) durch Entfernen der Referenzen auf nicht vorhandene/fehlerhafte Bildschirmfreigabe-Module behoben.
+    - `SyntaxError: unexpected character after line continuation character` in `ui/tabs/audio.py` behoben.
+    - Dialoge mit fehlenden OK/Abbrechen-Buttons korrigiert (Text-Eingaben).
+    - Lazy-Tab-Wechsel kompatibel mit wxPython ohne `GetPageIndex` gemacht.
+    - Chat-Tab Methoden/Bindungen stabilisiert.
+
+
 2026-03-13 (v0.7.2)
 - Anpassung: Changelog besser lesbar durch klare Trennung (linke Versionsliste, rechte Detailanzeige).
 

@@ -77,11 +77,7 @@ class ChannelsTab(wx.Panel):
         sizer.Add(members_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
-        self._set_tab_order()
 
-    # ------------------------------------------------------------------
-    # Channel tree
-    # ------------------------------------------------------------------
 
     def refresh_channels_and_users(self):
         client = self.frame.client
@@ -278,6 +274,12 @@ class ChannelsTab(wx.Panel):
         self._selected_user_id = None
         self.frame.chat_tab.update_chat_target()
 
+    def _get_user_by_id(self, user_id: int):
+        for user in self._current_users:
+            if int(user.nUserID) == user_id:
+                return user
+        return None
+
     def _channel_id_from_item(self, item: wx.TreeItemId) -> Optional[int]:
         for cid, ti in self._channel_items.items():
             if ti == item:
@@ -310,8 +312,23 @@ class ChannelsTab(wx.Panel):
 
         menu = wx.Menu()
 
-        vol_item = menu.Append(wx.ID_ANY, "Lautstaerke anpassen...")
-        mute_item = menu.Append(wx.ID_ANY, "Stummschalten")
+        self.user_list.Select(idx)
+        self._selected_user_id = user_id
+        self.frame.chat_tab.update_chat_target()
+
+        user_state = int(getattr(user, "uUserState", 0) or 0)
+        voice_muted = bool(user_state & int(tt.UserState.USERSTATE_MUTE_VOICE))
+        media_muted = bool(user_state & int(tt.UserState.USERSTATE_MUTE_MEDIAFILE))
+
+        info_item = menu.Append(wx.ID_ANY, "Benutzerinfo...")
+        menu.AppendSeparator()
+
+        vol_voice_item = menu.Append(wx.ID_ANY, "Lautstaerke Stimme...")
+        vol_media_item = menu.Append(wx.ID_ANY, "Lautstaerke Mediendatei...")
+        mute_voice_item = menu.AppendCheckItem(wx.ID_ANY, "Stimme stummschalten")
+        mute_media_item = menu.AppendCheckItem(wx.ID_ANY, "Mediendatei stummschalten")
+        mute_voice_item.Check(voice_muted)
+        mute_media_item.Check(media_muted)
 
         sub_menu = wx.Menu()
         sub_flags = [
@@ -324,8 +341,10 @@ class ChannelsTab(wx.Panel):
             ("Desktop", tt.Subscription.SUBSCRIBE_DESKTOP),
         ]
         sub_items = []
+        current_subs = int(getattr(user, "uLocalSubscriptions", 0) or 0)
         for label, flag in sub_flags:
             mi = sub_menu.AppendCheckItem(wx.ID_ANY, label)
+            mi.Check(bool(current_subs & int(flag)))
             sub_items.append((mi, flag))
         menu.AppendSubMenu(sub_menu, "Abonnements")
 
@@ -334,32 +353,57 @@ class ChannelsTab(wx.Panel):
         op_label = "Operator entziehen" if is_op else "Zum Operator machen"
         op_item = menu.Append(wx.ID_ANY, op_label)
 
+        ban_item = menu.Append(wx.ID_ANY, "Bannen...")
         kick_item = menu.Append(wx.ID_ANY, "Kick")
+        kick_ban_item = menu.Append(wx.ID_ANY, "Kick + Ban")
 
         # Bind handlers
-        self.Bind(wx.EVT_MENU, lambda e: self._on_user_volume(user_id), vol_item)
-        self.Bind(wx.EVT_MENU, lambda e: self._on_user_mute(user_id), mute_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._on_user_info(user_id), info_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._on_user_volume(user_id, int(tt.StreamType.STREAMTYPE_VOICE), "Stimme"), vol_voice_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._on_user_volume(user_id, int(tt.StreamType.STREAMTYPE_MEDIAFILE), "Mediendatei"), vol_media_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._on_user_mute(user_id, int(tt.StreamType.STREAMTYPE_VOICE), e.IsChecked()), mute_voice_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._on_user_mute(user_id, int(tt.StreamType.STREAMTYPE_MEDIAFILE), e.IsChecked()), mute_media_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_op(user_id, not is_op), op_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._on_user_ban(user_id), ban_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_kick(user_id), kick_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._on_user_kick_ban(user_id), kick_ban_item)
         for mi, flag in sub_items:
-            self.Bind(wx.EVT_MENU, lambda e, f=flag: self._on_user_subscribe_toggle(user_id, f), mi)
+            self.Bind(wx.EVT_MENU, lambda e, f=flag: self._on_user_subscribe_toggle(user_id, f, e.IsChecked()), mi)
 
         self.PopupMenu(menu)
         menu.Destroy()
 
-    def _on_user_volume(self, user_id: int):
-        tt = self.frame.client.tt
-        dlg = wx.NumberEntryDialog(self, "Lautstaerke (0-32000)", "Lautstaerke:", "Benutzer-Lautstaerke", 1000, 0, 32000)
-        if dlg.ShowModal() == wx.ID_OK:
-            vol = dlg.GetValue()
-            self.frame.client.set_user_volume(user_id, int(tt.StreamType.STREAMTYPE_VOICE), vol)
-            self.frame.set_status(f"Lautstaerke auf {vol} gesetzt")
+    def _on_user_info(self, user_id: int):
+        user = self._get_user_by_id(user_id)
+        if not user:
+            self.frame.set_status("Benutzer nicht gefunden")
+            return
+        details = [
+            f"Nickname: {self.frame.tt_str(user.szNickname)}",
+            f"Benutzername: {self.frame.tt_str(user.szUsername)}",
+            f"ID: {int(user.nUserID)}",
+            f"Kanal: {int(user.nChannelID)}",
+            f"Status: {int(user.nStatusMode)}",
+        ]
+        dlg = wx.MessageDialog(self, "\n".join(details), "Benutzerinfo", wx.OK | wx.ICON_INFORMATION)
+        dlg.ShowModal()
         dlg.Destroy()
 
-    def _on_user_mute(self, user_id: int):
-        tt = self.frame.client.tt
-        self.frame.client.set_user_mute(user_id, int(tt.StreamType.STREAMTYPE_VOICE), True)
-        self.frame.set_status("Benutzer stummgeschaltet")
+    def _on_user_volume(self, user_id: int, stream_type: int, label: str):
+        dlg = wx.NumberEntryDialog(self, "Lautstaerke (0-32000)", "Lautstaerke:", f"{label}-Lautstaerke", 1000, 0, 32000)
+        if dlg.ShowModal() == wx.ID_OK:
+            vol = dlg.GetValue()
+            self.frame.client.set_user_volume(user_id, stream_type, vol)
+            self.frame.set_status(f"{label}-Lautstaerke auf {vol} gesetzt")
+        dlg.Destroy()
+
+    def _on_user_mute(self, user_id: int, stream_type: int, checked: bool):
+        self.frame.client.set_user_mute(user_id, stream_type, bool(checked))
+        if stream_type == int(self.frame.client.tt.StreamType.STREAMTYPE_MEDIAFILE):
+            label = "Mediendatei"
+        else:
+            label = "Stimme"
+        self.frame.set_status(f"{label} {'stummgeschaltet' if checked else 'entstummt'}")
 
     def _on_user_op(self, user_id: int, make_op: bool):
         my_ch = self.frame.client.get_my_channel_id()
@@ -382,24 +426,84 @@ class ChannelsTab(wx.Panel):
         self.frame.client.do_kick_user(user_id, int(my_ch))
         self.frame.set_status("Benutzer gekickt")
 
-    def _on_user_subscribe_toggle(self, user_id: int, flag: int):
-        self.frame.client.do_subscribe(user_id, flag)
-        self.frame.set_status("Abonnement geaendert")
+    def _on_user_kick_ban(self, user_id: int):
+        user = self._get_user_by_id(user_id)
+        if not user:
+            self.frame.set_status("Benutzer nicht gefunden")
+            return
+        ban_types = self._ask_ban_types(user)
+        if ban_types is None:
+            return
+        dlg = wx.MessageDialog(
+            self, "Benutzer wirklich kicken und bannen?",
+            "Kick + Ban", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+        )
+        if dlg.ShowModal() != wx.ID_YES:
+            dlg.Destroy()
+            return
+        dlg.Destroy()
+        self.frame.client.do_ban_user_ex(user_id, ban_types)
+        if int(getattr(user, "nChannelID", 0) or 0) > 0:
+            self.frame.client.do_kick_user(user_id, int(user.nChannelID))
+            self.frame.set_status("Benutzer gekickt und gebannt")
+        else:
+            self.frame.set_status("Benutzer gebannt")
 
-    def _set_tab_order(self):
-        order = [
-            self.channel_list,
-            self.channel_join_btn, self.channel_members,
-        ]
-        prev_by_parent = {}
-        for item in order:
-            if item is None:
-                continue
-            parent = item.GetParent()
-            prev = prev_by_parent.get(parent)
-            if prev is not None:
-                try:
-                    item.MoveAfterInTabOrder(prev)
-                except Exception:
-                    pass
-            prev_by_parent[parent] = item
+    def _on_user_subscribe_toggle(self, user_id: int, flag: int, checked: bool):
+        if checked:
+            self.frame.client.do_subscribe(user_id, flag)
+            self.frame.set_status("Abonnement aktiviert")
+        else:
+            self.frame.client.do_unsubscribe(user_id, flag)
+            self.frame.set_status("Abonnement deaktiviert")
+
+    def _on_user_ban(self, user_id: int):
+        user = self._get_user_by_id(user_id)
+        if not user:
+            self.frame.set_status("Benutzer nicht gefunden")
+            return
+        ban_types = self._ask_ban_types(user)
+        if ban_types is None:
+            return
+        self.frame.client.do_ban_user_ex(user_id, ban_types)
+        self.frame.set_status("Benutzer gebannt")
+
+    def _ask_ban_types(self, user) -> Optional[int]:
+        tt = self.frame.client.tt
+        in_channel = int(getattr(user, "nChannelID", 0) or 0) > 0
+        choices = []
+        types = []
+        if in_channel:
+            choices.extend(
+                [
+                    "IP-Adresse (Kanal)",
+                    "Benutzername (Kanal)",
+                    "IP-Adresse (Server)",
+                    "Benutzername (Server)",
+                ]
+            )
+            types.extend(
+                [
+                    int(tt.BanType.BANTYPE_CHANNEL | tt.BanType.BANTYPE_IPADDR),
+                    int(tt.BanType.BANTYPE_CHANNEL | tt.BanType.BANTYPE_USERNAME),
+                    int(tt.BanType.BANTYPE_IPADDR),
+                    int(tt.BanType.BANTYPE_USERNAME),
+                ]
+            )
+        else:
+            choices.extend(["IP-Adresse (Server)", "Benutzername (Server)"])
+            types.extend(
+                [
+                    int(tt.BanType.BANTYPE_IPADDR),
+                    int(tt.BanType.BANTYPE_USERNAME),
+                ]
+            )
+        dlg = wx.SingleChoiceDialog(self, "Ban-Typ auswaehlen", "Bannen", choices)
+        if dlg.ShowModal() != wx.ID_OK:
+            dlg.Destroy()
+            return None
+        idx = dlg.GetSelection()
+        dlg.Destroy()
+        if idx == wx.NOT_FOUND:
+            return None
+        return types[idx]

@@ -6,16 +6,37 @@ import threading
 import time
 import traceback
 import json
-import subprocess
-import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+import wx
+import wx.adv
+import wx.dataview as dv
 
-APP_VERSION = "0.7.2"
+from teamtalk_client.client import TeamTalkClient, ConnectResult
+from ui.models import (
+    FileLogger,
+    ParsedTeamTalkFile,
+    ServerStore,
+    SettingsStore,
+)
+from ui.tray import TrayIcon
+from ui.tt_file_parser import parse_teamtalk_file
+from ui.tabs.connection import ConnectionTab
+from ui.tabs.channels_chat import ChannelsChatTab
+from ui.tabs.media import MediaTab
+from ui.tabs.files import FilesTab
+from ui.tabs.admin import AdminTab
+from ui.tabs.speak import SpeakTab
+from ui.tabs.settings import SettingsTab
+from tts import TTSManager
+from platform_paths import log_dir as _log_dir # Moved this import up
+
+
+APP_VERSION = "0.8.0"
 
 
 def _init_startup_logging() -> None:
-    from platform_paths import log_dir as _log_dir
+    # `log_dir` is now imported at the top
     log_path = _log_dir()
     try:
         log_path.mkdir(parents=True, exist_ok=True)
@@ -45,29 +66,6 @@ _init_startup_logging()
 _third_party = Path(__file__).resolve().parent.parent / "third_party"
 if str(_third_party) not in sys.path:
     sys.path.insert(0, str(_third_party))
-
-import wx
-import wx.adv
-import wx.dataview as dv
-
-from teamtalk_client.client import TeamTalkClient, ConnectResult
-from ui.models import (
-    FileLogger,
-    ParsedTeamTalkFile,
-    ServerProfile,
-    ServerStore,
-    SettingsStore,
-)
-from ui.tray import TrayIcon
-from ui.tt_file_parser import parse_teamtalk_file
-from ui.tabs.connection import ConnectionTab
-from ui.tabs.channels_chat import ChannelsChatTab
-from ui.tabs.media import MediaTab
-from ui.tabs.files import FilesTab
-from ui.tabs.admin import AdminTab
-from ui.tabs.speak import SpeakTab
-from ui.tabs.settings import SettingsTab
-from tts import TTSManager
 
 
 class ServerCheckDialog(wx.Dialog):
@@ -262,6 +260,19 @@ class MainFrame(wx.Frame):
         title.SetName("Titel")
         main_sizer.Add(title, 0, wx.ALL, 12)
 
+        nav_panel = wx.Panel(panel)
+        nav_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        nav_label = wx.StaticText(nav_panel, label="Bereich:")
+        self.tab_choice = wx.Choice(nav_panel)
+        self.tab_choice.SetName("Bereich")
+        self.tab_info = wx.StaticText(nav_panel, label="")
+        self.tab_info.SetName("Bereichsinfo")
+        nav_sizer.Add(nav_label, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 6)
+        nav_sizer.Add(self.tab_choice, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 12)
+        nav_sizer.Add(self.tab_info, 1, wx.ALIGN_CENTER_VERTICAL)
+        nav_panel.SetSizer(nav_sizer)
+        main_sizer.Add(nav_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 12)
+
         self.notebook = wx.Notebook(panel)
         self.notebook.SetName("Hauptnavigation")
 
@@ -288,6 +299,17 @@ class MainFrame(wx.Frame):
         self.notebook.AddPage(files_placeholder, "Dateien")
         self.notebook.AddPage(admin_placeholder, "Administration")
         # Settings live in a separate window (opened via Help menu).
+
+        self._tab_info_map = {
+            "Kanäle und Chat": "Kanäle, Nutzerliste, Chat und Privatnachrichten.",
+            "Aufnahme & Medien": "Aufnahmen, Webradio/YouTube/Twitch-Streams.",
+            "Dateien": "Kanaldateien hoch-/runterladen und verwalten.",
+            "Administration": "Benutzerkonten, Sperren, Servereigenschaften.",
+        }
+        self.tab_choice.SetItems(list(self._tab_info_map.keys()))
+        self.tab_choice.SetSelection(0)
+        self._update_tab_info(0)
+        self.tab_choice.Bind(wx.EVT_CHOICE, self.on_tab_choice_changed)
 
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.on_tab_changed)
         main_sizer.Add(self.notebook, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 12)
@@ -493,7 +515,9 @@ class MainFrame(wx.Frame):
             return None
 
     def _ask_text(self, title: str, label: str, value: str = "", password: bool = False) -> Optional[str]:
-        style = wx.TE_PASSWORD if password else 0
+        style = wx.OK | wx.CANCEL
+        if password:
+            style |= wx.TE_PASSWORD
         dlg = wx.TextEntryDialog(self, label, title, value, style=style)
         if dlg.ShowModal() != wx.ID_OK:
             dlg.Destroy()
@@ -515,9 +539,17 @@ class MainFrame(wx.Frame):
         topic: str = "",
         permanent: bool = False,
         allow_password: bool = True,
+        channel_type: int = 0,
+        disk_quota_mb: int = 0,
+        max_users: int = 0,
+        op_password: str = "",
+        audio_codec_mode: str = "inherit",
+        audio_codec_locked: bool = False,
     ) -> Optional[dict]:
         dlg = wx.Dialog(self, title=title)
         root = wx.BoxSizer(wx.VERTICAL)
+
+        form_box = wx.StaticBoxSizer(wx.StaticBox(dlg, label="Grunddaten"), wx.VERTICAL)
         form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         form.AddGrowableCol(1)
 
@@ -544,7 +576,83 @@ class MainFrame(wx.Frame):
         form.AddSpacer(0)
         form.Add(perm_check, 0)
 
-        root.Add(form, 0, wx.ALL | wx.EXPAND, 10)
+        form_box.Add(form, 0, wx.ALL | wx.EXPAND, 10)
+        root.Add(form_box, 0, wx.ALL | wx.EXPAND, 10)
+
+        limits_box = wx.StaticBoxSizer(wx.StaticBox(dlg, label="Limits"), wx.VERTICAL)
+        limits = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
+        limits.AddGrowableCol(1)
+        lbl_quota = wx.StaticText(dlg, label="Datei-Quota (MB, 0=aus)")
+        quota_ctrl = wx.SpinCtrl(dlg, min=0, max=1024 * 1024, initial=int(disk_quota_mb))
+        lbl_max = wx.StaticText(dlg, label="Max. Benutzer (0=Server)")
+        max_ctrl = wx.SpinCtrl(dlg, min=0, max=10000, initial=int(max_users))
+        lbl_op = wx.StaticText(dlg, label="Operator-Passwort")
+        op_ctrl = wx.TextCtrl(dlg, value=op_password)
+        limits.Add(lbl_quota, 0, wx.ALIGN_CENTER_VERTICAL)
+        limits.Add(quota_ctrl, 1, wx.EXPAND)
+        limits.Add(lbl_max, 0, wx.ALIGN_CENTER_VERTICAL)
+        limits.Add(max_ctrl, 1, wx.EXPAND)
+        limits.Add(lbl_op, 0, wx.ALIGN_CENTER_VERTICAL)
+        limits.Add(op_ctrl, 1, wx.EXPAND)
+        limits_box.Add(limits, 0, wx.ALL | wx.EXPAND, 10)
+        root.Add(limits_box, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 10)
+
+        type_box = wx.StaticBoxSizer(wx.StaticBox(dlg, label="Kanaltyp"), wx.VERTICAL)
+        tt = self.client.tt
+        flags = []
+        def _flag(label: str, flag_value: int) -> wx.CheckBox:
+            cb = wx.CheckBox(dlg, label=label)
+            cb.SetValue(bool(channel_type & int(flag_value)))
+            flags.append((cb, int(flag_value)))
+            type_box.Add(cb, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
+            return cb
+
+        _flag("Solo-Transmit (nur ein Sprecher)", tt.ChannelType.CHANNEL_SOLO_TRANSMIT)
+        _flag("Classroom (Operator steuert Sprechen)", tt.ChannelType.CHANNEL_CLASSROOM)
+        _flag("Operator nur Empfang", tt.ChannelType.CHANNEL_OPERATOR_RECVONLY)
+        _flag("Keine Voice Activation", tt.ChannelType.CHANNEL_NO_VOICEACTIVATION)
+        _flag("Keine Aufnahmen", tt.ChannelType.CHANNEL_NO_RECORDING)
+        _flag("Versteckter Kanal", tt.ChannelType.CHANNEL_HIDDEN)
+        root.Add(type_box, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 10)
+
+        audio_box = wx.StaticBoxSizer(wx.StaticBox(dlg, label="Audio-Codec"), wx.VERTICAL)
+        codec_choices = [
+            ("Vom Elternkanal uebernehmen", "inherit"),
+            ("Opus (Standard)", "opus"),
+            ("Kein Audio", "none"),
+        ]
+        if audio_codec_mode == "keep":
+            codec_choices.insert(0, ("Aktueller Codec beibehalten", "keep"))
+        codec_choice = wx.Choice(dlg, choices=[c[0] for c in codec_choices])
+        codec_choice.SetSelection(0)
+        for idx, _ in enumerate(codec_choices):
+            if codec_choices[idx][1] == audio_codec_mode:
+                codec_choice.SetSelection(idx)
+                break
+        codec_choice.Enable(not audio_codec_locked)
+        audio_box.Add(codec_choice, 0, wx.ALL | wx.EXPAND, 8)
+        if audio_codec_locked:
+            audio_box.Add(wx.StaticText(dlg, label="Audio-Codec kann nicht geaendert werden, wenn Nutzer im Kanal sind."), 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        root.Add(audio_box, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 10)
+
+        rights_note = None
+        try:
+            rights = int(self.client.get_my_user_rights() or 0)
+        except Exception:
+            rights = 0
+        can_modify = bool(rights & int(tt.UserRight.USERRIGHT_MODIFY_CHANNELS))
+        if not can_modify:
+            perm_check.Disable()
+            quota_ctrl.Disable()
+            max_ctrl.Disable()
+            op_ctrl.Disable()
+            for cb, _flag in flags:
+                cb.Disable()
+            if not audio_codec_locked:
+                codec_choice.Disable()
+            rights_note = wx.StaticText(dlg, label="Hinweis: Einige Optionen erfordern Serverrechte (Kanaleigenschaften).")
+            root.Add(rights_note, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+
         btns = dlg.CreateButtonSizer(wx.OK | wx.CANCEL)
         root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
         dlg.SetSizerAndFit(root)
@@ -553,10 +661,20 @@ class MainFrame(wx.Frame):
             dlg.Destroy()
             return None
 
+        result_flags = 0
+        for cb, flag_value in flags:
+            if cb.GetValue():
+                result_flags |= int(flag_value)
+
         result = {
             "name": name_ctrl.GetValue().strip(),
             "topic": topic_ctrl.GetValue().strip(),
             "permanent": bool(perm_check.GetValue()),
+            "channel_type": result_flags,
+            "disk_quota_mb": int(quota_ctrl.GetValue()),
+            "max_users": int(max_ctrl.GetValue()),
+            "op_password": op_ctrl.GetValue().strip(),
+            "audio_codec_mode": codec_choices[codec_choice.GetSelection()][1],
         }
         if allow_password and pw_check and pw_ctrl:
             result["set_password"] = bool(pw_check.GetValue())
@@ -631,16 +749,49 @@ class MainFrame(wx.Frame):
         if not self._require_connected("Kanal erstellen"):
             return
         parent_id = self._get_selected_channel_id() or self.client.get_root_channel_id()
-        data = self._channel_details_dialog("Kanal erstellen", allow_password=True)
+        parent_channel = self.client.get_channel(parent_id) if parent_id else None
+        default_codec_mode = "opus"
+        if parent_channel is not None:
+            default_codec_mode = "inherit"
+        data = self._channel_details_dialog(
+            "Kanal erstellen",
+            allow_password=True,
+            permanent=bool(parent_channel.uChannelType & self.client.tt.ChannelType.CHANNEL_PERMANENT) if parent_channel else False,
+            channel_type=int(getattr(parent_channel, "uChannelType", 0) or 0) if parent_channel else 0,
+            disk_quota_mb=int(getattr(parent_channel, "nDiskQuota", 0) or 0) // (1024 * 1024) if parent_channel else 0,
+            max_users=int(getattr(parent_channel, "nMaxUsers", 0) or 0) if parent_channel else 0,
+            audio_codec_mode=default_codec_mode,
+        )
         if not data or not data["name"]:
             self.set_status("Kanalname fehlt")
             return
+        try:
+            rights = int(self.client.get_my_user_rights() or 0)
+        except Exception:
+            rights = 0
+        can_modify = bool(rights & int(self.client.tt.UserRight.USERRIGHT_MODIFY_CHANNELS))
+        channel_type = int(data.get("channel_type", 0) or 0)
+        if data.get("permanent") and can_modify:
+            channel_type |= int(self.client.tt.ChannelType.CHANNEL_PERMANENT)
+        audio_codec = None
+        codec_mode = data.get("audio_codec_mode")
+        if codec_mode == "inherit" and parent_channel is not None:
+            audio_codec = parent_channel.audiocodec
+        elif codec_mode == "opus":
+            audio_codec = self.client.build_default_opus_codec()
+        elif codec_mode == "none":
+            audio_codec = self.client.build_no_audio_codec()
         result = self.client.make_channel(
             name=data["name"],
             parent_id=parent_id,
             topic=data.get("topic", ""),
             password=data.get("password", "") if data.get("set_password") else "",
-            permanent=bool(data.get("permanent")),
+            permanent=bool(data.get("permanent") and can_modify),
+            channel_type=channel_type,
+            audio_codec=audio_codec,
+            disk_quota=int(data.get("disk_quota_mb", 0)) * 1024 * 1024,
+            max_users=int(data.get("max_users", 0)),
+            op_password=str(data.get("op_password", "")),
         )
         self.set_status(result.message)
         if result.ok:
@@ -657,12 +808,28 @@ class MainFrame(wx.Frame):
         if not channel:
             self.set_status("Kanal nicht gefunden")
             return
+        try:
+            rights = int(self.client.get_my_user_rights() or 0)
+        except Exception:
+            rights = 0
+        can_modify = bool(rights & int(self.client.tt.UserRight.USERRIGHT_MODIFY_CHANNELS))
+        users_in_channel = []
+        try:
+            users_in_channel = self.client.get_channel_users(chan_id)
+        except Exception:
+            users_in_channel = []
         data = self._channel_details_dialog(
             "Kanal bearbeiten",
             name=self.tt_str(channel.szName),
             topic=self.tt_str(channel.szTopic),
             permanent=bool(channel.uChannelType & self.client.tt.ChannelType.CHANNEL_PERMANENT),
             allow_password=True,
+            channel_type=int(channel.uChannelType or 0),
+            disk_quota_mb=int(getattr(channel, "nDiskQuota", 0) or 0) // (1024 * 1024),
+            max_users=int(getattr(channel, "nMaxUsers", 0) or 0),
+            op_password=self.tt_str(getattr(channel, "szOpPassword", "")),
+            audio_codec_mode="keep",
+            audio_codec_locked=bool(users_in_channel),
         )
         if not data or not data["name"]:
             self.set_status("Kanalname fehlt")
@@ -673,11 +840,22 @@ class MainFrame(wx.Frame):
             pw = data.get("password", "")
             channel.szPassword = self.client.tt.ttstr(pw)
             channel.bPassword = bool(pw)
-        channel.uChannelType = (
-            self.client.tt.ChannelType.CHANNEL_PERMANENT
-            if data.get("permanent")
-            else self.client.tt.ChannelType.CHANNEL_DEFAULT
-        )
+        if can_modify:
+            channel_type = int(data.get("channel_type", 0) or 0)
+            if data.get("permanent"):
+                channel_type |= int(self.client.tt.ChannelType.CHANNEL_PERMANENT)
+            channel.uChannelType = channel_type
+            channel.nDiskQuota = int(data.get("disk_quota_mb", 0)) * 1024 * 1024
+            channel.nMaxUsers = int(data.get("max_users", 0))
+            op_password = str(data.get("op_password", "")).strip()
+            if op_password:
+                channel.szOpPassword = self.client.tt.ttstr(op_password)
+            codec_mode = data.get("audio_codec_mode")
+            if not users_in_channel and codec_mode:
+                if codec_mode == "opus":
+                    channel.audiocodec = self.client.build_default_opus_codec()
+                elif codec_mode == "none":
+                    channel.audiocodec = self.client.build_no_audio_codec()
         result = self.client.update_channel(channel)
         self.set_status(result.message)
         if result.ok:
@@ -1112,7 +1290,7 @@ class MainFrame(wx.Frame):
                     password=tab.password.GetValue().strip(),
                     client_name=tab.client_name.GetValue().strip(),
                     encrypted=tab.encrypted.GetValue(),
-                    timeout_ms=8000,
+                    timeout_ms=12000,
                 )
                 wx.CallAfter(self.handle_connect_result, result)
             except Exception as exc:
@@ -1621,6 +1799,7 @@ class MainFrame(wx.Frame):
             page = self.notebook.GetPage(idx)
             self._ensure_lazy_tab(page)
             page = self.notebook.GetPage(idx)
+            self._update_tab_info(idx)
             if self.files_tab is not None and page is self.files_tab:
                 wx.CallAfter(self.files_tab.refresh_file_list)
             if self.settings_window.IsShown() and self._window_focused:
@@ -1629,6 +1808,24 @@ class MainFrame(wx.Frame):
                 self.audio_tab.set_active(False)
         finally:
             event.Skip()
+
+    def on_tab_choice_changed(self, event):
+        idx = event.GetSelection()
+        if idx == wx.NOT_FOUND:
+            return
+        self.notebook.SetSelection(idx)
+        self._update_tab_info(idx)
+
+    def _update_tab_info(self, idx: int) -> None:
+        try:
+            label = self.notebook.GetPageText(idx)
+        except Exception:
+            label = ""
+        if label:
+            info = self._tab_info_map.get(label, "")
+            self.tab_info.SetLabel(info)
+            if self.tab_choice.GetSelection() != idx:
+                self.tab_choice.SetSelection(idx)
 
     def _ensure_lazy_tab(self, page: wx.Panel) -> None:
         # Replace placeholder panels with real tabs on first access.
@@ -1643,7 +1840,11 @@ class MainFrame(wx.Frame):
         placeholder = self._lazy_pages.get(key)
         if placeholder is None:
             return
-        idx = self.notebook.GetPageIndex(placeholder)
+        idx = wx.NOT_FOUND
+        for i in range(self.notebook.GetPageCount()):
+            if self.notebook.GetPage(i) is placeholder:
+                idx = i
+                break
         if idx == wx.NOT_FOUND:
             return
         if key == "media":
@@ -1909,7 +2110,7 @@ def _probe_server_payload(payload: Dict[str, object]) -> Dict[str, object]:
                     client_name=client_name,
                     encrypted=effective_encrypted,
                     remember_last_connect=False,
-                    timeout_ms=8000,
+                    timeout_ms=12000,
                 )
                 if last.ok:
                     return last
@@ -1917,7 +2118,7 @@ def _probe_server_payload(payload: Dict[str, object]) -> Dict[str, object]:
                     time.sleep(0.3)
             return last
 
-        result = _probe_connect(username, password, 6 if encrypted else 3)
+        result = _probe_connect(username, password, 6)
         tls_hint = ""
         if (
             not result.ok
@@ -1929,7 +2130,7 @@ def _probe_server_payload(payload: Dict[str, object]) -> Dict[str, object]:
             result = _probe_connect("guest", "", 4)
         if not result.ok and not encrypted:
             # Some servers only accept TLS even if the entry is stored as plain.
-            tls_try = _probe_connect(username, password, 2, use_encrypted=True)
+            tls_try = _probe_connect(username, password, 6, use_encrypted=True)
             if tls_try.ok:
                 result = tls_try
                 tls_hint = "Hinweis: Server erwartet TLS (verschluesselt)."
@@ -1950,7 +2151,7 @@ def _probe_server_payload(payload: Dict[str, object]) -> Dict[str, object]:
             if tls_hint:
                 result_data["note"] = tls_hint
     except Exception as exc:
-        result_data = {"ok": False, "message": str(exc), "names": []}
+        result_data = {"ok": False, "message": traceback.format_exc(), "names": []}
     finally:
         try:
             scanner.disconnect_transport()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 import wx
 
@@ -58,74 +58,104 @@ class ChatTab(wx.Panel):
         sizer.Add(input_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
-        self._set_tab_order()
 
     def append_chat(self, text: str, kind: str = "chat", speak: bool = True) -> None:
-        self.chat_log.AppendText(text + "\n")
-        self.frame.logger.write(f"CHAT {text}")
+        if not text:
+            return
+        if self.chat_log.GetLastPosition() > 0:
+            self.chat_log.AppendText("\n")
+        if kind == "system":
+            self.chat_log.SetDefaultStyle(wx.TextAttr(wx.Colour(128, 128, 128)))  # Gray
+        elif kind == "private":
+            self.chat_log.SetDefaultStyle(wx.TextAttr(wx.Colour(0, 0, 192)))  # Blue
+        elif kind == "own":
+            self.chat_log.SetDefaultStyle(wx.TextAttr(wx.Colour(0, 128, 0)))  # Green
+        else:
+            self.chat_log.SetDefaultStyle(wx.TextAttr(wx.BLACK))  # Black
+        self.chat_log.AppendText(text)
+        self.chat_log.SetDefaultStyle(wx.TextAttr(wx.BLACK)) # Reset for next messages
+        self.chat_log.ShowPosition(self.chat_log.GetLastPosition()) # Scroll to bottom
         if speak:
             self.frame.tts.speak(text, kind=kind)
-
-    def refresh_private_user_choice(self, users):
-        labels = [self.frame.tt_str(u.szNickname) or self.frame.tt_str(u.szUsername) for u in users]
-        self.private_user.Set(labels)
-
-    def update_chat_target(self):
-        channels_tab = self.frame.channels_tab
-        if self.private_chat.GetValue() and channels_tab._selected_user_id is not None:
-            user = next(
-                (u for u in channels_tab._current_users if u.nUserID == channels_tab._selected_user_id),
-                None,
-            )
-            label = f"Ziel: Benutzer {self.frame.tt_str(user.szNickname)}" if user else "Ziel: Benutzer"
-        else:
-            my_ch = self.frame.client.get_my_channel_id()
-            if my_ch:
-                ch = self.frame.client.get_channel(int(my_ch))
-                label = f"Ziel: Kanal {self.frame.tt_str(ch.szName)}"
-            elif channels_tab._selected_channel_id is not None:
-                ch = self.frame.client.get_channel(channels_tab._selected_channel_id)
-                label = f"Ziel: Kanal {self.frame.tt_str(ch.szName)}"
-            else:
-                label = "Ziel: (kein)"
-        self.chat_target.SetLabel(label)
 
     def on_chat_send(self, _event):
         msg = self.chat_input.GetValue().strip()
         if not msg:
             return
-        channels_tab = self.frame.channels_tab
-        if self.private_chat.GetValue():
-            if self.private_user.GetSelection() == wx.NOT_FOUND:
-                self.frame.set_status("Bitte einen Benutzer fuer Privatnachricht waehlen")
-                return
-            user_id = channels_tab._private_user_ids[self.private_user.GetSelection()]
-            ok = self.frame.client.send_user_message(user_id, msg)
-        else:
-            channel_id = self.frame.client.get_my_channel_id() or channels_tab._selected_channel_id
-            if not channel_id or int(channel_id) <= 0:
-                self.frame.set_status("Kein Kanal ausgewaehlt")
-                return
-            ok = self.frame.client.send_channel_message(int(channel_id), msg)
-        if ok:
-            self.append_chat(f"Ich: {msg}", kind="own")
-            self.chat_input.SetValue("")
-        else:
-            self.frame.set_status("Senden fehlgeschlagen")
 
-    def _set_tab_order(self):
-        order = [
-            self.private_chat, self.private_user, self.chat_log, self.chat_input, self.chat_send,
-        ]
-        prev_by_parent = {}
-        for item in order:
-            if item is None:
-                continue
-            parent = item.GetParent()
-            prev = prev_by_parent.get(parent)
-            if prev is not None:
-                try:
-                    item.MoveAfterInTabOrder(prev)
-                except Exception:
-                    pass
-            prev_by_parent[parent] = item
+        client = self.frame.client
+        if not client.is_connected():
+            self.frame.set_status("Nicht verbunden")
+            return
+
+        is_private = self.private_chat.GetValue()
+        if is_private:
+            user_idx = self.private_user.GetSelection()
+            if user_idx == wx.NOT_FOUND:
+                self.frame.set_status("Privater Chat: Bitte Benutzer waehlen")
+                return
+            target_user_id = self.private_user.GetClientData(user_idx)
+            if client.send_user_message(target_user_id, msg):
+                self.append_chat(f"An {self.private_user.GetString(user_idx)}: {msg}", kind="own")
+            else:
+                self.frame.set_status("Nachricht konnte nicht gesendet werden")
+        else:
+            channel_id = client.get_my_channel_id()
+            if not channel_id:
+                self.frame.set_status("Kanal-Chat: Nicht in einem Kanal")
+                return
+            if client.send_channel_message(channel_id, msg):
+                self.append_chat(f"Ich: {msg}", kind="own")
+            else:
+                self.frame.set_status("Nachricht konnte nicht gesendet werden")
+
+        self.chat_input.Clear()
+
+    def update_chat_target(self):
+        is_private = self.private_chat.GetValue()
+        self.private_user.Enable(is_private)
+        if is_private:
+            user_idx = self.private_user.GetSelection()
+            if user_idx != wx.NOT_FOUND:
+                self.chat_target.SetLabel(f"Ziel: Privat an {self.private_user.GetString(user_idx)}")
+            else:
+                self.chat_target.SetLabel("Ziel: Privat an (keinen Benutzer)")
+        else:
+            channel_id = self.frame.client.get_my_channel_id()
+            if channel_id:
+                channel = self.frame.client.get_channel(channel_id)
+                if channel:
+                    self.chat_target.SetLabel(f"Ziel: Kanal {self.frame.tt_str(channel.szName)}")
+                else:
+                    self.chat_target.SetLabel("Ziel: Aktueller Kanal")
+            else:
+                self.chat_target.SetLabel("Ziel: (kein)")
+
+    def refresh_private_user_choice(self, users: List) -> None:
+        self.private_user.Clear()
+        if not users:
+            self.private_user.Disable()
+            return
+        
+        self.private_user.Enable()
+        items = []
+        for user in users:
+            nickname = self.frame.tt_str(user.szNickname)
+            username = self.frame.tt_str(user.szUsername)
+            label = nickname or username
+            if nickname and username and nickname != username:
+                label = f"{nickname} ({username})"
+            elif not label:
+                label = f"Unbekannt ({int(user.nUserID)})"
+            items.append((label, int(user.nUserID)))
+
+        # Sort alphabetically by label
+        items.sort(key=lambda x: x[0].lower())
+        
+        for label, user_id in items:
+            self.private_user.Append(label, clientData=user_id)
+        
+        if items:
+            self.private_user.SetSelection(0)
+        self.update_chat_target()
+

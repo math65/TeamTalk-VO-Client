@@ -230,7 +230,7 @@ class AudioTab(wx.Panel):
         self.update_ptt_hotkey_label()
 
         self.SetSizer(sizer)
-        self._set_tab_order()
+
 
         # VU timer
         self._vu_timer = wx.Timer(self)
@@ -243,9 +243,10 @@ class AudioTab(wx.Panel):
         self._timers_active = False
 
         # Init device list
-        self.refresh_audio_devices(announce=False)
+        wx.CallLater(10, self.refresh_audio_devices, announce=False)
 
     def destroy_timers(self):
+
         self._vu_timer.Stop()
         self._device_poll_timer.Stop()
         if self._loopback_handle is not None:
@@ -531,19 +532,7 @@ class AudioTab(wx.Panel):
                 self._loopback_handle = None
             self.frame.set_status("Mikrofontest beendet")
 
-    def _set_tab_order(self):
-        order = [
-            self.input_device, self.output_device, self.voice_activation,
-            self.voice_level, self.input_gain, self.output_volume,
-            self.va_delay, self.output_mute, self.agc_check,
-            self.denoise_check, self.echo_check, self.apply_effects_btn,
-            self.preprocess_choice, self.duplex_mode, self.refresh_audio_btn, self.apply_audio_btn,
-            self.ptt_toggle, self.loopback_toggle, self.ptt_hotkey_btn,
-            self.auto_apply_prefs, self.auto_apply_device_change,
-            self.save_prefs_btn, self.apply_prefs_btn, self.clear_prefs_btn,
-        ]
-        for i in range(1, len(order)):
-            order[i].MoveAfterInTabOrder(order[i - 1])
+
 
     # ------------------------------------------------------------------
     # Preferences (save/apply)
@@ -694,7 +683,7 @@ class AudioTab(wx.Panel):
 
     def update_ptt_hotkey_label(self) -> None:
         keycode = int(self.frame._ptt_hotkey or 0)
-        self.ptt_hotkey_label.SetLabel(f"PTT-Hotkey: {self._format_keycode(keycode)}")
+        self.ptt_hotkey_label.SetLabel(f'PTT-Hotkey: {self._format_keycode(keycode)}')
 
     def _format_keycode(self, keycode: int) -> str:
         if keycode == wx.WXK_SPACE:

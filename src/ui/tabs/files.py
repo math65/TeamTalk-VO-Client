@@ -59,7 +59,7 @@ class FilesTab(wx.Panel):
         sizer.Add(transfer_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
-        self._set_tab_order()
+
 
         self._file_ids = []  # parallel to list rows
 
@@ -173,10 +173,4 @@ class FilesTab(wx.Panel):
             self.frame.set_status("Dateitransfer abgeschlossen")
             wx.CallLater(500, self.refresh_file_list)
 
-    def _set_tab_order(self):
-        order = [
-            self.file_list, self.upload_btn, self.download_btn,
-            self.delete_btn, self.refresh_btn,
-        ]
-        for i in range(1, len(order)):
-            order[i].MoveAfterInTabOrder(order[i - 1])
+

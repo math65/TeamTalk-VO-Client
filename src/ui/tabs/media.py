@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
-import os
 import shutil
 import subprocess
 import tempfile
@@ -148,7 +147,7 @@ class MediaTab(wx.Panel):
         stream_sizer = wx.StaticBoxSizer(stream_box, wx.VERTICAL)
 
         file_row = wx.BoxSizer(wx.HORIZONTAL)
-        lbl_media_path = wx.StaticText(self.stream_panel, label="Mediendatei Pfad")
+        file_row.Add(wx.StaticText(self.stream_panel, label="Mediendatei Pfad"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.media_path = wx.TextCtrl(self.stream_panel)
         self.media_path.SetName("Mediendatei Pfad")
         self.browse_btn = wx.Button(self.stream_panel, label="Durchsuchen...")
@@ -176,7 +175,7 @@ class MediaTab(wx.Panel):
             ctrl_row.Add(btn, 0, wx.RIGHT, 8)
         stream_sizer.Add(ctrl_row, 0, wx.ALL, 4)
 
-        lbl_seek = wx.StaticText(self.stream_panel, label="Position")
+        stream_sizer.Add(wx.StaticText(self.stream_panel, label="Position"), 0, wx.ALL, 4)
         self.seek_slider = wx.Slider(self.stream_panel, value=0, minValue=0, maxValue=1000)
         self.seek_slider.SetName("Position")
         self.seek_slider.Bind(wx.EVT_SLIDER, self.on_seek)
@@ -199,7 +198,7 @@ class MediaTab(wx.Panel):
         yt_sizer = wx.StaticBoxSizer(yt_box, wx.VERTICAL)
 
         yt_search_row = wx.BoxSizer(wx.HORIZONTAL)
-        lbl_yt_search = wx.StaticText(self.yt_panel, label="YouTube Suche")
+        yt_search_row.Add(wx.StaticText(self.yt_panel, label="YouTube Suche"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.yt_search = wx.TextCtrl(self.yt_panel)
         self.yt_search.SetName("YouTube Suche")
         self.yt_search_btn = wx.Button(self.yt_panel, label="Suchen")
@@ -216,7 +215,7 @@ class MediaTab(wx.Panel):
         self.yt_results.SetMinSize((-1, 120))
 
         yt_row = wx.BoxSizer(wx.HORIZONTAL)
-        lbl_yt_url = wx.StaticText(self.yt_panel, label="YouTube-Link")
+        yt_row.Add(wx.StaticText(self.yt_panel, label="YouTube-Link"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.yt_url = wx.TextCtrl(self.yt_panel)
         self.yt_url.SetName("YouTube-Link")
         self.yt_btn = wx.Button(self.yt_panel, label="Download & streamen")
@@ -258,7 +257,7 @@ class MediaTab(wx.Panel):
         twitch_sizer = wx.StaticBoxSizer(twitch_box, wx.VERTICAL)
 
         twitch_row = wx.BoxSizer(wx.HORIZONTAL)
-        lbl_twitch_url = wx.StaticText(self.twitch_panel, label="Twitch-Link")
+        twitch_row.Add(wx.StaticText(self.twitch_panel, label="Twitch-Link"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.twitch_url = wx.TextCtrl(self.twitch_panel)
         self.twitch_url.SetName("Twitch-Link")
         self.twitch_btn = wx.Button(self.twitch_panel, label="Streamen")
@@ -300,7 +299,7 @@ class MediaTab(wx.Panel):
         radio_sizer = wx.StaticBoxSizer(radio_box, wx.VERTICAL)
 
         radio_search_row = wx.BoxSizer(wx.HORIZONTAL)
-        lbl_radio_search = wx.StaticText(self.radio_panel, label="Webradio Suche")
+        radio_search_row.Add(wx.StaticText(self.radio_panel, label="Webradio Suche"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.radio_search = wx.TextCtrl(self.radio_panel)
         self.radio_search.SetName("Webradio Suche")
         self.radio_search_btn = wx.Button(self.radio_panel, label="Suchen")
@@ -316,14 +315,14 @@ class MediaTab(wx.Panel):
         radio_sizer.Add(self.radio_results, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
         self.radio_results.SetMinSize((-1, 100))
 
-        lbl_radio_choice = wx.StaticText(self.radio_panel, label="Webradio Senderliste")
+        radio_sizer.Add(wx.StaticText(self.radio_panel, label="Webradio Senderliste"), 0, wx.ALL | wx.EXPAND, 4)
         self.radio_choice = wx.Choice(self.radio_panel)
         self.radio_choice.SetName("Webradio Senderliste")
         self.radio_choice.Bind(wx.EVT_CHOICE, self.on_radio_selected)
         radio_sizer.Add(self.radio_choice, 0, wx.ALL | wx.EXPAND, 4)
 
         radio_url_row = wx.BoxSizer(wx.HORIZONTAL)
-        lbl_radio_url = wx.StaticText(self.radio_panel, label="Webradio Stream-URL")
+        radio_url_row.Add(wx.StaticText(self.radio_panel, label="Webradio Stream-URL"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.radio_url = wx.TextCtrl(self.radio_panel)
         self.radio_url.SetName("Webradio Stream-URL")
         self.radio_play_btn = wx.Button(self.radio_panel, label="Webradio streamen")
@@ -361,7 +360,7 @@ class MediaTab(wx.Panel):
         podcast_sizer = wx.StaticBoxSizer(podcast_box, wx.VERTICAL)
 
         search_row = wx.BoxSizer(wx.HORIZONTAL)
-        lbl_podcast_search = wx.StaticText(self.podcast_panel, label="Podcast Suche")
+        search_row.Add(wx.StaticText(self.podcast_panel, label="Podcast Suche"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.podcast_search = wx.TextCtrl(self.podcast_panel)
         self.podcast_search.SetName("Podcast Suche")
         self.podcast_search_btn = wx.Button(self.podcast_panel, label="Suchen")
@@ -372,7 +371,7 @@ class MediaTab(wx.Panel):
         podcast_sizer.Add(search_row, 0, wx.ALL | wx.EXPAND, 4)
 
         feed_row = wx.BoxSizer(wx.HORIZONTAL)
-        lbl_podcast_feed = wx.StaticText(self.podcast_panel, label="Podcast Feed URL")
+        feed_row.Add(wx.StaticText(self.podcast_panel, label="Podcast Feed URL"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.podcast_feed = wx.TextCtrl(self.podcast_panel)
         self.podcast_feed.SetName("Podcast Feed URL")
         self.podcast_feed_btn = wx.Button(self.podcast_panel, label="Feed laden")
@@ -955,7 +954,7 @@ class MediaTab(wx.Panel):
                 if self._yt_tempdir is None:
                     self._yt_tempdir = Path(tempfile.mkdtemp(prefix="tt_ytdlp_"))
                 out_template = str(self._yt_tempdir / "ytstream.%(ext)s")
-                env = os.environ.copy()
+
                 cmd = [
                     ytdlp,
                     "-f", "bestaudio/best",

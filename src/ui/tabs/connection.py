@@ -114,7 +114,7 @@ class ConnectionTab(wx.Panel):
         sizer.Add(server_sizer, 1, wx.ALL | wx.EXPAND, 8)
         self.SetSizer(sizer)
 
-        self._set_tab_order()
+
 
         # Stats timer
         self._stats_timer = wx.Timer(self)

@@ -107,7 +107,7 @@ class AdminTab(wx.Panel):
         sizer.Add(srv_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
-        self._set_tab_order()
+
 
     def _add_field(self, sizer, label, value):
         lbl = wx.StaticText(self, label=label)
@@ -130,10 +130,25 @@ class AdminTab(wx.Panel):
     # --- Accounts ---
 
     def on_load_accounts(self, _event):
+        self.load_accounts_btn.Disable()
+        self.add_account_btn.Disable()
+        self.del_account_btn.Disable()
         self.account_list.DeleteAllItems()
         self._accounts = []
-        self.frame.client.do_list_user_accounts()
         self.frame.set_status("Benutzerkonten werden geladen...")
+
+        def worker():
+            try:
+                self.frame.client.do_list_user_accounts() # This is the blocking call
+                wx.CallAfter(self.frame.set_status, "Benutzerkonten geladen")
+            except Exception as e:
+                wx.CallAfter(self.frame.set_status, f"Fehler beim Laden der Konten: {e}")
+            finally:
+                wx.CallAfter(self.load_accounts_btn.Enable)
+                wx.CallAfter(self.add_account_btn.Enable)
+                wx.CallAfter(self.del_account_btn.Enable)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def add_account_to_list(self, account):
         tt_str = self.frame.tt_str
@@ -148,13 +163,35 @@ class AdminTab(wx.Panel):
         dlg = _NewAccountDialog(self)
         if dlg.ShowModal() == wx.ID_OK:
             vals = dlg.get_values()
-            tt = self.frame.client.tt
-            utype = int(tt.UserType.USERTYPE_ADMIN) if vals["admin"] else int(tt.UserType.USERTYPE_DEFAULT)
-            self.frame.client.do_new_user_account(
-                vals["username"], vals["password"], utype, note=vals["note"],
-            )
-            self.frame.set_status(f"Konto erstellt: {vals['username']}")
-        dlg.Destroy()
+            dlg.Destroy() # Destroy dialog immediately after getting values
+
+            if not vals["username"] or not vals["password"]:
+                self.frame.set_status("Benutzername und Passwort sind erforderlich.")
+                return
+
+            self.add_account_btn.Disable()
+            self.frame.set_status(f"Konto wird erstellt: {vals['username']}...")
+
+            def worker():
+                try:
+                    tt = self.frame.client.tt
+                    utype = int(tt.UserType.USERTYPE_ADMIN) if vals["admin"] else int(tt.UserType.USERTYPE_DEFAULT)
+                    success = self.frame.client.do_new_user_account(
+                        vals["username"], vals["password"], utype, note=vals["note"],
+                    )
+                    if success:
+                        wx.CallAfter(self.frame.set_status, f"Konto erstellt: {vals['username']}")
+                        wx.CallAfter(self.on_load_accounts, None) # Refresh list
+                    else:
+                        wx.CallAfter(self.frame.set_status, f"Konto konnte nicht erstellt werden: {vals['username']}")
+                except Exception as e:
+                    wx.CallAfter(self.frame.set_status, f"Fehler beim Erstellen des Kontos: {e}")
+                finally:
+                    wx.CallAfter(self.add_account_btn.Enable)
+
+            threading.Thread(target=worker, daemon=True).start()
+        else:
+            dlg.Destroy() # Destroy dialog if it's not OK.
 
     def on_del_account(self, _event):
         sel = self.account_list.GetFirstSelected()
@@ -170,17 +207,45 @@ class AdminTab(wx.Panel):
             dlg.Destroy()
             return
         dlg.Destroy()
-        self.frame.client.do_delete_user_account(username)
-        self.frame.set_status(f"Konto geloescht: {username}")
-        wx.CallLater(500, self.on_load_accounts, None)
+
+        self.del_account_btn.Disable()
+        self.frame.set_status(f"Konto wird geloescht: {username}...")
+
+        def worker():
+            try:
+                success = self.frame.client.do_delete_user_account(username)
+                if success:
+                    wx.CallAfter(self.frame.set_status, f"Konto geloescht: {username}")
+                    wx.CallAfter(self.on_load_accounts, None) # Refresh list
+                else:
+                    wx.CallAfter(self.frame.set_status, f"Konto konnte nicht geloescht werden: {username}")
+            except Exception as e:
+                wx.CallAfter(self.frame.set_status, f"Fehler beim Loeschen des Kontos: {e}")
+            finally:
+                wx.CallAfter(self.del_account_btn.Enable)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     # --- Bans ---
 
     def on_load_bans(self, _event):
+        self.load_bans_btn.Disable()
+        self.unban_btn.Disable()
         self.ban_list.DeleteAllItems()
         self._bans = []
-        self.frame.client.do_list_bans()
         self.frame.set_status("Sperren werden geladen...")
+
+        def worker():
+            try:
+                self.frame.client.do_list_bans() # This is the blocking call
+                wx.CallAfter(self.frame.set_status, "Sperren geladen")
+            except Exception as e:
+                wx.CallAfter(self.frame.set_status, f"Fehler beim Laden der Sperren: {e}")
+            finally:
+                wx.CallAfter(self.load_bans_btn.Enable)
+                wx.CallAfter(self.unban_btn.Enable)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def add_ban_to_list(self, ban):
         tt_str = self.frame.tt_str
@@ -195,22 +260,53 @@ class AdminTab(wx.Panel):
             self.frame.set_status("Bitte eine Sperre auswaehlen")
             return
         ip = self.frame.tt_str(self._bans[sel].szIPAddress)
-        self.frame.client.do_unban_user(ip)
-        self.frame.set_status(f"Entsperrt: {ip}")
-        wx.CallLater(500, self.on_load_bans, None)
+        
+        self.unban_btn.Disable()
+        self.frame.set_status(f"Sperre wird aufgehoben fuer: {ip}...")
+
+        def worker():
+            try:
+                success = self.frame.client.do_unban_user(ip)
+                if success:
+                    wx.CallAfter(self.frame.set_status, f"Entsperrt: {ip}")
+                    wx.CallAfter(self.on_load_bans, None) # Refresh list
+                else:
+                    wx.CallAfter(self.frame.set_status, f"Sperre konnte nicht aufgehoben werden fuer: {ip}")
+            except Exception as e:
+                wx.CallAfter(self.frame.set_status, f"Fehler beim Aufheben der Sperre: {e}")
+            finally:
+                wx.CallAfter(self.unban_btn.Enable)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     # --- Server properties ---
 
     def on_load_props(self, _event):
-        props = self.frame.client.get_server_properties()
-        if props is None:
-            self.frame.set_status("Servereigenschaften konnten nicht geladen werden")
-            return
-        tt_str = self.frame.tt_str
-        self.srv_name.SetValue(tt_str(props.szServerName))
-        self.srv_motd.SetValue(tt_str(props.szMOTDRaw))
-        self.srv_maxusers.SetValue(str(int(props.nMaxUsers)))
-        self.frame.set_status("Servereigenschaften geladen")
+        self.load_props_btn.Disable()
+        self.save_props_btn.Disable()
+        self.save_config_btn.Disable()
+        self.frame.set_status("Servereigenschaften werden geladen...")
+
+        def worker():
+            props = None
+            try:
+                props = self.frame.client.get_server_properties()
+                if props is None:
+                    wx.CallAfter(self.frame.set_status, "Servereigenschaften konnten nicht geladen werden")
+                    return
+                tt_str = self.frame.tt_str
+                wx.CallAfter(self.srv_name.SetValue, tt_str(props.szServerName))
+                wx.CallAfter(self.srv_motd.SetValue, tt_str(props.szMOTDRaw))
+                wx.CallAfter(self.srv_maxusers.SetValue, str(int(props.nMaxUsers)))
+                wx.CallAfter(self.frame.set_status, "Servereigenschaften geladen")
+            except Exception as e:
+                wx.CallAfter(self.frame.set_status, f"Fehler beim Laden der Servereigenschaften: {e}")
+            finally:
+                wx.CallAfter(self.load_props_btn.Enable)
+                wx.CallAfter(self.save_props_btn.Enable)
+                wx.CallAfter(self.save_config_btn.Enable)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def on_save_props(self, _event):
         name = self.srv_name.GetValue().strip()
@@ -219,22 +315,45 @@ class AdminTab(wx.Panel):
             max_u = int(self.srv_maxusers.GetValue().strip())
         except ValueError:
             max_u = 0
-        self.frame.client.do_update_server(server_name=name, motd=motd, max_users=max_u)
-        self.frame.set_status("Servereigenschaften gespeichert")
+
+        self.load_props_btn.Disable()
+        self.save_props_btn.Disable()
+        self.save_config_btn.Disable()
+        self.frame.set_status("Servereigenschaften werden gespeichert...")
+
+        def worker():
+            try:
+                self.frame.client.do_update_server(server_name=name, motd=motd, max_users=max_u)
+                wx.CallAfter(self.frame.set_status, "Servereigenschaften gespeichert")
+            except Exception as e:
+                wx.CallAfter(self.frame.set_status, f"Fehler beim Speichern der Servereigenschaften: {e}")
+            finally:
+                wx.CallAfter(self.load_props_btn.Enable)
+                wx.CallAfter(self.save_props_btn.Enable)
+                wx.CallAfter(self.save_config_btn.Enable)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def on_save_config(self, _event):
-        self.frame.client.do_save_config()
-        self.frame.set_status("Konfiguration gespeichert")
+        self.load_props_btn.Disable()
+        self.save_props_btn.Disable()
+        self.save_config_btn.Disable()
+        self.frame.set_status("Serverkonfiguration wird gespeichert...")
 
-    def _set_tab_order(self):
-        order = [
-            self.account_list, self.load_accounts_btn, self.add_account_btn,
-            self.del_account_btn, self.ban_list, self.load_bans_btn, self.unban_btn,
-            self.srv_name, self.srv_motd, self.srv_maxusers,
-            self.load_props_btn, self.save_props_btn, self.save_config_btn,
-        ]
-        for i in range(1, len(order)):
-            order[i].MoveAfterInTabOrder(order[i - 1])
+        def worker():
+            try:
+                self.frame.client.do_save_config()
+                wx.CallAfter(self.frame.set_status, "Serverkonfiguration gespeichert")
+            except Exception as e:
+                wx.CallAfter(self.frame.set_status, f"Fehler beim Speichern der Serverkonfiguration: {e}")
+            finally:
+                wx.CallAfter(self.load_props_btn.Enable)
+                wx.CallAfter(self.save_props_btn.Enable)
+                wx.CallAfter(self.save_config_btn.Enable)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+
 
 
 class _NewAccountDialog(wx.Dialog):

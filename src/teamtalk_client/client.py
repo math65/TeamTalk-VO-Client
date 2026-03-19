@@ -6,9 +6,12 @@ import socket
 import time
 import threading
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 from .tt import load_teamtalk_module
+
+TTMessage = Any
+
 
 
 @dataclass
@@ -481,6 +484,11 @@ class TeamTalkClient:
         topic: str = "",
         password: str = "",
         permanent: bool = False,
+        channel_type: Optional[int] = None,
+        audio_codec: Optional[Any] = None,
+        disk_quota: Optional[int] = None,
+        max_users: Optional[int] = None,
+        op_password: str = "",
         timeout_ms: int = 4000,
     ) -> ConnectResult:
         ch = self.tt.Channel()
@@ -491,7 +499,20 @@ class TeamTalkClient:
         if password:
             ch.szPassword = self.tt.ttstr(password)
             ch.bPassword = True
-        ch.uChannelType = self.tt.ChannelType.CHANNEL_PERMANENT if permanent else self.tt.ChannelType.CHANNEL_DEFAULT
+        if channel_type is None:
+            ch.uChannelType = (
+                self.tt.ChannelType.CHANNEL_PERMANENT if permanent else self.tt.ChannelType.CHANNEL_DEFAULT
+            )
+        else:
+            ch.uChannelType = int(channel_type)
+        if audio_codec is not None:
+            ch.audiocodec = audio_codec
+        if disk_quota is not None:
+            ch.nDiskQuota = int(disk_quota)
+        if max_users is not None:
+            ch.nMaxUsers = int(max_users)
+        if op_password:
+            ch.szOpPassword = self.tt.ttstr(op_password)
         cmdid = self.client.doMakeChannel(ch)
         ok, msg = self._wait_for_cmd_result(cmdid, timeout_ms)
         if not ok:
@@ -502,6 +523,27 @@ class TeamTalkClient:
                 return ConnectResult(False, "Kanal erstellen fehlgeschlagen: Timeout")
             return ConnectResult(False, "Kanal erstellen fehlgeschlagen")
         return ConnectResult(True, "Kanal erstellt")
+
+    def build_default_opus_codec(self) -> Any:
+        codec = self.tt.AudioCodec()
+        codec.nCodec = int(self.tt.Codec.OPUS_CODEC)
+        codec.opus.nSampleRate = 48000
+        codec.opus.nChannels = 1
+        codec.opus.nApplication = int(self.tt.OPUS_APPLICATION_VOIP)
+        codec.opus.nComplexity = 10
+        codec.opus.bFEC = True
+        codec.opus.bDTX = False
+        codec.opus.nBitRate = 32000
+        codec.opus.bVBR = True
+        codec.opus.bVBRConstraint = False
+        codec.opus.nTxIntervalMSec = 40
+        codec.opus.nFrameSizeMSec = 0
+        return codec
+
+    def build_no_audio_codec(self) -> Any:
+        codec = self.tt.AudioCodec()
+        codec.nCodec = int(self.tt.Codec.NO_CODEC)
+        return codec
 
     def update_channel(self, channel, timeout_ms: int = 4000) -> ConnectResult:
         cmdid = self.client.doUpdateChannel(channel)
@@ -661,6 +703,8 @@ class TeamTalkClient:
     # ------------------------------------------------------------------
 
     def set_sound_device_effects(self, agc: bool = False, denoise: bool = False, echo_cancel: bool = False) -> bool:
+        if not hasattr(self.tt, "SoundDeviceEffects"):
+            return False
         try:
             effects = self.tt.SoundDeviceEffects()
         except Exception:
@@ -671,6 +715,8 @@ class TeamTalkClient:
         return self.tt._SetSoundDeviceEffects(self.client._tt, ctypes.byref(effects))
 
     def get_sound_device_effects(self) -> Any:
+        if not hasattr(self.tt, "SoundDeviceEffects"):
+            return None
         try:
             effects = self.tt.SoundDeviceEffects()
         except Exception:
@@ -790,6 +836,9 @@ class TeamTalkClient:
 
     def do_kick_user(self, user_id: int, channel_id: int) -> int:
         return self.client.doKickUser(user_id, channel_id)
+
+    def do_ban_user_ex(self, user_id: int, ban_types: int) -> int:
+        return self.client.doBanUserEx(user_id, int(ban_types))
 
     # ------------------------------------------------------------------
     # Recording (Muxed)
@@ -973,6 +1022,9 @@ class TeamTalkClient:
 
     def get_my_user_type(self) -> int:
         return self.tt._GetMyUserType(self.client._tt)
+
+    def get_my_user_rights(self) -> int:
+        return int(self.tt._GetMyUserRights(self.client._tt))
 
     def get_my_user_id(self) -> int:
         return self.client.getMyUserID()
