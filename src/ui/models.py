@@ -111,6 +111,9 @@ class AppSettings:
     video_format_index: int = 0
     video_bitrate_kbps: int = 256
     video_deadline: str = "realtime"
+    hotkey_mute_all: int = 0
+    hotkey_voice_activation: int = 0
+    hotkey_video_tx: int = 0
 
 
 class SettingsStore:
@@ -138,6 +141,9 @@ class SettingsStore:
             self.settings.video_format_index = int(data.get("video_format_index", 0) or 0)
             self.settings.video_bitrate_kbps = int(data.get("video_bitrate_kbps", 256) or 256)
             self.settings.video_deadline = str(data.get("video_deadline", "realtime") or "realtime")
+            self.settings.hotkey_mute_all = int(data.get("hotkey_mute_all", 0) or 0)
+            self.settings.hotkey_voice_activation = int(data.get("hotkey_voice_activation", 0) or 0)
+            self.settings.hotkey_video_tx = int(data.get("hotkey_video_tx", 0) or 0)
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -150,5 +156,8 @@ class SettingsStore:
             "video_format_index": int(self.settings.video_format_index or 0),
             "video_bitrate_kbps": int(self.settings.video_bitrate_kbps or 256),
             "video_deadline": str(self.settings.video_deadline or "realtime"),
+            "hotkey_mute_all": int(self.settings.hotkey_mute_all or 0),
+            "hotkey_voice_activation": int(self.settings.hotkey_voice_activation or 0),
+            "hotkey_video_tx": int(self.settings.hotkey_video_tx or 0),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

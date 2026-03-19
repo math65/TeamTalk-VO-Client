@@ -32,7 +32,7 @@ from tts import TTSManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.9.3"
+APP_VERSION = "0.9.4"
 
 
 def _init_startup_logging() -> None:
@@ -234,6 +234,8 @@ class MainFrame(wx.Frame):
         self._user_recording_format = int(self.client.tt.AudioFileFormat.AFF_WAVE_FORMAT)
         self._user_recording_include_self = True
         self._video_tx_enabled = False
+        self._mute_all = False
+        self._capture_hotkey_target: Optional[str] = None
         self.speak_tab: Optional[SpeakTab] = None
         self._speak_tab_added = False
         self.media_tab: Optional[MediaTab] = None
@@ -291,6 +293,7 @@ class MainFrame(wx.Frame):
         self.settings_tab = self.settings_window.settings_tab
         self.audio_tab = self.settings_tab.audio_tab
         self.video_tab = self.settings_tab.video_tab
+        self.shortcuts_tab = self.settings_tab.shortcuts_tab
         self.system_tab = self.settings_tab.system_tab
         media_placeholder = LazyTabPlaceholder(self.notebook, "Aufnahme & Medien")
         files_placeholder = LazyTabPlaceholder(self.notebook, "Dateien")
@@ -1829,15 +1832,45 @@ class MainFrame(wx.Frame):
             at.ptt_toggle.SetValue(not at.ptt_toggle.GetValue())
             at.on_ptt_toggle(None)
             return
+        if not self._is_text_input_focused():
+            settings = self.settings_store.settings
+            if key and key == int(settings.hotkey_mute_all or 0):
+                self._mute_all = not self._mute_all
+                self.client.set_sound_output_mute(self._mute_all)
+                self.set_status("Ausgabe stummgeschaltet" if self._mute_all else "Ausgabe aktiv")
+                return
+            if key and key == int(settings.hotkey_voice_activation or 0):
+                self.on_menu_audio_va(None)
+                return
+            if key and key == int(settings.hotkey_video_tx or 0):
+                self._video_tx_enabled = not self._video_tx_enabled
+                self.video_tab.set_transmission_enabled(self._video_tx_enabled)
+                return
         event.Skip()
 
     def on_key_down(self, event):
-        if self._capture_ptt_hotkey:
+        if self._capture_ptt_hotkey or self._capture_hotkey_target:
             key = event.GetKeyCode()
             if key == wx.WXK_ESCAPE:
                 self._capture_ptt_hotkey = False
+                if self._capture_hotkey_target:
+                    self.shortcuts_tab.set_capture_label(self._capture_hotkey_target, False)
+                    self._capture_hotkey_target = None
                 self.audio_tab.update_ptt_hotkey_label()
                 self.set_status("PTT-Hotkey Aufnahme abgebrochen")
+                return
+            if self._capture_hotkey_target:
+                target = self._capture_hotkey_target
+                if target == "hotkey_mute_all":
+                    self.settings_store.settings.hotkey_mute_all = int(key)
+                elif target == "hotkey_voice_activation":
+                    self.settings_store.settings.hotkey_voice_activation = int(key)
+                elif target == "hotkey_video_tx":
+                    self.settings_store.settings.hotkey_video_tx = int(key)
+                self.settings_store.save()
+                self.shortcuts_tab.set_capture_label(target, False)
+                self._capture_hotkey_target = None
+                self.set_status("Hotkey gespeichert")
                 return
             self._ptt_hotkey = int(key)
             self.settings_store.settings.ptt_hotkey = int(key)
@@ -1869,7 +1902,12 @@ class MainFrame(wx.Frame):
 
     def _is_text_input_focused(self) -> bool:
         focused = wx.Window.FindFocus()
-        return isinstance(focused, wx.TextCtrl)
+        return isinstance(focused, (wx.TextCtrl, wx.ComboBox))
+
+    def start_hotkey_capture(self, target: str) -> None:
+        self._capture_hotkey_target = target
+        self.shortcuts_tab.set_capture_label(target, True)
+        self.set_status("Hotkey Aufnahme gestartet (ESC = Abbruch)")
 
     # ------------------------------------------------------------------
     # Push notifications

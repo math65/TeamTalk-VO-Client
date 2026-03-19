@@ -1,6 +1,10 @@
 Changelog
 =========
 
+2026-03-19 (v0.9.4)
+- Shortcuts:
+    - Hotkeys fuer Mute-All, Voice Activation und Video senden.
+
 2026-03-19 (v0.9.3)
 - Benutzer: Verschieben in anderen Kanal (Menue + Kontextmenue).
 - Audio: Alles stummschalten (Master-Mute).
