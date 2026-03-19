@@ -36,7 +36,7 @@ from tts import TTSManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.9.10"
+APP_VERSION = "0.9.11"
 
 
 def _init_startup_logging() -> None:
@@ -239,6 +239,8 @@ class MainFrame(wx.Frame):
         self._user_recording_include_self = True
         self._video_tx_enabled = False
         self._mute_all = False
+        self._status_mode = 0
+        self._status_message = ""
         self._capture_hotkey_target: Optional[str] = None
         self.speak_tab: Optional[SpeakTab] = None
         self._speak_tab_added = False
@@ -437,6 +439,7 @@ class MainFrame(wx.Frame):
         profile_menu = wx.Menu()
         profile_nick = profile_menu.Append(wx.ID_ANY, "Nickname aendern...")
         profile_status = profile_menu.Append(wx.ID_ANY, "Status setzen...")
+        profile_question = profile_menu.AppendCheckItem(wx.ID_ANY, "Frage-Modus")
         menubar.Append(profile_menu, "Profil")
 
         # Audio
@@ -511,6 +514,7 @@ class MainFrame(wx.Frame):
 
         self.Bind(wx.EVT_MENU, self.on_menu_change_nickname, profile_nick)
         self.Bind(wx.EVT_MENU, self.on_menu_change_status, profile_status)
+        self.Bind(wx.EVT_MENU, self.on_menu_question_mode, profile_question)
 
         self.Bind(wx.EVT_MENU, self.on_menu_audio_ptt, audio_ptt)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_va, audio_va)
@@ -886,12 +890,30 @@ class MainFrame(wx.Frame):
                 2: int(tt.UserStatusMode.STATUSMODE_QUESTION),
             }
             mode = mode_map.get(idx, int(tt.UserStatusMode.STATUSMODE_AVAILABLE))
+            self._status_mode = mode
+            self._status_message = message
             cmdid = self.client.change_status(mode, message)
             if cmdid < 0:
                 self.set_status("Status konnte nicht gesetzt werden")
             else:
                 self.set_status("Status wird gesetzt")
         dlg.Destroy()
+
+    def on_menu_question_mode(self, event):
+        if not self._require_connected("Frage-Modus"):
+            return
+        tt = self.client.tt
+        enabled = event.IsChecked()
+        if enabled:
+            mode = int(tt.UserStatusMode.STATUSMODE_QUESTION)
+        else:
+            mode = int(tt.UserStatusMode.STATUSMODE_AVAILABLE)
+        self._status_mode = mode
+        cmdid = self.client.change_status(mode, self._status_message)
+        if cmdid < 0:
+            self.set_status("Status konnte nicht gesetzt werden")
+        else:
+            self.set_status("Frage-Modus aktiv" if enabled else "Frage-Modus aus")
 
     def on_menu_channel_create(self, _event):
         if not self._require_connected("Kanal erstellen"):
