@@ -28,11 +28,12 @@ from ui.tabs.files import FilesTab
 from ui.tabs.admin import AdminTab
 from ui.tabs.speak import SpeakTab
 from ui.tabs.settings import SettingsTab
+from ui.server_tools import BroadcastMessageDialog, OnlineUsersDialog, ServerStatisticsDialog
 from tts import TTSManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.9.4"
+APP_VERSION = "0.9.5"
 
 
 def _init_startup_logging() -> None:
@@ -295,6 +296,8 @@ class MainFrame(wx.Frame):
         self.video_tab = self.settings_tab.video_tab
         self.shortcuts_tab = self.settings_tab.shortcuts_tab
         self.system_tab = self.settings_tab.system_tab
+        self.server_stats_dialog: Optional[ServerStatisticsDialog] = None
+        self.online_users_dialog: Optional[OnlineUsersDialog] = None
         media_placeholder = LazyTabPlaceholder(self.notebook, "Aufnahme & Medien")
         files_placeholder = LazyTabPlaceholder(self.notebook, "Dateien")
         admin_placeholder = LazyTabPlaceholder(self.notebook, "Administration")
@@ -415,6 +418,13 @@ class MainFrame(wx.Frame):
         user_move = user_menu.Append(wx.ID_ANY, "Benutzer verschieben...")
         menubar.Append(user_menu, "Benutzer")
 
+        # Server
+        server_menu = wx.Menu()
+        server_online = server_menu.Append(wx.ID_ANY, "Online-Benutzer...")
+        server_broadcast = server_menu.Append(wx.ID_ANY, "Servernachricht senden...")
+        server_stats = server_menu.Append(wx.ID_ANY, "Serverstatistiken...")
+        menubar.Append(server_menu, "Server")
+
         # Audio
         audio_menu = wx.Menu()
         audio_ptt = audio_menu.AppendCheckItem(wx.ID_ANY, "Push-to-Talk")
@@ -479,6 +489,10 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_user_kick, user_kick)
         self.Bind(wx.EVT_MENU, self.on_menu_user_subscriptions, user_subs)
         self.Bind(wx.EVT_MENU, self.on_menu_user_move, user_move)
+
+        self.Bind(wx.EVT_MENU, self.on_menu_online_users, server_online)
+        self.Bind(wx.EVT_MENU, self.on_menu_server_broadcast, server_broadcast)
+        self.Bind(wx.EVT_MENU, self.on_menu_server_stats, server_stats)
 
         self.Bind(wx.EVT_MENU, self.on_menu_audio_ptt, audio_ptt)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_va, audio_va)
@@ -773,6 +787,45 @@ class MainFrame(wx.Frame):
 
     def on_menu_server_check(self, _event):
         self.connection_tab.on_server_check(None)
+
+    def on_menu_online_users(self, _event):
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        dlg = OnlineUsersDialog(self, self)
+        self.online_users_dialog = dlg
+        dlg.refresh()
+        dlg.ShowModal()
+        dlg.Destroy()
+        self.online_users_dialog = None
+
+    def on_menu_server_broadcast(self, _event):
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        dlg = BroadcastMessageDialog(self)
+        if dlg.ShowModal() == wx.ID_OK:
+            msg = dlg.get_message()
+            if msg:
+                ok = self.client.send_broadcast_message(msg)
+                if ok:
+                    self.set_status("Servernachricht gesendet")
+                else:
+                    self.set_status("Servernachricht konnte nicht gesendet werden")
+            else:
+                self.set_status("Nachricht ist leer")
+        dlg.Destroy()
+
+    def on_menu_server_stats(self, _event):
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        dlg = ServerStatisticsDialog(self, self)
+        self.server_stats_dialog = dlg
+        dlg.refresh()
+        dlg.ShowModal()
+        dlg.Destroy()
+        self.server_stats_dialog = None
 
     def on_menu_channel_create(self, _event):
         if not self._require_connected("Kanal erstellen"):
@@ -2088,6 +2141,9 @@ class MainFrame(wx.Frame):
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_BANNEDUSER:
             if self.admin_tab is not None:
                 wx.CallAfter(self.admin_tab.add_ban_to_list, msg.banneduser)
+        elif event == tt.ClientEvent.CLIENTEVENT_CMD_SERVERSTATISTICS:
+            if self.server_stats_dialog is not None:
+                wx.CallAfter(self.server_stats_dialog.update_stats, msg.serverstatistics)
 
     def _emit_user_presence_event(self, msg, tt):
         event = msg.nClientEvent

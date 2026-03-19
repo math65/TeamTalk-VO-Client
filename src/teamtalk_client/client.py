@@ -789,6 +789,13 @@ class TeamTalkClient:
             ok = ok and (self.client.doTextMessage(msg) >= 0)
         return ok
 
+    def send_broadcast_message(self, message: str) -> bool:
+        msgs = self.tt.buildTextMessage(message, self.tt.TextMsgType.MSGTYPE_BROADCAST)
+        ok = True
+        for msg in msgs:
+            ok = ok and (self.client.doTextMessage(msg) >= 0)
+        return ok
+
     # ------------------------------------------------------------------
     # Error & Statistics
     # ------------------------------------------------------------------
@@ -801,6 +808,9 @@ class TeamTalkClient:
         if self.tt._GetClientStatistics(self.client._tt, ctypes.byref(stats)):
             return stats
         return None
+
+    def do_query_server_stats(self) -> int:
+        return self.client.doQueryServerStats()
 
     # ------------------------------------------------------------------
     # Audio Preprocessing & Effects
