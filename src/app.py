@@ -36,7 +36,7 @@ from tts import TTSManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.9.13"
+APP_VERSION = "0.9.14"
 
 
 def _init_startup_logging() -> None:
@@ -412,6 +412,7 @@ class MainFrame(wx.Frame):
         chan_join = chan_menu.Append(wx.ID_ANY, "Kanal beitreten...")
         chan_leave = chan_menu.Append(wx.ID_ANY, "Kanal verlassen")
         chan_menu.AppendSeparator()
+        chan_info = chan_menu.Append(wx.ID_ANY, "Kanalinfo...")
         chan_msg = chan_menu.Append(wx.ID_ANY, "Kanalnachricht senden...")
         menubar.Append(chan_menu, "Kanal")
 
@@ -499,6 +500,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_channel_delete, chan_delete)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_join, chan_join)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_leave, chan_leave)
+        self.Bind(wx.EVT_MENU, self.on_menu_channel_info, chan_info)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_message, chan_msg)
 
         self.Bind(wx.EVT_MENU, self.on_menu_user_info, user_info)
@@ -1102,6 +1104,30 @@ class MainFrame(wx.Frame):
         if not self._require_connected("Kanal verlassen"):
             return
         self.connection_tab.on_leave_channel(None)
+
+    def on_menu_channel_info(self, _event):
+        if not self._require_connected("Kanalinfo"):
+            return
+        channel_id = self._get_selected_channel_id()
+        if not channel_id:
+            self.set_status("Kein Kanal ausgewaehlt")
+            return
+        channel = self.client.get_channel(int(channel_id))
+        if channel is None:
+            self.set_status("Kanal nicht gefunden")
+            return
+        tt_str = self.tt_str
+        details = [
+            f"Name: {tt_str(channel.szName)}",
+            f"ID: {int(channel.nChannelID)}",
+            f"Pfad: {tt_str(self.client.get_channel_path(int(channel_id)))}",
+            f"Topic: {tt_str(getattr(channel, 'szTopic', ''))}",
+            f"Max. Benutzer: {int(getattr(channel, 'nMaxUsers', 0) or 0)}",
+            f"Disk-Quota: {int(getattr(channel, 'nDiskQuota', 0) or 0) // (1024 * 1024)} MB",
+        ]
+        dlg = wx.MessageDialog(self, "\n".join(details), "Kanalinfo", wx.OK | wx.ICON_INFORMATION)
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def on_menu_channel_message(self, _event):
         if not self._require_connected("Kanalnachricht senden"):

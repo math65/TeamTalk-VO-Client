@@ -1,6 +1,10 @@
 Changelog
 =========
 
+2026-03-19 (v0.9.14)
+- Kanal:
+    - Kanalinfo Dialog.
+
 2026-03-19 (v0.9.13)
 - Benutzer-Abonnements:
     - Intercept-Optionen (User/Kanal/Voice/Video/Media/Custom) ergaenzt.
