@@ -107,6 +107,10 @@ class AppSettings:
     auto_apply_audio_on_device_change: bool = False
     ptt_hotkey: int = 0
     audio_prefs: Dict[str, Any] = field(default_factory=dict)
+    video_device_id: str = ""
+    video_format_index: int = 0
+    video_bitrate_kbps: int = 256
+    video_deadline: str = "realtime"
 
 
 class SettingsStore:
@@ -130,6 +134,10 @@ class SettingsStore:
             self.settings.ptt_hotkey = int(data.get("ptt_hotkey", 0) or 0)
             prefs = data.get("audio_prefs", {})
             self.settings.audio_prefs = prefs if isinstance(prefs, dict) else {}
+            self.settings.video_device_id = str(data.get("video_device_id", "") or "")
+            self.settings.video_format_index = int(data.get("video_format_index", 0) or 0)
+            self.settings.video_bitrate_kbps = int(data.get("video_bitrate_kbps", 256) or 256)
+            self.settings.video_deadline = str(data.get("video_deadline", "realtime") or "realtime")
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -138,5 +146,9 @@ class SettingsStore:
             "auto_apply_audio_on_device_change": bool(self.settings.auto_apply_audio_on_device_change),
             "ptt_hotkey": int(self.settings.ptt_hotkey or 0),
             "audio_prefs": self.settings.audio_prefs or {},
+            "video_device_id": str(self.settings.video_device_id or ""),
+            "video_format_index": int(self.settings.video_format_index or 0),
+            "video_bitrate_kbps": int(self.settings.video_bitrate_kbps or 256),
+            "video_deadline": str(self.settings.video_deadline or "realtime"),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

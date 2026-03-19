@@ -32,7 +32,7 @@ from tts import TTSManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.9.1"
+APP_VERSION = "0.9.2"
 
 
 def _init_startup_logging() -> None:
@@ -233,6 +233,7 @@ class MainFrame(wx.Frame):
         self._user_recording_pattern = ""
         self._user_recording_format = int(self.client.tt.AudioFileFormat.AFF_WAVE_FORMAT)
         self._user_recording_include_self = True
+        self._video_tx_enabled = False
         self.speak_tab: Optional[SpeakTab] = None
         self._speak_tab_added = False
         self.media_tab: Optional[MediaTab] = None
@@ -289,6 +290,7 @@ class MainFrame(wx.Frame):
         self.settings_window = SettingsWindow(self)
         self.settings_tab = self.settings_window.settings_tab
         self.audio_tab = self.settings_tab.audio_tab
+        self.video_tab = self.settings_tab.video_tab
         self.system_tab = self.settings_tab.system_tab
         media_placeholder = LazyTabPlaceholder(self.notebook, "Aufnahme & Medien")
         files_placeholder = LazyTabPlaceholder(self.notebook, "Dateien")
@@ -420,6 +422,14 @@ class MainFrame(wx.Frame):
         audio_loopback = audio_menu.AppendCheckItem(wx.ID_ANY, "Mikrofontest")
         menubar.Append(audio_menu, "Audio")
 
+        # Video
+        video_menu = wx.Menu()
+        video_tx = video_menu.AppendCheckItem(wx.ID_ANY, "Video senden")
+        video_menu.AppendSeparator()
+        video_settings = video_menu.Append(wx.ID_ANY, "Video-Einstellungen...")
+        video_refresh = video_menu.Append(wx.ID_ANY, "Video-Geraete aktualisieren")
+        menubar.Append(video_menu, "Video")
+
         # Aufnahmen
         rec_menu = wx.Menu()
         rec_start = rec_menu.Append(wx.ID_ANY, "Aufnahme starten...")
@@ -468,6 +478,10 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_audio_apply, audio_apply)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_refresh, audio_refresh)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_loopback, audio_loopback)
+
+        self.Bind(wx.EVT_MENU, self.on_menu_video_toggle, video_tx)
+        self.Bind(wx.EVT_MENU, self.on_menu_video_settings, video_settings)
+        self.Bind(wx.EVT_MENU, self.on_menu_video_refresh, video_refresh)
 
         self.Bind(wx.EVT_MENU, self.on_menu_record_start, rec_start)
         self.Bind(wx.EVT_MENU, self.on_menu_record_stop, rec_stop)
@@ -1083,6 +1097,22 @@ class MainFrame(wx.Frame):
 
     def on_menu_audio_refresh(self, _event):
         self.audio_tab.on_refresh_audio(None)
+
+    def on_menu_video_settings(self, _event):
+        if not self.settings_window.IsShown():
+            self.settings_window.Show()
+        self.settings_window.Raise()
+        self.settings_tab.show_section("Video")
+        wx.CallAfter(self.settings_tab.section_choice.SetFocus)
+
+    def on_menu_video_refresh(self, _event):
+        self.video_tab.refresh_devices()
+        self.set_status("Video-Geraete aktualisiert")
+
+    def on_menu_video_toggle(self, event):
+        enabled = event.IsChecked()
+        self._video_tx_enabled = bool(enabled)
+        self.video_tab.set_transmission_enabled(enabled)
 
     def on_menu_audio_loopback(self, _event):
         at = self.audio_tab

@@ -566,6 +566,15 @@ class TeamTalkClient:
         codec.speex_vbr.bStereoPlayback = False
         return codec
 
+    def build_default_video_codec(self, bitrate_kbps: int = 256, deadline: Optional[int] = None) -> Any:
+        codec = self.tt.VideoCodec()
+        codec.nCodec = int(self.tt.Codec.WEBM_VP8_CODEC)
+        codec.webm_vp8.nRcTargetBitrate = int(bitrate_kbps)
+        codec.webm_vp8.nEncodeDeadline = int(
+            deadline if deadline is not None else self.tt.WEBM_VPX_DL_REALTIME
+        )
+        return codec
+
     def make_temporary_channel(
         self,
         name: str,
@@ -738,6 +747,30 @@ class TeamTalkClient:
             self.tt.ttstr(filename_vars),
             audio_format,
         )
+
+    def get_video_capture_devices(self) -> List[Any]:
+        max_devices = 64
+        devices = (self.tt.VideoCaptureDevice * max_devices)()
+        count = ctypes.c_int32(max_devices)
+        ok = self.tt._GetVideoCaptureDevices(devices, ctypes.byref(count))
+        if not ok:
+            return []
+        return list(devices)[: max(0, int(count.value))]
+
+    def init_video_capture_device(self, device_id: str, video_format) -> bool:
+        fmt = video_format if video_format is not None else self.tt.VideoFormat()
+        return self.tt._InitVideoCaptureDevice(self.client._tt, self.tt.ttstr(device_id), ctypes.byref(fmt))
+
+    def close_video_capture_device(self) -> bool:
+        return self.tt._CloseVideoCaptureDevice(self.client._tt)
+
+    def start_video_capture_transmission(self, codec=None) -> bool:
+        if codec is None:
+            codec = self.build_default_video_codec()
+        return self.tt._StartVideoCaptureTransmission(self.client._tt, ctypes.byref(codec))
+
+    def stop_video_capture_transmission(self) -> bool:
+        return self.tt._StopVideoCaptureTransmission(self.client._tt)
 
     def send_channel_message(self, channel_id: int, message: str) -> bool:
         msgs = self.tt.buildTextMessage(message, self.tt.TextMsgType.MSGTYPE_CHANNEL, nChannelID=channel_id)

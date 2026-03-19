@@ -7,6 +7,7 @@ import zipfile
 from datetime import datetime
 
 from .audio import AudioTab
+from .video import VideoTab
 from .system import SystemTab
 from platform_paths import app_data_dir, log_dir
 
@@ -26,7 +27,7 @@ class SettingsTab(wx.Panel):
 
         top_row = wx.BoxSizer(wx.HORIZONTAL)
         top_row.Add(wx.StaticText(self, label="Bereich"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.section_choice = wx.Choice(self, choices=["Audio", "System & TTS"])
+        self.section_choice = wx.Choice(self, choices=["Audio", "Video", "System & TTS"])
         self.section_choice.SetName("Einstellungsbereich")
         self.section_choice.SetSelection(0)
         self.section_choice.Bind(wx.EVT_CHOICE, self._on_section_changed)
@@ -43,17 +44,25 @@ class SettingsTab(wx.Panel):
         root.Add(log_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         self.audio_tab = AudioTab(self, frame)
+        self.video_tab = VideoTab(self, frame)
         self.system_tab = SystemTab(self, frame)
         self._sections = {
             "Audio": self.audio_tab,
+            "Video": self.video_tab,
             "System & TTS": self.system_tab,
         }
 
         root.Add(self.audio_tab, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        root.Add(self.video_tab, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
         root.Add(self.system_tab, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(root)
         self._show_section("Audio")
+
+    def show_section(self, section: str) -> None:
+        if section in self._sections:
+            self.section_choice.SetStringSelection(section)
+            self._show_section(section)
 
     def _on_section_changed(self, _event):
         self._show_section(self.section_choice.GetStringSelection())
