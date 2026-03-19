@@ -413,12 +413,14 @@ class MainFrame(wx.Frame):
         chan_leave = chan_menu.Append(wx.ID_ANY, "Kanal verlassen")
         chan_menu.AppendSeparator()
         chan_info = chan_menu.Append(wx.ID_ANY, "Kanalinfo...")
+        chan_info_speak = chan_menu.Append(wx.ID_ANY, "Kanalinfo vorlesen")
         chan_msg = chan_menu.Append(wx.ID_ANY, "Kanalnachricht senden...")
         menubar.Append(chan_menu, "Kanal")
 
         # Benutzer
         user_menu = wx.Menu()
         user_info = user_menu.Append(wx.ID_ANY, "Benutzerinfo...")
+        user_info_speak = user_menu.Append(wx.ID_ANY, "Benutzerinfo vorlesen")
         user_mute = user_menu.Append(wx.ID_ANY, "Benutzer stummschalten")
         user_volume = user_menu.Append(wx.ID_ANY, "Benutzer-Lautstaerke...")
         user_menu.AppendSeparator()
@@ -442,6 +444,7 @@ class MainFrame(wx.Frame):
         profile_status = profile_menu.Append(wx.ID_ANY, "Status setzen...")
         profile_question = profile_menu.AppendCheckItem(wx.ID_ANY, "Frage-Modus")
         profile_hear = profile_menu.AppendCheckItem(wx.ID_ANY, "Mich selbst hoeren")
+        profile_tts = profile_menu.AppendCheckItem(wx.ID_ANY, "TTS aktiv")
         menubar.Append(profile_menu, "Profil")
 
         # Audio
@@ -501,9 +504,11 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_channel_join, chan_join)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_leave, chan_leave)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_info, chan_info)
+        self.Bind(wx.EVT_MENU, self.on_menu_channel_info_speak, chan_info_speak)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_message, chan_msg)
 
         self.Bind(wx.EVT_MENU, self.on_menu_user_info, user_info)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_info_speak, user_info_speak)
         self.Bind(wx.EVT_MENU, self.on_menu_user_mute, user_mute)
         self.Bind(wx.EVT_MENU, self.on_menu_user_volume, user_volume)
         self.Bind(wx.EVT_MENU, self.on_menu_user_operator, user_op)
@@ -519,6 +524,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_change_status, profile_status)
         self.Bind(wx.EVT_MENU, self.on_menu_question_mode, profile_question)
         self.Bind(wx.EVT_MENU, self.on_menu_hear_myself, profile_hear)
+        self.Bind(wx.EVT_MENU, self.on_menu_toggle_tts, profile_tts)
 
         self.Bind(wx.EVT_MENU, self.on_menu_audio_ptt, audio_ptt)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_va, audio_va)
@@ -927,6 +933,15 @@ class MainFrame(wx.Frame):
         except Exception:
             self.set_status("Mikrofontest konnte nicht umgestellt werden")
 
+    def on_menu_toggle_tts(self, event):
+        enabled = event.IsChecked()
+        try:
+            self.system_tab.tts_enabled.SetValue(enabled)
+            self.system_tab._on_enable_changed(None)
+            self.set_status("TTS aktiviert" if enabled else "TTS deaktiviert")
+        except Exception:
+            self.set_status("TTS konnte nicht umgestellt werden")
+
     def on_menu_channel_create(self, _event):
         if not self._require_connected("Kanal erstellen"):
             return
@@ -1129,6 +1144,25 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
+    def on_menu_channel_info_speak(self, _event):
+        if not self._require_connected("Kanalinfo vorlesen"):
+            return
+        channel_id = self._get_selected_channel_id()
+        if not channel_id:
+            self.set_status("Kein Kanal ausgewaehlt")
+            return
+        channel = self.client.get_channel(int(channel_id))
+        if channel is None:
+            self.set_status("Kanal nicht gefunden")
+            return
+        tt_str = self.tt_str
+        text = (
+            f"Kanal {tt_str(channel.szName)}, "
+            f"Maximal {int(getattr(channel, 'nMaxUsers', 0) or 0)} Benutzer, "
+            f"Diskquota {int(getattr(channel, 'nDiskQuota', 0) or 0) // (1024 * 1024)} MB."
+        )
+        self.tts.speak(text, kind="system")
+
     def on_menu_channel_message(self, _event):
         if not self._require_connected("Kanalnachricht senden"):
             return
@@ -1161,6 +1195,23 @@ class MainFrame(wx.Frame):
         dlg = wx.MessageDialog(self, "\n".join(details), "Benutzerinfo", wx.OK | wx.ICON_INFORMATION)
         dlg.ShowModal()
         dlg.Destroy()
+
+    def on_menu_user_info_speak(self, _event):
+        if not self._require_connected("Benutzerinfo vorlesen"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        nickname = self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or "Benutzer"
+        channel_id = int(getattr(user, "nChannelID", 0) or 0)
+        channel_name = ""
+        if channel_id:
+            channel = self.client.get_channel(channel_id)
+            if channel is not None:
+                channel_name = self.tt_str(channel.szName)
+        text = f"{nickname} in Kanal {channel_name or channel_id}."
+        self.tts.speak(text, kind="system")
 
     def on_menu_user_mute(self, _event):
         if not self._require_connected("Benutzer stummschalten"):

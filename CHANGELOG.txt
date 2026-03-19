@@ -7,10 +7,14 @@ Changelog
 - Profil:
     - Frage-Modus als schneller Toggle.
     - Mich selbst hoeren (Mikrofontest) als Menuepunkt.
+    - TTS aktiv als Menuepunkt.
 - Benutzer-Abonnements:
     - Intercept-Optionen (User/Kanal/Voice/Video/Media/Custom) ergaenzt.
 - Kanal:
     - Kanalinfo Dialog.
+    - Kanalinfo vorlesen.
+- Benutzer:
+    - Benutzerinfo vorlesen.
 
 2026-03-19 (v0.9.9)
 - Desktop:
