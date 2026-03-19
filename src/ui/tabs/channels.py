@@ -354,6 +354,7 @@ class ChannelsTab(wx.Panel):
         op_item = menu.Append(wx.ID_ANY, op_label)
 
         ban_item = menu.Append(wx.ID_ANY, "Bannen...")
+        move_item = menu.Append(wx.ID_ANY, "Benutzer verschieben...")
         kick_item = menu.Append(wx.ID_ANY, "Kick")
         kick_ban_item = menu.Append(wx.ID_ANY, "Kick + Ban")
 
@@ -365,6 +366,7 @@ class ChannelsTab(wx.Panel):
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_mute(user_id, int(tt.StreamType.STREAMTYPE_MEDIAFILE), e.IsChecked()), mute_media_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_op(user_id, not is_op), op_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_ban(user_id), ban_item)
+        self.Bind(wx.EVT_MENU, lambda e: self.frame.on_menu_user_move(None), move_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_kick(user_id), kick_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_kick_ban(user_id), kick_ban_item)
         for mi, flag in sub_items:

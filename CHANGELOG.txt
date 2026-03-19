@@ -1,6 +1,10 @@
 Changelog
 =========
 
+2026-03-19 (v0.9.3)
+- Benutzer: Verschieben in anderen Kanal (Menue + Kontextmenue).
+- Audio: Alles stummschalten (Master-Mute).
+
 2026-03-19 (v0.9.2)
 - Video-Einstellungen:
     - Video-Geraet/Format waehlen, speichern, aktualisieren.

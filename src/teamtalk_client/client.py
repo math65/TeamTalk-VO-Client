@@ -734,6 +734,9 @@ class TeamTalkClient:
     def set_sound_output_volume(self, level: int) -> bool:
         return self.tt._SetSoundOutputVolume(self.client._tt, level)
 
+    def set_sound_output_mute(self, enabled: bool) -> bool:
+        return self.tt._SetSoundOutputMute(self.client._tt, bool(enabled))
+
     def set_user_media_storage_dir(
         self,
         user_id: int,
@@ -940,6 +943,9 @@ class TeamTalkClient:
 
     def do_ban_user_ex(self, user_id: int, ban_types: int) -> int:
         return self.client.doBanUserEx(user_id, int(ban_types))
+
+    def do_move_user(self, user_id: int, channel_id: int) -> int:
+        return self.client.doMoveUser(int(user_id), int(channel_id))
 
     # ------------------------------------------------------------------
     # Recording (Muxed)

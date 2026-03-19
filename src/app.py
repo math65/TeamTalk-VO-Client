@@ -32,7 +32,7 @@ from tts import TTSManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.9.2"
+APP_VERSION = "0.9.3"
 
 
 def _init_startup_logging() -> None:
@@ -409,6 +409,7 @@ class MainFrame(wx.Frame):
         user_kick = user_menu.Append(wx.ID_ANY, "Benutzer kicken...")
         user_menu.AppendSeparator()
         user_subs = user_menu.Append(wx.ID_ANY, "Abonnements...")
+        user_move = user_menu.Append(wx.ID_ANY, "Benutzer verschieben...")
         menubar.Append(user_menu, "Benutzer")
 
         # Audio
@@ -420,6 +421,8 @@ class MainFrame(wx.Frame):
         audio_refresh = audio_menu.Append(wx.ID_ANY, "Geraete aktualisieren")
         audio_menu.AppendSeparator()
         audio_loopback = audio_menu.AppendCheckItem(wx.ID_ANY, "Mikrofontest")
+        audio_menu.AppendSeparator()
+        audio_mute_all = audio_menu.AppendCheckItem(wx.ID_ANY, "Alles stummschalten")
         menubar.Append(audio_menu, "Audio")
 
         # Video
@@ -472,12 +475,14 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_user_operator, user_op)
         self.Bind(wx.EVT_MENU, self.on_menu_user_kick, user_kick)
         self.Bind(wx.EVT_MENU, self.on_menu_user_subscriptions, user_subs)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_move, user_move)
 
         self.Bind(wx.EVT_MENU, self.on_menu_audio_ptt, audio_ptt)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_va, audio_va)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_apply, audio_apply)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_refresh, audio_refresh)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_loopback, audio_loopback)
+        self.Bind(wx.EVT_MENU, self.on_menu_audio_mute_all, audio_mute_all)
 
         self.Bind(wx.EVT_MENU, self.on_menu_video_toggle, video_tx)
         self.Bind(wx.EVT_MENU, self.on_menu_video_settings, video_settings)
@@ -1077,6 +1082,41 @@ class MainFrame(wx.Frame):
             self.set_status("Abonnements geaendert")
         dlg.Destroy()
 
+    def on_menu_user_move(self, _event):
+        if not self._require_connected("Benutzer verschieben"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        channels = list(self.client.get_server_channels())
+        if not channels:
+            self.set_status("Keine Kanaele gefunden")
+            return
+        options = []
+        ids = []
+        for ch in channels:
+            cid = int(ch.nChannelID)
+            path = ""
+            try:
+                path = self.tt_str(self.client.get_channel_path(cid))
+            except Exception:
+                path = ""
+            label = path or self.tt_str(ch.szName) or f"Kanal {cid}"
+            options.append(label)
+            ids.append(cid)
+        dlg = wx.SingleChoiceDialog(self, "Zielkanal waehlen", "Benutzer verschieben", options)
+        if dlg.ShowModal() != wx.ID_OK:
+            dlg.Destroy()
+            return
+        idx = dlg.GetSelection()
+        dlg.Destroy()
+        if idx == wx.NOT_FOUND:
+            return
+        target_id = ids[idx]
+        self.client.do_move_user(int(user.nUserID), int(target_id))
+        self.set_status("Benutzer verschoben")
+
     def on_menu_audio_ptt(self, _event):
         at = self.audio_tab
         at.ptt_toggle.SetValue(not at.ptt_toggle.GetValue())
@@ -1118,6 +1158,12 @@ class MainFrame(wx.Frame):
         at = self.audio_tab
         at.loopback_toggle.SetValue(not at.loopback_toggle.GetValue())
         at.on_loopback_toggle(None)
+
+    def on_menu_audio_mute_all(self, event):
+        enabled = event.IsChecked()
+        self._mute_all = bool(enabled)
+        self.client.set_sound_output_mute(enabled)
+        self.set_status("Ausgabe stummgeschaltet" if enabled else "Ausgabe aktiv")
 
     def on_menu_record_start(self, _event):
         if not self._require_connected("Aufnahme starten"):
