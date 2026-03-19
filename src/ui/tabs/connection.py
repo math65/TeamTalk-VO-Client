@@ -5,6 +5,8 @@ from typing import Optional, TYPE_CHECKING
 
 import wx
 
+from ..tt_file_parser import build_teamtalk_url, build_teamtalk_xml
+
 from ..models import ServerProfile
 
 if TYPE_CHECKING:
@@ -91,12 +93,20 @@ class ConnectionTab(wx.Panel):
         self.logout_btn = wx.Button(self, label="Logout")
         self.logout_btn.SetName("Logout")
         self.logout_btn.Bind(wx.EVT_BUTTON, self.on_logout)
+        self.share_url_btn = wx.Button(self, label="TT-URL kopieren")
+        self.share_url_btn.SetName("TT-URL kopieren")
+        self.share_url_btn.Bind(wx.EVT_BUTTON, self.on_copy_tt_url)
+        self.share_file_btn = wx.Button(self, label="TT-Datei speichern")
+        self.share_file_btn.SetName("TT-Datei speichern")
+        self.share_file_btn.Bind(wx.EVT_BUTTON, self.on_save_tt_file)
         self.auto_reconnect = wx.CheckBox(self, label="Auto-Reconnect")
         self.auto_reconnect.SetName("Auto-Reconnect")
         self.auto_reconnect.Bind(wx.EVT_CHECKBOX, self.on_auto_reconnect)
 
-        for btn in (self.connect_btn, self.reconnect_btn, self.server_check_btn, self.join_root_btn,
-                     self.leave_btn, self.logout_btn):
+        for btn in (
+            self.connect_btn, self.reconnect_btn, self.server_check_btn, self.join_root_btn,
+            self.leave_btn, self.logout_btn, self.share_url_btn, self.share_file_btn,
+        ):
             action_row.Add(btn, 0, wx.RIGHT, 8)
         action_row.Add(self.auto_reconnect, 0)
 
@@ -272,6 +282,55 @@ class ConnectionTab(wx.Panel):
             wx.CallAfter(self.frame.set_status, result.message)
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _get_channel_path_for_share(self) -> Optional[str]:
+        if not self.frame.client.is_connected():
+            return None
+        try:
+            ch_id = self.frame.client.get_my_channel_id()
+            if not ch_id:
+                return None
+            path = self.frame.client.get_channel_path(int(ch_id))
+            return self.frame.tt_str(path) if path else None
+        except Exception:
+            return None
+
+    def on_copy_tt_url(self, _event):
+        profile = self.profile_from_form()
+        if not profile:
+            return
+        channel_path = self._get_channel_path_for_share()
+        url = build_teamtalk_url(profile, channel_path=channel_path)
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(wx.TextDataObject(url))
+            wx.TheClipboard.Close()
+            self.frame.set_status("TT-URL kopiert")
+        else:
+            self.frame.set_status("Zwischenablage konnte nicht geoeffnet werden")
+
+    def on_save_tt_file(self, _event):
+        profile = self.profile_from_form()
+        if not profile:
+            return
+        channel_path = self._get_channel_path_for_share()
+        default_name = f"{profile.name or profile.host}.tt"
+        with wx.FileDialog(
+            self,
+            "TT-Datei speichern",
+            wildcard="TeamTalk Datei (*.tt)|*.tt|Alle Dateien|*.*",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+            defaultFile=default_name,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        try:
+            xml_text = build_teamtalk_xml(profile, channel_path=channel_path)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(xml_text)
+            self.frame.set_status("TT-Datei gespeichert")
+        except Exception as exc:
+            self.frame.set_status(f"TT-Datei speichern fehlgeschlagen: {exc}")
 
     def on_auto_reconnect(self, event):
         self.frame._auto_reconnect = event.IsChecked()

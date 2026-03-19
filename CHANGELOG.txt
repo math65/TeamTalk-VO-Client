@@ -1,6 +1,10 @@
 Changelog
 =========
 
+2026-03-19 (v0.9.10)
+- Verbindung:
+    - TT-URL kopieren und TT-Datei speichern.
+
 2026-03-19 (v0.9.9)
 - Desktop:
     - Remote-Steuerung: Linksklick/Rechtsklick/Mittelklick senden.

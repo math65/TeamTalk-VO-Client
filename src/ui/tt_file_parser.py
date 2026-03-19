@@ -4,6 +4,7 @@ import configparser
 import json
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from urllib.parse import urlencode, quote
 from typing import Optional
 
 from .models import ParsedTeamTalkFile, ServerProfile
@@ -186,3 +187,54 @@ def _parse_teamtalk_xml(root: ET.Element, path: Path) -> Optional[ParsedTeamTalk
         client_certificate_pem=client_certificate_pem,
         client_private_key_pem=client_private_key_pem,
     )
+
+
+def build_teamtalk_url(
+    profile: ServerProfile,
+    channel_path: Optional[str] = None,
+    channel_password: Optional[str] = None,
+    encrypted: Optional[bool] = None,
+) -> str:
+    params = {
+        "tcpport": str(profile.tcp_port),
+        "udpport": str(profile.udp_port),
+        "encrypted": "true" if (profile.encrypted if encrypted is None else encrypted) else "false",
+    }
+    if profile.username:
+        params["username"] = profile.username
+    if profile.password:
+        params["password"] = profile.password
+    if channel_path:
+        params["channel"] = channel_path
+    if channel_password:
+        params["chanpasswd"] = channel_password
+    query = urlencode(params, quote_via=quote)
+    return f"tt://{profile.host}?{query}"
+
+
+def build_teamtalk_xml(
+    profile: ServerProfile,
+    channel_path: Optional[str] = None,
+    channel_password: Optional[str] = None,
+) -> str:
+    root = ET.Element("teamtalk", {"version": "5.0"})
+    host = ET.SubElement(root, "host")
+    ET.SubElement(host, "name").text = profile.name or profile.host
+    ET.SubElement(host, "address").text = profile.host
+    ET.SubElement(host, "tcpport").text = str(profile.tcp_port)
+    ET.SubElement(host, "udpport").text = str(profile.udp_port)
+    ET.SubElement(host, "encrypted").text = "true" if profile.encrypted else "false"
+
+    auth = ET.SubElement(host, "auth")
+    ET.SubElement(auth, "username").text = profile.username or ""
+    ET.SubElement(auth, "password").text = profile.password or ""
+    ET.SubElement(auth, "nickname").text = profile.nickname or "VoiceOverUser"
+
+    if channel_path or channel_password:
+        join = ET.SubElement(host, "join")
+        if channel_path:
+            ET.SubElement(join, "channel").text = channel_path
+        if channel_password:
+            ET.SubElement(join, "password").text = channel_password
+
+    return ET.tostring(root, encoding="utf-8", xml_declaration=True).decode("utf-8")
