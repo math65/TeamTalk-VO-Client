@@ -30,6 +30,16 @@ Changelog
         - Benutzer angemeldet / abgemeldet → logged_on.wav / logged_off.wav
     - Test-Button in Sound-Ereignisse-Einstellungen spielt automatisch den
       Standard-Sound ab wenn kein eigener Pfad eingetragen ist.
+- Sound-Timing-Korrekturen:
+    - Server-Verbindungs-Sound: wird jetzt sofort nach Login-Bestätigung
+      (CMD_SUCCESS) abgespielt, nicht erst nach vollständigem Kanal-/User-Sync.
+    - Kanal-Beitritt-Sound: wird direkt nach erfolgreichem Beitritt abgespielt
+      (Event-Loop wird während des Beitritts gestoppt, weshalb der SDK-Event
+      nicht ankam).
+    - Kanal-Verlassen-Sound (eigener Abgang): direkt in on_leave_channel
+      abgespielt; analog zum Kanal-Beitritt.
+    - Disconnect-Sound: wird jetzt auch beim manuellen Trennen und Abmelden
+      abgespielt (vorher nur bei Verbindungsabbruch).
 - Versionierung: App-Version auf 0.10.5 angehoben.
 
 2026-03-20 (v0.10.4)
