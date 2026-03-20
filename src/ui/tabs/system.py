@@ -77,13 +77,13 @@ class SystemTab(wx.Panel):
         setup_list_accessible(self.tts_voice)
         grid.Add(self.tts_voice, 1, wx.EXPAND)
 
-        grid.Add(wx.StaticText(self, label="Sprechtempo"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.tts_rate = wx.Slider(self, value=175, minValue=80, maxValue=400)
+        grid.Add(wx.StaticText(self, label="Sprechtempo (80–400)"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.tts_rate = wx.SpinCtrl(self, value="175", min=80, max=400)
         self.tts_rate.SetName("TTS Sprechtempo")
         grid.Add(self.tts_rate, 1, wx.EXPAND)
 
-        grid.Add(wx.StaticText(self, label="Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.tts_volume = wx.Slider(self, value=100, minValue=0, maxValue=200)
+        grid.Add(wx.StaticText(self, label="Lautstärke (0–200)"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.tts_volume = wx.SpinCtrl(self, value="100", min=0, max=200)
         self.tts_volume.SetName("TTS Lautstärke")
         grid.Add(self.tts_volume, 1, wx.EXPAND)
 
@@ -121,8 +121,8 @@ class SystemTab(wx.Panel):
         self.tts_language.Bind(wx.EVT_CHOICE, self._refresh_voices)
         self.tts_voice_filter.Bind(wx.EVT_TEXT, self._refresh_voices)
         self.tts_voice.Bind(wx.EVT_LISTBOX, self._apply_settings)
-        self.tts_rate.Bind(wx.EVT_SLIDER, self._apply_settings)
-        self.tts_volume.Bind(wx.EVT_SLIDER, self._apply_settings)
+        self.tts_rate.Bind(wx.EVT_SPINCTRL, self._apply_settings)
+        self.tts_volume.Bind(wx.EVT_SPINCTRL, self._apply_settings)
         self.tts_path.Bind(wx.EVT_TEXT, self._apply_settings)
         self.tts_refresh.Bind(wx.EVT_BUTTON, lambda e: self._refresh_voices(e, force=True))
         self.tts_test.Bind(wx.EVT_BUTTON, self._on_test)

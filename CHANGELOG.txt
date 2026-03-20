@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.12)
+- Restliche wx.Slider durch wx.SpinCtrl ersetzt (UI-Vereinheitlichung):
+    - System-Tab: TTS-Sprechtempo (80–400), TTS-Lautstärke (0–200).
+    - Medien-Tab: Suchposition (0–1000), Streaming-Lautstärke für Datei-,
+      yt-dlp-, Webradio- und Podcast-Quellen (25–400).
+  Alle Eingabefelder verhalten sich nun auf macOS, Windows und Linux
+  identisch; kein plattformspezifischer Schieberegler mehr.
+
 2026-03-20 (v0.10.11)
 - Alle Regler (wx.Slider) durch Zahleingabefelder (wx.SpinCtrl) ersetzt:
     - Audio-Tab: Aktivierungspegel, Nachlauf, Mikrofonverstärkung,
