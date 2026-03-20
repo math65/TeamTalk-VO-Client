@@ -3703,8 +3703,9 @@ class MainFrame(wx.Frame):
 
 class App(wx.App):
     def OnInit(self) -> bool:
-        from ui.a11y import patch_button_accessibility
+        from ui.a11y import patch_button_accessibility, patch_list_row_accessibility
         patch_button_accessibility()
+        patch_list_row_accessibility()
         frame = MainFrame()
         frame.Show()
         return True

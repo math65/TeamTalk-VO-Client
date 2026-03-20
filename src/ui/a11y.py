@@ -42,6 +42,54 @@ def setup_list_accessible(lb: wx.ListBox) -> None:
     wx.CallAfter(_apply)
 
 
+def patch_list_row_accessibility() -> None:
+    """Swizzelt NSTableRow einmalig, damit VoiceOver den Listeneintragstext vorliest.
+
+    wxNSTableView-Zeilen enthalten den Text in einer NSTableViewCellProxy-Kindansicht.
+    VoiceOver liest ohne diesen Patch nur die Rolle ('Zeile'), nicht den Inhalt.
+    """
+    if sys.platform != "darwin":
+        return
+
+    try:
+        import objc  # noqa: PLC0415
+
+        cls_row = objc.lookUpClass("NSTableRow")
+
+        def _cell_text(row):
+            try:
+                children = row.accessibilityAttributeValue_("AXChildren")
+                if children:
+                    val = children[0].accessibilityAttributeValue_("AXValue")
+                    if val:
+                        return str(val)
+            except Exception:
+                pass
+            return ""
+
+        @objc.typedSelector(b"@@:")
+        def _row_label(self):
+            return _cell_text(self)
+
+        _orig_attr_value = cls_row.instanceMethodForSelector_(
+            b"accessibilityAttributeValue:"
+        )
+
+        @objc.typedSelector(b"@@:@")
+        def _row_attr_value(self, attr):
+            if attr in ("AXTitle", "AXLabel", "AXDescription"):
+                txt = _cell_text(self)
+                if txt:
+                    return txt
+            return _orig_attr_value(self, attr)
+
+        objc.classAddMethod(cls_row, b"accessibilityLabel", _row_label)
+        objc.classAddMethod(cls_row, b"accessibilityAttributeValue:", _row_attr_value)
+
+    except Exception:
+        pass
+
+
 def patch_button_accessibility() -> None:
     """Swizzelt wxNSButton, wxNSPopUpButton und wxNSComboBox einmalig,
     damit VoiceOver deutsche Rollennamen ansagt.
