@@ -1,6 +1,23 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.3)
+- Beschriftungen / Barrierefreiheit:
+    - Alle verbleibenden englischen und umlautsubstituierten Button-Labels korrigiert:
+      - "Loeschen" → "Löschen", "Transfer" → "Dateiübertragung" (Dateien-Tab).
+      - "Rate" → "Sprechtempo", "Test sprechen" → "Test vorlesen" (System-Tab).
+      - "Logout" → "Abmelden" (Verbindungs-Tab).
+      - "Video-Geraet" / "Geraet" → "Video-Gerät" / "Gerät" (Video-Tab).
+      - "Test" → "Testen" (Sound-Ereignisse in Einstellungen).
+      - "Maennlich" → "Männlich" (Geschlechtsauswahl in Einstellungen).
+      - "Im Tray minimieren (statt schliessen)" → "schließen" (Einstellungen).
+      - "Benutzer verlaesst Kanal" → "verlässt" (Sound-Ereignisse).
+      - "Schliessen" → "Schließen" + SetName-Einträge in client_stats.py und server_tools.py.
+      - "Keine Statistik verfuegbar" → "verfügbar" (Verbindungsstatistiken).
+      - "Dateiname | Groesse |..." → "Größe" (Dateien-Tab).
+      - "Frame-Groesse" → "Framegröße" (Kanal-Dialog, OPUS).
+- Versionierung: App-Version auf 0.10.3 angehoben.
+
 2026-03-20 (v0.10.2)
 - Hilfe-Menü:
     - "Handbuch" und "BearWare.dk Website" entfernt.

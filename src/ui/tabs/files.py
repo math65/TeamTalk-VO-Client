@@ -21,7 +21,7 @@ class FilesTab(wx.Panel):
 
         list_box = wx.StaticBox(self, label="Dateien im aktuellen Kanal")
         list_sizer = wx.StaticBoxSizer(list_box, wx.VERTICAL)
-        header = wx.StaticText(list_box, label="Dateiname | Groesse | Hochgeladen von | Datum")
+        header = wx.StaticText(list_box, label="Dateiname | Größe | Hochgeladen von | Datum")
         header.SetName("Dateiliste Kopfzeile")
         list_sizer.Add(header, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
 
@@ -40,7 +40,7 @@ class FilesTab(wx.Panel):
         self.download_btn = wx.Button(self, label="Herunterladen")
         self.download_btn.SetName("Datei herunterladen")
         self.download_btn.Bind(wx.EVT_BUTTON, self.on_download)
-        self.delete_btn = wx.Button(self, label="Loeschen")
+        self.delete_btn = wx.Button(self, label="Löschen")
         self.delete_btn.SetName("Datei löschen")
         self.delete_btn.Bind(wx.EVT_BUTTON, self.on_delete)
         self.refresh_btn = wx.Button(self, label="Aktualisieren")
@@ -51,7 +51,7 @@ class FilesTab(wx.Panel):
         action_sizer.Add(btn_row, 0, wx.ALL, 8)
         sizer.Add(action_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
-        transfer_box = wx.StaticBox(self, label="Transfer")
+        transfer_box = wx.StaticBox(self, label="Dateiübertragung")
         transfer_sizer = wx.StaticBoxSizer(transfer_box, wx.VERTICAL)
         self.transfer_gauge = wx.Gauge(transfer_box, range=100)
         self.transfer_gauge.SetName("Transfer-Fortschritt")

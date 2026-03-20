@@ -37,7 +37,7 @@ from tts import TTSManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.10.2"
+APP_VERSION = "0.10.3"
 
 
 def _init_startup_logging() -> None:
@@ -1145,7 +1145,7 @@ class MainFrame(wx.Frame):
         opus_dtx = wx.CheckBox(dlg, label="Silence ignorieren (DTX)")
         lbl_opus_tx = wx.StaticText(dlg, label="Intervall (ms)")
         opus_tx = wx.SpinCtrl(dlg, min=20, max=1000, initial=40)
-        lbl_opus_frame = wx.StaticText(dlg, label="Frame-Groesse (ms)")
+        lbl_opus_frame = wx.StaticText(dlg, label="Framegröße (ms)")
         opus_frame = wx.SpinCtrl(dlg, min=2, max=60, initial=20)
 
         for lbl, ctrl in [(lbl_opus_app, opus_app), (lbl_opus_sr, opus_sr),

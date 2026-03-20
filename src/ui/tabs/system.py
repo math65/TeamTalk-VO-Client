@@ -74,7 +74,7 @@ class SystemTab(wx.Panel):
         self.tts_voice.SetName("TTS Stimme")
         grid.Add(self.tts_voice, 1, wx.EXPAND)
 
-        grid.Add(wx.StaticText(self, label="Rate"), 0, wx.ALIGN_CENTER_VERTICAL)
+        grid.Add(wx.StaticText(self, label="Sprechtempo"), 0, wx.ALIGN_CENTER_VERTICAL)
         self.tts_rate = wx.Slider(self, value=175, minValue=80, maxValue=400)
         self.tts_rate.SetName("TTS Rate")
         grid.Add(self.tts_rate, 1, wx.EXPAND)
@@ -94,7 +94,7 @@ class SystemTab(wx.Panel):
         btn_row = wx.BoxSizer(wx.HORIZONTAL)
         self.tts_refresh = wx.Button(self, label="Stimmen aktualisieren")
         self.tts_refresh.SetName("Stimmen aktualisieren")
-        self.tts_test = wx.Button(self, label="Test sprechen")
+        self.tts_test = wx.Button(self, label="Test vorlesen")
         self.tts_test.SetName("TTS Test")
         btn_row.Add(self.tts_refresh, 0, wx.RIGHT, 8)
         btn_row.Add(self.tts_test, 0)

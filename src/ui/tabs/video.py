@@ -21,13 +21,13 @@ class VideoTab(wx.Panel):
 
         root = wx.BoxSizer(wx.VERTICAL)
 
-        device_box = wx.StaticBox(self, label="Video-Geraet")
+        device_box = wx.StaticBox(self, label="Video-Gerät")
         device_sizer = wx.StaticBoxSizer(device_box, wx.VERTICAL)
 
         dev_row = wx.BoxSizer(wx.HORIZONTAL)
-        dev_row.Add(wx.StaticText(self, label="Geraet"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        dev_row.Add(wx.StaticText(self, label="Gerät"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.device_choice = wx.Choice(self)
-        self.device_choice.SetName("Video-Geraet")
+        self.device_choice.SetName("Video-Gerät")
         self.device_choice.Bind(wx.EVT_CHOICE, self.on_device_changed)
         dev_row.Add(self.device_choice, 1, wx.EXPAND)
         device_sizer.Add(dev_row, 0, wx.ALL | wx.EXPAND, 4)
@@ -100,7 +100,7 @@ class VideoTab(wx.Panel):
         for dev in self._devices:
             labels.append(self.frame.tt_str(dev.szDeviceName))
         if not labels:
-            self.device_choice.Append("Kein Geraet gefunden")
+            self.device_choice.Append("Kein Gerät gefunden")
             self.device_choice.SetSelection(0)
             self.device_choice.Disable()
             self.format_choice.Clear()
@@ -165,7 +165,7 @@ class VideoTab(wx.Panel):
 
     def on_apply(self, _event):
         if not self._devices:
-            self.frame.set_status("Kein Video-Geraet")
+            self.frame.set_status("Kein Video-Gerät")
             return
         dev = self._devices[self.device_choice.GetSelection()]
         device_id = self.frame.tt_str(dev.szDeviceID)
@@ -185,9 +185,9 @@ class VideoTab(wx.Panel):
             settings.video_bitrate_kbps = int(self.bitrate.GetValue())
             settings.video_deadline = self._deadline_key()
             self.frame.settings_store.save()
-            self.frame.set_status("Video-Geraet angewendet")
+            self.frame.set_status("Video-Gerät angewendet")
         else:
-            self.frame.set_status("Video-Geraet konnte nicht initialisiert werden")
+            self.frame.set_status("Video-Gerät konnte nicht initialisiert werden")
 
     def on_refresh(self, _event):
         self.refresh_devices()
@@ -240,7 +240,7 @@ class VideoTab(wx.Panel):
 
     def _ensure_video_ready(self) -> bool:
         if not self._devices:
-            self.frame.set_status("Kein Video-Geraet")
+            self.frame.set_status("Kein Video-Gerät")
             return False
         dev = self._devices[self.device_choice.GetSelection()]
         device_id = self.frame.tt_str(dev.szDeviceID)

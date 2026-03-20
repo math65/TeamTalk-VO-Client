@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 _SOUND_EVENTS = [
     ("Benutzer betritt Kanal", "user_join"),
-    ("Benutzer verlaesst Kanal", "user_leave"),
+    ("Benutzer verlässt Kanal", "user_leave"),
     ("Server-Verbindung getrennt", "server_disconnect"),
     ("Privatnachricht empfangen", "msg_private_rx"),
     ("Privatnachricht gesendet", "msg_private_tx"),
@@ -118,7 +118,7 @@ class SettingsTab(wx.Panel):
         s = self.frame.settings_store.settings
 
         # Gender
-        gender_choices = ["Maennlich", "Weiblich", "Keine Angabe"]
+        gender_choices = ["Männlich", "Weiblich", "Keine Angabe"]
         self._gender_radio = wx.RadioBox(panel, label="Geschlecht", choices=gender_choices, majorDimension=1, style=wx.RA_SPECIFY_ROWS)
         self._gender_radio.SetName("Geschlecht")
         current_gender = s.gender or "Keine Angabe"
@@ -173,7 +173,7 @@ class SettingsTab(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)
         s = self.frame.settings_store.settings
 
-        self._minimize_to_tray = wx.CheckBox(panel, label="Im Tray minimieren (statt schliessen)")
+        self._minimize_to_tray = wx.CheckBox(panel, label="Im Tray minimieren (statt schließen)")
         self._minimize_to_tray.SetName("Im Tray minimieren")
         self._minimize_to_tray.SetValue(bool(s.minimize_to_tray))
         sizer.Add(self._minimize_to_tray, 0, wx.ALL, 8)
@@ -295,7 +295,7 @@ class SettingsTab(wx.Panel):
             path_ctrl.SetName(f"Sound: {label}")
             browse_btn = wx.Button(scroll, label="...")
             browse_btn.SetName(f"Durchsuchen: {label}")
-            test_btn = wx.Button(scroll, label="Test")
+            test_btn = wx.Button(scroll, label="Testen")
             test_btn.SetName(f"Test: {label}")
 
             browse_btn.Bind(wx.EVT_BUTTON, lambda e, k=key, tc=path_ctrl: self._on_browse_sound(k, tc))
@@ -346,7 +346,7 @@ class SettingsTab(wx.Panel):
 
     def _on_save_general(self, _event):
         s = self.frame.settings_store.settings
-        gender_choices = ["Maennlich", "Weiblich", "Keine Angabe"]
+        gender_choices = ["Männlich", "Weiblich", "Keine Angabe"]
         sel = self._gender_radio.GetSelection()
         s.gender = gender_choices[sel] if 0 <= sel < len(gender_choices) else ""
         s.away_timer_min = int(self._away_timer.GetValue())

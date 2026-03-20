@@ -25,8 +25,8 @@ class ClientStatisticsDialog(wx.Dialog):
         self.refresh_btn = wx.Button(self, label="Aktualisieren")
         self.refresh_btn.SetName("Verbindungsstatistiken aktualisieren")
         self.refresh_btn.Bind(wx.EVT_BUTTON, self.on_refresh)
-        close_btn = wx.Button(self, id=wx.ID_CLOSE, label="Schliessen")
-        close_btn.SetName("Verbindungsstatistiken schliessen")
+        close_btn = wx.Button(self, id=wx.ID_CLOSE, label="Schließen")
+        close_btn.SetName("Verbindungsstatistiken schließen")
         close_btn.Bind(wx.EVT_BUTTON, lambda _evt: self.Close())
         btn_row.Add(self.refresh_btn, 0, wx.RIGHT, 8)
         btn_row.Add(close_btn, 0)
@@ -44,7 +44,7 @@ class ClientStatisticsDialog(wx.Dialog):
             return
         stats = self.frame.client.get_client_statistics()
         if stats is None:
-            self.stats_list.Set(["Keine Statistik verfuegbar"])
+            self.stats_list.Set(["Keine Statistik verfügbar"])
             return
         items = [
             f"UDP Ping: {getattr(stats, 'nUdpPingTimeMs', 0)} ms",
