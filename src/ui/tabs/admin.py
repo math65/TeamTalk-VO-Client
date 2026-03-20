@@ -5,6 +5,8 @@ from typing import List, TYPE_CHECKING
 
 import wx
 
+from ui.a11y import setup_list_accessible
+
 if TYPE_CHECKING:
     from app import MainFrame
 
@@ -35,6 +37,7 @@ class AdminTab(wx.Panel):
         acc_sizer.Add(acc_header, 0, wx.LEFT | wx.RIGHT | wx.TOP, 4)
         self.account_list = wx.ListBox(self)
         self.account_list.SetName("Benutzerkonten")
+        setup_list_accessible(self.account_list)
         acc_sizer.Add(self.account_list, 1, wx.ALL | wx.EXPAND, 4)
 
         acc_btn_row = wx.BoxSizer(wx.HORIZONTAL)
@@ -63,6 +66,7 @@ class AdminTab(wx.Panel):
         ban_sizer.Add(ban_header, 0, wx.LEFT | wx.RIGHT | wx.TOP, 4)
         self.ban_list = wx.ListBox(self)
         self.ban_list.SetName("Sperrliste")
+        setup_list_accessible(self.ban_list)
         ban_sizer.Add(self.ban_list, 1, wx.ALL | wx.EXPAND, 4)
 
         ban_btn_row = wx.BoxSizer(wx.HORIZONTAL)

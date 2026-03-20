@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 
 import wx
 
+from ui.a11y import setup_list_accessible
+
 if TYPE_CHECKING:
     from app import MainFrame
 
@@ -72,6 +74,7 @@ class SystemTab(wx.Panel):
         grid.Add(wx.StaticText(self, label="Stimme"), 0, wx.ALIGN_CENTER_VERTICAL)
         self.tts_voice = wx.ListBox(self)
         self.tts_voice.SetName("TTS Stimme")
+        setup_list_accessible(self.tts_voice)
         grid.Add(self.tts_voice, 1, wx.EXPAND)
 
         grid.Add(wx.StaticText(self, label="Sprechtempo"), 0, wx.ALIGN_CENTER_VERTICAL)

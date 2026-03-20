@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 
 import wx
 
+from ui.a11y import setup_list_accessible
+
 if TYPE_CHECKING:
     from app import MainFrame
 
@@ -28,6 +30,7 @@ class FilesTab(wx.Panel):
         # ListBox ist fuer VoiceOver verlaesslicher als ListCtrl auf macOS.
         self.file_list = wx.ListBox(list_box)
         self.file_list.SetName("Dateiliste")
+        setup_list_accessible(self.file_list)
         list_sizer.Add(self.file_list, 1, wx.ALL | wx.EXPAND, 8)
         sizer.Add(list_sizer, 1, wx.ALL | wx.EXPAND, 8)
 

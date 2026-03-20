@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 
 import wx
 
+from ui.a11y import setup_list_accessible
+
 if TYPE_CHECKING:
     from app import MainFrame
 
@@ -18,6 +20,7 @@ class ClientStatisticsDialog(wx.Dialog):
 
         self.stats_list = wx.ListBox(self)
         self.stats_list.SetName("Verbindungsstatistiken Liste")
+        setup_list_accessible(self.stats_list)
         self.stats_list.SetMinSize((520, 260))
         sizer.Add(self.stats_list, 1, wx.ALL | wx.EXPAND, 8)
 

@@ -6,8 +6,8 @@ from typing import List, Optional, TYPE_CHECKING
 import wx
 
 from ..tt_file_parser import build_teamtalk_url, build_teamtalk_xml, parse_teamtalk_file
-
 from ..models import ServerProfile
+from ..a11y import setup_list_accessible
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -42,6 +42,7 @@ class ConnectionTab(wx.Panel):
 
         self.server_list = wx.ListBox(self, choices=self._all_server_names)
         self.server_list.SetName("Serverliste")
+        setup_list_accessible(self.server_list)
         self.server_list.Bind(wx.EVT_LISTBOX, self.on_server_selected)
         self.server_list.Bind(wx.EVT_LISTBOX_DCLICK, self.on_server_dclick)
         self.server_list.Bind(wx.EVT_RIGHT_DOWN, self.on_server_list_context)

@@ -20,6 +20,8 @@ try:
 except Exception:
     requests = None
 
+from ui.a11y import setup_list_accessible
+
 if TYPE_CHECKING:
     from app import MainFrame
 
@@ -254,6 +256,7 @@ class MediaTab(wx.Panel):
 
         self.yt_results = wx.ListBox(self.yt_panel)
         self.yt_results.SetName("YouTube Ergebnisse")
+        setup_list_accessible(self.yt_results)
         self.yt_results.Bind(wx.EVT_LISTBOX, self.on_ytdlp_select)
         yt_sizer.Add(self.yt_results, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
         self.yt_results.SetMinSize((-1, 120))
@@ -355,6 +358,7 @@ class MediaTab(wx.Panel):
 
         self.radio_results = wx.ListBox(self.radio_panel)
         self.radio_results.SetName("Webradio Ergebnisse")
+        setup_list_accessible(self.radio_results)
         self.radio_results.Bind(wx.EVT_LISTBOX, self.on_radio_search_select)
         radio_sizer.Add(self.radio_results, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
         self.radio_results.SetMinSize((-1, 100))
@@ -427,12 +431,14 @@ class MediaTab(wx.Panel):
 
         self.podcast_list = wx.ListBox(self.podcast_panel)
         self.podcast_list.SetName("Podcast Ergebnisse")
+        setup_list_accessible(self.podcast_list)
         self.podcast_list.Bind(wx.EVT_LISTBOX, self.on_podcast_select)
         podcast_sizer.Add(self.podcast_list, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
         self.podcast_list.SetMinSize((-1, 120))
 
         self.episode_list = wx.ListBox(self.podcast_panel)
         self.episode_list.SetName("Podcast Episoden")
+        setup_list_accessible(self.episode_list)
         podcast_sizer.Add(self.episode_list, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
         self.episode_list.SetMinSize((-1, 160))
 

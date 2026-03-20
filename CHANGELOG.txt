@@ -3,8 +3,12 @@ Changelog
 
 2026-03-20 (v0.10.3)
 - VoiceOver-Barrierefreiheit:
-    - wx.ListCtrl in Kanal-Tab (Nutzerliste) und Admin-Tab (Konten, Sperren) durch wx.ListBox
-      ersetzt — VoiceOver liest Listen korrekt statt "Table/Tabelle" (englischer Rollenname).
+    - wx.Accessible (ROLE_SYSTEM_LIST) für alle wx.ListBox-Steuerelemente gesetzt — VoiceOver
+      liest nun "Liste" statt "Tabelle"/"Table" (gilt für Kanal-, Admin-, Verbindungs-,
+      Dateien-, System-, Medien-, Server-Werkzeuge- und Statistiken-Tabs).
+    - wx.ToggleButton → wx.CheckBox in Schnellaktionen-Leiste (PTT, Sprachaktivierung,
+      Video, Desktop, Stumm, Aufnahme, Frage-Modus) und Audio-Tab (PTT, Mikrofontest) —
+      VoiceOver liest nun "Kontrollkästchen" statt "Schalter"/"Button".
     - Spaltenköpfe ("Nickname | Benutzername | Status" usw.) als StaticText-Labels ergänzt.
     - SetName für DataViewListCtrl im Server-Status-Dialog ergänzt.
     - Slider-Name "TTS Rate" → "TTS Sprechtempo" (passt zum deutschen Label).

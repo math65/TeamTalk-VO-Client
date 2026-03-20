@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, List
 
 import wx
 
+from ui.a11y import setup_list_accessible
+
 if TYPE_CHECKING:
     from app import MainFrame
 
@@ -45,6 +47,7 @@ class OnlineUsersDialog(wx.Dialog):
 
         self.user_list = wx.ListBox(self)
         self.user_list.SetName("Online-Benutzer Liste")
+        setup_list_accessible(self.user_list)
         self.user_list.SetMinSize((520, 260))
         sizer.Add(self.user_list, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
@@ -97,6 +100,7 @@ class ServerStatisticsDialog(wx.Dialog):
 
         self.stats_list = wx.ListBox(self)
         self.stats_list.SetName("Serverstatistiken Liste")
+        setup_list_accessible(self.stats_list)
         self.stats_list.SetMinSize((520, 260))
         sizer.Add(self.stats_list, 1, wx.ALL | wx.EXPAND, 8)
 
@@ -191,6 +195,7 @@ class BanListDialog(wx.Dialog):
 
         self.list_box = wx.ListBox(self)
         self.list_box.SetName("Sperrliste Liste")
+        setup_list_accessible(self.list_box)
         self.list_box.SetMinSize((520, 260))
         sizer.Add(self.list_box, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 

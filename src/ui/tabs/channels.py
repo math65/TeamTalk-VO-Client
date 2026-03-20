@@ -4,6 +4,8 @@ from typing import Dict, List, Optional, TYPE_CHECKING
 
 import wx
 
+from ui.a11y import setup_list_accessible
+
 if TYPE_CHECKING:
     from app import MainFrame
 
@@ -42,6 +44,7 @@ class ChannelsTab(wx.Panel):
         right_sizer.Add(user_header, 0, wx.LEFT | wx.RIGHT | wx.TOP, 4)
         self.user_list = wx.ListBox(right_panel)
         self.user_list.SetName("Nutzerliste im Kanal")
+        setup_list_accessible(self.user_list)
         self.user_list.Bind(wx.EVT_LISTBOX, self.on_user_selected)
         self.user_list.Bind(wx.EVT_RIGHT_DOWN, self._on_user_list_right_click)
         self.user_list.Bind(wx.EVT_KEY_DOWN, self._on_user_list_key)
@@ -61,6 +64,7 @@ class ChannelsTab(wx.Panel):
         ch_row = wx.BoxSizer(wx.HORIZONTAL)
         self.channel_list = wx.ListBox(list_box)
         self.channel_list.SetName("Kanal-Liste")
+        setup_list_accessible(self.channel_list)
         self.channel_list.SetMinSize((-1, 140))
         self.channel_list.Bind(wx.EVT_LISTBOX_DCLICK, self.on_channel_list_join)
         self.channel_join_btn = wx.Button(list_box, label="Kanal beitreten")
@@ -76,6 +80,7 @@ class ChannelsTab(wx.Panel):
         members_sizer = wx.StaticBoxSizer(members_box, wx.VERTICAL)
         self.channel_members = wx.ListBox(members_box)
         self.channel_members.SetName("Kanal-Mitglieder")
+        setup_list_accessible(self.channel_members)
         self.channel_members.SetMinSize((-1, 120))
         members_sizer.Add(self.channel_members, 1, wx.ALL | wx.EXPAND, 8)
         sizer.Add(members_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
