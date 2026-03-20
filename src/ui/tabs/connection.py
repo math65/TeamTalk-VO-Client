@@ -307,6 +307,9 @@ class ConnectionTab(wx.Panel):
             self.frame.client.stop_event_loop_and_wait()
             result = self.frame.client.leave_channel()
             self.frame.client.start_event_loop(self.frame.handle_tt_message)
+            if result.ok:
+                se = self.frame.settings_store.settings.sound_events
+                self.frame.sound_manager.play("user_leave", se.get("user_leave"))
             wx.CallAfter(self.frame.set_status, result.message)
 
         threading.Thread(target=worker, daemon=True).start()

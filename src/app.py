@@ -2769,6 +2769,8 @@ class MainFrame(wx.Frame):
                     encrypted=tab.encrypted.GetValue(),
                     timeout_ms=8000,
                 )
+                if result.ok:
+                    self.sound_manager.play("server_connect", self.settings_store.settings.sound_events.get("server_connect"))
                 wx.CallAfter(self.handle_connect_result, result)
             except Exception as exc:
                 wx.CallAfter(self.set_status, f"Fehler: {exc}")
@@ -2781,7 +2783,6 @@ class MainFrame(wx.Frame):
         self.set_status(result.message)
         if result.ok:
             self._reconnect_attempts = 0
-            self.sound_manager.play("server_connect", self.settings_store.settings.sound_events.get("server_connect"))
             self._auto_init_sound_devices()
             self.client.start_event_loop(self.handle_tt_message)
             self._refresh_channels_with_retry()
@@ -3050,6 +3051,8 @@ class MainFrame(wx.Frame):
                 timeout_ms=8000,
             )
             self._pending_join = parsed if result.ok else None
+            if result.ok:
+                self.sound_manager.play("server_connect", self.settings_store.settings.sound_events.get("server_connect"))
             wx.CallAfter(self.handle_connect_result, result)
 
         threading.Thread(target=worker, daemon=True).start()
@@ -3582,9 +3585,9 @@ class MainFrame(wx.Frame):
                 self.sound_manager.play("user_join", se.get("user_join"))
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
             if my_id and user_id == my_id:
-                pass  # eigenes Verlassen: kein Ton
-            elif my_ch and source_ch == my_ch:
-                # Anderer Benutzer verlässt meinen Kanal
+                pass  # eigenes Verlassen: direkt in on_leave_channel gespielt
+            elif user_id and (not my_ch or source_ch == my_ch):
+                # Anderer Benutzer verlässt meinen Kanal (oder channel unbekannt)
                 self.sound_manager.play("user_leave", se.get("user_leave"))
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN:
             self.sound_manager.play("user_login", se.get("user_login"))
