@@ -1332,6 +1332,7 @@ class MainFrame(wx.Frame):
             self.client.stop_event_loop_and_wait()
         except Exception:
             pass
+        self.sound_manager.play("server_disconnect", self.settings_store.settings.sound_events.get("server_disconnect"))
         self.client.disconnect_transport()
         self.set_status("Verbindung getrennt")
 
@@ -2758,6 +2759,7 @@ class MainFrame(wx.Frame):
         def worker():
             try:
                 self.client.stop_event_loop_and_wait()
+                _se = self.settings_store.settings.sound_events
                 result = self.client.connect_and_login(
                     host=tab.host.GetValue().strip(),
                     tcp_port=int(tab.tcp_port.GetValue().strip()),
@@ -2768,9 +2770,8 @@ class MainFrame(wx.Frame):
                     client_name=tab.client_name.GetValue().strip(),
                     encrypted=tab.encrypted.GetValue(),
                     timeout_ms=8000,
+                    on_login_confirmed=lambda: self.sound_manager.play("server_connect", _se.get("server_connect")),
                 )
-                if result.ok:
-                    self.sound_manager.play("server_connect", self.settings_store.settings.sound_events.get("server_connect"))
                 wx.CallAfter(self.handle_connect_result, result)
             except Exception as exc:
                 wx.CallAfter(self.set_status, f"Fehler: {exc}")
@@ -3037,6 +3038,7 @@ class MainFrame(wx.Frame):
                 f"verify_peer={verify_peer if verify_peer is not None else 'default'} "
                 f"custom_material={tls_has_custom_material}"
             )
+            _se = self.settings_store.settings.sound_events
             result = self.client.connect_and_login(
                 host=parsed.profile.host,
                 tcp_port=parsed.profile.tcp_port,
@@ -3049,10 +3051,9 @@ class MainFrame(wx.Frame):
                 verify_peer=verify_peer,
                 tls_has_custom_material=tls_has_custom_material,
                 timeout_ms=8000,
+                on_login_confirmed=lambda: self.sound_manager.play("server_connect", _se.get("server_connect")),
             )
             self._pending_join = parsed if result.ok else None
-            if result.ok:
-                self.sound_manager.play("server_connect", self.settings_store.settings.sound_events.get("server_connect"))
             wx.CallAfter(self.handle_connect_result, result)
 
         threading.Thread(target=worker, daemon=True).start()

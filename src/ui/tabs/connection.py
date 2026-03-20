@@ -317,6 +317,8 @@ class ConnectionTab(wx.Panel):
     def on_logout(self, _event):
         def worker():
             self.frame.client.stop_event_loop_and_wait()
+            se = self.frame.settings_store.settings.sound_events
+            self.frame.sound_manager.play("server_disconnect", se.get("server_disconnect"))
             result = self.frame.client.logout()
             wx.CallAfter(self.frame.set_status, result.message)
 

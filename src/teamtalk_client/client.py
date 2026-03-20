@@ -251,6 +251,7 @@ class TeamTalkClient:
         tls_has_custom_material: bool = False,
         remember_last_connect: bool = True,
         timeout_ms: int = 8000,
+        on_login_confirmed=None,
     ) -> ConnectResult:
         with self._connect_lock:
             if remember_last_connect:
@@ -390,6 +391,10 @@ class TeamTalkClient:
                     err = self.tt.ttstr(msg.clienterrormsg.szErrorMsg)
                     return ConnectResult(False, f"Login fehlgeschlagen: {err}")
                 return ConnectResult(False, "Server antwortet nicht auf Login")
+
+            # Login confirmed — call callback immediately before draining remaining events.
+            if on_login_confirmed:
+                on_login_confirmed()
 
             # We already have CMD_SUCCESS for login; MYSELF_LOGGEDIN may arrive slightly later.
             self._wait_for_event(self.tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN, min(3000, timeout_ms))
