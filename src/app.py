@@ -34,10 +34,11 @@ from ui.server_tools import BroadcastMessageDialog, OnlineUsersDialog, ServerSta
 from ui.user_status import ChangeStatusDialog
 from ui.client_stats import ClientStatisticsDialog
 from tts import TTSManager
+from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.10.4"
+APP_VERSION = "0.10.5"
 
 
 def _init_startup_logging() -> None:
@@ -270,6 +271,7 @@ class MainFrame(wx.Frame):
         self.settings_store = SettingsStore(app_dir / "settings.json")
         self.logger = FileLogger(app_dir / "client.log")
         self.tts = TTSManager(self)
+        self.sound_manager = SoundManager()
         self._ptt_hotkey = int(self.settings_store.settings.ptt_hotkey or 0) or wx.WXK_SPACE
 
         # Tray
@@ -3421,6 +3423,7 @@ class MainFrame(wx.Frame):
         elif event == tt.ClientEvent.CLIENTEVENT_CON_LOST:
             wx.CallAfter(self.set_status, "Verbindung verloren")
             wx.CallAfter(self.schedule_reconnect)
+            self.sound_manager.play("server_disconnect", self.settings_store.settings.sound_events.get("server_disconnect"))
         elif event == tt.ClientEvent.CLIENTEVENT_CON_CRYPT_ERROR:
             err = self.tt_str(msg.clienterrormsg.szErrorMsg)
             no = int(getattr(msg.clienterrormsg, "nErrorNo", 0) or 0)
@@ -3461,6 +3464,7 @@ class MainFrame(wx.Frame):
         ):
             wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
             wx.CallAfter(self._emit_user_presence_event, msg, tt)
+            wx.CallAfter(self._play_user_event_sound, msg, tt)
             if self._user_recording_enabled:
                 self._handle_user_recording_event(msg, tt)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN:
@@ -3479,6 +3483,11 @@ class MainFrame(wx.Frame):
         elif event == tt.ClientEvent.CLIENTEVENT_FILETRANSFER:
             if self.files_tab is not None:
                 wx.CallAfter(self.files_tab.on_file_transfer_update, int(msg.nSource))
+            try:
+                if int(getattr(msg.filetransfer, "nStatus", 0)) == 2:  # FILETRANSFER_FINISHED
+                    self.sound_manager.play("file_transfer", self.settings_store.settings.sound_events.get("file_transfer"))
+            except Exception:
+                pass
         elif event in (
             getattr(tt.ClientEvent, "CLIENTEVENT_SOUNDDEVICE_ADDED", -1),
             getattr(tt.ClientEvent, "CLIENTEVENT_SOUNDDEVICE_REMOVED", -1),
@@ -3501,6 +3510,7 @@ class MainFrame(wx.Frame):
             if self.server_stats_dialog is not None:
                 wx.CallAfter(self.server_stats_dialog.update_stats, msg.serverstatistics)
         elif event == tt.ClientEvent.CLIENTEVENT_USER_DESKTOPWINDOW:
+            self.sound_manager.play("desktop_session", self.settings_store.settings.sound_events.get("desktop_session"))
             if self.desktop_tab is not None:
                 try:
                     username = self.tt_str(msg.user.szNickname) or self.tt_str(msg.user.szUsername) or "Benutzer"
@@ -3545,6 +3555,22 @@ class MainFrame(wx.Frame):
         self.chat_tab.append_chat(text, kind="system")
         self.emit_system_message(text, speak=False)
         self._send_notification("Status", text)
+
+    def _play_user_event_sound(self, msg, tt) -> None:
+        event = msg.nClientEvent
+        user = getattr(msg, "user", None)
+        se = self.settings_store.settings.sound_events
+        if event == tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED:
+            my_ch = self.client.get_my_channel_id()
+            user_ch = int(getattr(user, "nChannelID", 0) or 0) if user else 0
+            if my_ch and user_ch == int(my_ch):
+                self.sound_manager.play("user_join", se.get("user_join"))
+        elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
+            self.sound_manager.play("user_leave", se.get("user_leave"))
+        elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN:
+            self.sound_manager.play("user_login", se.get("user_login"))
+        elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDOUT:
+            self.sound_manager.play("user_logout", se.get("user_logout"))
 
     def _handle_user_recording_event(self, msg, tt) -> None:
         event = msg.nClientEvent
@@ -3640,6 +3666,15 @@ class MainFrame(wx.Frame):
                 kind = "chat"
             wx.CallAfter(self.chat_tab.append_chat, f"{from_user}: {content}", kind, speak)
             self._message_buffers.pop(key, None)
+            # Sound-Ereignisse
+            se = self.settings_store.settings.sound_events
+            is_own = bool(from_id and my_id and from_id == my_id)
+            if msg_type == int(tt.TextMsgType.MSGTYPE_USER):
+                sound_key = "msg_private_tx" if is_own else "msg_private_rx"
+                self.sound_manager.play(sound_key, se.get(sound_key))
+            elif msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL):
+                sound_key = "msg_channel_tx" if is_own else "msg_channel_rx"
+                self.sound_manager.play(sound_key, se.get(sound_key))
             # Push notification
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER):
                 wx.CallAfter(self._send_notification, "Privatnachricht", f"{from_user}: {content}")

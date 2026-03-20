@@ -1,6 +1,26 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.5)
+- Sound-Ereignisse:
+    - Offizielles TeamTalk5-Sound-Pack (BearWare/TeamTalk5, Setup/Client/Sounds)
+      eingebettet (17 WAV-Dateien).
+    - Neuer Sound-Manager (sound_manager.py): spielt Ereignis-Sounds asynchron ab;
+      fällt automatisch auf eingebettetes Sound-Pack zurück wenn kein eigener Pfad
+      konfiguriert ist.
+    - Folgende Ereignisse lösen Sounds aus:
+        - Benutzer betritt eigenen Kanal → newuser.wav
+        - Benutzer verlässt Kanal → removeuser.wav
+        - Server-Verbindung getrennt → serverlost.wav
+        - Privatnachricht empfangen / gesendet → user_msg.wav / user_msg_sent.wav
+        - Kanalnachricht empfangen / gesendet → channel_msg.wav / channel_msg_sent.wav
+        - Dateitransfer abgeschlossen → filetx_complete.wav
+        - Desktop-Session gestartet → desktopsession.wav
+        - Benutzer angemeldet / abgemeldet → logged_on.wav / logged_off.wav
+    - Test-Button in Sound-Ereignisse-Einstellungen spielt automatisch den
+      Standard-Sound ab wenn kein eigener Pfad eingetragen ist.
+- Versionierung: App-Version auf 0.10.5 angehoben.
+
 2026-03-20 (v0.10.4)
 - VoiceOver-Verbesserungen:
     - Listeneinträge werden nun vollständig vorgelesen (NSTableRow.AXTitle/AXLabel

@@ -299,7 +299,7 @@ class SettingsTab(wx.Panel):
             test_btn.SetName(f"Test: {label}")
 
             browse_btn.Bind(wx.EVT_BUTTON, lambda e, k=key, tc=path_ctrl: self._on_browse_sound(k, tc))
-            test_btn.Bind(wx.EVT_BUTTON, lambda e, tc=path_ctrl: self._on_test_sound(tc))
+            test_btn.Bind(wx.EVT_BUTTON, lambda e, k=key, tc=path_ctrl: self._on_test_sound(k, tc))
 
             grid.Add(lbl, 0, wx.ALIGN_CENTER_VERTICAL)
             grid.Add(path_ctrl, 1, wx.EXPAND)
@@ -442,22 +442,12 @@ class SettingsTab(wx.Panel):
             if dlg.ShowModal() == wx.ID_OK:
                 ctrl.SetValue(dlg.GetPath())
 
-    def _on_test_sound(self, ctrl: wx.TextCtrl):
-        path = ctrl.GetValue().strip()
-        if not path:
-            self.frame.set_status("Kein Sound-Pfad angegeben")
-            return
-        try:
-            if sys.platform == "darwin":
-                subprocess.Popen(["afplay", path])
-            else:
-                sound = wx.adv.Sound(path)
-                if sound.IsOk():
-                    sound.Play(wx.adv.SOUND_ASYNC)
-                else:
-                    self.frame.set_status("Sounddatei konnte nicht geöffnet werden")
-        except Exception as exc:
-            self.frame.set_status(f"Sound-Test fehlgeschlagen: {exc}")
+    def _on_test_sound(self, key: str, ctrl: wx.TextCtrl):
+        custom = ctrl.GetValue().strip()
+        # Nutzt den Sound-Manager: fällt auf eingebettetes Sound-Pack zurück
+        self.frame.sound_manager.play(key, custom or None)
+        if not custom:
+            self.frame.set_status("Standard-Sound wird abgespielt")
 
     # ------------------------------------------------------------------
     # Section navigation
