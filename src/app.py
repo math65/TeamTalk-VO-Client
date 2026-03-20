@@ -2780,6 +2780,7 @@ class MainFrame(wx.Frame):
         self.set_status(result.message)
         if result.ok:
             self._reconnect_attempts = 0
+            self.sound_manager.play("server_connect", self.settings_store.settings.sound_events.get("server_connect"))
             self._auto_init_sound_devices()
             self.client.start_event_loop(self.handle_tt_message)
             self._refresh_channels_with_retry()
@@ -3560,13 +3561,21 @@ class MainFrame(wx.Frame):
         event = msg.nClientEvent
         user = getattr(msg, "user", None)
         se = self.settings_store.settings.sound_events
+        my_id = int(self.client.get_my_user_id() or 0)
+        user_id = int(getattr(user, "nUserID", 0) or 0) if user else 0
+
         if event == tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED:
             my_ch = self.client.get_my_channel_id()
             user_ch = int(getattr(user, "nChannelID", 0) or 0) if user else 0
-            if my_ch and user_ch == int(my_ch):
+            if my_id and user_id == my_id:
+                # Ich selbst habe einen Kanal betreten
+                self.sound_manager.play("channel_join", se.get("channel_join"))
+            elif my_ch and user_ch == int(my_ch):
+                # Anderer Benutzer betritt meinen Kanal
                 self.sound_manager.play("user_join", se.get("user_join"))
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
-            self.sound_manager.play("user_leave", se.get("user_leave"))
+            if not (my_id and user_id == my_id):
+                self.sound_manager.play("user_leave", se.get("user_leave"))
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN:
             self.sound_manager.play("user_login", se.get("user_login"))
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDOUT:

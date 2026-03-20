@@ -19,9 +19,11 @@ if TYPE_CHECKING:
 
 
 _SOUND_EVENTS = [
+    ("Server-Verbindung erfolgreich", "server_connect"),
+    ("Server-Verbindung getrennt", "server_disconnect"),
+    ("Eigenen Kanal betreten", "channel_join"),
     ("Benutzer betritt Kanal", "user_join"),
     ("Benutzer verlässt Kanal", "user_leave"),
-    ("Server-Verbindung getrennt", "server_disconnect"),
     ("Privatnachricht empfangen", "msg_private_rx"),
     ("Privatnachricht gesendet", "msg_private_tx"),
     ("Kanalnachricht empfangen", "msg_channel_rx"),
