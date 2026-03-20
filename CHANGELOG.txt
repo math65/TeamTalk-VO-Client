@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.9)
+- "Über"-Dialog vollständig überarbeitet (Hilfe-Menü → "Über"):
+    - Reiter "Allgemein": App-Name, Version, Hauptentwickler, verwendete
+      Bibliotheken und unterstützte Plattformen.
+    - Reiter "Danksagungen": Namentliche Nennung aller Beta-Tester und
+      Unterstützer (Karo, FVH, DHT, Korn, de Losse) mit Beschreibung
+      ihrer jeweiligen Beiträge.
+    - Reiter "Lizenzen": Auswahlliste der verfügbaren Lizenzdateien;
+      "Lizenz öffnen" bzw. Doppelklick zeigt den vollständigen Lizenztext
+      in einem eigenen Fenster an.
+
 2026-03-20 (v0.10.8)
 - VoiceOver-Verbesserungen (macOS):
     - Regler (wx.Slider) werden jetzt als "Regler" statt "slider" angesagt.

@@ -38,7 +38,7 @@ from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.10.8"
+APP_VERSION = "0.10.9"
 
 
 def _init_startup_logging() -> None:
@@ -2581,21 +2581,158 @@ class MainFrame(wx.Frame):
         wx.CallAfter(self.settings_window.settings_tab.section_choice.SetFocus)
 
     def on_menu_about(self, _event):
-        text = self._build_about_text()
-        dlg = wx.Dialog(self, title="Über", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg = wx.Dialog(self, title="Über TeamTalk VoiceOver Client",
+                        style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
         dlg.SetAcceleratorTable(accel)
         dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
+
         root = wx.BoxSizer(wx.VERTICAL)
-        info = wx.TextCtrl(
-            dlg,
-            value=text,
-            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2,
+        nb = wx.Notebook(dlg)
+        nb.SetName("Über Reiter")
+
+        # ---- Reiter 1: Allgemein ----
+        p_general = wx.Panel(nb)
+        p_general.SetName("Allgemein")
+        gs = wx.BoxSizer(wx.VERTICAL)
+        general_text = (
+            f"TeamTalk VoiceOver Client  {APP_VERSION}\n"
+            "\n"
+            "Ein barrierefreier TeamTalk-Client, optimiert für VoiceOver und\n"
+            "Braillezeilen auf macOS sowie für andere Screenreader auf Windows.\n"
+            "\n"
+            "Hauptentwickler\n"
+            "  Florian Lichteblau (Flarion)\n"
+            "\n"
+            "Verwendete Bibliotheken und Werkzeuge\n"
+            "  • TeamTalk SDK  –  BearWare (bearware.dk)\n"
+            "  • wxPython  –  wxWidgets-Projekt\n"
+            "  • PyInstaller  –  PyInstaller-Team\n"
+            "  • espeak-ng  –  espeak-ng-Autoren\n"
+            "  • yt-dlp  –  yt-dlp-Autoren\n"
+            "  • certifi, urllib3, charset-normalizer, requests\n"
+            "\n"
+            "Plattformen\n"
+            "  macOS (Apple Silicon & Intel)  ·  Windows  ·  Linux\n"
         )
-        info.SetMinSize((700, 520))
-        root.Add(info, 1, wx.ALL | wx.EXPAND, 10)
-        btns = dlg.CreateButtonSizer(wx.OK)
-        root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+        tc_general = wx.TextCtrl(p_general, value=general_text,
+                                 style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+        tc_general.SetName("Allgemeine Informationen")
+        tc_general.SetMinSize((640, 340))
+        gs.Add(tc_general, 1, wx.ALL | wx.EXPAND, 10)
+        p_general.SetSizer(gs)
+        nb.AddPage(p_general, "Allgemein")
+
+        # ---- Reiter 2: Danksagungen ----
+        p_thanks = wx.Panel(nb)
+        p_thanks.SetName("Danksagungen")
+        ts = wx.BoxSizer(wx.VERTICAL)
+        thanks_text = (
+            "Beta-Tester und Unterstützer\n"
+            "════════════════════════════════════════\n"
+            "\n"
+            "Karo\n"
+            "  Herzlichen Dank für die Bereitstellung des Git-Servers,\n"
+            "  auf dem dieses Projekt ganz oder in Teilen für die\n"
+            "  Zusammenarbeit verfügbar gemacht wurde und wird.\n"
+            "\n"
+            "FVH\n"
+            "  Dank für wichtige frühe Entwicklungsarbeit: die Einführung\n"
+            "  der Tab-Struktur sowie die erste ElevenLabs-Unterstützung\n"
+            "  in diesem Client.\n"
+            "\n"
+            "DHT\n"
+            "  Dank für die ersten Tests und Experimente auf Windows sowie\n"
+            "  weitere Tests unter macOS. Dank der Multiplattform-Fähigkeit\n"
+            "  von wxPython wuchs die Nachfrage nach Windows- und\n"
+            "  Linux-Unterstützung schnell – DHT war dabei von Anfang an.\n"
+            "\n"
+            "Korn\n"
+            "  Dank für Unterstützung und Tests auf macOS mit\n"
+            "  Apple-M1-Prozessor.\n"
+            "\n"
+            "de Losse\n"
+            "  Dank für Tests unter macOS auf einem Mac mini.\n"
+        )
+        tc_thanks = wx.TextCtrl(p_thanks, value=thanks_text,
+                                style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+        tc_thanks.SetName("Danksagungen Text")
+        tc_thanks.SetMinSize((640, 340))
+        ts.Add(tc_thanks, 1, wx.ALL | wx.EXPAND, 10)
+        p_thanks.SetSizer(ts)
+        nb.AddPage(p_thanks, "Danksagungen")
+
+        # ---- Reiter 3: Lizenzen ----
+        p_lic = wx.Panel(nb)
+        p_lic.SetName("Lizenzen")
+        ls = wx.BoxSizer(wx.VERTICAL)
+
+        base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+        license_files = [
+            ("TeamTalk VO Client – Lizenz",
+             base / "licenses" / "TEAMTALK_VO_CLIENT_LICENSE.txt"),
+            ("TeamTalk SDK – Lizenz",
+             base / "licenses" / "TEAMTALK_SDK_LICENSE.txt"),
+        ]
+
+        ls.Add(wx.StaticText(p_lic,
+               label="Wähle eine Lizenz aus und klicke auf 'Öffnen':"),
+               0, wx.ALL, 10)
+        lic_list = wx.ListBox(p_lic,
+                              choices=[name for name, _ in license_files])
+        lic_list.SetName("Lizenzen Liste")
+        lic_list.SetMinSize((400, 120))
+        if license_files:
+            lic_list.SetSelection(0)
+        ls.Add(lic_list, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 10)
+
+        open_btn = wx.Button(p_lic, label="Lizenz öffnen")
+        open_btn.SetName("Lizenz öffnen")
+        ls.Add(open_btn, 0, wx.ALL, 10)
+
+        ls.Add(wx.StaticText(p_lic,
+               label="Weitere Abhängigkeiten: Lizenzen der jeweiligen Projekte beachten."),
+               0, wx.LEFT | wx.BOTTOM, 10)
+        p_lic.SetSizer(ls)
+        nb.AddPage(p_lic, "Lizenzen")
+
+        def on_open_license(_evt):
+            idx = lic_list.GetSelection()
+            if idx == wx.NOT_FOUND:
+                return
+            name, path = license_files[idx]
+            if not path.exists():
+                wx.MessageBox(f"Lizenzdatei nicht gefunden:\n{path}",
+                              "Fehler", wx.OK | wx.ICON_ERROR, dlg)
+                return
+            try:
+                content = path.read_text(encoding="utf-8", errors="replace")
+            except Exception as exc:
+                wx.MessageBox(f"Datei konnte nicht gelesen werden:\n{exc}",
+                              "Fehler", wx.OK | wx.ICON_ERROR, dlg)
+                return
+            ld = wx.Dialog(dlg, title=name,
+                           style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+            la = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+            ld.SetAcceleratorTable(la)
+            ld.Bind(wx.EVT_MENU, lambda e: ld.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
+            lroot = wx.BoxSizer(wx.VERTICAL)
+            ltc = wx.TextCtrl(ld, value=content,
+                              style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+            ltc.SetName(name)
+            ltc.SetMinSize((700, 520))
+            lroot.Add(ltc, 1, wx.ALL | wx.EXPAND, 10)
+            lroot.Add(ld.CreateButtonSizer(wx.OK), 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+            ld.SetSizerAndFit(lroot)
+            ld.CentreOnParent()
+            ld.ShowModal()
+            ld.Destroy()
+
+        open_btn.Bind(wx.EVT_BUTTON, on_open_license)
+        lic_list.Bind(wx.EVT_LISTBOX_DCLICK, on_open_license)
+
+        root.Add(nb, 1, wx.ALL | wx.EXPAND, 8)
+        root.Add(dlg.CreateButtonSizer(wx.OK), 0, wx.ALL | wx.ALIGN_RIGHT, 10)
         dlg.SetSizerAndFit(root)
         dlg.CentreOnParent()
         dlg.ShowModal()
@@ -2678,43 +2815,6 @@ class MainFrame(wx.Frame):
         dlg.CentreOnParent()
         dlg.ShowModal()
         dlg.Destroy()
-
-    def _build_about_text(self) -> str:
-        parts: List[str] = []
-        parts.append(f"TeamTalk VoiceOver Client {APP_VERSION}")
-        parts.append("Entwickler: Flarion")
-        parts.append("Hinweis: Beta-Tester werden später aufgeführt.")
-        parts.append("")
-        parts.append("Bestandteile:")
-        parts.append("- TeamTalk SDK (BearWare)")
-        parts.append("- wxPython")
-        parts.append("- PyInstaller")
-        parts.append("- espeak-ng")
-        parts.append("- yt-dlp")
-        parts.append("- certifi, urllib3, charset-normalizer")
-        parts.append("")
-        parts.append("Lizenzen:")
-
-        base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
-        license_paths = [
-            base / "licenses" / "TEAMTALK_VO_CLIENT_LICENSE.txt",
-            base / "licenses" / "TEAMTALK_SDK_LICENSE.txt",
-        ]
-
-        for lp in license_paths:
-            parts.append("")
-            if not lp.exists():
-                continue
-            parts.append(f"--- {lp.name} ---")
-            try:
-                parts.append(lp.read_text(encoding="utf-8", errors="replace"))
-            except Exception:
-                continue
-
-        parts.append("")
-        parts.append("Weitere Abhängigkeiten sind enthalten; falls Lizenztexte fehlen,")
-        parts.append("bitte die jeweiligen Projekte konsultieren.")
-        return "\n".join(parts)
 
     def _build_changelog_text(self) -> str:
         base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
