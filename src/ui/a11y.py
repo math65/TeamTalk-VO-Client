@@ -6,23 +6,6 @@ import sys
 import wx
 
 
-def _get_table_subview(nsview):
-    """Gibt das wxNSTableView-Unterelement eines NSScrollView zurück."""
-    try:
-        for sv in nsview.subviews():
-            cls = sv.__class__.__name__
-            if "TableView" in cls or "ListView" in cls:
-                return sv
-            # NSClipView enthält die TableView
-            if "ClipView" in cls:
-                for child in sv.subviews():
-                    if "TableView" in cls or "View" in child.__class__.__name__:
-                        return child
-        return None
-    except Exception:
-        return None
-
-
 def setup_list_accessible(lb: wx.ListBox) -> None:
     """Setzt die native NSAccessibility-Rolle auf AXList (VoiceOver: 'Liste')."""
     if sys.platform != "darwin":
@@ -56,5 +39,52 @@ def setup_list_accessible(lb: wx.ListBox) -> None:
         except Exception:
             pass
 
-    # Muss nach dem Erstellen des Fensters ausgeführt werden
     wx.CallAfter(_apply)
+
+
+def patch_button_accessibility() -> None:
+    """Swizzelt wxNSButton einmalig, damit VoiceOver 'Taste' / 'Kontrollkästchen' ansagt.
+
+    Muss einmal beim Programmstart aufgerufen werden (nach wx.App-Erstellung).
+    """
+    if sys.platform != "darwin":
+        return
+
+    try:
+        import objc  # noqa: PLC0415
+        from AppKit import (  # noqa: PLC0415
+            NSAccessibilityButtonRole,
+            NSAccessibilityCheckBoxRole,
+        )
+
+        cls = objc.lookUpClass("wxNSButton")
+
+        # bezelStyle == 0  →  CheckBox / Schalter
+        # bezelStyle != 0  →  normaler Button / Taste
+
+        @objc.typedSelector(b"@@:")
+        def _new_role(self):
+            try:
+                return (
+                    NSAccessibilityCheckBoxRole
+                    if self.bezelStyle() == 0
+                    else NSAccessibilityButtonRole
+                )
+            except Exception:
+                return NSAccessibilityButtonRole
+
+        @objc.typedSelector(b"@@:")
+        def _new_role_desc(self):
+            try:
+                return (
+                    "Kontrollkästchen"
+                    if self.bezelStyle() == 0
+                    else "Taste"
+                )
+            except Exception:
+                return "Taste"
+
+        objc.classAddMethod(cls, b"accessibilityRole", _new_role)
+        objc.classAddMethod(cls, b"accessibilityRoleDescription", _new_role_desc)
+    except Exception:
+        pass
