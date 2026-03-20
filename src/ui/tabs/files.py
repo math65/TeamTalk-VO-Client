@@ -150,12 +150,13 @@ class FilesTab(wx.Panel):
             self, f"Datei '{name}' wirklich löschen?",
             "Datei löschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
         )
+        dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
             return
         dlg.Destroy()
         self.frame.client.delete_file(int(ch_id), file_id)
-        self.frame.set_status("Datei geloescht")
+        self.frame.set_status("Datei gelöscht")
         wx.CallLater(500, self.refresh_file_list)
 
     def on_file_transfer_update(self, transfer_id: int):

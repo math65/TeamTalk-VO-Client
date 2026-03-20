@@ -256,6 +256,7 @@ class ConnectionTab(wx.Panel):
             self, f"Server '{name}' wirklich entfernen?",
             "Server entfernen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
         )
+        dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
             return
@@ -530,6 +531,7 @@ class ConnectionTab(wx.Panel):
             "Verbinden?",
             wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION,
         )
+        confirm.SetYesNoLabels("Ja", "Nein")
         if confirm.ShowModal() == wx.ID_YES:
             self.on_connect(None)
         confirm.Destroy()

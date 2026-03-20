@@ -44,19 +44,19 @@ class AudioTab(wx.Panel):
         sizer.Add(dev_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
 
         # --- Voice activation ---
-        va_box = wx.StaticBox(self, label="Voice Activation")
+        va_box = wx.StaticBox(self, label="Sprachaktivierung")
         va_sizer = wx.StaticBoxSizer(va_box, wx.VERTICAL)
         va_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         va_form.AddGrowableCol(1)
 
-        lbl_va = wx.StaticText(self, label="Voice Activation")
-        self.voice_activation = wx.CheckBox(self, label="Voice Activation")
-        self.voice_activation.SetName("Voice Activation")
+        lbl_va = wx.StaticText(self, label="Sprachaktivierung")
+        self.voice_activation = wx.CheckBox(self, label="Sprachaktivierung")
+        self.voice_activation.SetName("Sprachaktivierung")
         self.voice_activation.Bind(wx.EVT_CHECKBOX, self.on_voice_activation)
 
-        lbl_vl = wx.StaticText(self, label="Voice Level")
+        lbl_vl = wx.StaticText(self, label="Aktivierungspegel")
         self.voice_level = wx.Slider(self, value=30, minValue=0, maxValue=100)
-        self.voice_level.SetName("Voice Level")
+        self.voice_level.SetName("Aktivierungspegel")
         self.voice_level.Bind(wx.EVT_SLIDER, self.on_voice_level)
 
         lbl_delay = wx.StaticText(self, label="VA Nachlauf (ms)")
@@ -79,9 +79,9 @@ class AudioTab(wx.Panel):
         levels_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         levels_form.AddGrowableCol(1)
 
-        lbl_ig = wx.StaticText(self, label="Mikrofon Gain")
+        lbl_ig = wx.StaticText(self, label="Mikrofonverstärkung")
         self.input_gain = wx.Slider(self, value=2000, minValue=0, maxValue=32000)
-        self.input_gain.SetName("Mikrofon Gain")
+        self.input_gain.SetName("Mikrofonverstärkung")
         self.input_gain.Bind(wx.EVT_SLIDER, self.on_input_gain)
 
         lbl_ov = wx.StaticText(self, label="Ausgabe-Lautstärke")
@@ -97,10 +97,10 @@ class AudioTab(wx.Panel):
         sizer.Add(levels_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
 
         # --- VU Meter ---
-        vu_box = wx.StaticBox(self, label="VU Meter")
+        vu_box = wx.StaticBox(self, label="Aussteuerungsanzeige")
         vu_sizer = wx.StaticBoxSizer(vu_box, wx.VERTICAL)
         self.vu_gauge = wx.Gauge(self, range=100)
-        self.vu_gauge.SetName("VU Meter")
+        self.vu_gauge.SetName("Aussteuerungsanzeige")
         vu_sizer.Add(self.vu_gauge, 0, wx.ALL | wx.EXPAND, 4)
         sizer.Add(vu_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
 
@@ -457,7 +457,7 @@ class AudioTab(wx.Panel):
             self.frame.client.enable_voice_transmission(True)
         if not enabled and not self.frame._ptt_enabled:
             self.frame.client.enable_voice_transmission(False)
-        self.frame.set_status("Voice Activation an" if enabled else "Voice Activation aus")
+        self.frame.set_status("Sprachaktivierung an" if enabled else "Sprachaktivierung aus")
 
     def on_voice_level(self, _event):
         self.frame.client.set_voice_activation_level(int(self.voice_level.GetValue()))
@@ -670,7 +670,7 @@ class AudioTab(wx.Panel):
     def _on_pref_clear(self, _event) -> None:
         self.frame.settings_store.settings.audio_prefs = {}
         self.frame.settings_store.save()
-        self.frame.set_status("Gespeicherte Audioeinstellungen geloescht")
+        self.frame.set_status("Gespeicherte Audioeinstellungen gelöscht")
 
     # ------------------------------------------------------------------
     # Hotkey capture

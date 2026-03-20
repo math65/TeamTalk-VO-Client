@@ -37,7 +37,7 @@ from tts import TTSManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.10.0"
+APP_VERSION = "0.10.2"
 
 
 def _init_startup_logging() -> None:
@@ -80,6 +80,10 @@ class ServerCheckDialog(wx.Dialog):
 
         panel = wx.Panel(self)
         root = wx.BoxSizer(wx.VERTICAL)
+
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        self.SetAcceleratorTable(accel)
+        self.Bind(wx.EVT_MENU, lambda e: self.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
 
         def _parse_online_count(result: str) -> int:
             text = (result or "").strip().lower()
@@ -740,8 +744,6 @@ class MainFrame(wx.Frame):
         help_logs = help_menu.Append(wx.ID_ANY, "Logs exportieren...")
         help_stats = help_menu.Append(wx.ID_ANY, "Verbindungsstatistiken...")
         help_stats_speak = help_menu.Append(wx.ID_ANY, "Statistiken vorlesen")
-        help_manual = help_menu.Append(wx.ID_ANY, "Handbuch...")
-        help_website = help_menu.Append(wx.ID_ANY, "BearWare.dk Website")
         help_menu.AppendSeparator()
         help_changelog = help_menu.Append(wx.ID_ANY, "Changelog")
         help_about = help_menu.Append(wx.ID_ANY, "Über")
@@ -862,8 +864,6 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_export_logs, help_logs)
         self.Bind(wx.EVT_MENU, self.on_menu_client_stats, help_stats)
         self.Bind(wx.EVT_MENU, self.on_menu_client_stats_speak, help_stats_speak)
-        self.Bind(wx.EVT_MENU, self.on_menu_help_manual, help_manual)
-        self.Bind(wx.EVT_MENU, self.on_menu_help_website, help_website)
         self.Bind(wx.EVT_MENU, self.on_menu_changelog, help_changelog)
         self.Bind(wx.EVT_MENU, self.on_menu_about, help_about)
 
@@ -952,6 +952,9 @@ class MainFrame(wx.Frame):
         if password:
             style |= wx.TE_PASSWORD
         dlg = wx.TextEntryDialog(self, label, title, value, style=style)
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
         if dlg.ShowModal() != wx.ID_OK:
             dlg.Destroy()
             return None
@@ -1029,6 +1032,9 @@ class MainFrame(wx.Frame):
         audio_codec_locked: bool = False,
     ) -> Optional[dict]:
         dlg = wx.Dialog(self, title=title)
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
         root = wx.BoxSizer(wx.VERTICAL)
 
         form_box = wx.StaticBoxSizer(wx.StaticBox(dlg, label="Grunddaten"), wx.VERTICAL)
@@ -1748,6 +1754,7 @@ class MainFrame(wx.Frame):
             self.set_status("Kein Kanal ausgewaehlt")
             return
         dlg = wx.MessageDialog(self, "Kanal wirklich löschen?", "Kanal löschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
             return
@@ -2118,6 +2125,9 @@ class MainFrame(wx.Frame):
             return
         current = self._get_user_volume_level(int(user.nUserID))
         dlg = wx.NumberEntryDialog(self, "Lautstärke (0–32000)", "Lautstärke:", "Benutzerlautstärke", current, 0, 32000)
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
         if dlg.ShowModal() == wx.ID_OK:
             vol = dlg.GetValue()
             vol = self._set_user_volume_level(int(user.nUserID), int(vol))
@@ -2173,6 +2183,7 @@ class MainFrame(wx.Frame):
             self.set_status("Kein eigener Kanal")
             return
         dlg = wx.MessageDialog(self, "Benutzer wirklich kicken?", "Kick", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
             return
@@ -2204,6 +2215,7 @@ class MainFrame(wx.Frame):
         if ban_types is None:
             return
         dlg = wx.MessageDialog(self, "Benutzer wirklich kicken und bannen?", "Kick + Ban", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
             return
@@ -2222,6 +2234,7 @@ class MainFrame(wx.Frame):
             self.set_status("Kein Benutzer ausgewaehlt")
             return
         dlg = wx.MessageDialog(self, "Benutzer wirklich vom Server kicken?", "Vom Server kicken", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
             return
@@ -2241,6 +2254,7 @@ class MainFrame(wx.Frame):
         if ban_types is None:
             return
         dlg = wx.MessageDialog(self, "Benutzer wirklich vom Server kicken und bannen?", "Kick + Ban (Server)", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
             return
@@ -2300,6 +2314,9 @@ class MainFrame(wx.Frame):
             ("Intercept Custom", tt.Subscription.SUBSCRIBE_INTERCEPT_CUSTOM_MSG),
         ]
         dlg = wx.Dialog(self, title="Abonnements")
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
         root = wx.BoxSizer(wx.VERTICAL)
         checks = []
         current = int(getattr(user, "uLocalSubscriptions", 0) or 0)
@@ -2558,17 +2575,12 @@ class MainFrame(wx.Frame):
         self.settings_window.Raise()
         wx.CallAfter(self.settings_window.settings_tab.section_choice.SetFocus)
 
-    def on_menu_help_manual(self, _event):
-        import webbrowser
-        webbrowser.open("https://bearware.dk/teamtalk/manual/")
-
-    def on_menu_help_website(self, _event):
-        import webbrowser
-        webbrowser.open("https://bearware.dk")
-
     def on_menu_about(self, _event):
         text = self._build_about_text()
         dlg = wx.Dialog(self, title="Über", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
         root = wx.BoxSizer(wx.VERTICAL)
         info = wx.TextCtrl(
             dlg,
@@ -2589,6 +2601,9 @@ class MainFrame(wx.Frame):
         if not sections:
             text = self._build_changelog_text()
             dlg = wx.Dialog(self, title="Changelog", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+            accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+            dlg.SetAcceleratorTable(accel)
+            dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
             root = wx.BoxSizer(wx.VERTICAL)
             info = wx.TextCtrl(
                 dlg,
@@ -2606,6 +2621,9 @@ class MainFrame(wx.Frame):
             return
 
         dlg = wx.Dialog(self, title="Changelog", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
         root = wx.BoxSizer(wx.VERTICAL)
         splitter = wx.SplitterWindow(dlg, style=wx.SP_LIVE_UPDATE)
         left = wx.Panel(splitter)

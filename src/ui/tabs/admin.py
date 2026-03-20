@@ -41,8 +41,8 @@ class AdminTab(wx.Panel):
         self.load_accounts_btn = wx.Button(self, label="Konten laden")
         self.load_accounts_btn.SetName("Konten laden")
         self.load_accounts_btn.Bind(wx.EVT_BUTTON, self.on_load_accounts)
-        self.add_account_btn = wx.Button(self, label="Konto hinzufuegen")
-        self.add_account_btn.SetName("Konto hinzufuegen")
+        self.add_account_btn = wx.Button(self, label="Konto hinzufügen")
+        self.add_account_btn.SetName("Konto hinzufügen")
         self.add_account_btn.Bind(wx.EVT_BUTTON, self.on_add_account)
         self.del_account_btn = wx.Button(self, label="Konto löschen")
         self.del_account_btn.SetName("Konto löschen")
@@ -162,6 +162,9 @@ class AdminTab(wx.Panel):
 
     def on_add_account(self, _event):
         dlg = _NewAccountDialog(self)
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
         if dlg.ShowModal() == wx.ID_OK:
             vals = dlg.get_values()
             dlg.Destroy() # Destroy dialog immediately after getting values
@@ -204,22 +207,23 @@ class AdminTab(wx.Panel):
             self, f"Konto '{username}' wirklich löschen?",
             "Konto löschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
         )
+        dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
             return
         dlg.Destroy()
 
         self.del_account_btn.Disable()
-        self.frame.set_status(f"Konto wird geloescht: {username}...")
+        self.frame.set_status(f"Konto wird gelöscht: {username}...")
 
         def worker():
             try:
                 success = self.frame.client.do_delete_user_account(username)
                 if success:
-                    wx.CallAfter(self.frame.set_status, f"Konto geloescht: {username}")
+                    wx.CallAfter(self.frame.set_status, f"Konto gelöscht: {username}")
                     wx.CallAfter(self.on_load_accounts, None) # Refresh list
                 else:
-                    wx.CallAfter(self.frame.set_status, f"Konto konnte nicht geloescht werden: {username}")
+                    wx.CallAfter(self.frame.set_status, f"Konto konnte nicht gelöscht werden: {username}")
             except Exception as e:
                 wx.CallAfter(self.frame.set_status, f"Fehler beim Loeschen des Kontos: {e}")
             finally:

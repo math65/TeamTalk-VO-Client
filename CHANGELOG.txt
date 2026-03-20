@@ -1,6 +1,18 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.2)
+- Hilfe-Menü:
+    - "Handbuch" und "BearWare.dk Website" entfernt.
+- Dialoge / Barrierefreiheit:
+    - Alle Ja/Nein-Dialoge: SetYesNoLabels("Ja", "Nein") ergänzt.
+    - Alle benutzerdefinierten wx.Dialog-Fenster: Cmd+W zum Schließen ergänzt.
+    - Englische Beschriftungen in Audio-Tab (Voice Activation → Sprachaktivierung,
+      VU Meter → Aussteuerungsanzeige, Mikrofon Gain → Mikrofonverstärkung) korrigiert.
+    - Sprechen-Tab: Stabilität, Ähnlichkeit, Stil, Sprecher-Boost auf Deutsch.
+    - Restliche Umlaut-Ersetzungen (geloescht → gelöscht, loescht → löscht) behoben.
+- Versionierung: App-Version auf 0.10.2 angehoben.
+
 2026-03-20 (v0.10.1)
 - Navigation:
     - wx.Notebook durch Panel-Umschalter ersetzt: VoiceOver/NVDA sieht jetzt

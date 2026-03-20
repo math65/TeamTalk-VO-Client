@@ -431,6 +431,7 @@ class ChannelsTab(wx.Panel):
             self, "Benutzer wirklich kicken?",
             "Kick", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
         )
+        dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
             return
@@ -450,6 +451,7 @@ class ChannelsTab(wx.Panel):
             self, "Benutzer wirklich kicken und bannen?",
             "Kick + Ban", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
         )
+        dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
             return
@@ -511,6 +513,9 @@ class ChannelsTab(wx.Panel):
                 ]
             )
         dlg = wx.SingleChoiceDialog(self, "Ban-Art auswählen", "Bannen", choices)
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
         if dlg.ShowModal() != wx.ID_OK:
             dlg.Destroy()
             return None

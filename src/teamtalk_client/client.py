@@ -626,7 +626,7 @@ class TeamTalkClient:
             if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_NONE:
                 return ConnectResult(False, "Kanal löschen fehlgeschlagen: Timeout")
             return ConnectResult(False, "Kanal löschen fehlgeschlagen")
-        return ConnectResult(True, "Kanal geloescht")
+        return ConnectResult(True, "Kanal gelöscht")
 
     def leave_channel(self, timeout_ms: int = 2000) -> ConnectResult:
         cmdid = self.client.doLeaveChannel()
