@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeamTalk VoiceOver Client – Handbuch</title>
+<style>
+  body { font-family: sans-serif; font-size: 14px; margin: 0; padding: 16px 24px; background: #fff; color: #111; line-height: 1.6; }
+  h1 { font-size: 1.8em; border-bottom: 2px solid #333; padding-bottom: 6px; margin-top: 24px; }
+  h2 { font-size: 1.4em; border-bottom: 1px solid #999; padding-bottom: 4px; margin-top: 20px; color: #222; }
+  h3 { font-size: 1.1em; margin-top: 16px; color: #333; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+  th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #eee; font-weight: bold; }
+  code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
+  ul, ol { margin: 6px 0 6px 22px; padding: 0; }
+  li { margin: 3px 0; }
+  .platform { display: inline-block; font-size: 0.85em; font-weight: bold; padding: 1px 6px; border-radius: 3px; margin-right: 4px; }
+  .mac { background: #d0e8ff; color: #003366; }
+  .win { background: #dff0d8; color: #1a4a00; }
+  .lin { background: #fff3cd; color: #5a4000; }
+  .note { background: #fffbe6; border-left: 4px solid #e6b800; padding: 8px 12px; margin: 10px 0; border-radius: 3px; }
+  .tip  { background: #e8f5e9; border-left: 4px solid #388e3c; padding: 8px 12px; margin: 10px 0; border-radius: 3px; }
+  #toc { background: #f7f7f7; border: 1px solid #ddd; padding: 12px 16px; display: inline-block; min-width: 280px; margin-bottom: 16px; }
+  #toc h2 { margin-top: 0; border: none; }
+  #toc ol { margin: 0; }
+  #toc li { margin: 2px 0; }
+</style>
+</head>
+<body>
+
+<h1>TeamTalk VoiceOver Client – Benutzerhandbuch</h1>
+<p>Barrierefreier TeamTalk-Client für VoiceOver (macOS), NVDA / JAWS (Windows) und Orca (Linux).<br>
+Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
+
+<div id="toc">
+<h2>Inhaltsverzeichnis</h2>
+<ol>
+  <li><a href="#ueber">Über diese App</a></li>
+  <li><a href="#systemanforderungen">Systemanforderungen &amp; Plattformunterschiede</a></li>
+  <li><a href="#installation">Installation &amp; erster Start</a></li>
+  <li><a href="#hauptfenster">Hauptfenster – Überblick</a></li>
+  <li><a href="#menue">Menüleiste (alle Menüpunkte)</a></li>
+  <li><a href="#verbindung">Verbindung herstellen</a></li>
+  <li><a href="#kanaelechat">Kanäle, Nutzerliste &amp; Chat</a></li>
+  <li><a href="#audio">Audio-Einstellungen</a></li>
+  <li><a href="#medien">Aufnahme &amp; Medien-Streaming</a></li>
+  <li><a href="#dateien">Dateien</a></li>
+  <li><a href="#admin">Administration</a></li>
+  <li><a href="#sprechen">Sprechen (ElevenLabs TTS)</a></li>
+  <li><a href="#desktop">Desktopfreigabe</a></li>
+  <li><a href="#einstellungen">Einstellungen</a></li>
+  <li><a href="#systemtts">System &amp; TTS (espeak-ng)</a></li>
+  <li><a href="#kuerzel">Tastaturkürzel anpassen</a></li>
+  <li><a href="#schnellaktionen">Schnellaktionen-Leiste</a></li>
+  <li><a href="#tray">Tray-Symbol</a></li>
+  <li><a href="#probleme">Häufige Probleme &amp; Lösungen</a></li>
+  <li><a href="#plattform">Plattformunterschiede im Detail</a></li>
+</ol>
+</div>
+
+<!-- ================================================================ -->
+<h1 id="ueber">1 · Über diese App</h1>
+<p>Der <strong>TeamTalk VoiceOver Client</strong> ist ein grafischer Client für das TeamTalk-Protokoll, der speziell für blinde und sehbehinderte Nutzer entwickelt wurde. Alle Bedienelemente sind für Screenreader optimiert:</p>
+<ul>
+  <li><strong>macOS</strong> – VoiceOver mit Braillezeile (primäre Plattform)</li>
+  <li><strong>Windows</strong> – NVDA, JAWS (vollständig unterstützt, Alt+Buchstabe-Shortcuts für alle Schaltflächen)</li>
+  <li><strong>Linux</strong> – Orca (grundlegend unterstützt)</li>
+</ul>
+<p>TeamTalk ist ein Sprachkommunikationsdienst ähnlich wie Mumble oder Discord. Der Client verbindet sich mit einem TeamTalk-Server, tritt Kanälen bei und ermöglicht Sprach- und Textkommunikation.</p>
+
+<!-- ================================================================ -->
+<h1 id="systemanforderungen">2 · Systemanforderungen &amp; Plattformunterschiede</h1>
+
+<table>
+<tr><th>Merkmal</th><th><span class="platform mac">macOS</span></th><th><span class="platform win">Windows</span></th><th><span class="platform lin">Linux</span></th></tr>
+<tr><td>Mindestversion</td><td>macOS 11 (Big Sur)</td><td>Windows 10 (64-bit)</td><td>Ubuntu 20.04 oder vergleichbar</td></tr>
+<tr><td>Screenreader</td><td>VoiceOver (eingebaut)</td><td>NVDA, JAWS</td><td>Orca</td></tr>
+<tr><td>TTS-Ausgabe</td><td>afplay (eingebaut)</td><td>winsound (eingebaut)</td><td>direkt via espeak-ng</td></tr>
+<tr><td>Tastaturkürzel für Buttons</td><td>Nicht nötig (VoiceOver navigiert direkt)</td><td>Alt+markierter Buchstabe</td><td>Alt+markierter Buchstabe</td></tr>
+<tr><td>Listenansagen</td><td>"Liste, N Einträge" (VoiceOver-Patch aktiv)</td><td>NVDA/JAWS lesen Einträge normal vor</td><td>Orca liest Einträge vor</td></tr>
+<tr><td>Tray-Symbol</td><td>Menüleiste oben rechts</td><td>Systemtray unten rechts</td><td>Systemtray (falls verfügbar)</td></tr>
+<tr><td>Fenster schließen</td><td>Minimiert in Tray (rotes X), Cmd+Q zum Beenden</td><td>Minimiert in Tray, Datei → Beenden</td><td>Minimiert in Tray, Datei → Beenden</td></tr>
+</table>
+
+<div class="note">
+<strong>Hinweis für macOS-Nutzer:</strong> Das Schließen des Hauptfensters (rotes X oder Cmd+W) minimiert die App in die Menüleiste – die Verbindung bleibt aktiv. Um die App wirklich zu beenden: <em>Datei → Beenden</em> oder <em>Cmd+Q</em>.
+</div>
+<div class="note">
+<strong>Hinweis für Windows-Nutzer:</strong> Alt+Buchstabe aktiviert die markierte Schaltfläche direkt (z.B. Alt+V für "Verbinden"). Dies funktioniert innerhalb des gerade angezeigten Bereichs.
+</div>
+
+<!-- ================================================================ -->
+<h1 id="installation">3 · Installation &amp; erster Start</h1>
+
+<h2>macOS</h2>
+<ol>
+  <li>DMG-Datei öffnen (Doppelklick).</li>
+  <li>"TeamTalk VO Client.app" in den Programme-Ordner ziehen.</li>
+  <li>Beim ersten Start: Rechtsklick → "Öffnen" (einmalig wegen Gatekeeper-Warnung).</li>
+  <li>Mikrofon- und ggf. Bildschirmaufnahme-Berechtigung erteilen wenn gefragt.</li>
+</ol>
+
+<h2>Windows</h2>
+<ol>
+  <li>EXE- oder ZIP-Datei herunterladen.</li>
+  <li>ZIP-Inhalt in einen Ordner entpacken (z.B. <code>C:\Programme\TeamTalk VO Client</code>).</li>
+  <li><code>TeamTalk VO Client.exe</code> starten.</li>
+  <li>Windows Defender / SmartScreen: "Trotzdem ausführen" wählen.</li>
+</ol>
+
+<h2>Linux</h2>
+<ol>
+  <li>AppImage oder tar.gz herunterladen und entpacken.</li>
+  <li>AppImage ausführbar machen: <code>chmod +x TeamTalk*.AppImage</code></li>
+  <li>Starten: <code>./TeamTalk*.AppImage</code></li>
+</ol>
+
+<h2>Erster Start</h2>
+<p>Beim ersten Start öffnet sich das Hauptfenster mit dem Bereich "Kanäle und Chat". Um sich zu verbinden, öffnen Sie zunächst das Verbindungsfenster über <em>Datei → Verbinden</em> oder die Schaltfläche <em>Verbinden</em> in der Schnellaktionen-Leiste.</p>
+
+<!-- ================================================================ -->
+<h1 id="hauptfenster">4 · Hauptfenster – Überblick</h1>
+<p>Das Hauptfenster besteht von oben nach unten aus:</p>
+
+<table>
+<tr><th>Element</th><th>Beschreibung</th></tr>
+<tr><td>Menüleiste</td><td>Datei, Sound, Kanal, Sprache, Hilfe – alle wichtigen Funktionen als Menüpunkte</td></tr>
+<tr><td>Bereich-Auswahl</td><td>Auswahlmenü "Bereich:" zum Wechseln zwischen den Hauptbereichen (Kanäle und Chat, Medien, Desktop, Dateien, Administration)</td></tr>
+<tr><td>Bereichsinfo</td><td>Kurzbeschreibung des aktuell gewählten Bereichs</td></tr>
+<tr><td>Hauptinhalt</td><td>Der aktuelle Bereich (Panel), z.B. Kanalliste + Nutzerliste + Chat</td></tr>
+<tr><td>Status</td><td>Zeigt den aktuellen Verbindungsstatus an (z.B. "Verbunden als Florian auf Server XY")</td></tr>
+<tr><td>Ereignisprotokoll</td><td>Mehrzeiliges Protokoll aller Ereignisse (optional, ein-/ausblendbar)</td></tr>
+<tr><td>Schnellaktionen</td><td>Checkboxen für PTT, Sprachaktivierung, Video, Desktop, Stumm, Aufnahme, Frage-Modus; Zahlfelder für Ausgabe- und Mikrofon-Lautstärke; VU-Meter (optional, ein-/ausblendbar)</td></tr>
+</table>
+
+<h2>Navigation mit Screenreader</h2>
+<table>
+<tr><th>Plattform</th><th>Zwischen Elementen navigieren</th><th>Element aktivieren</th><th>Bereich wechseln</th></tr>
+<tr><td><span class="platform mac">macOS VoiceOver</span></td><td>VO+Pfeiltasten, Tab</td><td>VO+Leertaste</td><td>Tab zum Auswahlmenü "Bereich", Pfeiltasten</td></tr>
+<tr><td><span class="platform win">Windows NVDA/JAWS</span></td><td>Tab / Shift+Tab</td><td>Enter oder Leertaste</td><td>Tab zum Auswahlmenü "Bereich", Pfeiltasten</td></tr>
+<tr><td><span class="platform lin">Linux Orca</span></td><td>Tab / Shift+Tab</td><td>Enter oder Leertaste</td><td>Tab zum Auswahlmenü "Bereich", Pfeiltasten</td></tr>
+</table>
+
+<!-- ================================================================ -->
+<h1 id="menue">5 · Menüleiste</h1>
+
+<h2>Menü: Datei</h2>
+<table>
+<tr><th>Menüpunkt</th><th>Tastenkürzel</th><th>Funktion</th></tr>
+<tr><td>TeamTalk-Datei öffnen…</td><td>Strg+O / Cmd+O</td><td>Öffnet eine .tt-Datei und verbindet sich direkt mit dem darin gespeicherten Server</td></tr>
+<tr><td>Neuen Client starten</td><td>Strg+N / Cmd+N</td><td>Startet eine zweite Instanz der App (für mehrere Server gleichzeitig)</td></tr>
+<tr><td>Sound-Konfiguration → Eingabegeräte</td><td>–</td><td>Listet alle verfügbaren Mikrofone; Haken setzen zum Aktivieren</td></tr>
+<tr><td>Sound-Konfiguration → Ausgabegeräte</td><td>–</td><td>Listet alle verfügbaren Lautsprecher/Kopfhörer</td></tr>
+<tr><td>Sound-Konfiguration → Audio-Einstellungen…</td><td>–</td><td>Öffnet das Einstellungsfenster direkt auf dem Audio-Tab</td></tr>
+<tr><td>Sound-Konfiguration → Audio anwenden</td><td>–</td><td>Wendet die aktuellen Audiogeräte sofort an</td></tr>
+<tr><td>Sound-Konfiguration → Geräte aktualisieren</td><td>–</td><td>Scannt nach neuen Audiogeräten (nach USB-Verbindung etc.)</td></tr>
+<tr><td>Sound-Konfiguration → Effekte anwenden</td><td>–</td><td>Aktiviert AGC, Rauschunterdrückung und Echounterdrückung</td></tr>
+<tr><td>Konversationen aufzeichnen…</td><td>–</td><td>Öffnet das Einstellungsfenster für automatische Aufnahmen</td></tr>
+<tr><td>Einstellungen…</td><td>F4 / Cmd+,</td><td>Öffnet das Einstellungsfenster</td></tr>
+<tr><td>Verbinden</td><td>–</td><td>Verbindet mit dem zuletzt eingestellten Server</td></tr>
+<tr><td>Trennen</td><td>–</td><td>Trennt die aktuelle Verbindung</td></tr>
+<tr><td>Neu verbinden</td><td>–</td><td>Verbindet erneut mit dem letzten Server</td></tr>
+<tr><td>Automatisch neu verbinden</td><td>–</td><td>Schalter: Verbindung bei Abbruch automatisch wiederherstellen</td></tr>
+<tr><td>Im Vordergrund halten</td><td>–</td><td>Fenster bleibt immer im Vordergrund</td></tr>
+<tr><td>Beenden</td><td>Cmd+Q / Alt+F4</td><td>Beendet die App vollständig</td></tr>
+</table>
+
+<h2>Menü: Sound</h2>
+<table>
+<tr><th>Menüpunkt</th><th>Funktion</th></tr>
+<tr><td>Push-to-Talk aktivieren</td><td>Aktiviert/deaktiviert PTT-Modus</td></tr>
+<tr><td>Sprachaktivierung aktivieren</td><td>Aktiviert/deaktiviert automatische Stimmerkennung</td></tr>
+<tr><td>Mikrofon testen</td><td>Startet einen lokalen Mikrofon-Loopback-Test</td></tr>
+<tr><td>Alles stummschalten</td><td>Stummschaltet alle anderen Nutzer auf einmal</td></tr>
+<tr><td>TTS an/aus</td><td>Schaltet die Text-to-Speech-Systemansagen ein oder aus</td></tr>
+</table>
+
+<h2>Menü: Kanal</h2>
+<table>
+<tr><th>Menüpunkt</th><th>Funktion</th></tr>
+<tr><td>Kanal beitreten</td><td>Tritt dem aktuell in der Liste markierten Kanal bei</td></tr>
+<tr><td>Root-Kanal beitreten</td><td>Wechselt direkt in den Root-Kanal des Servers</td></tr>
+<tr><td>Kanal verlassen</td><td>Verlässt den aktuellen Kanal</td></tr>
+<tr><td>Streaming starten/stoppen</td><td>Startet oder stoppt das aktuelle Medien-Streaming</td></tr>
+<tr><td>Desktop teilen</td><td>Startet die Desktopfreigabe</td></tr>
+<tr><td>Zur Zielposition bewegen</td><td>Bewegt sich in den vorher definierten Zielkanal</td></tr>
+<tr><td>Zielposition setzen</td><td>Merkt sich den aktuellen Kanal als Sprungziel</td></tr>
+<tr><td>Kanal-Statistiken</td><td>Zeigt Statistiken zum aktuellen Kanal (Nutzer, Pakete)</td></tr>
+<tr><td>Nutzer sperren…</td><td>Öffnet den Dialog zum Sperren eines Nutzers (nur für Admins)</td></tr>
+</table>
+
+<h2>Menü: Sprache</h2>
+<table>
+<tr><th>Menüpunkt</th><th>Tastenkürzel</th><th>Funktion</th></tr>
+<tr><td>Sprechen</td><td>F5</td><td>Öffnet den Sprechen-Tab (ElevenLabs TTS)</td></tr>
+<tr><td>Letzten Text wiederholen</td><td>F6</td><td>Wiederholt den zuletzt gesprochenenen Text (ElevenLabs)</td></tr>
+<tr><td>Streaming stoppen</td><td>F7</td><td>Stoppt das laufende Audio-Streaming</td></tr>
+</table>
+
+<h2>Menü: Hilfe</h2>
+<table>
+<tr><th>Menüpunkt</th><th>Funktion</th></tr>
+<tr><td>Handbuch</td><td>Öffnet dieses Handbuch</td></tr>
+<tr><td>Über TeamTalk VoiceOver Client…</td><td>Zeigt Version, Lizenzen und Danksagungen</td></tr>
+</table>
+
+<!-- ================================================================ -->
+<h1 id="verbindung">6 · Verbindung herstellen</h1>
+<p>Das <strong>Verbindungsfenster</strong> öffnet sich über <em>Datei → Einstellungen → Verbindung</em> oder beim Start automatisch. Es enthält die Serverliste und alle Verbindungsfelder.</p>
+
+<h2>Serverliste</h2>
+<p>Die Serverliste zeigt alle gespeicherten Server. Mit den Schaltflächen darunter können Sie Server verwalten:</p>
+<table>
+<tr><th>Schaltfläche</th><th>Alt-Kürzel</th><th>Funktion</th></tr>
+<tr><td>Neu</td><td>Alt+N</td><td>Speichert die aktuell eingegebenen Daten als neuen Server</td></tr>
+<tr><td>Bearbeiten</td><td>Alt+B</td><td>Aktualisiert den markierten Server mit den aktuellen Formulardaten</td></tr>
+<tr><td>Entfernen</td><td>Alt+E</td><td>Löscht den markierten Server (mit Bestätigung)</td></tr>
+<tr><td>Beitrittscode eingeben</td><td>Alt+T</td><td>Verbindet über eine tt://-URL oder eine .tt-Datei</td></tr>
+</table>
+<p>Doppelklick oder Enter auf einen Listeneintrag verbindet sich sofort. Rechtsklick öffnet ein Kontextmenü mit weiteren Optionen (Duplizieren, TT-Datei generieren).</p>
+
+<h2>Verbindungsfelder</h2>
+<table>
+<tr><th>Feld</th><th>Beschreibung</th></tr>
+<tr><td>Server</td><td>Hostname oder IP-Adresse des TeamTalk-Servers (z.B. <code>tt.example.com</code>)</td></tr>
+<tr><td>TCP Port</td><td>TCP-Port des Servers (Standard: 10333)</td></tr>
+<tr><td>UDP Port</td><td>UDP-Port des Servers (Standard: 10333; oft identisch mit TCP)</td></tr>
+<tr><td>Nickname</td><td>Ihr Anzeigename auf dem Server</td></tr>
+<tr><td>Benutzername</td><td>Login-Name (bei Gastzugang oft <code>guest</code>)</td></tr>
+<tr><td>Passwort</td><td>Login-Passwort (bei Gastzugang oft <code>guest</code>)</td></tr>
+<tr><td>Client-Name</td><td>Name des Clients (wird anderen Nutzern angezeigt, Standard: "TeamTalk VO")</td></tr>
+<tr><td>ElevenLabs API Key</td><td>API-Schlüssel für den ElevenLabs TTS-Dienst (optional, für den Sprechen-Tab)</td></tr>
+<tr><td>Verschlüsselt</td><td>Haken setzen wenn der Server TLS/SSL verwendet</td></tr>
+</table>
+
+<h2>Aktionsschaltflächen</h2>
+<table>
+<tr><th>Schaltfläche</th><th>Alt-Kürzel</th><th>Funktion</th></tr>
+<tr><td>Verbinden</td><td>Alt+V</td><td>Verbindet sich mit dem Server</td></tr>
+<tr><td>Neu verbinden</td><td>Alt+D</td><td>Trennt und verbindet sofort erneut</td></tr>
+<tr><td>Server prüfen</td><td>Alt+S</td><td>Prüft alle Server in der Liste auf aktive Nutzer (kurze Verbindungsunterbrechung)</td></tr>
+<tr><td>Root-Kanal beitreten</td><td>Alt+R</td><td>Wechselt in den Root-Kanal</td></tr>
+<tr><td>Kanal verlassen</td><td>Alt+K</td><td>Verlässt den aktuellen Kanal</td></tr>
+<tr><td>Abmelden</td><td>Alt+A</td><td>Meldet sich vom Server ab ohne die Verbindung zu trennen</td></tr>
+<tr><td>TT-URL kopieren</td><td>Alt+U</td><td>Kopiert einen tt://-Link in die Zwischenablage (zum Teilen)</td></tr>
+<tr><td>TT-Datei speichern</td><td>Alt+P</td><td>Speichert eine .tt-Datei für diesen Server</td></tr>
+</table>
+
+<h2>Verbindung über Beitrittscode</h2>
+<p>Mit "Beitrittscode eingeben" können Sie:</p>
+<ul>
+  <li>Eine <strong>tt://-URL</strong> einfügen (z.B. <code>tt://server.example.com/?tcpport=10333&amp;udpport=10333</code>)</li>
+  <li>Den Pfad zu einer <strong>.tt-Datei</strong> eingeben</li>
+</ul>
+<p>Nach der Eingabe fragt die App, ob sofort verbunden werden soll.</p>
+
+<!-- ================================================================ -->
+<h1 id="kanaelechat">7 · Kanäle, Nutzerliste &amp; Chat</h1>
+<p>Dies ist der Hauptbereich ("Kanäle und Chat"). Er gliedert sich in zwei Hälften:</p>
+
+<h2>Linke Hälfte: Kanäle &amp; Nutzer</h2>
+<p>Zwei Listen übereinander:</p>
+<ul>
+  <li><strong>Kanalliste</strong>: Zeigt alle Kanäle des Servers mit Pfad, Nutzerzahl und Passwort-Indikator. Format: <code>Kanalname, Nutzer: N, Passwort: Ja/Nein</code>. Doppelklick oder Enter tritt dem Kanal bei.</li>
+  <li><strong>Nutzerliste</strong>: Zeigt alle Nutzer im aktuellen Kanal. Format: <code>Nickname, Benutzername, Status</code>. Doppelklick öffnet den Privatchat mit diesem Nutzer.</li>
+</ul>
+<p>Die Schaltfläche <strong>Kanal beitreten</strong> (Alt+K) tritt dem markierten Kanal bei. Kanalpasswörter werden bei Bedarf abgefragt.</p>
+
+<h2>Rechte Hälfte: Chat</h2>
+<p>Ein mehrzeiliges Textfeld zeigt den Kanalchat und Privatnachrichten. Darunter:</p>
+<ul>
+  <li><strong>Eingabefeld</strong>: Nachricht eintippen, dann Enter oder "Senden" (Alt+S).</li>
+  <li><strong>Privat-Checkbox</strong> (Alt+P): Wenn aktiviert, wird die Nachricht als Privatnachricht an den in der Nutzerliste ausgewählten Nutzer geschickt.</li>
+</ul>
+
+<!-- ================================================================ -->
+<h1 id="audio">8 · Audio-Einstellungen</h1>
+<p>Erreichbar über: <em>Datei → Einstellungen → Audio</em> oder <em>Datei → Sound-Konfiguration → Audio-Einstellungen…</em></p>
+
+<h2>Mikrofon aktivieren</h2>
+<ol>
+  <li>Öffnen Sie Audio-Einstellungen.</li>
+  <li>Wählen Sie Ihr Mikrofon aus "Eingabegerät" (Auswahlmenü).</li>
+  <li>Wählen Sie "Ausgabegerät" (Lautsprecher/Kopfhörer).</li>
+  <li>Klicken Sie <strong>Audio anwenden</strong> (Alt+N).</li>
+</ol>
+<div class="tip">Nach dem ersten Verbinden müssen Sie Audio-Einstellungen einmal anwenden, damit das Mikrofon aktiv ist.</div>
+
+<h2>Sprachaktivierung (Voice Activation, VA)</h2>
+<p>Die Sprachaktivierung überträgt automatisch, wenn Sie sprechen – ohne Tastendrücken.</p>
+<table>
+<tr><th>Einstellung</th><th>Beschreibung</th></tr>
+<tr><td>Sprachaktivierung (Checkbox)</td><td>Ein-/ausschalten (Alt+S)</td></tr>
+<tr><td>Aktivierungspegel (0–100)</td><td>Schwelle ab der Übertragung beginnt. Niedrigerer Wert = empfindlicher. Standard: 30</td></tr>
+<tr><td>Nachlauf in ms (0–5000)</td><td>Wie lange nach Stille noch übertragen wird. Standard: 0 ms (sofort stoppen)</td></tr>
+</table>
+
+<h2>Push-to-Talk (PTT)</h2>
+<p>Beim PTT-Modus wird nur übertragen, solange Sie einen Hotkey gedrückt halten.</p>
+<ol>
+  <li>Aktivieren Sie "Push-to-Talk" (Checkbox).</li>
+  <li>Klicken Sie <strong>Hotkey aufnehmen</strong> (Alt+H).</li>
+  <li>Drücken Sie die gewünschte Taste (Standard: Leertaste).</li>
+  <li>Klicken Sie erneut oder drücken Sie Enter um aufzuhören.</li>
+</ol>
+<div class="note">PTT und Sprachaktivierung schließen sich gegenseitig aus – nur eines kann gleichzeitig aktiv sein.</div>
+
+<h2>Klangqualität verbessern</h2>
+<table>
+<tr><th>Option</th><th>Alt-Kürzel</th><th>Empfehlung</th></tr>
+<tr><td>AGC (Automatische Verstärkungsregelung)</td><td>Alt+C</td><td>Aktivieren – hält Lautstärke konstant</td></tr>
+<tr><td>Rauschunterdrückung</td><td>Alt+R</td><td>Aktivieren – filtert Hintergrundgeräusche</td></tr>
+<tr><td>Echounterdrückung</td><td>Alt+E</td><td>Aktivieren wenn Lautsprecher verwendet werden</td></tr>
+<tr><td>Duplex-Modus</td><td>Alt+D</td><td>Nur aktivieren wenn Echounterdrückung benötigt wird – höhere Latenz</td></tr>
+</table>
+
+<h2>Weitere Audio-Optionen</h2>
+<table>
+<tr><th>Option</th><th>Beschreibung</th></tr>
+<tr><td>Ausgabe stummschalten</td><td>Stummschaltet alle anderen Nutzer</td></tr>
+<tr><td>Mikrofonverstärkung (0–32000)</td><td>Verstärkt das Mikrofonsignal. Standard: 2000</td></tr>
+<tr><td>Ausgabe-Lautstärke (0–32000)</td><td>Globale Ausgabelautstärke. Standard: 1000</td></tr>
+<tr><td>Mikrofontest</td><td>Starte einen Loopback-Test: Sie hören sich selbst</td></tr>
+<tr><td>Audioprofile</td><td>Aktuelle Einstellungen als Profil speichern und wieder laden</td></tr>
+</table>
+
+<!-- ================================================================ -->
+<h1 id="medien">9 · Aufnahme &amp; Medien-Streaming</h1>
+<p>Erreichbar über: Bereich-Auswahlmenü → "Aufnahme &amp; Medien"</p>
+
+<h2>Kanal aufnehmen</h2>
+<ol>
+  <li>Wählen Sie das Aufnahmeformat (WAV, MP3 16k–320k).</li>
+  <li>Klicken Sie <strong>Aufnahme starten</strong> (Alt+A) und wählen Sie einen Speicherort.</li>
+  <li>Klicken Sie <strong>Aufnahme stoppen</strong> (Alt+S) wenn fertig.</li>
+</ol>
+
+<h2>Konversationen automatisch aufzeichnen</h2>
+<p>Wenn aktiviert, wird jeder Nutzer der spricht separat aufgezeichnet:</p>
+<ol>
+  <li>Haken bei "Automatisch aufzeichnen" (Alt+M).</li>
+  <li>Zielordner wählen.</li>
+  <li>Dateiname-Muster festlegen (Platzhalter: <code>%Y%m%d-%H%M%S</code>, <code>#userid#</code>, <code>%username%</code>).</li>
+  <li>Format wählen und "Eigene Stimme mit aufnehmen" (Alt+E) nach Bedarf.</li>
+  <li><strong>Anwenden</strong> (Alt+W) klicken.</li>
+</ol>
+
+<h2>Streaming-Quellen</h2>
+<p>Wählen Sie die Quelle im Auswahlmenü "Streaming-Quelle":</p>
+
+<h3>Datei</h3>
+<ol>
+  <li>Mediendatei-Pfad eingeben oder <strong>Durchsuchen</strong> (Alt+D).</li>
+  <li>Unterstützte Formate: WAV, MP3, OGG, Opus, MP4, AVI, MKV.</li>
+  <li><strong>Abspielen</strong> (Alt+A) – streamt die Datei in den aktuellen Kanal.</li>
+  <li>Position (0–1000): Zahlfeld zum Springen innerhalb der Datei.</li>
+  <li>Streaming-Lautstärke (25–400): 100 = normal, 200 = doppelt so laut.</li>
+</ol>
+
+<h3>YouTube, SoundCloud, Twitch, Bandcamp, Vimeo, Mixcloud (via yt-dlp)</h3>
+<ol>
+  <li>Für YouTube/SoundCloud: Suchbegriff eingeben und <strong>Suchen</strong> (Alt+S) klicken.</li>
+  <li>Ergebnis aus der Liste auswählen – der Link wird automatisch eingetragen.</li>
+  <li>Oder direkt einen Link einfügen.</li>
+  <li><strong>Streamen</strong> (Alt+R) klicken.</li>
+</ol>
+<div class="note">yt-dlp muss installiert oder im App-Bundle enthalten sein. Für Twitch, Bandcamp, Vimeo, Mixcloud: Link direkt einfügen.</div>
+
+<h3>Webradio</h3>
+<ol>
+  <li>Sender aus der vordefinierten Liste wählen oder per Suche (Alt+S) nach Sendern suchen.</li>
+  <li>Stream-URL kann auch manuell eingegeben werden.</li>
+  <li><strong>Webradio streamen</strong> (Alt+W) klicken.</li>
+</ol>
+
+<h3>Podcasts</h3>
+<ol>
+  <li>Podcast-Name suchen (Alt+S) oder Feed-URL direkt eingeben.</li>
+  <li>Feed laden (Alt+F).</li>
+  <li>Episode aus der Liste wählen und <strong>Episode streamen</strong> (Alt+E).</li>
+</ol>
+
+<!-- ================================================================ -->
+<h1 id="dateien">10 · Dateien</h1>
+<p>Erreichbar über: Bereich-Auswahlmenü → "Dateien"</p>
+<p>Zeigt alle Dateien im aktuellen Kanal. Format: <code>Dateiname, Größe, Hochgeladen von, Datum</code></p>
+<table>
+<tr><th>Schaltfläche</th><th>Alt-Kürzel</th><th>Funktion</th></tr>
+<tr><td>Hochladen</td><td>Alt+H</td><td>Wählt eine lokale Datei und lädt sie in den Kanal hoch</td></tr>
+<tr><td>Herunterladen</td><td>Alt+R</td><td>Lädt die markierte Datei herunter (Speicherort wählen)</td></tr>
+<tr><td>Löschen</td><td>Alt+L</td><td>Löscht die markierte Datei (nur eigene Dateien oder Admin)</td></tr>
+<tr><td>Aktualisieren</td><td>Alt+A</td><td>Aktualisiert die Dateiliste</td></tr>
+</table>
+
+<!-- ================================================================ -->
+<h1 id="admin">11 · Administration</h1>
+<p>Erreichbar über: Bereich-Auswahlmenü → "Administration" (nur für Administratoren sichtbar)</p>
+
+<h2>Benutzerkonten</h2>
+<ul>
+  <li><strong>Konten laden</strong>: Lädt alle Konten vom Server.</li>
+  <li><strong>Konto hinzufügen</strong>: Erstellt ein neues Konto. Felder: Benutzername, Passwort, Konto-Typ (Administrator-Haken setzen für Admin-Rechte).</li>
+  <li><strong>Konto löschen</strong>: Löscht das markierte Konto.</li>
+</ul>
+
+<h2>Sperren (Bans)</h2>
+<ul>
+  <li><strong>Sperren laden</strong>: Lädt die aktuelle Sperrliste.</li>
+  <li><strong>Entsperren</strong>: Hebt die Sperre für den markierten Nutzer auf.</li>
+</ul>
+
+<h2>Server-Konfiguration</h2>
+<ul>
+  <li><strong>Laden</strong>: Lädt die Server-Einstellungen (Name, MOTD, Nutzer-Limits).</li>
+  <li><strong>Speichern</strong>: Speichert geänderte Server-Einstellungen.</li>
+  <li><strong>Konfiguration speichern</strong>: Schreibt die Konfiguration auf dem Server dauerhaft.</li>
+</ul>
+
+<!-- ================================================================ -->
+<h1 id="sprechen">12 · Sprechen (ElevenLabs TTS)</h1>
+<p>Mit dem Sprechen-Tab können Sie Text über ElevenLabs Text-to-Speech in den Kanal streamen – andere Nutzer hören eine hochwertige KI-Stimme.</p>
+<p>Voraussetzung: Ein gültiger ElevenLabs API-Schlüssel muss im Verbindungsformular eingetragen sein.</p>
+
+<h2>Einrichtung</h2>
+<ol>
+  <li>ElevenLabs API-Schlüssel im Verbindungsformular eintragen.</li>
+  <li>Verbinden – Stimmen und Modelle werden automatisch geladen.</li>
+  <li>Den Sprechen-Tab öffnen (Menü Sprache → Sprechen oder F5).</li>
+</ol>
+
+<h2>Bedienung</h2>
+<table>
+<tr><th>Element</th><th>Beschreibung</th></tr>
+<tr><td>Stimme</td><td>Auswahlmenü aller verfügbaren ElevenLabs-Stimmen</td></tr>
+<tr><td>Modell</td><td>KI-Modell (z.B. eleven_multilingual_v2, eleven_v3)</td></tr>
+<tr><td>Stabilität (0–100)</td><td>Höher = stabiler/monotoner, niedriger = ausdrucksvoller. Standard: 50</td></tr>
+<tr><td>Ähnlichkeit (0–100)</td><td>Nähe zur Originalstimme. Standard: 75</td></tr>
+<tr><td>Stil (0–100)</td><td>Stil-Übertreibung. Standard: 0 (kein Stil)</td></tr>
+<tr><td>Sprecher-Boost</td><td>Verbessert Stimmklarheit (nicht bei v3-Modellen verfügbar)</td></tr>
+<tr><td>Text zum Sprechen</td><td>Geben Sie den Text ein, der vorgelesen werden soll</td></tr>
+<tr><td>Sprechen (Alt+P)</td><td>Generiert Audio und streamt es in den Kanal</td></tr>
+<tr><td>Stopp (Alt+T)</td><td>Stoppt das laufende Streaming sofort</td></tr>
+<tr><td>Aktualisieren (Alt+A)</td><td>Lädt Stimmen und Modelle neu von der API</td></tr>
+</table>
+
+<!-- ================================================================ -->
+<h1 id="desktop">13 · Desktopfreigabe</h1>
+<p>Erreichbar über: Bereich-Auswahlmenü → "Desktop"</p>
+<p>Teilt Ihren Bildschirm mit anderen Nutzern im Kanal.</p>
+<table>
+<tr><th>Schaltfläche</th><th>Funktion</th></tr>
+<tr><td>Desktop senden (Alt+D)</td><td>Startet die kontinuierliche Desktopfreigabe</td></tr>
+<tr><td>Einmal senden (Alt+E)</td><td>Sendet einen einzelnen Screenshot</td></tr>
+<tr><td>Freigabe beenden (Alt+F)</td><td>Stoppt die Desktopfreigabe</td></tr>
+</table>
+<p>Die Schaltflächen Linksklick (Alt+L), Rechtsklick (Alt+R) und Mittelklick (Alt+M) ermöglichen ferngesteuerte Mauseingaben auf dem empfangenden Gerät.</p>
+
+<!-- ================================================================ -->
+<h1 id="einstellungen">14 · Einstellungen</h1>
+<p>Erreichbar über: <em>Datei → Einstellungen…</em> oder F4 / Cmd+,</p>
+<p>Das Einstellungsfenster ist in Bereiche unterteilt (Auswahlmenü "Bereich"):</p>
+
+<h2>Bereich: Allgemein</h2>
+<table>
+<tr><th>Option</th><th>Beschreibung</th></tr>
+<tr><td>BearWare Web-Login</td><td>Verwendet BearWare.dk-Anmeldedaten für Server die dies erfordern</td></tr>
+<tr><td>Benutzername / Passwort</td><td>BearWare-Zugangsdaten</td></tr>
+</table>
+
+<h2>Bereich: Anzeige</h2>
+<table>
+<tr><th>Option</th><th>Beschreibung</th></tr>
+<tr><td>Im Tray minimieren</td><td>Fenster schließen minimiert in den Tray statt zu beenden</td></tr>
+<tr><td>Immer im Vordergrund</td><td>Fenster bleibt vor allen anderen</td></tr>
+<tr><td>VU-Meter anzeigen</td><td>Zeigt den Eingangspegel in der Schnellaktionen-Leiste</td></tr>
+<tr><td>Fenstertitel aktualisieren</td><td>Aktueller Kanal im Fenstertitel</td></tr>
+<tr><td>Toolbar anzeigen</td><td>Schnellaktionen-Leiste ein-/ausblenden</td></tr>
+<tr><td>Ereignisprotokoll anzeigen</td><td>Protokollfenster ein-/ausblenden</td></tr>
+</table>
+
+<h2>Bereich: Verbindung</h2>
+<p>Steuert, welche Daten von anderen Nutzern abonniert werden:</p>
+<table>
+<tr><th>Abonnement</th><th>Bedeutung</th></tr>
+<tr><td>Benutzermedien</td><td>Audio und Video anderer Nutzer empfangen</td></tr>
+<tr><td>Kanal-Nachrichten</td><td>Chat-Nachrichten im Kanal empfangen</td></tr>
+<tr><td>Broadcast-Nachrichten</td><td>Server-weite Nachrichten empfangen</td></tr>
+<tr><td>Desktop freigeben</td><td>Desktop-Streams anderer empfangen</td></tr>
+<tr><td>Video</td><td>Webcam-Video anderer empfangen</td></tr>
+</table>
+
+<h2>Bereich: Sound-Ereignisse</h2>
+<p>Weist Klängen Ereignissen zu (Nutzer tritt bei, verlässt, Nachricht usw.). Für jedes Ereignis kann eine WAV-Datei ausgewählt werden. Mit "Testen" hören Sie den Sound vorher. Die Sound-Lautstärke (0–100) regelt alle Ereignistöne gleichzeitig.</p>
+
+<!-- ================================================================ -->
+<h1 id="systemtts">15 · System &amp; TTS (espeak-ng)</h1>
+<p>Erreichbar über: <em>Datei → Einstellungen</em> → Bereich "System &amp; TTS"</p>
+<p>Die eingebaute Text-to-Speech-Funktion (espeak-ng) liest Systemmeldungen, Chat und Privatnachrichten automatisch vor.</p>
+
+<h2>TTS ein-/ausschalten</h2>
+<ul>
+  <li><strong>TTS aktiv</strong> (Alt+T): Aktiviert die Sprachausgabe.</li>
+  <li><strong>Neue Meldung unterbricht</strong> (Alt+N): Laufende Ansage abbrechen wenn neue eintrifft.</li>
+</ul>
+
+<h2>Was soll vorgelesen werden?</h2>
+<table>
+<tr><th>Option</th><th>Alt-Kürzel</th><th>Beschreibung</th></tr>
+<tr><td>Chat vorlesen</td><td>Alt+C</td><td>Kanal-Chatnachrichten</td></tr>
+<tr><td>Privat vorlesen</td><td>Alt+P</td><td>Privatnachrichten</td></tr>
+<tr><td>System vorlesen</td><td>Alt+S</td><td>Systemnachrichten (Verbindung, Trennung, etc.)</td></tr>
+<tr><td>Eigene Nachrichten vorlesen</td><td>Alt+E</td><td>Eigene gesendete Nachrichten</td></tr>
+</table>
+
+<h2>Stimme einstellen</h2>
+<ol>
+  <li><strong>TTS aktiv</strong> einschalten.</li>
+  <li>Sprache im Auswahlmenü wählen (z.B. "de" für Deutsch, "Alle" für alle Sprachen).</li>
+  <li>Optional: Filter eingeben um Stimmenliste zu durchsuchen.</li>
+  <li>Stimme in der Liste auswählen.</li>
+  <li><strong>Sprechtempo (80–400)</strong>: Standard 175. Höher = schneller.</li>
+  <li><strong>Lautstärke (0–200)</strong>: Standard 100.</li>
+  <li><strong>Stimmen aktualisieren</strong> (Alt+I): Lädt Stimmenliste neu.</li>
+  <li><strong>Test vorlesen</strong> (Alt+R): Hört einen Testtext mit aktuellen Einstellungen.</li>
+</ol>
+
+<h2>espeak-ng Pfad</h2>
+<p>Normalerweise wird espeak-ng automatisch gefunden. Wenn nicht, kann der Pfad zur Binary manuell eingetragen werden (z.B. <code>/usr/bin/espeak-ng</code>).</p>
+
+<!-- ================================================================ -->
+<h1 id="kuerzel">16 · Tastaturkürzel anpassen</h1>
+<p>Erreichbar über: <em>Datei → Einstellungen</em> → Bereich "Tastaturkürzel"</p>
+<p>Hier können globale Tastenkombinationen für häufig verwendete Aktionen festgelegt werden, z.B. PTT-Hotkey, Stumm-Schalter usw.</p>
+<ol>
+  <li>Aktion in der Liste auswählen.</li>
+  <li><strong>Hotkey aufnehmen</strong> klicken.</li>
+  <li>Gewünschte Taste oder Kombination drücken.</li>
+  <li>Enter oder Klick zum Bestätigen.</li>
+</ol>
+
+<!-- ================================================================ -->
+<h1 id="schnellaktionen">17 · Schnellaktionen-Leiste</h1>
+<p>Die Schnellaktionen-Leiste (Toolbar) ist standardmäßig ausgeblendet und kann über <em>Datei → Einstellungen → Anzeige → Toolbar anzeigen</em> aktiviert werden.</p>
+<p>Sie enthält:</p>
+<table>
+<tr><th>Element</th><th>Alt-Kürzel</th><th>Beschreibung</th></tr>
+<tr><td>PTT (Checkbox)</td><td>Alt+P</td><td>Push-to-Talk schnell ein-/ausschalten</td></tr>
+<tr><td>Sprachaktivierung (Checkbox)</td><td>Alt+S</td><td>Voice Activation schnell ein-/ausschalten</td></tr>
+<tr><td>Video (Checkbox)</td><td>Alt+V</td><td>Kamera-Übertragung starten/stoppen</td></tr>
+<tr><td>Desktop (Checkbox)</td><td>Alt+D</td><td>Desktopfreigabe starten/stoppen</td></tr>
+<tr><td>Stumm (Checkbox)</td><td>Alt+T</td><td>Alle anderen Nutzer stummschalten</td></tr>
+<tr><td>Aufnahme (Checkbox)</td><td>Alt+A</td><td>Kanalaufnahme starten/stoppen</td></tr>
+<tr><td>?-Modus (Checkbox)</td><td>Alt+M</td><td>Fragezeichen-Status setzen (signalisiert Redebedarf)</td></tr>
+<tr><td>Ausgabe (Zahlfeld 0–200)</td><td>–</td><td>Ausgabelautstärke schnell anpassen</td></tr>
+<tr><td>Mikrofon (Zahlfeld 0–200)</td><td>–</td><td>Mikrofon-Gain schnell anpassen</td></tr>
+<tr><td>Pegel (Fortschrittsanzeige)</td><td>–</td><td>Aktueller Mikrofon-Eingangspegel (VU-Meter)</td></tr>
+</table>
+
+<!-- ================================================================ -->
+<h1 id="tray">18 · Tray-Symbol</h1>
+<p>Das Tray-Symbol erscheint automatisch wenn die App läuft.</p>
+<ul>
+  <li><span class="platform mac">macOS</span>: Menüleiste oben rechts. Klick öffnet ein Menü.</li>
+  <li><span class="platform win">Windows</span>: System-Tray unten rechts. Doppelklick bringt das Fenster zurück.</li>
+</ul>
+<p>Das Tray-Menü enthält: Fenster anzeigen, Verbinden/Trennen, Stumm schalten, Beenden.</p>
+<p>Wenn Sie das Hauptfenster schließen (X-Schaltfläche), wird es im Tray versteckt – die Verbindung bleibt aktiv. Um die App wirklich zu beenden: <em>Datei → Beenden</em>.</p>
+
+<!-- ================================================================ -->
+<h1 id="probleme">19 · Häufige Probleme &amp; Lösungen</h1>
+
+<table>
+<tr><th>Problem</th><th>Ursache</th><th>Lösung</th></tr>
+<tr><td>Kein Ton trotz Verbindung</td><td>Audiogerät nicht angewandt</td><td>Datei → Sound-Konfiguration → Audio anwenden</td></tr>
+<tr><td>Andere hören mich nicht</td><td>Mikrofon nicht aktiviert oder falsche VA/PTT-Einstellung</td><td>Sprachaktivierung oder PTT aktivieren; Audioeinstellungen anwenden</td></tr>
+<tr><td>Verbindung bricht ständig ab</td><td>Netzwerkproblem oder falscher Port</td><td>TCP/UDP-Port prüfen; "Automatisch neu verbinden" aktivieren</td></tr>
+<tr><td>TTS spricht nicht</td><td>TTS aktiv nicht eingeschaltet</td><td>Einstellungen → System &amp; TTS → TTS aktiv einschalten</td></tr>
+<tr><td>Stimmen laden nicht (ElevenLabs)</td><td>API-Schlüssel fehlt oder ungültig</td><td>Gültigen API-Schlüssel im Verbindungsformular eintragen</td></tr>
+<tr><td>yt-dlp Stream startet nicht</td><td>yt-dlp nicht gefunden oder veraltet</td><td>yt-dlp aktualisieren: <code>yt-dlp -U</code></td></tr>
+<tr><td>Listen werden als "Tabelle" angesagt <span class="platform mac">macOS</span></td><td>VoiceOver-Patch nicht geladen</td><td>App neu starten; ggf. Accessibility-Berechtigung prüfen</td></tr>
+<tr><td>App reagiert nicht beim Beenden <span class="platform win">Windows</span></td><td>Hintergrundprozess läuft noch</td><td>Task-Manager → TeamTalk VO Client beenden</td></tr>
+</table>
+
+<!-- ================================================================ -->
+<h1 id="plattform">20 · Plattformunterschiede im Detail</h1>
+
+<h2><span class="platform mac">macOS</span></h2>
+<ul>
+  <li><strong>VoiceOver-Navigation</strong>: VO+Pfeiltasten bewegen sich durch alle Elemente. VO+Leertaste aktiviert. VO+M für die Menüleiste.</li>
+  <li><strong>Listen</strong>: Werden als "Liste, N Einträge" angesagt (patched). Pfeiltasten oben/unten navigieren.</li>
+  <li><strong>Auswahlmenüs</strong>: Werden als "Auswahlmenü" angesagt. Pfeiltasten ändern den Wert.</li>
+  <li><strong>Zahlenfelder (SpinCtrl)</strong>: Pfeiltasten ändern den Wert; direkte Eingabe möglich.</li>
+  <li><strong>Fenster schließen</strong>: Cmd+W minimiert in Tray. Cmd+Q beendet komplett.</li>
+  <li><strong>Standardkürzel</strong>: Cmd+O (Datei öffnen), Cmd+N (neuer Client), Cmd+, (Einstellungen).</li>
+  <li><strong>Mikrofon-Berechtigung</strong>: macOS fragt einmalig nach Mikrofonzugriff. In Systemeinstellungen → Datenschutz freigeben.</li>
+  <li><strong>Braillezeile</strong>: Alle Steuerelementnamen und -rollen sind auf Deutsch benannt.</li>
+</ul>
+
+<h2><span class="platform win">Windows</span></h2>
+<ul>
+  <li><strong>NVDA/JAWS-Navigation</strong>: Tab/Shift+Tab navigiert, Enter/Leertaste aktiviert. Im Formularmodus navigieren Pfeiltasten innerhalb von Listen.</li>
+  <li><strong>Tastaturkürzel</strong>: Alt+markierter Buchstabe aktiviert Schaltflächen/Checkboxen. Alle Schaltflächen haben eindeutige Kürzel pro Bereich.</li>
+  <li><strong>Menü-Navigation</strong>: Alt öffnet die Menüleiste, dann Buchstaben.</li>
+  <li><strong>Standardkürzel</strong>: Strg+O, Strg+N, F4 (Einstellungen).</li>
+  <li><strong>Tray</strong>: Doppelklick auf Tray-Symbol öffnet das Fenster wieder. Rechtsklick öffnet Tray-Menü.</li>
+  <li><strong>Windows Defender</strong>: Beim ersten Start ggf. Ausnahme hinzufügen.</li>
+</ul>
+
+<h2><span class="platform lin">Linux</span></h2>
+<ul>
+  <li><strong>Orca-Navigation</strong>: Ähnlich wie Windows. Insert+Tab für Elemente-Liste.</li>
+  <li><strong>Audiogeräte</strong>: PulseAudio oder ALSA. Gerätename im Auswahlmenü wählen.</li>
+  <li><strong>espeak-ng</strong>: Systemversion wird bevorzugt (<code>sudo apt install espeak-ng</code>).</li>
+  <li><strong>Tray</strong>: Funktioniert mit kompatiblen Desktop-Umgebungen (GNOME mit AppIndicator-Extension, KDE).</li>
+  <li><strong>Einschränkungen</strong>: Desktopfreigabe und Maus-Fernsteuerung möglicherweise eingeschränkt je nach Compositor.</li>
+</ul>
+
+<hr>
+<p><em>TeamTalk VoiceOver Client – Handbuch. Hauptentwickler: Florian Lichteblau (Flarion). Danksagungen: Garo (Git-Server, Windows-Tests), FVH (Tabs, ElevenLabs), DHT (Tests), Korn (M1), de Losse (Mac mini).</em></p>
+
+</body>
+</html>

@@ -273,12 +273,16 @@ class ConnectionTab(wx.Panel):
         self.frame.set_status("Neu verbinden...")
 
         def worker():
+            if self.frame._closing:
+                return
             try:
                 self.frame.client.stop_event_loop_and_wait()
                 result = self.frame.client.reconnect()
-                wx.CallAfter(self.frame.handle_connect_result, result)
+                if not self.frame._closing:
+                    wx.CallAfter(self.frame.handle_connect_result, result)
             except Exception as exc:
-                wx.CallAfter(self.frame.set_status, f"Neu verbinden fehlgeschlagen: {exc}")
+                if not self.frame._closing:
+                    wx.CallAfter(self.frame.set_status, f"Neu verbinden fehlgeschlagen: {exc}")
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -307,23 +311,30 @@ class ConnectionTab(wx.Panel):
 
     def on_leave_channel(self, _event):
         def worker():
+            if self.frame._closing:
+                return
             self.frame.client.stop_event_loop_and_wait()
             result = self.frame.client.leave_channel()
-            self.frame.client.start_event_loop(self.frame.handle_tt_message)
+            if not self.frame._closing:
+                self.frame.client.start_event_loop(self.frame.handle_tt_message)
             if result.ok:
                 se = self.frame.settings_store.settings.sound_events
                 self.frame.sound_manager.play("user_leave", se.get("user_leave"))
-            wx.CallAfter(self.frame.set_status, result.message)
+            if not self.frame._closing:
+                wx.CallAfter(self.frame.set_status, result.message)
 
         threading.Thread(target=worker, daemon=True).start()
 
     def on_logout(self, _event):
         def worker():
+            if self.frame._closing:
+                return
             self.frame.client.stop_event_loop_and_wait()
             se = self.frame.settings_store.settings.sound_events
             self.frame.sound_manager.play("server_disconnect", se.get("server_disconnect"))
             result = self.frame.client.logout()
-            wx.CallAfter(self.frame.set_status, result.message)
+            if not self.frame._closing:
+                wx.CallAfter(self.frame.set_status, result.message)
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -380,6 +391,8 @@ class ConnectionTab(wx.Panel):
         self.frame._auto_reconnect = event.IsChecked()
 
     def _on_stats_timer(self, _event):
+        if self.frame._closing:
+            return
         stats = self.frame.client.get_client_statistics()
         if stats is None:
             return

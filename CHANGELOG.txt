@@ -1,6 +1,25 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.14)
+- Absturz beim Beenden behoben (macOS "unerwartet beendet"-Dialog):
+    - App.OnExit: os._exit(0) verhindert PyObjC-Destruktor-Crash.
+    - force_close: _closing-Flag gesetzt bevor Teardown beginnt; VU-Timer
+      und alle anderen Timer werden als Erstes gestoppt; SDK-Event-Thread
+      wird abgewartet (stop_event_loop_and_wait) bevor wx-Objekte zerstört
+      werden.
+    - _stats_timer, Reconnect- und Leave/Logout-Worker: Abbruch wenn
+      _closing gesetzt.
+- tts.py: Doppelter env-Aufbau in _list_voices_from_binary / _worker durch
+  gemeinsame Methode _build_env() ersetzt.
+- tts.py: Logger-Zugriff nach App-Beenden abgesichert (_stop-Check).
+- Handbuch hinzugefügt (Hilfe → Handbuch):
+    - Vollständiges Benutzerhandbuch auf Deutsch.
+    - Alle Funktionen, Menüpunkte, Einstellungen, UI-Elemente erklärt.
+    - Plattformunterschiede macOS / Windows / Linux dokumentiert.
+    - Schritt-für-Schritt-Anleitungen für Verbindung, Mikrofon, VA, PTT,
+      Streaming, TTS, Desktopfreigabe, Administration.
+
 2026-03-20 (v0.10.13)
 - Tastaturkürzel (Mnemonics) zu allen Schaltflächen und Checkboxen in der
   gesamten Benutzeroberfläche hinzugefügt:

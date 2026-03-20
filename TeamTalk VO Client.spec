@@ -5,7 +5,7 @@ a = Analysis(
     ['src/app.py'],
     pathex=['src', 'third_party/teamtalk/tt5sdk_v5.19a_macos_universal/Library/TeamTalkPy'],
     binaries=[],
-    datas=[('src/teamtalk_client', 'teamtalk_client'), ('src/platform_paths.py', '.'), ('src/ui', 'ui'), ('licenses', 'licenses'), ('CHANGELOG.txt', '.'), ('third_party/teamtalk/tt5sdk_v5.19a_macos_universal/Library/TeamTalkPy', 'TeamTalkPy'), ('third_party/teamtalk/tt5sdk_v5.19a_macos_universal/Library/TeamTalk_DLL', 'TeamTalk_DLL'), ('third_party/yt-dlp', 'yt-dlp'), ('third_party/espeak-ng', 'espeak-ng'), ('src/sounds', 'sounds')],
+    datas=[('src/teamtalk_client', 'teamtalk_client'), ('src/platform_paths.py', '.'), ('src/ui', 'ui'), ('licenses', 'licenses'), ('CHANGELOG.txt', '.'), ('src/manual.html', '.'), ('third_party/teamtalk/tt5sdk_v5.19a_macos_universal/Library/TeamTalkPy', 'TeamTalkPy'), ('third_party/teamtalk/tt5sdk_v5.19a_macos_universal/Library/TeamTalk_DLL', 'TeamTalk_DLL'), ('third_party/yt-dlp', 'yt-dlp'), ('third_party/espeak-ng', 'espeak-ng'), ('src/sounds', 'sounds')],
     hiddenimports=['teamtalk_client', 'teamtalk_client.tt', 'teamtalk_client.client', 'ui.tabs.system', 'platform_paths', 'sound_manager', 'objc', 'AppKit'],
     hookspath=[],
     hooksconfig={},

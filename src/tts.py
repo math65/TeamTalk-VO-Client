@@ -198,12 +198,9 @@ class TTSManager:
                 seen.add(key)
         return out
 
-    def _list_voices_from_binary(self) -> list[dict]:
-        binary = self._resolve_binary()
-        if not binary:
-            return []
+    def _build_env(self, binary: str) -> dict:
+        """Build environment dict for espeak-ng subprocess calls."""
         env = os.environ.copy()
-        # Only set ESPEAK_DATA_PATH when using bundled binary
         if "espeak-ng/bin" in binary or "third_party/espeak-ng/bin" in binary:
             if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
                 base = Path(sys._MEIPASS) / "espeak-ng"
@@ -218,6 +215,13 @@ class TTSManager:
                     env["DYLD_LIBRARY_PATH"] = f"{lib_dir}:{env.get('DYLD_LIBRARY_PATH', '')}".strip(":")
                 else:
                     env["PATH"] = f"{lib_dir}{os.pathsep}{env.get('PATH', '')}"
+        return env
+
+    def _list_voices_from_binary(self) -> list[dict]:
+        binary = self._resolve_binary()
+        if not binary:
+            return []
+        env = self._build_env(binary)
         try:
             proc = subprocess.run(
                 [binary, "--voices"],
@@ -318,21 +322,7 @@ class TTSManager:
                     except Exception:
                         pass
                 continue
-            env = os.environ.copy()
-            # Ensure bundled data and libs are found
-            if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-                base = Path(sys._MEIPASS) / "espeak-ng"
-            else:
-                base = Path(__file__).resolve().parent.parent / "third_party" / "espeak-ng"
-            data_dir = base / "espeak-ng-data"
-            lib_dir = base / "lib"
-            if data_dir.exists():
-                env["ESPEAK_DATA_PATH"] = str(data_dir)
-            if lib_dir.exists():
-                if sys.platform == "darwin":
-                    env["DYLD_LIBRARY_PATH"] = f"{lib_dir}:{env.get('DYLD_LIBRARY_PATH', '')}".strip(":")
-                else:
-                    env["PATH"] = f"{lib_dir}{os.pathsep}{env.get('PATH', '')}"
+            env = self._build_env(binary)
             mbrola_bin = self._resolve_mbrola_bin()
             if mbrola_bin:
                 env["PATH"] = f"{mbrola_bin.parent}{os.pathsep}{env.get('PATH','')}"
@@ -359,9 +349,10 @@ class TTSManager:
                         proc = run_espeak(fallback_lang)
                     if proc.returncode != 0:
                         try:
-                            self.frame.logger.write(
-                                f"TTS: espeak-ng failed {proc.stderr.decode('utf-8', 'ignore')}"
-                            )
+                            if not self._stop.is_set():
+                                self.frame.logger.write(
+                                    f"TTS: espeak-ng failed {proc.stderr.decode('utf-8', 'ignore')}"
+                                )
                         except Exception:
                             pass
                     else:
@@ -389,9 +380,10 @@ class TTSManager:
                         proc = run_espeak(fallback_lang)
                     if proc.returncode != 0:
                         try:
-                            self.frame.logger.write(
-                                f"TTS: espeak-ng failed {proc.stderr.decode('utf-8', 'ignore')}"
-                            )
+                            if not self._stop.is_set():
+                                self.frame.logger.write(
+                                    f"TTS: espeak-ng failed {proc.stderr.decode('utf-8', 'ignore')}"
+                                )
                         except Exception:
                             pass
                     else:

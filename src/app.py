@@ -38,7 +38,7 @@ from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.10.13"
+APP_VERSION = "0.10.14"
 
 
 def _init_startup_logging() -> None:
@@ -229,6 +229,7 @@ class MainFrame(wx.Frame):
         self.client = TeamTalkClient()
 
         # Shared state
+        self._closing = False
         self._auto_reconnect = False
         self._reconnect_attempts = 0
         self._ptt_enabled = False
@@ -541,6 +542,8 @@ class MainFrame(wx.Frame):
             pass
 
     def _on_vu_timer(self, _event):
+        if self._closing:
+            return
         try:
             level = self.client.get_sound_input_level()
             if level is not None:
@@ -748,6 +751,8 @@ class MainFrame(wx.Frame):
         help_stats = help_menu.Append(wx.ID_ANY, "Verbindungsstatistiken...")
         help_stats_speak = help_menu.Append(wx.ID_ANY, "Statistiken vorlesen")
         help_menu.AppendSeparator()
+        help_manual = help_menu.Append(wx.ID_ANY, "Handbuch")
+        help_menu.AppendSeparator()
         help_changelog = help_menu.Append(wx.ID_ANY, "Changelog")
         help_about = help_menu.Append(wx.ID_ANY, "Über")
         menubar.Append(help_menu, "Hilfe")
@@ -867,6 +872,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_export_logs, help_logs)
         self.Bind(wx.EVT_MENU, self.on_menu_client_stats, help_stats)
         self.Bind(wx.EVT_MENU, self.on_menu_client_stats_speak, help_stats_speak)
+        self.Bind(wx.EVT_MENU, self.on_menu_manual, help_manual)
         self.Bind(wx.EVT_MENU, self.on_menu_changelog, help_changelog)
         self.Bind(wx.EVT_MENU, self.on_menu_about, help_about)
 
@@ -2580,6 +2586,40 @@ class MainFrame(wx.Frame):
         self.settings_window.Raise()
         wx.CallAfter(self.settings_window.settings_tab.section_choice.SetFocus)
 
+    def on_menu_manual(self, _event):
+        """Öffnet das Handbuch in einem eigenen Dialogfenster."""
+        import sys
+        from pathlib import Path
+
+        if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+            manual_path = Path(sys._MEIPASS) / "manual.html"
+        else:
+            manual_path = Path(__file__).resolve().parent / "manual.html"
+
+        if not manual_path.exists():
+            wx.MessageBox("Handbuch nicht gefunden.", "Fehler", wx.OK | wx.ICON_ERROR)
+            return
+
+        try:
+            import wx.html
+            dlg = wx.Dialog(self, title="TeamTalk VoiceOver Client – Handbuch",
+                            style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+            dlg.SetSize((860, 680))
+            dlg.Centre()
+            sizer = wx.BoxSizer(wx.VERTICAL)
+            html = wx.html.HtmlWindow(dlg)
+            html.SetName("Handbuch")
+            html.LoadFile(str(manual_path))
+            close_btn = wx.Button(dlg, wx.ID_CLOSE, "&Schließen")
+            close_btn.Bind(wx.EVT_BUTTON, lambda e: dlg.EndModal(wx.ID_CLOSE))
+            sizer.Add(html, 1, wx.ALL | wx.EXPAND, 4)
+            sizer.Add(close_btn, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
+            dlg.SetSizer(sizer)
+            dlg.ShowModal()
+            dlg.Destroy()
+        except Exception as exc:
+            wx.LaunchDefaultBrowser(manual_path.as_uri())
+
     def on_menu_about(self, _event):
         dlg = wx.Dialog(self, title="Über TeamTalk VoiceOver Client",
                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
@@ -3056,7 +3096,7 @@ class MainFrame(wx.Frame):
         threading.Thread(target=worker, daemon=True).start()
 
     def schedule_reconnect(self):
-        if not self._auto_reconnect:
+        if self._closing or not self._auto_reconnect:
             return
         self._reconnect_attempts += 1
         delay = min(30000, 1000 * (2 ** min(self._reconnect_attempts, 5)))
@@ -3848,20 +3888,47 @@ class MainFrame(wx.Frame):
         event.Veto()
 
     def force_close(self):
-        # Stop timers
-        self.connection_tab.destroy_timers()
-        self.audio_tab.destroy_timers()
+        if self._closing:
+            return
+        self._closing = True
+        # Stop all timers first so no callbacks fire during teardown
+        self._vu_timer.Stop()
+        try:
+            self.connection_tab.destroy_timers()
+        except Exception:
+            pass
+        try:
+            self.audio_tab.destroy_timers()
+        except Exception:
+            pass
         # Stop media / recording
         if self.media_tab is not None:
-            self.media_tab.stop_all()
+            try:
+                self.media_tab.stop_all()
+            except Exception:
+                pass
         # Stop ElevenLabs streaming / cleanup
         if self.speak_tab is not None:
-            self.speak_tab.cleanup()
-        # Stop TTS
-        self.tts.close()
-        # Close SDK
-        self.client.close()
-        self.tray.Destroy()
+            try:
+                self.speak_tab.cleanup()
+            except Exception:
+                pass
+        # Stop TTS worker thread
+        try:
+            self.tts.close()
+        except Exception:
+            pass
+        # Stop SDK event thread and wait for it to finish before destroying wx objects
+        try:
+            self.client.stop_event_loop_and_wait(timeout=1.0)
+            self.client.client.closeTeamTalk()
+        except Exception:
+            pass
+        # Destroy UI
+        try:
+            self.tray.Destroy()
+        except Exception:
+            pass
         try:
             self.connection_window.Destroy()
         except Exception:
@@ -3882,6 +3949,14 @@ class App(wx.App):
         frame = MainFrame()
         frame.Show()
         return True
+
+    def OnExit(self) -> int:
+        # Force-terminate the process after all windows are destroyed.
+        # Without this, PyObjC destructors run after wx cleanup on macOS and
+        # trigger an NSException ("unerwartet beendet" crash report dialog).
+        import os
+        os._exit(0)
+        return 0
 
 
 def _probe_server_payload(payload: Dict[str, object]) -> Dict[str, object]:
