@@ -43,8 +43,8 @@ class VideoTab(wx.Panel):
         self.apply_btn = wx.Button(self, label="Video anwenden")
         self.apply_btn.SetName("Video anwenden")
         self.apply_btn.Bind(wx.EVT_BUTTON, self.on_apply)
-        self.refresh_btn = wx.Button(self, label="Geraete aktualisieren")
-        self.refresh_btn.SetName("Video-Geraete aktualisieren")
+        self.refresh_btn = wx.Button(self, label="Geräte aktualisieren")
+        self.refresh_btn.SetName("Video-Geräte aktualisieren")
         self.refresh_btn.Bind(wx.EVT_BUTTON, self.on_refresh)
         apply_row.Add(self.apply_btn, 0, wx.RIGHT, 8)
         apply_row.Add(self.refresh_btn, 0)
@@ -63,9 +63,9 @@ class VideoTab(wx.Panel):
         tx_sizer.Add(bitrate_row, 0, wx.ALL, 4)
 
         deadline_row = wx.BoxSizer(wx.HORIZONTAL)
-        deadline_row.Add(wx.StaticText(self, label="Qualitaet"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.deadline_choice = wx.Choice(self, choices=["Echtzeit", "Gute Qualitaet", "Beste Qualitaet"])
-        self.deadline_choice.SetName("Video-Qualitaet")
+        deadline_row.Add(wx.StaticText(self, label="Qualität"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.deadline_choice = wx.Choice(self, choices=["Echtzeit", "Gute Qualität", "Beste Qualität"])
+        self.deadline_choice.SetName("Video-Qualität")
         self.deadline_choice.SetSelection(0)
         deadline_row.Add(self.deadline_choice, 1, wx.EXPAND)
         tx_sizer.Add(deadline_row, 0, wx.ALL | wx.EXPAND, 4)
@@ -191,7 +191,7 @@ class VideoTab(wx.Panel):
 
     def on_refresh(self, _event):
         self.refresh_devices()
-        self.frame.set_status("Video-Geraete aktualisiert")
+        self.frame.set_status("Video-Geräte aktualisiert")
 
     def _deadline_key(self) -> str:
         sel = self.deadline_choice.GetSelection()

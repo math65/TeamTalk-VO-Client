@@ -268,14 +268,10 @@ class TeamTalkClient:
                 )
             hosts_to_try = self._build_connect_hosts(host)
             attempt_log: List[str] = []
-            # Always start from a fresh TeamTalk instance to avoid TLS/transport residue
-            # when switching between encrypted and plain servers.
-            self._recreate_client()
-            attempt_log.append("connect-start reinit")
 
             transport_result = ConnectResult(False, "Verbindung fehlgeschlagen")
             for connect_host in hosts_to_try:
-                # First attempt: fresh SDK instance for this endpoint.
+                # Fresh SDK instance per host to avoid TLS/transport residue.
                 self._recreate_client()
                 transport_result = self._connect_transport(
                     connect_host,
@@ -626,10 +622,10 @@ class TeamTalkClient:
         if not ok:
             if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_CMD_ERROR:
                 err = self.tt.ttstr(msg.clienterrormsg.szErrorMsg)
-                return ConnectResult(False, f"Kanal loeschen fehlgeschlagen: {err}")
+                return ConnectResult(False, f"Kanal löschen fehlgeschlagen: {err}")
             if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_NONE:
-                return ConnectResult(False, "Kanal loeschen fehlgeschlagen: Timeout")
-            return ConnectResult(False, "Kanal loeschen fehlgeschlagen")
+                return ConnectResult(False, "Kanal löschen fehlgeschlagen: Timeout")
+            return ConnectResult(False, "Kanal löschen fehlgeschlagen")
         return ConnectResult(True, "Kanal geloescht")
 
     def leave_channel(self, timeout_ms: int = 2000) -> ConnectResult:
@@ -1191,7 +1187,7 @@ class TeamTalkClient:
 
         def loop():
             while not self._event_stop.is_set():
-                msg = self.client.getMessage(poll_ms)
+                msg = self.client.getMessage(min(poll_ms, 100))
                 if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_NONE:
                     continue
                 handler(msg)
@@ -1202,7 +1198,7 @@ class TeamTalkClient:
     def stop_event_loop(self) -> None:
         self._event_stop.set()
 
-    def stop_event_loop_and_wait(self, timeout: float = 2.0) -> None:
+    def stop_event_loop_and_wait(self, timeout: float = 0.4) -> None:
         """Stop the event loop and wait for the thread to finish."""
         self._event_stop.set()
         if self._event_thread and self._event_thread.is_alive():

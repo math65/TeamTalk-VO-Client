@@ -9,12 +9,12 @@ if TYPE_CHECKING:
 
 
 class ChannelsTab(wx.Panel):
-    """Tab 2: Kanaele -- channel tree, user list, members, context menu."""
+    """Tab 2: Kanäle -- channel tree, user list, members, context menu."""
 
     def __init__(self, parent: wx.Window, frame: MainFrame) -> None:
         super().__init__(parent)
         self.frame = frame
-        self.SetName("Kanaele")
+        self.SetName("Kanäle")
 
         self._channel_items: Dict[int, wx.TreeItemId] = {}
         self._current_users: List = []
@@ -219,11 +219,11 @@ class ChannelsTab(wx.Panel):
         except Exception:
             ch_name = ""
         if not ch_name:
-            ch_name = "aktuellen Channel"
+            ch_name = "aktuellen Kanal"
         if names:
-            announce = f"Im Channel {ch_name}: " + ", ".join(names)
+            announce = f"Im Kanal {ch_name}: " + ", ".join(names)
         else:
-            announce = f"Im Channel {ch_name} ist niemand."
+            announce = f"Im Kanal {ch_name} ist niemand."
         self.frame.set_status(announce)
 
     # ------------------------------------------------------------------
@@ -252,10 +252,10 @@ class ChannelsTab(wx.Panel):
     def on_channel_list_join(self, _event):
         idx = self.channel_list.GetSelection()
         if idx == wx.NOT_FOUND:
-            self.frame.set_status("Bitte einen Channel auswaehlen")
+            self.frame.set_status("Bitte einen Kanal auswählen")
             return
         if idx >= len(self._channel_list_ids):
-            self.frame.set_status("Ungueltige Channel-Auswahl")
+            self.frame.set_status("Ungültige Kanalauswahl")
             return
         self.frame.join_channel(self._channel_list_ids[idx])
 
@@ -323,8 +323,8 @@ class ChannelsTab(wx.Panel):
         info_item = menu.Append(wx.ID_ANY, "Benutzerinfo...")
         menu.AppendSeparator()
 
-        vol_voice_item = menu.Append(wx.ID_ANY, "Lautstaerke Stimme...")
-        vol_media_item = menu.Append(wx.ID_ANY, "Lautstaerke Mediendatei...")
+        vol_voice_item = menu.Append(wx.ID_ANY, "Lautstärke Stimme...")
+        vol_media_item = menu.Append(wx.ID_ANY, "Lautstärke Mediendatei...")
         mute_voice_item = menu.AppendCheckItem(wx.ID_ANY, "Stimme stummschalten")
         mute_media_item = menu.AppendCheckItem(wx.ID_ANY, "Mediendatei stummschalten")
         mute_voice_item.Check(voice_muted)
@@ -402,11 +402,11 @@ class ChannelsTab(wx.Panel):
         dlg.Destroy()
 
     def _on_user_volume(self, user_id: int, stream_type: int, label: str):
-        dlg = wx.NumberEntryDialog(self, "Lautstaerke (0-32000)", "Lautstaerke:", f"{label}-Lautstaerke", 1000, 0, 32000)
+        dlg = wx.NumberEntryDialog(self, "Lautstärke (0–32000)", "Lautstärke:", f"{label}-Lautstärke", 1000, 0, 32000)
         if dlg.ShowModal() == wx.ID_OK:
             vol = dlg.GetValue()
             self.frame.client.set_user_volume(user_id, stream_type, vol)
-            self.frame.set_status(f"{label}-Lautstaerke auf {vol} gesetzt")
+            self.frame.set_status(f"{label}-Lautstärke auf {vol} gesetzt")
         dlg.Destroy()
 
     def _on_user_mute(self, user_id: int, stream_type: int, checked: bool):
@@ -510,7 +510,7 @@ class ChannelsTab(wx.Panel):
                     int(tt.BanType.BANTYPE_USERNAME),
                 ]
             )
-        dlg = wx.SingleChoiceDialog(self, "Ban-Typ auswaehlen", "Bannen", choices)
+        dlg = wx.SingleChoiceDialog(self, "Ban-Art auswählen", "Bannen", choices)
         if dlg.ShowModal() != wx.ID_OK:
             dlg.Destroy()
             return None

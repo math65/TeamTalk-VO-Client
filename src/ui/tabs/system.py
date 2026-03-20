@@ -79,9 +79,9 @@ class SystemTab(wx.Panel):
         self.tts_rate.SetName("TTS Rate")
         grid.Add(self.tts_rate, 1, wx.EXPAND)
 
-        grid.Add(wx.StaticText(self, label="Lautstaerke"), 0, wx.ALIGN_CENTER_VERTICAL)
+        grid.Add(wx.StaticText(self, label="Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL)
         self.tts_volume = wx.Slider(self, value=100, minValue=0, maxValue=200)
-        self.tts_volume.SetName("TTS Lautstaerke")
+        self.tts_volume.SetName("TTS Lautstärke")
         grid.Add(self.tts_volume, 1, wx.EXPAND)
 
         grid.Add(wx.StaticText(self, label="espeak-ng Pfad"), 0, wx.ALIGN_CENTER_VERTICAL)

@@ -41,7 +41,7 @@ class FilesTab(wx.Panel):
         self.download_btn.SetName("Datei herunterladen")
         self.download_btn.Bind(wx.EVT_BUTTON, self.on_download)
         self.delete_btn = wx.Button(self, label="Loeschen")
-        self.delete_btn.SetName("Datei loeschen")
+        self.delete_btn.SetName("Datei löschen")
         self.delete_btn.Bind(wx.EVT_BUTTON, self.on_delete)
         self.refresh_btn = wx.Button(self, label="Aktualisieren")
         self.refresh_btn.SetName("Dateiliste aktualisieren")
@@ -115,7 +115,7 @@ class FilesTab(wx.Panel):
     def on_download(self, _event):
         sel = self.file_list.GetSelection()
         if sel == wx.NOT_FOUND or sel >= len(self._file_ids):
-            self.frame.set_status("Bitte eine Datei auswaehlen")
+            self.frame.set_status("Bitte eine Datei auswählen")
             return
         file_id = self._file_ids[sel]
         ch_id = self.frame.client.get_my_channel_id()
@@ -139,7 +139,7 @@ class FilesTab(wx.Panel):
     def on_delete(self, _event):
         sel = self.file_list.GetSelection()
         if sel == wx.NOT_FOUND or sel >= len(self._file_ids):
-            self.frame.set_status("Bitte eine Datei auswaehlen")
+            self.frame.set_status("Bitte eine Datei auswählen")
             return
         file_id = self._file_ids[sel]
         ch_id = self.frame.client.get_my_channel_id()
@@ -147,8 +147,8 @@ class FilesTab(wx.Panel):
             return
         name = self.file_list.GetString(sel).split(" | ")[0]
         dlg = wx.MessageDialog(
-            self, f"Datei '{name}' wirklich loeschen?",
-            "Datei loeschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+            self, f"Datei '{name}' wirklich löschen?",
+            "Datei löschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
         )
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()

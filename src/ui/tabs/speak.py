@@ -209,10 +209,10 @@ class SpeakTab(wx.Panel):
         voice_idx = self.voice_choice.GetSelection()
         model_idx = self.model_choice.GetSelection()
         if voice_idx == wx.NOT_FOUND or voice_idx >= len(self._voice_ids):
-            self._set_status("Bitte eine Stimme auswaehlen")
+            self._set_status("Bitte eine Stimme auswählen")
             return
         if model_idx == wx.NOT_FOUND or model_idx >= len(self._model_ids):
-            self._set_status("Bitte ein Modell auswaehlen")
+            self._set_status("Bitte ein Modell auswählen")
             return
 
         voice_id = self._voice_ids[voice_idx]

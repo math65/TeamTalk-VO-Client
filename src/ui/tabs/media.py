@@ -142,7 +142,7 @@ class MediaTab(wx.Panel):
 
         dir_row = wx.BoxSizer(wx.HORIZONTAL)
         dir_row.Add(wx.StaticText(self, label="Zielordner"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.user_rec_dir = wx.DirPickerCtrl(self, message="Ordner fuer Aufnahmen waehlen")
+        self.user_rec_dir = wx.DirPickerCtrl(self, message="Ordner für Aufnahmen wählen")
         self.user_rec_dir.SetName("Zielordner")
         dir_row.Add(self.user_rec_dir, 1, wx.EXPAND)
         convo_sizer.Add(dir_row, 0, wx.ALL | wx.EXPAND, 4)
@@ -195,7 +195,7 @@ class MediaTab(wx.Panel):
         self.media_path = wx.TextCtrl(self.stream_panel)
         self.media_path.SetName("Mediendatei Pfad")
         self.browse_btn = wx.Button(self.stream_panel, label="Durchsuchen...")
-        self.browse_btn.SetName("Mediendatei auswaehlen")
+        self.browse_btn.SetName("Mediendatei auswählen")
         self.browse_btn.Bind(wx.EVT_BUTTON, self.on_browse)
         file_row.Add(self.media_path, 1, wx.RIGHT | wx.EXPAND, 8)
         file_row.Add(self.browse_btn, 0)
@@ -226,9 +226,9 @@ class MediaTab(wx.Panel):
         stream_sizer.Add(self.seek_slider, 0, wx.ALL | wx.EXPAND, 4)
 
         gain_row = wx.BoxSizer(wx.HORIZONTAL)
-        gain_row.Add(wx.StaticText(self.stream_panel, label="Streaming Lautstaerke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        gain_row.Add(wx.StaticText(self.stream_panel, label="Streaming-Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.stream_gain = wx.Slider(self.stream_panel, value=100, minValue=25, maxValue=400)
-        self.stream_gain.SetName("Streaming Lautstaerke")
+        self.stream_gain.SetName("Streaming-Lautstärke")
         self.stream_gain.Bind(wx.EVT_SLIDER, self.on_stream_gain)
         gain_row.Add(self.stream_gain, 1, wx.EXPAND)
         stream_sizer.Add(gain_row, 0, wx.ALL | wx.EXPAND, 4)
@@ -285,9 +285,9 @@ class MediaTab(wx.Panel):
         yt_sizer.Add(yt_ctrl_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
 
         yt_gain_row = wx.BoxSizer(wx.HORIZONTAL)
-        yt_gain_row.Add(wx.StaticText(self.yt_panel, label="Streaming Lautstaerke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        yt_gain_row.Add(wx.StaticText(self.yt_panel, label="Streaming-Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.yt_stream_gain = wx.Slider(self.yt_panel, value=100, minValue=25, maxValue=400)
-        self.yt_stream_gain.SetName("YouTube Lautstaerke")
+        self.yt_stream_gain.SetName("YouTube-Lautstärke")
         self.yt_stream_gain.Bind(wx.EVT_SLIDER, self.on_stream_gain)
         yt_gain_row.Add(self.yt_stream_gain, 1, wx.EXPAND)
         yt_sizer.Add(yt_gain_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
@@ -327,9 +327,9 @@ class MediaTab(wx.Panel):
         twitch_sizer.Add(twitch_ctrl_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
 
         twitch_gain_row = wx.BoxSizer(wx.HORIZONTAL)
-        twitch_gain_row.Add(wx.StaticText(self.twitch_panel, label="Streaming Lautstaerke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        twitch_gain_row.Add(wx.StaticText(self.twitch_panel, label="Streaming-Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.twitch_stream_gain = wx.Slider(self.twitch_panel, value=100, minValue=25, maxValue=400)
-        self.twitch_stream_gain.SetName("Twitch Lautstaerke")
+        self.twitch_stream_gain.SetName("Twitch-Lautstärke")
         self.twitch_stream_gain.Bind(wx.EVT_SLIDER, self.on_stream_gain)
         twitch_gain_row.Add(self.twitch_stream_gain, 1, wx.EXPAND)
         twitch_sizer.Add(twitch_gain_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
@@ -388,9 +388,9 @@ class MediaTab(wx.Panel):
         radio_sizer.Add(radio_ctrl_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
 
         radio_gain_row = wx.BoxSizer(wx.HORIZONTAL)
-        radio_gain_row.Add(wx.StaticText(self.radio_panel, label="Streaming Lautstaerke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        radio_gain_row.Add(wx.StaticText(self.radio_panel, label="Streaming-Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.radio_stream_gain = wx.Slider(self.radio_panel, value=100, minValue=25, maxValue=400)
-        self.radio_stream_gain.SetName("Webradio Lautstaerke")
+        self.radio_stream_gain.SetName("Webradio-Lautstärke")
         self.radio_stream_gain.Bind(wx.EVT_SLIDER, self.on_stream_gain)
         radio_gain_row.Add(self.radio_stream_gain, 1, wx.EXPAND)
         radio_sizer.Add(radio_gain_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
@@ -452,9 +452,9 @@ class MediaTab(wx.Panel):
         podcast_sizer.Add(pod_ctrl_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
 
         pod_gain_row = wx.BoxSizer(wx.HORIZONTAL)
-        pod_gain_row.Add(wx.StaticText(self.podcast_panel, label="Streaming Lautstaerke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        pod_gain_row.Add(wx.StaticText(self.podcast_panel, label="Streaming-Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.podcast_stream_gain = wx.Slider(self.podcast_panel, value=100, minValue=25, maxValue=400)
-        self.podcast_stream_gain.SetName("Podcast Lautstaerke")
+        self.podcast_stream_gain.SetName("Podcast-Lautstärke")
         self.podcast_stream_gain.Bind(wx.EVT_SLIDER, self.on_stream_gain)
         pod_gain_row.Add(self.podcast_stream_gain, 1, wx.EXPAND)
         podcast_sizer.Add(pod_gain_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
@@ -503,7 +503,7 @@ class MediaTab(wx.Panel):
         enabled = self.user_rec_enable.GetValue()
         folder = self.user_rec_dir.GetPath() if enabled else ""
         if enabled and not folder:
-            self.frame.set_status("Bitte Zielordner waehlen")
+            self.frame.set_status("Bitte Zielordner wählen")
             return
         pattern = self.user_rec_pattern.GetValue().strip() if enabled else ""
         fmt = self._get_user_rec_format()
@@ -541,7 +541,7 @@ class MediaTab(wx.Panel):
 
     def on_browse(self, _event):
         with wx.FileDialog(
-            self, "Mediendatei auswaehlen",
+            self, "Mediendatei auswählen",
             wildcard="Audio/Video|*.wav;*.mp3;*.ogg;*.opus;*.mp4;*.avi;*.mkv|Alle|*.*",
         ) as dlg:
             if dlg.ShowModal() != wx.ID_OK:
@@ -561,7 +561,7 @@ class MediaTab(wx.Panel):
     def on_play(self, _event):
         path = self.media_path.GetValue().strip()
         if not path:
-            self.frame.set_status("Bitte zuerst eine Datei auswaehlen")
+            self.frame.set_status("Bitte zuerst eine Datei auswählen")
             return
         if self._streaming:
             self.frame.client.update_streaming_media(paused=False, offset_ms=None, preamp_gain=self._get_stream_gain())
@@ -889,7 +889,7 @@ class MediaTab(wx.Panel):
                     if status2 >= 400:
                         raise RuntimeError(f"HTTP {status2}")
                     xml_data = xml_data2
-                    wx.CallAfter(self.frame.set_status, "Feed ueber Proxy geladen")
+                    wx.CallAfter(self.frame.set_status, "Feed über Proxy geladen")
                 elif status >= 400:
                     raise RuntimeError(f"HTTP {status}")
                 items = self._parse_feed(xml_data)
@@ -968,7 +968,7 @@ class MediaTab(wx.Panel):
     def on_episode_stream(self, _event):
         idx = self.episode_list.GetSelection()
         if idx == wx.NOT_FOUND or idx >= len(self._podcast_episodes):
-            self.frame.set_status("Bitte Episode auswaehlen")
+            self.frame.set_status("Bitte Episode auswählen")
             return
         url = self._podcast_episodes[idx].get("url", "")
         if not url:

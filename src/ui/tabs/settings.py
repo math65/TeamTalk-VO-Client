@@ -31,7 +31,7 @@ _SOUND_EVENTS = [
     ("Dateitransfer abgeschlossen", "file_transfer"),
     ("Video-Session gestartet", "video_session"),
     ("Desktop-Session gestartet", "desktop_session"),
-    ("Frage-Status geaendert", "question_mode"),
+    ("Frage-Status geändert", "question_mode"),
     ("Desktop-Zugriff angefragt", "desktop_access"),
     ("Benutzer angemeldet", "user_login"),
     ("Benutzer abgemeldet", "user_logout"),
@@ -203,7 +203,7 @@ class SettingsTab(wx.Panel):
         self._show_server_title.SetValue(bool(s.show_server_in_title))
         sizer.Add(self._show_server_title, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        note = wx.StaticText(panel, label="Hinweis: Toolbar und Protokoll sind standardmaessig versteckt\n(empfohlen fuer Screenreader/VoiceOver/NVDA).")
+        note = wx.StaticText(panel, label="Hinweis: Toolbar und Protokoll sind standardmäßig versteckt\n(empfohlen für Screenreader/VoiceOver/NVDA).")
         note.SetName("Barrierefreiheitshinweis")
         sizer.Add(note, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
@@ -316,9 +316,9 @@ class SettingsTab(wx.Panel):
         bottom_sizer = wx.BoxSizer(wx.VERTICAL)
 
         vol_row = wx.BoxSizer(wx.HORIZONTAL)
-        vol_row.Add(wx.StaticText(panel, label="Lautstaerke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        vol_row.Add(wx.StaticText(panel, label="Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self._sound_volume = wx.Slider(panel, minValue=0, maxValue=100, value=100)
-        self._sound_volume.SetName("Sound-Lautstaerke")
+        self._sound_volume.SetName("Sound-Lautstärke")
         vol_row.Add(self._sound_volume, 1, wx.EXPAND)
         bottom_sizer.Add(vol_row, 0, wx.ALL | wx.EXPAND, 8)
 
@@ -435,7 +435,7 @@ class SettingsTab(wx.Panel):
     def _on_browse_sound(self, key: str, ctrl: wx.TextCtrl):
         with wx.FileDialog(
             self,
-            "Sound-Datei auswaehlen",
+            "Sounddatei auswählen",
             wildcard="WAV-Dateien (*.wav)|*.wav|Alle Dateien|*.*",
             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
         ) as dlg:
@@ -455,7 +455,7 @@ class SettingsTab(wx.Panel):
                 if sound.IsOk():
                     sound.Play(wx.adv.SOUND_ASYNC)
                 else:
-                    self.frame.set_status("Sound-Datei konnte nicht geoeffnet werden")
+                    self.frame.set_status("Sounddatei konnte nicht geöffnet werden")
         except Exception as exc:
             self.frame.set_status(f"Sound-Test fehlgeschlagen: {exc}")
 
@@ -508,7 +508,7 @@ class SettingsTab(wx.Panel):
             wx.TheClipboard.Close()
             self.frame.set_status("Logs in die Zwischenablage kopiert")
         else:
-            self.frame.set_status("Zwischenablage konnte nicht geoeffnet werden")
+            self.frame.set_status("Zwischenablage konnte nicht geöffnet werden")
 
     def _export_logs_zip(self) -> None:
         paths = self._collect_log_paths()

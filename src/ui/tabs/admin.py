@@ -22,7 +22,7 @@ class AdminTab(wx.Panel):
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        info = wx.StaticText(self, label="Administrationsfunktionen (nur fuer Admins)")
+        info = wx.StaticText(self, label="Administrationsfunktionen (nur für Admins)")
         info.SetName("Admin-Info")
         sizer.Add(info, 0, wx.ALL, 8)
 
@@ -44,8 +44,8 @@ class AdminTab(wx.Panel):
         self.add_account_btn = wx.Button(self, label="Konto hinzufuegen")
         self.add_account_btn.SetName("Konto hinzufuegen")
         self.add_account_btn.Bind(wx.EVT_BUTTON, self.on_add_account)
-        self.del_account_btn = wx.Button(self, label="Konto loeschen")
-        self.del_account_btn.SetName("Konto loeschen")
+        self.del_account_btn = wx.Button(self, label="Konto löschen")
+        self.del_account_btn.SetName("Konto löschen")
         self.del_account_btn.Bind(wx.EVT_BUTTON, self.on_del_account)
         acc_btn_row.Add(self.load_accounts_btn, 0, wx.RIGHT, 8)
         acc_btn_row.Add(self.add_account_btn, 0, wx.RIGHT, 8)
@@ -197,12 +197,12 @@ class AdminTab(wx.Panel):
     def on_del_account(self, _event):
         sel = self.account_list.GetFirstSelected()
         if sel < 0 or sel >= len(self._accounts):
-            self.frame.set_status("Bitte ein Konto auswaehlen")
+            self.frame.set_status("Bitte ein Konto auswählen")
             return
         username = self.frame.tt_str(self._accounts[sel].szUsername)
         dlg = wx.MessageDialog(
-            self, f"Konto '{username}' wirklich loeschen?",
-            "Konto loeschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+            self, f"Konto '{username}' wirklich löschen?",
+            "Konto löschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
         )
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
@@ -258,12 +258,12 @@ class AdminTab(wx.Panel):
     def on_unban(self, _event):
         sel = self.ban_list.GetFirstSelected()
         if sel < 0 or sel >= len(self._bans):
-            self.frame.set_status("Bitte eine Sperre auswaehlen")
+            self.frame.set_status("Bitte eine Sperre auswählen")
             return
         ip = self.frame.tt_str(self._bans[sel].szIPAddress)
         
         self.unban_btn.Disable()
-        self.frame.set_status(f"Sperre wird aufgehoben fuer: {ip}...")
+        self.frame.set_status(f"Sperre wird aufgehoben für:{ip}...")
 
         def worker():
             try:
@@ -272,7 +272,7 @@ class AdminTab(wx.Panel):
                     wx.CallAfter(self.frame.set_status, f"Entsperrt: {ip}")
                     wx.CallAfter(self.on_load_bans, None) # Refresh list
                 else:
-                    wx.CallAfter(self.frame.set_status, f"Sperre konnte nicht aufgehoben werden fuer: {ip}")
+                    wx.CallAfter(self.frame.set_status, f"Sperre konnte nicht aufgehoben werden für:{ip}")
             except Exception as e:
                 wx.CallAfter(self.frame.set_status, f"Fehler beim Aufheben der Sperre: {e}")
             finally:

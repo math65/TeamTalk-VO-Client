@@ -99,7 +99,7 @@ class ServerCheckDialog(wx.Dialog):
         info = wx.StaticText(
             panel,
             label=(
-                f"Gepruefte Server: {total}  |  Online-Server: {online_servers}  |  "
+                f"Geprüfte Server: {total}  |  Online-Server: {online_servers}  |  "
                 f"Leere Server: {empty}  |  Fehler: {errors}  |  Nutzer online: {online_users}"
             ),
         )
@@ -321,7 +321,7 @@ class MainFrame(wx.Frame):
         # Master volume slider (output)
         qa_sizer.Add(wx.StaticText(qa_panel, label="Ausgabe:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
         self.master_volume_slider = wx.Slider(qa_panel, value=100, minValue=0, maxValue=200, style=wx.SL_HORIZONTAL)
-        self.master_volume_slider.SetName("Ausgabelautstaerke")
+        self.master_volume_slider.SetName("Ausgabelautstärke")
         self.master_volume_slider.SetMinSize((100, -1))
         qa_sizer.Add(self.master_volume_slider, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 12)
 
@@ -559,7 +559,7 @@ class MainFrame(wx.Frame):
     def _build_menu(self):
         menubar = wx.MenuBar()
         file_menu = wx.Menu()
-        open_tt = file_menu.Append(wx.ID_ANY, "TeamTalk-Datei oeffnen...\tCtrl+O")
+        open_tt = file_menu.Append(wx.ID_ANY, "TeamTalk-Datei öffnen...\tCtrl+O")
         new_client = file_menu.Append(wx.ID_ANY, "Neuen Client starten\tCtrl+N")
         sound_menu = wx.Menu()
         self._sound_input_menu = wx.Menu()
@@ -569,7 +569,7 @@ class MainFrame(wx.Frame):
         sound_menu.AppendSeparator()
         sound_settings = sound_menu.Append(wx.ID_ANY, "Audio-Einstellungen...")
         sound_apply = sound_menu.Append(wx.ID_ANY, "Audio anwenden")
-        sound_refresh = sound_menu.Append(wx.ID_ANY, "Geraete aktualisieren")
+        sound_refresh = sound_menu.Append(wx.ID_ANY, "Geräte aktualisieren")
         sound_menu.AppendSeparator()
         sound_effects = sound_menu.Append(wx.ID_ANY, "Effekte anwenden")
         file_menu.AppendSubMenu(sound_menu, "Sound-Konfiguration")
@@ -600,7 +600,7 @@ class MainFrame(wx.Frame):
         chan_menu = wx.Menu()
         chan_create = chan_menu.Append(wx.ID_ANY, "Kanal erstellen...\tF7")
         chan_edit = chan_menu.Append(wx.ID_ANY, "Kanal bearbeiten...")
-        chan_delete = chan_menu.Append(wx.ID_ANY, "Kanal loeschen...")
+        chan_delete = chan_menu.Append(wx.ID_ANY, "Kanal löschen...")
         chan_menu.AppendSeparator()
         chan_join = chan_menu.Append(wx.ID_ANY, "Kanal beitreten...")
         chan_leave = chan_menu.Append(wx.ID_ANY, "Kanal verlassen")
@@ -616,7 +616,7 @@ class MainFrame(wx.Frame):
         chan_files_menu = wx.Menu()
         chan_file_upload = chan_files_menu.Append(wx.ID_ANY, "Datei hochladen...")
         chan_file_download = chan_files_menu.Append(wx.ID_ANY, "Datei herunterladen...")
-        chan_file_delete = chan_files_menu.Append(wx.ID_ANY, "Datei loeschen...")
+        chan_file_delete = chan_files_menu.Append(wx.ID_ANY, "Datei löschen...")
         chan_file_refresh = chan_files_menu.Append(wx.ID_ANY, "Dateiliste aktualisieren")
         chan_menu.AppendSubMenu(chan_files_menu, "Dateien")
         chan_stream_menu = wx.Menu()
@@ -637,7 +637,7 @@ class MainFrame(wx.Frame):
         user_mute_voice = user_mute_menu.Append(wx.ID_ANY, "Sprache stummschalten")
         user_mute_media = user_mute_menu.Append(wx.ID_ANY, "Mediendatei stummschalten")
         user_menu.AppendSubMenu(user_mute_menu, "Stummschalten")
-        user_volume = user_menu.Append(wx.ID_ANY, "Benutzer-Lautstaerke...")
+        user_volume = user_menu.Append(wx.ID_ANY, "Benutzerlautstärke...")
         user_adv = wx.Menu()
         user_vol_up = user_adv.Append(wx.ID_ANY, "Lauter\tCtrl+Right")
         user_vol_down = user_adv.Append(wx.ID_ANY, "Leiser\tCtrl+Left")
@@ -683,7 +683,7 @@ class MainFrame(wx.Frame):
 
         # Profil
         profile_menu = wx.Menu()
-        profile_nick = profile_menu.Append(wx.ID_ANY, "Nickname aendern...")
+        profile_nick = profile_menu.Append(wx.ID_ANY, "Nickname ändern...")
         profile_status = profile_menu.Append(wx.ID_ANY, "Status setzen...")
         profile_question = profile_menu.AppendCheckItem(wx.ID_ANY, "Frage-Modus")
         profile_hear = profile_menu.AppendCheckItem(wx.ID_ANY, "Mich selbst hoeren")
@@ -706,12 +706,12 @@ class MainFrame(wx.Frame):
         audio_settings = audio_menu.Append(wx.ID_ANY, "Audio-Einstellungen...")
         audio_menu.AppendSeparator()
         audio_agc = audio_menu.AppendCheckItem(wx.ID_ANY, "AGC")
-        audio_denoise = audio_menu.AppendCheckItem(wx.ID_ANY, "Rauschunterdrueckung")
-        audio_echo = audio_menu.AppendCheckItem(wx.ID_ANY, "Echounterdrueckung")
+        audio_denoise = audio_menu.AppendCheckItem(wx.ID_ANY, "Rauschunterdrückung")
+        audio_echo = audio_menu.AppendCheckItem(wx.ID_ANY, "Echounterdrückung")
         audio_apply_effects = audio_menu.Append(wx.ID_ANY, "Effekte anwenden")
         audio_menu.AppendSeparator()
         audio_apply = audio_menu.Append(wx.ID_ANY, "Audio anwenden")
-        audio_refresh = audio_menu.Append(wx.ID_ANY, "Geraete aktualisieren")
+        audio_refresh = audio_menu.Append(wx.ID_ANY, "Geräte aktualisieren")
         audio_menu.AppendSeparator()
         audio_loopback = audio_menu.AppendCheckItem(wx.ID_ANY, "Mikrofontest")
         audio_menu.AppendSeparator()
@@ -723,7 +723,7 @@ class MainFrame(wx.Frame):
         video_tx = video_menu.AppendCheckItem(wx.ID_ANY, "Video senden")
         video_menu.AppendSeparator()
         video_settings = video_menu.Append(wx.ID_ANY, "Video-Einstellungen...")
-        video_refresh = video_menu.Append(wx.ID_ANY, "Video-Geraete aktualisieren")
+        video_refresh = video_menu.Append(wx.ID_ANY, "Video-Geräte aktualisieren")
         menubar.Append(video_menu, "Video")
 
         # Aufnahmen
@@ -995,7 +995,7 @@ class MainFrame(wx.Frame):
                     int(tt.BanType.BANTYPE_USERNAME),
                 ]
             )
-        dlg = wx.SingleChoiceDialog(self, "Ban-Typ auswaehlen", "Bannen", choices)
+        dlg = wx.SingleChoiceDialog(self, "Ban-Art auswählen", "Bannen", choices)
         if dlg.ShowModal() != wx.ID_OK:
             dlg.Destroy()
             return None
@@ -1099,7 +1099,7 @@ class MainFrame(wx.Frame):
 
         audio_box = wx.StaticBoxSizer(wx.StaticBox(dlg, label="Audio-Codec"), wx.VERTICAL)
         codec_choices = [
-            ("Vom Elternkanal uebernehmen", "inherit"),
+            ("Vom Elternkanal übernehmen", "inherit"),
             ("Opus (Standard)", "opus"),
             ("Speex (Standard)", "speex"),
             ("Speex VBR (Standard)", "speex_vbr"),
@@ -1116,7 +1116,7 @@ class MainFrame(wx.Frame):
         codec_choice.Enable(not audio_codec_locked)
         audio_box.Add(codec_choice, 0, wx.ALL | wx.EXPAND, 8)
         if audio_codec_locked:
-            audio_box.Add(wx.StaticText(dlg, label="Audio-Codec kann nicht geaendert werden, wenn Nutzer im Kanal sind."), 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+            audio_box.Add(wx.StaticText(dlg, label="Audio-Codec kann nicht geändert werden, wenn Nutzer im Kanal sind."), 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         root.Add(audio_box, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 10)
 
         # OPUS settings panel
@@ -1130,7 +1130,7 @@ class MainFrame(wx.Frame):
         lbl_opus_sr = wx.StaticText(dlg, label="Samplerate (Hz)")
         opus_sr = wx.Choice(dlg, choices=["8000", "12000", "16000", "24000", "48000"])
         opus_sr.SetStringSelection("48000")
-        lbl_opus_ch = wx.StaticText(dlg, label="Kanaele")
+        lbl_opus_ch = wx.StaticText(dlg, label="Kanäle")
         opus_ch = wx.Choice(dlg, choices=["Mono", "Stereo"])
         opus_ch.SetSelection(0)
         lbl_opus_br = wx.StaticText(dlg, label="Bitrate (kbps)")
@@ -1161,7 +1161,7 @@ class MainFrame(wx.Frame):
         lbl_spx_sr = wx.StaticText(dlg, label="Samplerate (Hz)")
         spx_sr = wx.Choice(dlg, choices=["8000", "16000", "32000"])
         spx_sr.SetStringSelection("16000")
-        lbl_spx_q = wx.StaticText(dlg, label="Qualitaet (0-10)")
+        lbl_spx_q = wx.StaticText(dlg, label="Qualität (0–10)")
         spx_q = wx.SpinCtrl(dlg, min=0, max=10, initial=4)
         lbl_spx_tx = wx.StaticText(dlg, label="Intervall (ms)")
         spx_tx = wx.SpinCtrl(dlg, min=20, max=1000, initial=40)
@@ -1184,7 +1184,7 @@ class MainFrame(wx.Frame):
         audio_adv_box = wx.StaticBoxSizer(wx.StaticBox(dlg, label="Audio-Optionen"), wx.VERTICAL)
         audio_adv_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         audio_adv_form.AddGrowableCol(1)
-        fixed_vol_check = wx.CheckBox(dlg, label="Feste Lautstaerke fuer alle Nutzer")
+        fixed_vol_check = wx.CheckBox(dlg, label="Feste Lautstärke für alle Nutzer")
         fixed_vol_spin = wx.SpinCtrl(dlg, min=0, max=32000, initial=0)
         lbl_voice_timeout = wx.StaticText(dlg, label="Max. Sprachdauer (Sek., 0=aus)")
         voice_timeout = wx.SpinCtrl(dlg, min=0, max=3600, initial=0)
@@ -1192,7 +1192,7 @@ class MainFrame(wx.Frame):
         media_timeout = wx.SpinCtrl(dlg, min=0, max=3600, initial=0)
         audio_adv_form.AddSpacer(0)
         audio_adv_form.Add(fixed_vol_check, 0)
-        audio_adv_form.Add(wx.StaticText(dlg, label="Lautstaerke"), 0, wx.ALIGN_CENTER_VERTICAL)
+        audio_adv_form.Add(wx.StaticText(dlg, label="Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL)
         audio_adv_form.Add(fixed_vol_spin, 1, wx.EXPAND)
         audio_adv_form.Add(lbl_voice_timeout, 0, wx.ALIGN_CENTER_VERTICAL)
         audio_adv_form.Add(voice_timeout, 1, wx.EXPAND)
@@ -1291,7 +1291,7 @@ class MainFrame(wx.Frame):
             ("MP3 256k", self.client.tt.AudioFileFormat.AFF_MP3_256KBIT_FORMAT),
             ("Channel-Codec", self.client.tt.AudioFileFormat.AFF_CHANNELCODEC_FORMAT),
         ]
-        dlg = wx.SingleChoiceDialog(self, "Aufnahmeformat waehlen", "Aufnahme", [f[0] for f in formats])
+        dlg = wx.SingleChoiceDialog(self, "Aufnahmeformat wählen", "Aufnahme", [f[0] for f in formats])
         if dlg.ShowModal() != wx.ID_OK:
             dlg.Destroy()
             return None
@@ -1465,7 +1465,7 @@ class MainFrame(wx.Frame):
         self.tts.speak(text, kind="system")
 
     def on_menu_change_nickname(self, _event):
-        if not self._require_connected("Nickname aendern"):
+        if not self._require_connected("Nickname ändern"):
             return
         current = ""
         try:
@@ -1473,7 +1473,7 @@ class MainFrame(wx.Frame):
             current = self.tt_str(getattr(user, "szNickname", "")) or ""
         except Exception:
             current = ""
-        value = self._ask_text("Nickname aendern", "Neuer Nickname", current)
+        value = self._ask_text("Nickname ändern", "Neuer Nickname", current)
         if value is None:
             return
         value = value.strip()
@@ -1482,9 +1482,9 @@ class MainFrame(wx.Frame):
             return
         cmdid = self.client.change_nickname(value)
         if cmdid < 0:
-            self.set_status("Nickname aendern fehlgeschlagen")
+            self.set_status("Nickname ändern fehlgeschlagen")
         else:
-            self.set_status("Nickname wird geaendert")
+            self.set_status("Nickname wird geändert")
 
     def on_menu_change_status(self, _event):
         if not self._require_connected("Status setzen"):
@@ -1741,13 +1741,13 @@ class MainFrame(wx.Frame):
             self.channels_tab.refresh_channels_and_users()
 
     def on_menu_channel_delete(self, _event):
-        if not self._require_connected("Kanal loeschen"):
+        if not self._require_connected("Kanal löschen"):
             return
         chan_id = self._get_selected_channel_id()
         if not chan_id:
             self.set_status("Kein Kanal ausgewaehlt")
             return
-        dlg = wx.MessageDialog(self, "Kanal wirklich loeschen?", "Kanal loeschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        dlg = wx.MessageDialog(self, "Kanal wirklich löschen?", "Kanal löschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
             return
@@ -1887,7 +1887,7 @@ class MainFrame(wx.Frame):
             wx.TheClipboard.Close()
             self.set_status("TT-URL kopiert")
         else:
-            self.set_status("Zwischenablage konnte nicht geoeffnet werden")
+            self.set_status("Zwischenablage konnte nicht geöffnet werden")
 
     def on_menu_channel_bans(self, _event):
         if not self._require_connected("Sperren im Kanal anzeigen"):
@@ -1943,7 +1943,7 @@ class MainFrame(wx.Frame):
         tab.on_download(None)
 
     def on_menu_channel_file_delete(self, _event):
-        if not self._require_connected("Datei loeschen"):
+        if not self._require_connected("Datei löschen"):
             return
         tab = self._open_files_tab()
         if tab is None:
@@ -2110,18 +2110,18 @@ class MainFrame(wx.Frame):
             self.set_status("Media Stream wird weitergeleitet")
 
     def on_menu_user_volume(self, _event):
-        if not self._require_connected("Benutzer-Lautstaerke"):
+        if not self._require_connected("Benutzerlautstärke"):
             return
         user = self._get_selected_user()
         if not user:
             self.set_status("Kein Benutzer ausgewaehlt")
             return
         current = self._get_user_volume_level(int(user.nUserID))
-        dlg = wx.NumberEntryDialog(self, "Lautstaerke (0-32000)", "Lautstaerke:", "Benutzer-Lautstaerke", current, 0, 32000)
+        dlg = wx.NumberEntryDialog(self, "Lautstärke (0–32000)", "Lautstärke:", "Benutzerlautstärke", current, 0, 32000)
         if dlg.ShowModal() == wx.ID_OK:
             vol = dlg.GetValue()
             vol = self._set_user_volume_level(int(user.nUserID), int(vol))
-            self.set_status(f"Lautstaerke auf {vol} gesetzt")
+            self.set_status(f"Lautstärke auf {vol} gesetzt")
         dlg.Destroy()
 
     def on_menu_user_volume_up(self, _event):
@@ -2133,7 +2133,7 @@ class MainFrame(wx.Frame):
             return
         current = self._get_user_volume_level(int(user.nUserID))
         new_level = self._set_user_volume_level(int(user.nUserID), current + 1000)
-        self.set_status(f"Lautstaerke: {new_level}")
+        self.set_status(f"Lautstärke: {new_level}")
 
     def on_menu_user_volume_down(self, _event):
         if not self._require_connected("Benutzer leiser"):
@@ -2144,7 +2144,7 @@ class MainFrame(wx.Frame):
             return
         current = self._get_user_volume_level(int(user.nUserID))
         new_level = self._set_user_volume_level(int(user.nUserID), current - 1000)
-        self.set_status(f"Lautstaerke: {new_level}")
+        self.set_status(f"Lautstärke: {new_level}")
 
     def on_menu_user_operator(self, _event):
         if not self._require_connected("Operator geben/nehmen"):
@@ -2319,7 +2319,7 @@ class MainFrame(wx.Frame):
                     self.client.do_subscribe(int(user.nUserID), flag)
                 if not want and have:
                     self.client.do_unsubscribe(int(user.nUserID), flag)
-            self.set_status("Abonnements geaendert")
+            self.set_status("Abonnements geändert")
         dlg.Destroy()
 
     def on_menu_user_move(self, _event):
@@ -2331,7 +2331,7 @@ class MainFrame(wx.Frame):
             return
         channels = list(self.client.get_server_channels())
         if not channels:
-            self.set_status("Keine Kanaele gefunden")
+            self.set_status("Keine Kanäle gefunden")
             return
         options = []
         ids = []
@@ -2345,7 +2345,7 @@ class MainFrame(wx.Frame):
             label = path or self.tt_str(ch.szName) or f"Kanal {cid}"
             options.append(label)
             ids.append(cid)
-        dlg = wx.SingleChoiceDialog(self, "Zielkanal waehlen", "Benutzer verschieben", options)
+        dlg = wx.SingleChoiceDialog(self, "Zielkanal wählen", "Benutzer verschieben", options)
         if dlg.ShowModal() != wx.ID_OK:
             dlg.Destroy()
             return
@@ -2405,7 +2405,7 @@ class MainFrame(wx.Frame):
         if 0 <= current_idx < len(devices):
             current_id = int(devices[current_idx].nDeviceID)
         if not devices:
-            item = menu.Append(wx.ID_ANY, "Keine Geraete")
+            item = menu.Append(wx.ID_ANY, "Keine Geräte")
             item.Enable(False)
             return
         for dev in devices:
@@ -2434,7 +2434,7 @@ class MainFrame(wx.Frame):
             return
         choice.SetSelection(target_idx)
         self.audio_tab.on_apply_audio(None)
-        label = "Eingabegeraet" if kind == "input" else "Ausgabegeraet"
+        label = "Eingabegerät" if kind == "input" else "Ausgabegerät"
         self.set_status(f"{label} gesetzt")
 
     def on_menu_audio_effect_toggle(self, flag: str, event):
@@ -2444,10 +2444,10 @@ class MainFrame(wx.Frame):
             label = "AGC"
         elif flag == "denoise":
             self.audio_tab.denoise_check.SetValue(enabled)
-            label = "Rauschunterdrueckung"
+            label = "Rauschunterdrückung"
         elif flag == "echo":
             self.audio_tab.echo_check.SetValue(enabled)
-            label = "Echounterdrueckung"
+            label = "Echounterdrückung"
         else:
             return
         self.audio_tab.on_apply_effects(None)
@@ -2486,7 +2486,7 @@ class MainFrame(wx.Frame):
 
     def on_menu_video_refresh(self, _event):
         self.video_tab.refresh_devices()
-        self.set_status("Video-Geraete aktualisiert")
+        self.set_status("Video-Geräte aktualisiert")
 
     def on_menu_video_toggle(self, event):
         enabled = event.IsChecked()
@@ -2745,7 +2745,7 @@ class MainFrame(wx.Frame):
                     password=tab.password.GetValue().strip(),
                     client_name=tab.client_name.GetValue().strip(),
                     encrypted=tab.encrypted.GetValue(),
-                    timeout_ms=12000,
+                    timeout_ms=8000,
                 )
                 wx.CallAfter(self.handle_connect_result, result)
             except Exception as exc:
@@ -2984,7 +2984,7 @@ class MainFrame(wx.Frame):
 
     def on_open_tt_file(self, _event):
         wildcard = "TeamTalk (*.tt;*.ini;*.txt;*.json;*.xml)|*.tt;*.ini;*.txt;*.json;*.xml|Alle Dateien|*.*"
-        with wx.FileDialog(self, "TeamTalk-Datei oeffnen", wildcard=wildcard) as dlg:
+        with wx.FileDialog(self, "TeamTalk-Datei öffnen", wildcard=wildcard) as dlg:
             if dlg.ShowModal() != wx.ID_OK:
                 return
             path = Path(dlg.GetPath())

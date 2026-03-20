@@ -49,7 +49,7 @@ class ConnectionTab(wx.Panel):
 
         btn_row = wx.BoxSizer(wx.HORIZONTAL)
         self.server_add = wx.Button(self, label="Neu")
-        self.server_add.SetName("Server hinzufuegen")
+        self.server_add.SetName("Server hinzufügen")
         self.server_add.Bind(wx.EVT_BUTTON, self.on_server_add)
         self.server_edit = wx.Button(self, label="Bearbeiten")
         self.server_edit.SetName("Server bearbeiten")
@@ -81,8 +81,8 @@ class ConnectionTab(wx.Panel):
         self.client_name = self._add_field(form, "Client-Name", "TeamTalk VO")
         self.elevenlabs_key = self._add_field(form, "ElevenLabs API Key", "", style=wx.TE_PASSWORD)
 
-        self.encrypted = wx.CheckBox(self, label="Verschluesselt (Encrypted)")
-        self.encrypted.SetName("Verschluesselt")
+        self.encrypted = wx.CheckBox(self, label="Verschlüsselt (Encrypted)")
+        self.encrypted.SetName("Verschlüsselt")
         form.AddSpacer(0)
         form.Add(self.encrypted, 0)
 
@@ -237,7 +237,7 @@ class ConnectionTab(wx.Panel):
     def on_server_edit(self, _event):
         real_idx = self._get_real_index()
         if real_idx is None:
-            self.frame.set_status("Bitte einen Server auswaehlen")
+            self.frame.set_status("Bitte einen Server auswählen")
             return
         profile = self.profile_from_form()
         if not profile:
@@ -249,7 +249,7 @@ class ConnectionTab(wx.Panel):
     def on_server_remove(self, _event):
         real_idx = self._get_real_index()
         if real_idx is None:
-            self.frame.set_status("Bitte einen Server auswaehlen")
+            self.frame.set_status("Bitte einen Server auswählen")
             return
         name = self.frame.store.items()[real_idx].name
         dlg = wx.MessageDialog(
@@ -281,9 +281,9 @@ class ConnectionTab(wx.Panel):
         message = (
             "Der Server-Check baut kurzzeitig Verbindungen zu allen Servern in der Liste auf, "
             "um die aktiven Nutzer abzufragen.\n\n"
-            "Wenn du gerade verbunden bist, wird die Verbindung fuer den Check kurz getrennt "
+            "Wenn du gerade verbunden bist, wird die Verbindung für den Check kurz getrennt "
             "und danach automatisch wiederhergestellt.\n\n"
-            "Moechtest du den Server-Check jetzt starten?"
+            "Möchtest du den Server-Check jetzt starten?"
         )
         with wx.MessageDialog(
             self,
@@ -340,7 +340,7 @@ class ConnectionTab(wx.Panel):
             wx.TheClipboard.Close()
             self.frame.set_status("TT-URL kopiert")
         else:
-            self.frame.set_status("Zwischenablage konnte nicht geoeffnet werden")
+            self.frame.set_status("Zwischenablage konnte nicht geöffnet werden")
 
     def on_save_tt_file(self, _event):
         profile = self.profile_from_form()
@@ -441,7 +441,7 @@ class ConnectionTab(wx.Panel):
     def on_server_duplicate(self, _event):
         real_idx = self._get_real_index()
         if real_idx is None:
-            self.frame.set_status("Bitte einen Server auswaehlen")
+            self.frame.set_status("Bitte einen Server auswählen")
             return
         import dataclasses
         original = self.frame.store.items()[real_idx]
@@ -453,7 +453,7 @@ class ConnectionTab(wx.Panel):
     def on_server_generate_tt(self, _event):
         real_idx = self._get_real_index()
         if real_idx is None:
-            self.frame.set_status("Bitte einen Server auswaehlen")
+            self.frame.set_status("Bitte einen Server auswählen")
             return
         profile = self.frame.store.items()[real_idx]
         default_name = f"{profile.name or profile.host}.tt"
@@ -526,7 +526,7 @@ class ConnectionTab(wx.Panel):
         self.fill_form(parsed.profile)
         confirm = wx.MessageDialog(
             self,
-            f"Server '{parsed.profile.name}' wurde eingefuellt.\nJetzt verbinden?",
+            f"Server '{parsed.profile.name}' wurde eingetragen.\nJetzt verbinden?",
             "Verbinden?",
             wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION,
         )

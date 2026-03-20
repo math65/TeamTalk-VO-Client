@@ -92,7 +92,7 @@ class ChatTab(wx.Panel):
         if is_private:
             user_idx = self.private_user.GetSelection()
             if user_idx == wx.NOT_FOUND:
-                self.frame.set_status("Privater Chat: Bitte Benutzer waehlen")
+                self.frame.set_status("Privater Chat: Bitte Benutzer wählen")
                 return
             target_user_id = self.private_user.GetClientData(user_idx)
             if client.send_user_message(target_user_id, msg):

@@ -24,17 +24,17 @@ class AudioTab(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         # --- Device selection ---
-        dev_box = wx.StaticBox(self, label="Geraete")
+        dev_box = wx.StaticBox(self, label="Geräte")
         dev_sizer = wx.StaticBoxSizer(dev_box, wx.VERTICAL)
         dev_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         dev_form.AddGrowableCol(1)
 
-        lbl_in = wx.StaticText(self, label="Eingabegeraet")
+        lbl_in = wx.StaticText(self, label="Eingabegerät")
         self.input_device = wx.Choice(self)
-        self.input_device.SetName("Eingabegeraet")
-        lbl_out = wx.StaticText(self, label="Ausgabegeraet")
+        self.input_device.SetName("Eingabegerät")
+        lbl_out = wx.StaticText(self, label="Ausgabegerät")
         self.output_device = wx.Choice(self)
-        self.output_device.SetName("Ausgabegeraet")
+        self.output_device.SetName("Ausgabegerät")
 
         dev_form.Add(lbl_in, 0, wx.ALIGN_CENTER_VERTICAL)
         dev_form.Add(self.input_device, 1, wx.EXPAND)
@@ -74,7 +74,7 @@ class AudioTab(wx.Panel):
         sizer.Add(va_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
 
         # --- Levels ---
-        levels_box = wx.StaticBox(self, label="Pegel und Lautstaerke")
+        levels_box = wx.StaticBox(self, label="Pegel und Lautstärke")
         levels_sizer = wx.StaticBoxSizer(levels_box, wx.VERTICAL)
         levels_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         levels_form.AddGrowableCol(1)
@@ -84,9 +84,9 @@ class AudioTab(wx.Panel):
         self.input_gain.SetName("Mikrofon Gain")
         self.input_gain.Bind(wx.EVT_SLIDER, self.on_input_gain)
 
-        lbl_ov = wx.StaticText(self, label="Ausgabe Lautstaerke")
+        lbl_ov = wx.StaticText(self, label="Ausgabe-Lautstärke")
         self.output_volume = wx.Slider(self, value=1000, minValue=0, maxValue=32000)
-        self.output_volume.SetName("Ausgabe Lautstaerke")
+        self.output_volume.SetName("Ausgabe-Lautstärke")
         self.output_volume.Bind(wx.EVT_SLIDER, self.on_output_volume)
 
         levels_form.Add(lbl_ig, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -114,14 +114,14 @@ class AudioTab(wx.Panel):
         sizer.Add(output_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
 
         # --- Device effects ---
-        effects_box = wx.StaticBox(self, label="Geraeteeffekte")
+        effects_box = wx.StaticBox(self, label="Geräteeffekte")
         effects_sizer = wx.StaticBoxSizer(effects_box, wx.VERTICAL)
         self.agc_check = wx.CheckBox(self, label="AGC")
         self.agc_check.SetName("AGC")
-        self.denoise_check = wx.CheckBox(self, label="Rauschunterdrueckung")
-        self.denoise_check.SetName("Rauschunterdrueckung")
-        self.echo_check = wx.CheckBox(self, label="Echounterdrueckung")
-        self.echo_check.SetName("Echounterdrueckung")
+        self.denoise_check = wx.CheckBox(self, label="Rauschunterdrückung")
+        self.denoise_check.SetName("Rauschunterdrückung")
+        self.echo_check = wx.CheckBox(self, label="Echounterdrückung")
+        self.echo_check.SetName("Echounterdrückung")
         self.apply_effects_btn = wx.Button(self, label="Effekte anwenden")
         self.apply_effects_btn.SetName("Effekte anwenden")
         self.apply_effects_btn.Bind(wx.EVT_BUTTON, self.on_apply_effects)
@@ -155,8 +155,8 @@ class AudioTab(wx.Panel):
         actions_sizer.Add(mode_row, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
 
         btn_row = wx.BoxSizer(wx.HORIZONTAL)
-        self.refresh_audio_btn = wx.Button(self, label="Geraete aktualisieren")
-        self.refresh_audio_btn.SetName("Geraete aktualisieren")
+        self.refresh_audio_btn = wx.Button(self, label="Geräte aktualisieren")
+        self.refresh_audio_btn.SetName("Geräte aktualisieren")
         self.refresh_audio_btn.Bind(wx.EVT_BUTTON, self.on_refresh_audio)
         self.apply_audio_btn = wx.Button(self, label="Audio anwenden")
         self.apply_audio_btn.SetName("Audio anwenden")
@@ -202,8 +202,8 @@ class AudioTab(wx.Panel):
         self.auto_apply_prefs.Bind(wx.EVT_CHECKBOX, self._on_pref_auto_apply)
         prefs_sizer.Add(self.auto_apply_prefs, 0, wx.ALL, 8)
 
-        self.auto_apply_device_change = wx.CheckBox(self, label="Bei Geraetewechsel automatisch anwenden")
-        self.auto_apply_device_change.SetName("Audio automatisch anwenden bei Geraetewechsel")
+        self.auto_apply_device_change = wx.CheckBox(self, label="Bei Gerätewechsel automatisch anwenden")
+        self.auto_apply_device_change.SetName("Audio automatisch anwenden bei Gerätewechsel")
         self.auto_apply_device_change.SetValue(
             bool(self.frame.settings_store.settings.auto_apply_audio_on_device_change)
         )
@@ -217,8 +217,8 @@ class AudioTab(wx.Panel):
         self.apply_prefs_btn = wx.Button(self, label="Gespeicherte Audioeinstellungen anwenden")
         self.apply_prefs_btn.SetName("Audioeinstellungen anwenden")
         self.apply_prefs_btn.Bind(wx.EVT_BUTTON, self._on_pref_apply)
-        self.clear_prefs_btn = wx.Button(self, label="Gespeicherte Audioeinstellungen loeschen")
-        self.clear_prefs_btn.SetName("Audioeinstellungen loeschen")
+        self.clear_prefs_btn = wx.Button(self, label="Gespeicherte Audioeinstellungen löschen")
+        self.clear_prefs_btn.SetName("Audioeinstellungen löschen")
         self.clear_prefs_btn.Bind(wx.EVT_BUTTON, self._on_pref_clear)
 
         prefs_btn_row.Add(self.save_prefs_btn, 0, wx.RIGHT, 8)
@@ -361,7 +361,7 @@ class AudioTab(wx.Panel):
             self.on_apply_audio(None)
 
         if announce and status_ready:
-            text = f"Geraeteliste aktualisiert: {len(inputs)} Eingabe, {len(outputs)} Ausgabe"
+            text = f"Geräteliste aktualisiert: {len(inputs)} Eingabe, {len(outputs)} Ausgabe"
             if not restarted:
                 text += " (Soundsystem-Reset nicht verfuegbar)"
             elif not changed:
@@ -397,7 +397,7 @@ class AudioTab(wx.Panel):
         in_idx = self.input_device.GetSelection()
         out_idx = self.output_device.GetSelection()
         if in_idx == wx.NOT_FOUND or out_idx == wx.NOT_FOUND:
-            self.frame.set_status("Bitte Ein- und Ausgabegeraet waehlen")
+            self.frame.set_status("Bitte Ein- und Ausgabegerät wählen")
             return
         indev = self._input_devices[in_idx]
         outdev = self._output_devices[out_idx]
@@ -412,7 +412,7 @@ class AudioTab(wx.Panel):
         if use_duplex:
             duplex_ok = client.init_sound_duplex_devices(indev_id, outdev_id)
             if not duplex_ok:
-                self.frame.set_status("Duplex-Modus fehlgeschlagen, fallback auf getrennte Geraete")
+                self.frame.set_status("Duplex-Modus fehlgeschlagen, Fallback auf getrennte Geräte")
                 use_duplex = False
 
         input_ok = True
@@ -431,13 +431,13 @@ class AudioTab(wx.Panel):
             if client.init_sound_input_shared_device(sample_rate, channels, frame_size):
                 input_ok = client.init_sound_input_device(indev_id)
         if not input_ok:
-            self.frame.set_status("Eingabegeraet konnte nicht initialisiert werden")
+            self.frame.set_status("Eingabegerät konnte nicht initialisiert werden")
             return
 
         if not use_duplex:
             output_ok = client.init_sound_output_device(outdev_id)
             if not output_ok:
-                self.frame.set_status("Ausgabegeraet konnte nicht initialisiert werden")
+                self.frame.set_status("Ausgabegerät konnte nicht initialisiert werden")
                 return
 
         client.set_sound_input_gain(int(self.input_gain.GetValue()))
@@ -514,7 +514,7 @@ class AudioTab(wx.Panel):
             in_idx = self.input_device.GetSelection()
             out_idx = self.output_device.GetSelection()
             if in_idx == wx.NOT_FOUND or out_idx == wx.NOT_FOUND:
-                self.frame.set_status("Bitte zuerst Geraete waehlen")
+                self.frame.set_status("Bitte zuerst Geräte wählen")
                 self.loopback_toggle.SetValue(False)
                 return
             indev_id = int(self._input_devices[in_idx].nDeviceID)
@@ -640,7 +640,7 @@ class AudioTab(wx.Panel):
     def _on_pref_auto_apply(self, _event) -> None:
         self.frame.settings_store.settings.auto_apply_audio = bool(self.auto_apply_prefs.GetValue())
         self.frame.settings_store.save()
-        self.frame.set_status("Auto-Apply gespeichert" if self.auto_apply_prefs.GetValue() else "Auto-Apply deaktiviert")
+        self.frame.set_status("Auto-Anwenden gespeichert" if self.auto_apply_prefs.GetValue() else "Auto-Anwenden deaktiviert")
 
     def _on_pref_auto_apply_device_change(self, _event) -> None:
         self.frame.settings_store.settings.auto_apply_audio_on_device_change = bool(
@@ -648,9 +648,9 @@ class AudioTab(wx.Panel):
         )
         self.frame.settings_store.save()
         self.frame.set_status(
-            "Auto-Apply bei Geraetewechsel aktiviert"
+            "Auto-Anwenden bei Gerätewechsel aktiviert"
             if self.auto_apply_device_change.GetValue()
-            else "Auto-Apply bei Geraetewechsel deaktiviert"
+            else "Auto-Anwenden bei Gerätewechsel deaktiviert"
         )
 
     def _on_pref_save(self, _event) -> None:
