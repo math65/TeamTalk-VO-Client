@@ -1,6 +1,26 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.1)
+- Navigation:
+    - wx.Notebook durch Panel-Umschalter ersetzt: VoiceOver/NVDA sieht jetzt
+      nur noch das Auswahlmenü (wx.Choice), keine doppelten Tab-Buttons mehr.
+    - Toolbar (Regler, Toggle-Buttons, VU-Meter) an das Fenster-Ende verschoben,
+      damit Screenreader-Nutzer zuerst den Inhalt erreichen.
+    - Toolbar standardmäßig sichtbar (war: versteckt), da jetzt unten und
+      nicht im Navigationsweg.
+- Verbindung:
+    - Redundante doppelte SDK-Neuinitialisierung vor dem ersten Versuch entfernt.
+    - Event-Loop-Poll-Intervall von 200 ms auf 100 ms reduziert.
+    - stop_event_loop_and_wait() Timeout von 2,0 s auf 0,4 s gekürzt.
+    - Connect-Timeout von 12 s auf 8 s reduziert.
+- Sprache / Rechtschreibung:
+    - Alle Umlaute in sichtbaren Strings korrigiert (ae→ä, oe→ö, ue→ü, ss→ß).
+    - „Channel" → „Kanal" in deutschen Status- und Fehlermeldungen vereinheitlicht.
+    - Begriffe vereinheitlicht: Lautstärke, Geräte, Qualität, Kanäle,
+      Rauschunterdrückung, Echounterdrückung, Eingabegerät, Ausgabegerät,
+      Streaming-Lautstärke, Sounddatei, Kanalauswahl, Benutzerlautstärke.
+
 2026-03-19 (v0.10.0)
 - Barrierefreiheit / Hauptfenster:
     - Toolbar und Ereignisprotokoll standardmaessig versteckt (weniger Tab-Stopps fuer VoiceOver/NVDA).
