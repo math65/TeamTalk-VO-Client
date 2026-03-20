@@ -43,7 +43,8 @@ def setup_list_accessible(lb: wx.ListBox) -> None:
 
 
 def patch_button_accessibility() -> None:
-    """Swizzelt wxNSButton einmalig, damit VoiceOver 'Taste' / 'Kontrollkästchen' ansagt.
+    """Swizzelt wxNSButton, wxNSPopUpButton und wxNSComboBox einmalig,
+    damit VoiceOver deutsche Rollennamen ansagt.
 
     Muss einmal beim Programmstart aufgerufen werden (nach wx.App-Erstellung).
     """
@@ -55,15 +56,18 @@ def patch_button_accessibility() -> None:
         from AppKit import (  # noqa: PLC0415
             NSAccessibilityButtonRole,
             NSAccessibilityCheckBoxRole,
+            NSAccessibilityComboBoxRole,
+            NSAccessibilityPopUpButtonRole,
         )
 
-        cls = objc.lookUpClass("wxNSButton")
+        # --- wxNSButton: normale Taste oder Schalter (CheckBox) ---
+        cls_btn = objc.lookUpClass("wxNSButton")
 
         # bezelStyle == 0  →  CheckBox / Schalter
         # bezelStyle != 0  →  normaler Button / Taste
 
         @objc.typedSelector(b"@@:")
-        def _new_role(self):
+        def _btn_role(self):
             try:
                 return (
                     NSAccessibilityCheckBoxRole
@@ -74,17 +78,42 @@ def patch_button_accessibility() -> None:
                 return NSAccessibilityButtonRole
 
         @objc.typedSelector(b"@@:")
-        def _new_role_desc(self):
+        def _btn_role_desc(self):
             try:
-                return (
-                    "Schalter"
-                    if self.bezelStyle() == 0
-                    else "Taste"
-                )
+                return "Schalter" if self.bezelStyle() == 0 else "Taste"
             except Exception:
                 return "Taste"
 
-        objc.classAddMethod(cls, b"accessibilityRole", _new_role)
-        objc.classAddMethod(cls, b"accessibilityRoleDescription", _new_role_desc)
+        objc.classAddMethod(cls_btn, b"accessibilityRole", _btn_role)
+        objc.classAddMethod(cls_btn, b"accessibilityRoleDescription", _btn_role_desc)
+
+        # --- wxNSPopUpButton: Auswahlmenü (wx.Choice) ---
+        cls_popup = objc.lookUpClass("wxNSPopUpButton")
+
+        @objc.typedSelector(b"@@:")
+        def _popup_role(self):
+            return NSAccessibilityPopUpButtonRole
+
+        @objc.typedSelector(b"@@:")
+        def _popup_role_desc(self):
+            return "Auswahlmenü"
+
+        objc.classAddMethod(cls_popup, b"accessibilityRole", _popup_role)
+        objc.classAddMethod(cls_popup, b"accessibilityRoleDescription", _popup_role_desc)
+
+        # --- wxNSComboBox: Kombinationsfeld (wx.ComboBox) ---
+        cls_combo = objc.lookUpClass("wxNSComboBox")
+
+        @objc.typedSelector(b"@@:")
+        def _combo_role(self):
+            return NSAccessibilityComboBoxRole
+
+        @objc.typedSelector(b"@@:")
+        def _combo_role_desc(self):
+            return "Kombinationsfeld"
+
+        objc.classAddMethod(cls_combo, b"accessibilityRole", _combo_role)
+        objc.classAddMethod(cls_combo, b"accessibilityRoleDescription", _combo_role_desc)
+
     except Exception:
         pass
