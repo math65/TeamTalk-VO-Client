@@ -122,7 +122,10 @@ class DesktopTab(wx.Panel):
 
     def on_stop(self, _event):
         self.share_toggle.SetValue(False)
-        self.on_share_toggle(wx.CommandEvent())
+        self._sharing = False
+        self._stop_timer()
+        self.frame.client.close_desktop_window()
+        self._set_status("Desktopfreigabe beendet")
 
     def on_timer(self, _event):
         if not self._sharing or not self._active:

@@ -105,7 +105,9 @@ class SoundManager:
                     import wx.adv  # noqa: PLC0415
                     sound = wx.adv.Sound(path)
                     if sound.IsOk():
-                        wx.CallAfter(sound.Play, wx.adv.SOUND_ASYNC)
+                        # Pass sound as argument so wx.CallAfter holds a reference
+                        # and the object is not garbage-collected before Play() runs.
+                        wx.CallAfter(lambda s=sound: s.Play(wx.adv.SOUND_ASYNC))
             except Exception:
                 pass
 

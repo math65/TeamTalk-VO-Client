@@ -338,29 +338,22 @@ class TTSManager:
                 env["PATH"] = f"{mbrola_bin.parent}{os.pathsep}{env.get('PATH','')}"
             try:
                 selected = self.settings.voice or self.settings.language or "de"
+
+                def run_espeak(voice: str):
+                    cmd = [
+                        binary, "-v", voice,
+                        "-s", str(self.settings.rate),
+                        "-a", str(self.settings.volume),
+                        "--stdout", text,
+                    ]
+                    return subprocess.run(
+                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
+                    )
+
                 if sys.platform == "darwin":
                     fallback_lang = self.settings.language or "en"
                     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                         tmp_path = tmp.name
-                    def run_espeak(voice: str):
-                        cmd = [
-                            binary,
-                            "-v",
-                            voice,
-                            "-s",
-                            str(self.settings.rate),
-                            "-a",
-                            str(self.settings.volume),
-                            "--stdout",
-                            text,
-                        ]
-                        return subprocess.run(
-                            cmd,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            env=env,
-                        )
-
                     proc = run_espeak(selected)
                     if proc.returncode != 0 and fallback_lang and fallback_lang != selected:
                         proc = run_espeak(fallback_lang)
@@ -387,30 +380,10 @@ class TTSManager:
                             except Exception:
                                 pass
                 elif sys.platform == "win32":
-                    # On Windows, write WAV to temp file and play with winsound
                     import winsound
                     fallback_lang = self.settings.language or "en"
                     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                         tmp_path = tmp.name
-                    def run_espeak(voice: str):
-                        cmd = [
-                            binary,
-                            "-v",
-                            voice,
-                            "-s",
-                            str(self.settings.rate),
-                            "-a",
-                            str(self.settings.volume),
-                            "--stdout",
-                            text,
-                        ]
-                        return subprocess.run(
-                            cmd,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            env=env,
-                        )
-
                     proc = run_espeak(selected)
                     if proc.returncode != 0 and fallback_lang and fallback_lang != selected:
                         proc = run_espeak(fallback_lang)

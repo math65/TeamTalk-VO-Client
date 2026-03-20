@@ -3471,13 +3471,16 @@ class MainFrame(wx.Frame):
             tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT,
             tt.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE,
         ):
-            # Werte sofort im Event-Thread erfassen, bevor SDK-Puffer überschrieben wird
+            # Capture values immediately in event thread before SDK buffer is overwritten
             _ev = event
             _user = getattr(msg, "user", None)
             _user_id = int(getattr(_user, "nUserID", 0) or 0) if _user else 0
             _user_ch = int(getattr(_user, "nChannelID", 0) or 0) if _user else 0
             _source = int(getattr(msg, "nSource", 0) or 0)
-            wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
+            # USER_UPDATE fires on every voice-state change (speaking, muting) —
+            # skip the full list refresh to avoid O(n) SDK calls at audio rate.
+            if _ev != tt.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE:
+                wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
             wx.CallAfter(self._emit_user_presence_event, msg, tt)
             wx.CallAfter(self._play_user_event_sound, _ev, _user_id, _user_ch, _source, tt)
             if self._user_recording_enabled:

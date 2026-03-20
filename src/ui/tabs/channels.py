@@ -24,6 +24,7 @@ class ChannelsTab(wx.Panel):
         self._selected_user_id: Optional[int] = None
         self._channel_list_ids: List[int] = []
         self._private_user_ids: List[int] = []
+        self._cached_channels: List = []  # updated only on channel structure changes
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -85,6 +86,7 @@ class ChannelsTab(wx.Panel):
         logger = self.frame.logger
 
         channels = list(client.get_server_channels())
+        self._cached_channels = channels
         logger.write(f"Channels received: {len(channels)}")
         users_by_channel = self._count_users_by_channel()
         self.channel_tree.DeleteAllItems()
@@ -184,7 +186,10 @@ class ChannelsTab(wx.Panel):
             items.append(f"{nickname} | {username} | {status}")
             self._private_user_ids.append(int(user.nUserID))
         self.user_list.Set(items)
-        self._refresh_channel_list(list(client.get_server_channels()), self._count_users_by_channel())
+        # Use cached channel list to avoid repeated get_server_channels() SDK calls.
+        # The cache is refreshed on channel-structure events (new/update/remove).
+        if self._cached_channels:
+            self._refresh_channel_list(self._cached_channels, self._count_users_by_channel())
         self._announce_channel_members(users, actual)
         # Sync private user choice in chat tab
         chat_tab = self.frame.chat_tab

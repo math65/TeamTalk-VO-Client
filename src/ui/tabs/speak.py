@@ -285,6 +285,7 @@ class SpeakTab(wx.Panel):
 
     def on_stop(self, _event) -> None:
         self.frame.client.stop_streaming_media()
+        self._cleanup_temp()
         self._set_status("Streaming gestoppt")
 
     # ------------------------------------------------------------------
