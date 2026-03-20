@@ -1,6 +1,23 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.8)
+- VoiceOver-Verbesserungen (macOS):
+    - Regler (wx.Slider) werden jetzt als "Regler" statt "slider" angesagt.
+    - Einzeilige Textfelder werden als "Textfeld" statt "text field" angesagt.
+    - Mehrzeilige Textbereiche werden als "Textbereich" statt "text area" angesagt.
+    - Baumansichten (Kanalliste) werden als "Baumansicht" statt "outline" angesagt.
+    - Fortschrittsanzeigen werden als "Fortschrittsanzeige" statt
+      "progress indicator" angesagt.
+- Listeneinträge: Trennzeichen in allen Listen von " | " auf ", " geändert,
+  damit VoiceOver nicht mehr "senkrechter Strich" vorliest.
+  Betrifft: Nutzerliste, Kanalliste, Dateiliste, Kontenliste, Sperrliste,
+  Online-Benutzer-Dialog.
+- Stabilität: Fehlereingabe bei "Neu verbinden" wird jetzt sauber abgefangen
+  und in der Statuszeile angezeigt statt still zu versagen.
+- Dateiliste: Parallele Dateinamenliste verhindert fragile String-Zerlegung
+  beim Löschen und Herunterladen von Dateien.
+
 2026-03-20 (v0.10.7)
 - Online-Benutzer (Server-Menü → "Online-Benutzer..."):
     - Zeigt alle aktuell mit dem Server verbundenen Nutzer (Nickname, Benutzername,

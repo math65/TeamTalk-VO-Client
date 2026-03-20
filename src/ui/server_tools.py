@@ -42,7 +42,7 @@ class OnlineUsersDialog(wx.Dialog):
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        header = wx.StaticText(self, label="Nickname | Benutzername | Kanal")
+        header = wx.StaticText(self, label="Nickname, Benutzername, Kanal")
         header.SetName("Online-Benutzer Kopfzeile")
         sizer.Add(header, 0, wx.ALL, 8)
 
@@ -89,7 +89,7 @@ class OnlineUsersDialog(wx.Dialog):
                 ch = self.frame.client.get_channel(ch_id)
                 if ch is not None:
                     channel = tt_str(ch.szName) or f"#{ch_id}"
-            items.append(f"{nickname} | {username} | {channel}")
+            items.append(f"{nickname}, {username}, {channel}")
         self.user_list.Set(items)
         self.count_label.SetLabel(f"{len(items)} Benutzer online")
 
@@ -388,7 +388,7 @@ class BanListDialog(wx.Dialog):
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        header = wx.StaticText(self, label="IP | Benutzername | Zeitpunkt")
+        header = wx.StaticText(self, label="IP, Benutzername, Zeitpunkt")
         header.SetName("Sperrliste Kopfzeile")
         sizer.Add(header, 0, wx.ALL, 8)
 
@@ -424,5 +424,5 @@ class BanListDialog(wx.Dialog):
     def add_ban(self, ban) -> None:
         tt_str = self.frame.tt_str
         self._bans.append(ban)
-        label = f"{tt_str(ban.szIPAddress)} | {tt_str(ban.szUsername)} | {tt_str(ban.szBanTime)}"
+        label = f"{tt_str(ban.szIPAddress)}, {tt_str(ban.szUsername)}, {tt_str(ban.szBanTime)}"
         self.list_box.Append(label)

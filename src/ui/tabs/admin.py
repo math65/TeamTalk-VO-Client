@@ -32,7 +32,7 @@ class AdminTab(wx.Panel):
         acc_box = wx.StaticBox(self, label="Benutzerkonten")
         acc_sizer = wx.StaticBoxSizer(acc_box, wx.VERTICAL)
 
-        acc_header = wx.StaticText(acc_box, label="Benutzername | Typ | Notiz")
+        acc_header = wx.StaticText(acc_box, label="Benutzername, Typ, Notiz")
         acc_header.SetName("Benutzerkonten Kopfzeile")
         acc_sizer.Add(acc_header, 0, wx.LEFT | wx.RIGHT | wx.TOP, 4)
         self.account_list = wx.ListBox(self)
@@ -61,7 +61,7 @@ class AdminTab(wx.Panel):
         ban_box = wx.StaticBox(self, label="Sperren")
         ban_sizer = wx.StaticBoxSizer(ban_box, wx.VERTICAL)
 
-        ban_header = wx.StaticText(ban_box, label="IP-Adresse | Benutzername | Zeitpunkt")
+        ban_header = wx.StaticText(ban_box, label="IP-Adresse, Benutzername, Zeitpunkt")
         ban_header.SetName("Sperrliste Kopfzeile")
         ban_sizer.Add(ban_header, 0, wx.LEFT | wx.RIGHT | wx.TOP, 4)
         self.ban_list = wx.ListBox(self)
@@ -160,7 +160,7 @@ class AdminTab(wx.Panel):
         self._accounts.append(account)
         tt = self.frame.client.tt
         utype = "Administrator" if account.uUserType & tt.UserType.USERTYPE_ADMIN else "Standard"
-        label = f"{tt_str(account.szUsername)} | {utype} | {tt_str(account.szNote)}"
+        label = f"{tt_str(account.szUsername)}, {utype}, {tt_str(account.szNote)}"
         self.account_list.Append(label)
 
     def on_add_account(self, _event):
@@ -258,7 +258,7 @@ class AdminTab(wx.Panel):
     def add_ban_to_list(self, ban):
         tt_str = self.frame.tt_str
         self._bans.append(ban)
-        label = f"{tt_str(ban.szIPAddress)} | {tt_str(ban.szUsername)} | {tt_str(ban.szBanTime)}"
+        label = f"{tt_str(ban.szIPAddress)}, {tt_str(ban.szUsername)}, {tt_str(ban.szBanTime)}"
         self.ban_list.Append(label)
 
     def on_unban(self, _event):

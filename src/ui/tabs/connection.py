@@ -273,9 +273,12 @@ class ConnectionTab(wx.Panel):
         self.frame.set_status("Neu verbinden...")
 
         def worker():
-            self.frame.client.stop_event_loop_and_wait()
-            result = self.frame.client.reconnect()
-            wx.CallAfter(self.frame.handle_connect_result, result)
+            try:
+                self.frame.client.stop_event_loop_and_wait()
+                result = self.frame.client.reconnect()
+                wx.CallAfter(self.frame.handle_connect_result, result)
+            except Exception as exc:
+                wx.CallAfter(self.frame.set_status, f"Neu verbinden fehlgeschlagen: {exc}")
 
         threading.Thread(target=worker, daemon=True).start()
 

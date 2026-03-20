@@ -40,7 +40,7 @@ class ChannelsTab(wx.Panel):
         # ListBox ist fuer VoiceOver verlaesslicher als ListCtrl auf macOS.
         right_panel = wx.Panel(splitter)
         right_sizer = wx.BoxSizer(wx.VERTICAL)
-        user_header = wx.StaticText(right_panel, label="Nickname | Benutzername | Status")
+        user_header = wx.StaticText(right_panel, label="Nickname, Benutzername, Status")
         user_header.SetName("Nutzerliste Kopfzeile")
         right_sizer.Add(user_header, 0, wx.LEFT | wx.RIGHT | wx.TOP, 4)
         self.user_list = wx.ListBox(right_panel)
@@ -153,7 +153,7 @@ class ChannelsTab(wx.Panel):
                 path = tt_str(chan.szName)
             count = users_by_channel.get(int(chan.nChannelID), 0)
             has_pw = bool(chan.bPassword)
-            label = f"{path}  | Nutzer: {count}  | Passwort: {'Ja' if has_pw else 'Nein'}"
+            label = f"{path}, Nutzer: {count}, Passwort: {'Ja' if has_pw else 'Nein'}"
             display.append((label, int(chan.nChannelID)))
         combined = sorted(display, key=lambda x: x[0].lower())
         self._channel_list_ids = [i for _, i in combined]
@@ -183,7 +183,7 @@ class ChannelsTab(wx.Panel):
             nickname = tt_str(user.szNickname) or "-"
             username = tt_str(user.szUsername) or "-"
             status = str(user.nStatusMode)
-            items.append(f"{nickname} | {username} | {status}")
+            items.append(f"{nickname}, {username}, {status}")
             self._private_user_ids.append(int(user.nUserID))
         self.user_list.Set(items)
         # Use cached channel list to avoid repeated get_server_channels() SDK calls.

@@ -38,7 +38,7 @@ from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.10.7"
+APP_VERSION = "0.10.8"
 
 
 def _init_startup_logging() -> None:
@@ -3764,9 +3764,10 @@ class MainFrame(wx.Frame):
 
 class App(wx.App):
     def OnInit(self) -> bool:
-        from ui.a11y import patch_button_accessibility, patch_list_row_accessibility
+        from ui.a11y import patch_button_accessibility, patch_list_row_accessibility, patch_control_accessibility
         patch_button_accessibility()
         patch_list_row_accessibility()
+        patch_control_accessibility()
         frame = MainFrame()
         frame.Show()
         return True

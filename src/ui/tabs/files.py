@@ -23,7 +23,7 @@ class FilesTab(wx.Panel):
 
         list_box = wx.StaticBox(self, label="Dateien im aktuellen Kanal")
         list_sizer = wx.StaticBoxSizer(list_box, wx.VERTICAL)
-        header = wx.StaticText(list_box, label="Dateiname | Größe | Hochgeladen von | Datum")
+        header = wx.StaticText(list_box, label="Dateiname, Größe, Hochgeladen von, Datum")
         header.SetName("Dateiliste Kopfzeile")
         list_sizer.Add(header, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
 
@@ -64,7 +64,8 @@ class FilesTab(wx.Panel):
         self.SetSizer(sizer)
 
 
-        self._file_ids = []  # parallel to list rows
+        self._file_ids: list = []    # parallel to list rows
+        self._file_names: list = []  # parallel to list rows
 
     def _format_size(self, size_bytes: int) -> str:
         if size_bytes < 1024:
@@ -81,6 +82,7 @@ class FilesTab(wx.Panel):
         files = self.frame.client.get_channel_files(int(ch_id))
         self.file_list.Set([])
         self._file_ids = []
+        self._file_names = []
         tt_str = self.frame.tt_str
         items = []
         for f in files:
@@ -88,8 +90,9 @@ class FilesTab(wx.Panel):
             size = self._format_size(int(f.nFileSize))
             user = tt_str(f.szUsername)
             date = tt_str(f.szUploadTime)
-            items.append(f"{name} | {size} | {user} | {date}")
+            items.append(f"{name}, {size}, {user}, {date}")
             self._file_ids.append(int(f.nFileID))
+            self._file_names.append(name)
         if items:
             self.file_list.Set(items)
         else:
@@ -124,7 +127,7 @@ class FilesTab(wx.Panel):
         ch_id = self.frame.client.get_my_channel_id()
         if not ch_id:
             return
-        name = self.file_list.GetString(sel)
+        name = self._file_names[sel] if sel < len(self._file_names) else self.file_list.GetString(sel)
         with wx.FileDialog(
             self, "Datei speichern unter", defaultFile=name,
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
@@ -148,7 +151,7 @@ class FilesTab(wx.Panel):
         ch_id = self.frame.client.get_my_channel_id()
         if not ch_id:
             return
-        name = self.file_list.GetString(sel).split(" | ")[0]
+        name = self._file_names[sel] if sel < len(self._file_names) else self.file_list.GetString(sel)
         dlg = wx.MessageDialog(
             self, f"Datei '{name}' wirklich löschen?",
             "Datei löschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,

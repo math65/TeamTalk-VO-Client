@@ -90,6 +90,102 @@ def patch_list_row_accessibility() -> None:
         pass
 
 
+def patch_control_accessibility() -> None:
+    """Swizzelt wxNSSlider, wxNSTextField, wxNSTextView und NSProgressIndicator,
+    damit VoiceOver deutsche Rollenbeschreibungen ansagt.
+
+    Muss einmal beim Programmstart aufgerufen werden (nach wx.App-Erstellung).
+    """
+    if sys.platform != "darwin":
+        return
+
+    try:
+        import objc  # noqa: PLC0415
+        from AppKit import (  # noqa: PLC0415
+            NSAccessibilitySliderRole,
+            NSAccessibilityTextFieldRole,
+            NSAccessibilityTextAreaRole,
+        )
+
+        # --- wxNSSlider → "Regler" ---
+        try:
+            cls_slider = objc.lookUpClass("wxNSSlider")
+
+            @objc.typedSelector(b"@@:")
+            def _slider_role(self):
+                return NSAccessibilitySliderRole
+
+            @objc.typedSelector(b"@@:")
+            def _slider_role_desc(self):
+                return "Regler"
+
+            objc.classAddMethod(cls_slider, b"accessibilityRole", _slider_role)
+            objc.classAddMethod(cls_slider, b"accessibilityRoleDescription", _slider_role_desc)
+        except Exception:
+            pass
+
+        # --- wxNSTextField (single-line TextCtrl) → "Textfeld" ---
+        try:
+            cls_tf = objc.lookUpClass("wxNSTextField")
+
+            @objc.typedSelector(b"@@:")
+            def _tf_role(self):
+                return NSAccessibilityTextFieldRole
+
+            @objc.typedSelector(b"@@:")
+            def _tf_role_desc(self):
+                return "Textfeld"
+
+            objc.classAddMethod(cls_tf, b"accessibilityRole", _tf_role)
+            objc.classAddMethod(cls_tf, b"accessibilityRoleDescription", _tf_role_desc)
+        except Exception:
+            pass
+
+        # --- wxNSTextView (multiline wx.TextCtrl) → "Textbereich" ---
+        try:
+            cls_tv = objc.lookUpClass("wxNSTextView")
+
+            @objc.typedSelector(b"@@:")
+            def _tv_role(self):
+                return NSAccessibilityTextAreaRole
+
+            @objc.typedSelector(b"@@:")
+            def _tv_role_desc(self):
+                return "Textbereich"
+
+            objc.classAddMethod(cls_tv, b"accessibilityRole", _tv_role)
+            objc.classAddMethod(cls_tv, b"accessibilityRoleDescription", _tv_role_desc)
+        except Exception:
+            pass
+
+        # --- wxNSOutlineView (TreeCtrl) → "Baumansicht" ---
+        try:
+            cls_outline = objc.lookUpClass("wxNSOutlineView")
+
+            @objc.typedSelector(b"@@:")
+            def _outline_role_desc(self):
+                return "Baumansicht"
+
+            objc.classAddMethod(cls_outline, b"accessibilityRoleDescription", _outline_role_desc)
+        except Exception:
+            pass
+
+        # --- NSProgressIndicator (wx.Gauge) → "Fortschrittsanzeige" ---
+        try:
+            cls_prog = objc.lookUpClass("NSProgressIndicator")
+
+            @objc.typedSelector(b"@@:")
+            def _prog_role_desc(self):
+                return "Fortschrittsanzeige"
+
+            objc.classAddMethod(cls_prog, b"accessibilityRoleDescription", _prog_role_desc)
+        except Exception:
+            pass
+
+    except Exception:
+        pass
+
+
 def patch_button_accessibility() -> None:
     """Swizzelt wxNSButton, wxNSPopUpButton und wxNSComboBox einmalig,
     damit VoiceOver deutsche Rollennamen ansagt.
