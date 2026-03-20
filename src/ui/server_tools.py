@@ -40,6 +40,10 @@ class OnlineUsersDialog(wx.Dialog):
         self.SetName("Online-Benutzer")
         self._users: List = []
 
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        self.SetAcceleratorTable(accel)
+        self.Bind(wx.EVT_MENU, lambda _e: self.Close(), id=wx.ID_CLOSE)
+
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         header = wx.StaticText(self, label="Nickname, Benutzername, Kanal")
@@ -63,10 +67,14 @@ class OnlineUsersDialog(wx.Dialog):
         self.refresh_btn = wx.Button(self, label="&Aktualisieren")
         self.refresh_btn.SetName("Online-Benutzer aktualisieren")
         self.refresh_btn.Bind(wx.EVT_BUTTON, self.on_refresh)
-        close_btn = wx.Button(self, id=wx.ID_CLOSE, label="&Schließen")
+        self.pm_btn = wx.Button(self, label="&Privatnachricht")
+        self.pm_btn.SetName("Privatnachricht an ausgewählten Benutzer")
+        self.pm_btn.Bind(wx.EVT_BUTTON, lambda _e: self._do_private_message())
+        close_btn = wx.Button(self, id=wx.ID_CLOSE, label="Sc&hließen")
         close_btn.SetName("Online-Benutzer schließen")
         close_btn.Bind(wx.EVT_BUTTON, lambda _evt: self.Close())
         btn_row.Add(self.refresh_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(self.pm_btn, 0, wx.RIGHT, 8)
         btn_row.Add(close_btn, 0)
         sizer.Add(btn_row, 0, wx.ALL, 8)
 
@@ -295,6 +303,10 @@ class ServerStatisticsDialog(wx.Dialog):
         self.SetName("Serverstatistiken")
         self._last_stats = None
 
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        self.SetAcceleratorTable(accel)
+        self.Bind(wx.EVT_MENU, lambda _e: self.Close(), id=wx.ID_CLOSE)
+
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.stats_list = wx.ListBox(self)
@@ -385,6 +397,10 @@ class BanListDialog(wx.Dialog):
         self.frame = frame
         self.SetName("Sperrliste")
         self._bans: List = []
+
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        self.SetAcceleratorTable(accel)
+        self.Bind(wx.EVT_MENU, lambda _e: self.Close(), id=wx.ID_CLOSE)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 

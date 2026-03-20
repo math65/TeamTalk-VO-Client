@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.16)
+- OnlineUsersDialog: Cmd+W zum Schließen (Accelerator Table) hinzugefügt.
+- OnlineUsersDialog: Schaltfläche "Privatnachricht" direkt im Dialog ergänzt,
+  sodass Benutzer aus der Liste ohne Kontextmenü angeschrieben werden können.
+- ServerStatisticsDialog, BanListDialog: ebenfalls Cmd+W zum Schließen.
+- Handbuch: Versionsnummer jetzt dynamisch aus APP_VERSION (immer aktuell).
+- Handbuch: Hinweis ergänzt, dass sich das Handbuch mit jeder Version ändern kann.
+- Handbuch: ElevenLabs API Key Ort korrigiert (Verbindung-Tab, nicht Einstellungen).
+- Handbuch: Erststart-Audio-Anleitung in Abschnitt 6 (Tab Audio) ergänzt.
+
 2026-03-20 (v0.10.15)
 - Handbuch-Dialog repariert: wx.html.HtmlWindow durch zuverlässiges
   wx.TextCtrl (mehrzeilig, schreibgeschützt) ersetzt – Inhalt wurde
