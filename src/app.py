@@ -1785,6 +1785,7 @@ class MainFrame(wx.Frame):
             self.client.start_event_loop(self.handle_tt_message)
             wx.CallAfter(self.set_status, result.message)
             if result.ok:
+                self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
                 wx.CallAfter(self.channels_tab.refresh_channels_and_users)
 
         threading.Thread(target=worker, daemon=True).start()
@@ -2780,6 +2781,7 @@ class MainFrame(wx.Frame):
         self.set_status(result.message)
         if result.ok:
             self._reconnect_attempts = 0
+            self.sound_manager.play("server_connect", self.settings_store.settings.sound_events.get("server_connect"))
             self._auto_init_sound_devices()
             self.client.start_event_loop(self.handle_tt_message)
             self._refresh_channels_with_retry()
@@ -2927,6 +2929,7 @@ class MainFrame(wx.Frame):
                 self.client.start_event_loop(self.handle_tt_message)
                 wx.CallAfter(self.set_status, result.message)
                 if result.ok:
+                    self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
                     wx.CallAfter(self.channels_tab.refresh_channels_and_users)
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
                     if self.files_tab is not None:
@@ -3097,6 +3100,7 @@ class MainFrame(wx.Frame):
                 elif parsed.channel_path:
                     target_id = self._resolve_channel_path(parsed.channel_path, timeout_sec=2) or 0
                 if target_id and self._verify_join(target_id, timeout_sec=4):
+                    self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
                     wx.CallAfter(self.set_status, "Kanalbeitritt erfolgreich")
                     wx.CallAfter(self.channels_tab.refresh_channels_and_users)
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
@@ -3105,6 +3109,7 @@ class MainFrame(wx.Frame):
                     return
                 wx.CallAfter(self.set_status, result_join.message)
                 if result_join.ok:
+                    self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
                     wx.CallAfter(self.channels_tab.refresh_channels_and_users)
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
                     if self.files_tab is not None:
@@ -3475,7 +3480,6 @@ class MainFrame(wx.Frame):
                 self._handle_user_recording_event(msg, tt)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN:
             wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
-            self.sound_manager.play("server_connect", self.settings_store.settings.sound_events.get("server_connect"))
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_TEXTMSG:
             self._handle_text_message(msg, tt)
         elif event == tt.ClientEvent.CLIENTEVENT_STREAM_MEDIAFILE:
