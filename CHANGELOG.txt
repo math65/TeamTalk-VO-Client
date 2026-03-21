@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2026-03-21 (v1.1.1)
+- Korrektur: Lokale Wiedergabe aus dem Admin-Tab in den Audio-Tab (Tab 4)
+  verschoben – die Funktion spielt Dateien nur lokal ab (nur du hörst es,
+  kein Kanal-Streaming) und ist für alle Nutzer verfügbar.
+
 2026-03-21 (v1.1.0)
 - Neu: IP-Adresse direkt bannen – neuer Button "IP-Adresse bannen..." im
   Admin-Tab (Sperren-Bereich). Sperrt eine beliebige IP ohne dass der
