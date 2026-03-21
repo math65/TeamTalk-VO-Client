@@ -1,6 +1,42 @@
 Changelog
 =========
 
+2026-03-21 (v1.0.2)
+- Bugfix: Video-Tab – wenn kein Gerät ausgewählt war, griff GetSelection()=-1
+  auf das letzte Listenelement zu statt abzubrechen (betrifft on_apply und
+  _ensure_video_ready). Jetzt explizite Bounds-Prüfung mit Statusmeldung.
+- Bugfix: Einstellungen – show_toolbar wurde beim Laden ohne gespeicherten Wert
+  fälschlich auf False gesetzt (Dataclass-Default war True). Default korrigiert.
+
+2026-03-21 (v1.0.1)
+- Kanal-Menü → Streaming: SoundCloud, Bandcamp, Vimeo und Mixcloud als
+  eigenständige Menüpunkte ergänzt (waren bisher nicht vorhanden).
+- Bugfix: Webradio, Podcast und Twitch haben im Menü auf falsche Modi
+  verwiesen (Indices 2/3/4 statt 7/8/3) – alle Indices korrigiert.
+- Handbuch: Streaming-Quellen im Kanal-Menü-Abschnitt aktualisiert.
+
+2026-03-20 (v1.0.0) – Erstes stabiles Release
+- Verbindung-Tab: Ping-Anzeige verwendet jetzt Komma statt senkrechter Strich
+  ("UDP Ping: X ms, TCP Ping: Y ms") – VoiceOver las "|" als "senkrechter Strich".
+- Einstellungen → Anzeige: Checkbox "VU-Meter anzeigen" wird jetzt korrekt aus
+  den gespeicherten Einstellungen initialisiert (war bisher immer "an").
+- Einstellungen → Anzeige: VU-Meter-Sichtbarkeit wird jetzt dauerhaft gespeichert
+  (AppSettings.show_vu_meter, SettingsStore) und beim Start angewendet.
+- Bugfix: _on_vu_meter_changed hat fälschlicherweise audio_tab.vu_meter statt
+  frame.vu_meter angesprochen – Checkbox hatte daher keinerlei Wirkung.
+- "Speichern" im Anzeige-Tab wendet VU-Meter-Sichtbarkeit jetzt sofort an.
+
+2026-03-20 (v0.10.18)
+- TTS-Einstellungen werden jetzt dauerhaft gespeichert (AppSettings /
+  SettingsStore): Aktivierung, Stimme, Sprache, Tempo, Lautstärke,
+  Optionen, espeak-ng-Pfad – bleiben nach Neustart erhalten.
+- TTS-Einstellungen werden beim Start aus der Konfigurationsdatei geladen.
+- ServerProfile: neues Feld "Profilname" (display_name) in der
+  Verbindungsmaske – erlaubt einen eigenen Anzeigenamen unabhängig
+  vom Hostnamen. Wird leer gelassen, gilt der Hostname als Name.
+- BroadcastMessageDialog, ClientStatisticsDialog, ChangeStatusDialog:
+  Cmd+W zum Schließen ergänzt.
+
 2026-03-20 (v0.10.17)
 - ElevenLabs API-Schlüssel aus dem Verbindung-Tab entfernt und in einen
   eigenen Einstellungsbereich verschoben: Einstellungen → ElevenLabs.

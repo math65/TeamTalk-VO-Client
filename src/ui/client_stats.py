@@ -16,6 +16,10 @@ class ClientStatisticsDialog(wx.Dialog):
         self.frame = frame
         self.SetName("Verbindungsstatistiken")
 
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        self.SetAcceleratorTable(accel)
+        self.Bind(wx.EVT_MENU, lambda _e: self.Close(), id=wx.ID_CLOSE)
+
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.stats_list = wx.ListBox(self)

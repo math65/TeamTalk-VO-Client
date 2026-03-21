@@ -198,7 +198,7 @@ class SettingsTab(wx.Panel):
 
         self._show_vu_meter = wx.CheckBox(panel, label="VU-&Meter anzeigen")
         self._show_vu_meter.SetName("VU-Meter anzeigen")
-        self._show_vu_meter.SetValue(True)
+        self._show_vu_meter.SetValue(bool(s.show_vu_meter))
         self._show_vu_meter.Bind(wx.EVT_CHECKBOX, self._on_vu_meter_changed)
         sizer.Add(self._show_vu_meter, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
@@ -370,8 +370,10 @@ class SettingsTab(wx.Panel):
         s.show_server_in_title = self._show_server_title.GetValue()
         s.show_toolbar = self._show_toolbar.GetValue()
         s.show_event_log = self._show_event_log.GetValue()
+        s.show_vu_meter = self._show_vu_meter.GetValue()
         self.frame.settings_store.save()
         self.frame.apply_display_settings()
+        self._on_vu_meter_changed(None)
         self.frame.set_status("Anzeigeeinstellungen gespeichert")
 
     def _on_toolbar_changed(self, _event):
@@ -393,9 +395,8 @@ class SettingsTab(wx.Panel):
     def _on_vu_meter_changed(self, _event):
         checked = self._show_vu_meter.GetValue()
         try:
-            vu = self.frame.audio_tab.vu_meter
-            vu.Show(checked)
-            self.frame.audio_tab.Layout()
+            self.frame.vu_meter.Show(checked)
+            self.frame.vu_meter.GetParent().Layout()
         except Exception:
             pass
 

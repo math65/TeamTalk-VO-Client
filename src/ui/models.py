@@ -20,6 +20,7 @@ class ServerProfile:
     client_name: str
     encrypted: bool = False
     elevenlabs_api_key: str = ""
+    display_name: str = ""
 
 
 @dataclass
@@ -131,10 +132,23 @@ class AppSettings:
     chat_history_format: str = "Liste"
     show_toolbar: bool = True        # Standard: sichtbar (jetzt unten, Screen-reader-freundlich)
     show_event_log: bool = False     # Standard: versteckt (Screenreader-freundlich)
+    show_vu_meter: bool = True
     # Sound-Ereignisse
     sound_events: Dict[str, str] = field(default_factory=dict)
     # ElevenLabs
     elevenlabs_api_key: str = ""
+    # TTS (espeak-ng)
+    tts_enabled: bool = False
+    tts_speak_chat: bool = True
+    tts_speak_private: bool = True
+    tts_speak_system: bool = True
+    tts_speak_own: bool = True
+    tts_interrupt: bool = False
+    tts_language: str = "de"
+    tts_voice: str = ""
+    tts_rate: int = 175
+    tts_volume: int = 100
+    tts_espeak_path: str = ""
 
 
 class SettingsStore:
@@ -177,11 +191,23 @@ class SettingsStore:
             self.settings.always_on_top = bool(data.get("always_on_top", False))
             self.settings.show_server_in_title = bool(data.get("show_server_in_title", True))
             self.settings.chat_history_format = str(data.get("chat_history_format", "Liste") or "Liste")
-            self.settings.show_toolbar = bool(data.get("show_toolbar", False))
+            self.settings.show_toolbar = bool(data.get("show_toolbar", True))
             self.settings.show_event_log = bool(data.get("show_event_log", False))
+            self.settings.show_vu_meter = bool(data.get("show_vu_meter", True))
             sound_events = data.get("sound_events", {})
             self.settings.sound_events = sound_events if isinstance(sound_events, dict) else {}
             self.settings.elevenlabs_api_key = str(data.get("elevenlabs_api_key", "") or "")
+            self.settings.tts_enabled = bool(data.get("tts_enabled", False))
+            self.settings.tts_speak_chat = bool(data.get("tts_speak_chat", True))
+            self.settings.tts_speak_private = bool(data.get("tts_speak_private", True))
+            self.settings.tts_speak_system = bool(data.get("tts_speak_system", True))
+            self.settings.tts_speak_own = bool(data.get("tts_speak_own", True))
+            self.settings.tts_interrupt = bool(data.get("tts_interrupt", False))
+            self.settings.tts_language = str(data.get("tts_language", "de") or "de")
+            self.settings.tts_voice = str(data.get("tts_voice", "") or "")
+            self.settings.tts_rate = int(data.get("tts_rate", 175) or 175)
+            self.settings.tts_volume = int(data.get("tts_volume", 100) or 100)
+            self.settings.tts_espeak_path = str(data.get("tts_espeak_path", "") or "")
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -211,7 +237,19 @@ class SettingsStore:
             "chat_history_format": str(self.settings.chat_history_format or "Liste"),
             "show_toolbar": bool(self.settings.show_toolbar),
             "show_event_log": bool(self.settings.show_event_log),
+            "show_vu_meter": bool(self.settings.show_vu_meter),
             "sound_events": self.settings.sound_events or {},
             "elevenlabs_api_key": str(self.settings.elevenlabs_api_key or ""),
+            "tts_enabled": bool(self.settings.tts_enabled),
+            "tts_speak_chat": bool(self.settings.tts_speak_chat),
+            "tts_speak_private": bool(self.settings.tts_speak_private),
+            "tts_speak_system": bool(self.settings.tts_speak_system),
+            "tts_speak_own": bool(self.settings.tts_speak_own),
+            "tts_interrupt": bool(self.settings.tts_interrupt),
+            "tts_language": str(self.settings.tts_language or "de"),
+            "tts_voice": str(self.settings.tts_voice or ""),
+            "tts_rate": int(self.settings.tts_rate or 175),
+            "tts_volume": int(self.settings.tts_volume or 100),
+            "tts_espeak_path": str(self.settings.tts_espeak_path or ""),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

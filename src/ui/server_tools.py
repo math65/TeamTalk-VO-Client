@@ -15,6 +15,10 @@ class BroadcastMessageDialog(wx.Dialog):
         super().__init__(parent, title="Servernachricht senden", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self.SetName("Servernachricht senden")
 
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        self.SetAcceleratorTable(accel)
+        self.Bind(wx.EVT_MENU, lambda _e: self.Close(), id=wx.ID_CLOSE)
+
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(wx.StaticText(self, label="Nachricht an alle verbundenen Nutzer senden:"), 0, wx.ALL, 8)
 

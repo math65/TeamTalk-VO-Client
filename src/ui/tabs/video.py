@@ -167,7 +167,11 @@ class VideoTab(wx.Panel):
         if not self._devices:
             self.frame.set_status("Kein Video-Gerät")
             return
-        dev = self._devices[self.device_choice.GetSelection()]
+        dev_idx = self.device_choice.GetSelection()
+        if dev_idx == wx.NOT_FOUND or dev_idx < 0 or dev_idx >= len(self._devices):
+            self.frame.set_status("Bitte Video-Gerät auswählen")
+            return
+        dev = self._devices[dev_idx]
         device_id = self.frame.tt_str(dev.szDeviceID)
         fmt = self._selected_format()
         if fmt is None:
@@ -242,7 +246,11 @@ class VideoTab(wx.Panel):
         if not self._devices:
             self.frame.set_status("Kein Video-Gerät")
             return False
-        dev = self._devices[self.device_choice.GetSelection()]
+        dev_idx = self.device_choice.GetSelection()
+        if dev_idx == wx.NOT_FOUND or dev_idx < 0 or dev_idx >= len(self._devices):
+            self.frame.set_status("Bitte Video-Gerät auswählen")
+            return False
+        dev = self._devices[dev_idx]
         device_id = self.frame.tt_str(dev.szDeviceID)
         fmt = self._selected_format()
         if fmt is None:

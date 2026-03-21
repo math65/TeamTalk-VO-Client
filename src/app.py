@@ -38,7 +38,7 @@ from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.10.17"
+APP_VERSION = "1.0.2"
 
 
 def _init_startup_logging() -> None:
@@ -272,6 +272,18 @@ class MainFrame(wx.Frame):
         self.settings_store = SettingsStore(app_dir / "settings.json")
         self.logger = FileLogger(app_dir / "client.log")
         self.tts = TTSManager(self)
+        _ts = self.settings_store.settings
+        self.tts.settings.enabled = _ts.tts_enabled
+        self.tts.settings.speak_chat = _ts.tts_speak_chat
+        self.tts.settings.speak_private = _ts.tts_speak_private
+        self.tts.settings.speak_system = _ts.tts_speak_system
+        self.tts.settings.speak_own = _ts.tts_speak_own
+        self.tts.settings.interrupt = _ts.tts_interrupt
+        self.tts.settings.language = _ts.tts_language
+        self.tts.settings.voice = _ts.tts_voice
+        self.tts.settings.rate = _ts.tts_rate
+        self.tts.settings.volume = _ts.tts_volume
+        self.tts.settings.espeak_path = _ts.tts_espeak_path
         self.sound_manager = SoundManager()
         self._ptt_hotkey = int(self.settings_store.settings.ptt_hotkey or 0) or wx.WXK_SPACE
 
@@ -556,6 +568,7 @@ class MainFrame(wx.Frame):
         s = self.settings_store.settings
         self.qa_panel.Show(bool(s.show_toolbar))
         self.log.Show(bool(s.show_event_log))
+        self.vu_meter.Show(bool(s.show_vu_meter))
         if bool(s.always_on_top):
             self.SetWindowStyle(self.GetWindowStyle() | wx.STAY_ON_TOP)
         else:
@@ -632,9 +645,13 @@ class MainFrame(wx.Frame):
         chan_stream_menu = wx.Menu()
         chan_stream_file = chan_stream_menu.Append(wx.ID_ANY, "Mediendatei streamen...")
         chan_stream_yt = chan_stream_menu.Append(wx.ID_ANY, "YouTube streamen...")
+        chan_stream_sc = chan_stream_menu.Append(wx.ID_ANY, "SoundCloud streamen...")
+        chan_stream_twitch = chan_stream_menu.Append(wx.ID_ANY, "Twitch streamen...")
+        chan_stream_bandcamp = chan_stream_menu.Append(wx.ID_ANY, "Bandcamp streamen...")
+        chan_stream_vimeo = chan_stream_menu.Append(wx.ID_ANY, "Vimeo streamen...")
+        chan_stream_mixcloud = chan_stream_menu.Append(wx.ID_ANY, "Mixcloud streamen...")
         chan_stream_radio = chan_stream_menu.Append(wx.ID_ANY, "Webradio streamen...")
         chan_stream_podcast = chan_stream_menu.Append(wx.ID_ANY, "Podcast streamen...")
-        chan_stream_twitch = chan_stream_menu.Append(wx.ID_ANY, "Twitch streamen...")
         chan_menu.AppendSubMenu(chan_stream_menu, "Streaming")
         menubar.Append(chan_menu, "Kanal")
 
@@ -798,9 +815,13 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_channel_file_refresh, chan_file_refresh)
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(0, e), chan_stream_file)
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(1, e), chan_stream_yt)
-        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(2, e), chan_stream_radio)
-        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(3, e), chan_stream_podcast)
-        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(4, e), chan_stream_twitch)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(2, e), chan_stream_sc)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(3, e), chan_stream_twitch)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(4, e), chan_stream_bandcamp)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(5, e), chan_stream_vimeo)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(6, e), chan_stream_mixcloud)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(7, e), chan_stream_radio)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(8, e), chan_stream_podcast)
 
         self.Bind(wx.EVT_MENU, self.on_menu_user_info, user_info)
         self.Bind(wx.EVT_MENU, self.on_menu_user_info_speak, user_info_speak)
@@ -944,16 +965,6 @@ class MainFrame(wx.Frame):
         if mode_idx is not None:
             self.media_tab.stream_mode.SetSelection(int(mode_idx))
             self.media_tab._update_stream_mode()
-            focus_map = {
-                0: getattr(self.media_tab, "media_path", None),
-                1: getattr(self.media_tab, "yt_url", None),
-                2: getattr(self.media_tab, "radio_search", None),
-                3: getattr(self.media_tab, "podcast_list", None),
-                4: getattr(self.media_tab, "twitch_url", None),
-            }
-            ctrl = focus_map.get(int(mode_idx))
-            if ctrl is not None:
-                wx.CallAfter(ctrl.SetFocus)
         return self.media_tab
 
     def _ask_text(self, title: str, label: str, value: str = "", password: bool = False) -> Optional[str]:
@@ -3035,7 +3046,7 @@ class MainFrame(wx.Frame):
             "  Datei herunterladen:     Datei aus dem Kanal laden.\n"
             "  Datei löschen:           Datei aus dem Kanal entfernen.\n"
             "  Dateiliste aktualisieren: Dateiliste neu laden.\n"
-            "  Streaming (Datei/YouTube/Webradio/Podcast/Twitch): Medien-Streaming starten.\n"
+            "  Streaming (Datei/YouTube/SoundCloud/Twitch/Bandcamp/Vimeo/Mixcloud/Webradio/Podcast): Medien-Streaming starten.\n"
             "\n"
             "Menü 'Benutzer'\n"
             "  Alle Aktionen wie im Kontextmenü (Tab Kanäle, Abschnitt 4).\n"

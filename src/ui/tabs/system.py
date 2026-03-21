@@ -163,6 +163,20 @@ class SystemTab(wx.Panel):
         s.rate = self.tts_rate.GetValue()
         s.volume = self.tts_volume.GetValue()
         s.espeak_path = self.tts_path.GetValue().strip()
+        # Persist to disk
+        app = self.frame.settings_store.settings
+        app.tts_enabled = s.enabled
+        app.tts_speak_chat = s.speak_chat
+        app.tts_speak_private = s.speak_private
+        app.tts_speak_system = s.speak_system
+        app.tts_speak_own = s.speak_own
+        app.tts_interrupt = s.interrupt
+        app.tts_language = s.language
+        app.tts_voice = s.voice
+        app.tts_rate = s.rate
+        app.tts_volume = s.volume
+        app.tts_espeak_path = s.espeak_path
+        self.frame.settings_store.save()
 
     def _refresh_voices(self, _event, force: bool = False):
         if not self.tts_enabled.GetValue() and not force:

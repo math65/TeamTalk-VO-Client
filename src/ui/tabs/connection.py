@@ -73,6 +73,7 @@ class ConnectionTab(wx.Panel):
         form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         form.AddGrowableCol(1)
 
+        self.display_name = self._add_field(form, "Profilname", "")
         self.host = self._add_field(form, "Server", "127.0.0.1")
         self.tcp_port = self._add_field(form, "TCP Port", "10333")
         self.udp_port = self._add_field(form, "UDP Port", "10333")
@@ -136,7 +137,7 @@ class ConnectionTab(wx.Panel):
         # --- Connection stats ---
         stats_box = wx.StaticBox(self, label="Verbindungsstatus")
         stats_sizer = wx.StaticBoxSizer(stats_box, wx.VERTICAL)
-        self.stats_label = wx.StaticText(self, label="UDP Ping: -- ms  |  TCP Ping: -- ms")
+        self.stats_label = wx.StaticText(self, label="UDP Ping: -- ms, TCP Ping: -- ms")
         self.stats_label.SetName("Verbindungsstatistik")
         stats_sizer.Add(self.stats_label, 0, wx.ALL, 8)
         server_sizer.Add(stats_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
@@ -167,6 +168,7 @@ class ConnectionTab(wx.Panel):
         return ctrl
 
     def fill_form(self, profile: ServerProfile) -> None:
+        self.display_name.SetValue(profile.display_name or profile.name or "")
         self.host.SetValue(profile.host)
         self.tcp_port.SetValue(str(profile.tcp_port))
         self.udp_port.SetValue(str(profile.udp_port))
@@ -192,10 +194,13 @@ class ConnectionTab(wx.Panel):
             self.frame.set_status("Server darf nicht leer sein")
             return None
         encrypted = self.encrypted.GetValue()
+        display_name = self.display_name.GetValue().strip()
+        name = display_name or host
         return ServerProfile(
-            name=host, host=host, tcp_port=tcp_port, udp_port=udp_port,
+            name=name, host=host, tcp_port=tcp_port, udp_port=udp_port,
             nickname=nickname, username=username, password=password,
             client_name=client_name, encrypted=encrypted,
+            display_name=display_name,
         )
 
     def reload_server_list(self):
@@ -394,7 +399,7 @@ class ConnectionTab(wx.Panel):
             return
         udp_ms = int(stats.nUdpPingTimeMs)
         tcp_ms = int(stats.nTcpPingTimeMs)
-        self.stats_label.SetLabel(f"UDP Ping: {udp_ms} ms  |  TCP Ping: {tcp_ms} ms")
+        self.stats_label.SetLabel(f"UDP Ping: {udp_ms} ms, TCP Ping: {tcp_ms} ms")
 
     def _set_tab_order(self):
         order = [
