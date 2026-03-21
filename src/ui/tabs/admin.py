@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import threading
-from typing import List, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
 import wx
 
@@ -76,8 +76,12 @@ class AdminTab(wx.Panel):
         self.unban_btn = wx.Button(self, label="&Entsperren")
         self.unban_btn.SetName("Entsperren")
         self.unban_btn.Bind(wx.EVT_BUTTON, self.on_unban)
+        self.ban_ip_btn = wx.Button(self, label="IP-Adresse &bannen...")
+        self.ban_ip_btn.SetName("IP-Adresse bannen")
+        self.ban_ip_btn.Bind(wx.EVT_BUTTON, self.on_ban_ip)
         ban_btn_row.Add(self.load_bans_btn, 0, wx.RIGHT, 8)
-        ban_btn_row.Add(self.unban_btn, 0)
+        ban_btn_row.Add(self.unban_btn, 0, wx.RIGHT, 8)
+        ban_btn_row.Add(self.ban_ip_btn, 0)
         ban_sizer.Add(ban_btn_row, 0, wx.ALL, 4)
 
         sizer.Add(ban_sizer, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
@@ -110,6 +114,46 @@ class AdminTab(wx.Panel):
         srv_sizer.Add(srv_btn_row, 0, wx.ALL, 4)
 
         sizer.Add(srv_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # --- Lokale Wiedergabe ---
+        lp_box = wx.StaticBox(self, label="Lokale Wiedergabe (nur Admin)")
+        lp_sizer = wx.StaticBoxSizer(lp_box, wx.VERTICAL)
+
+        lp_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
+        lp_form.AddGrowableCol(1)
+        lp_form.Add(wx.StaticText(lp_box, label="Datei"), 0, wx.ALIGN_CENTER_VERTICAL)
+        lp_file_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.lp_file_ctrl = wx.TextCtrl(lp_box)
+        self.lp_file_ctrl.SetName("Wiedergabe-Datei")
+        self.lp_browse_btn = wx.Button(lp_box, label="&Durchsuchen...")
+        self.lp_browse_btn.SetName("Wiedergabe-Datei auswählen")
+        self.lp_browse_btn.Bind(wx.EVT_BUTTON, self.on_lp_browse)
+        lp_file_row.Add(self.lp_file_ctrl, 1, wx.EXPAND | wx.RIGHT, 4)
+        lp_file_row.Add(self.lp_browse_btn, 0)
+        lp_form.Add(lp_file_row, 1, wx.EXPAND)
+        lp_sizer.Add(lp_form, 0, wx.ALL | wx.EXPAND, 4)
+
+        lp_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.lp_play_btn = wx.Button(self, label="&Abspielen")
+        self.lp_play_btn.SetName("Lokale Wiedergabe starten")
+        self.lp_play_btn.Bind(wx.EVT_BUTTON, self.on_lp_play)
+        self.lp_pause_btn = wx.Button(self, label="&Pause")
+        self.lp_pause_btn.SetName("Lokale Wiedergabe pausieren")
+        self.lp_pause_btn.Bind(wx.EVT_BUTTON, self.on_lp_pause)
+        self.lp_pause_btn.Disable()
+        self.lp_stop_btn = wx.Button(self, label="&Stopp")
+        self.lp_stop_btn.SetName("Lokale Wiedergabe stoppen")
+        self.lp_stop_btn.Bind(wx.EVT_BUTTON, self.on_lp_stop)
+        self.lp_stop_btn.Disable()
+        lp_btn_row.Add(self.lp_play_btn, 0, wx.RIGHT, 8)
+        lp_btn_row.Add(self.lp_pause_btn, 0, wx.RIGHT, 8)
+        lp_btn_row.Add(self.lp_stop_btn, 0)
+        lp_sizer.Add(lp_btn_row, 0, wx.ALL, 4)
+
+        sizer.Add(lp_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        self._lp_session_id: Optional[int] = None
+        self._lp_paused = False
 
         self.SetSizer(sizer)
 
@@ -360,7 +404,89 @@ class AdminTab(wx.Panel):
 
         threading.Thread(target=worker, daemon=True).start()
 
+    # --- IP-Adresse bannen ---
 
+    def on_ban_ip(self, _event):
+        dlg = wx.TextEntryDialog(self, "IP-Adresse eingeben:", "IP-Adresse bannen")
+        dlg.SetName("IP-Adresse bannen")
+        if dlg.ShowModal() == wx.ID_OK:
+            ip = dlg.GetValue().strip()
+            dlg.Destroy()
+            if not ip:
+                self.frame.set_status("Keine IP-Adresse eingegeben")
+                return
+            self.ban_ip_btn.Disable()
+            self.frame.set_status(f"IP-Adresse wird gebannt: {ip}...")
+
+            def worker():
+                try:
+                    cmd_id = self.frame.client.do_ban_ip_address(ip)
+                    if cmd_id > 0:
+                        wx.CallAfter(self.frame.set_status, f"IP-Adresse gebannt: {ip}")
+                        wx.CallAfter(self.on_load_bans, None)
+                    else:
+                        wx.CallAfter(self.frame.set_status, f"Ban fehlgeschlagen für: {ip}")
+                except Exception as e:
+                    wx.CallAfter(self.frame.set_status, f"Fehler beim Bannen: {e}")
+                finally:
+                    wx.CallAfter(self.ban_ip_btn.Enable)
+
+            threading.Thread(target=worker, daemon=True).start()
+        else:
+            dlg.Destroy()
+
+    # --- Lokale Wiedergabe ---
+
+    def on_lp_browse(self, _event):
+        with wx.FileDialog(
+            self, "Audiodatei auswählen",
+            wildcard="Audiodateien (*.mp3;*.wav;*.ogg;*.flac;*.m4a)|*.mp3;*.wav;*.ogg;*.flac;*.m4a|Alle Dateien (*.*)|*.*",
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        ) as dlg:
+            if dlg.ShowModal() == wx.ID_OK:
+                self.lp_file_ctrl.SetValue(dlg.GetPath())
+
+    def on_lp_play(self, _event):
+        filepath = self.lp_file_ctrl.GetValue().strip()
+        if not filepath:
+            self.frame.set_status("Bitte zuerst eine Datei auswählen")
+            return
+        if self._lp_session_id is not None:
+            self.frame.client.stop_local_playback(self._lp_session_id)
+            self._lp_session_id = None
+        session_id = self.frame.client.init_local_playback(filepath)
+        if session_id > 0:
+            self._lp_session_id = session_id
+            self._lp_paused = False
+            self.lp_pause_btn.Enable()
+            self.lp_stop_btn.Enable()
+            self.lp_pause_btn.SetLabel("&Pause")
+            self.frame.set_status("Lokale Wiedergabe gestartet")
+        else:
+            self.frame.set_status("Lokale Wiedergabe konnte nicht gestartet werden")
+
+    def on_lp_pause(self, _event):
+        if self._lp_session_id is None:
+            return
+        self._lp_paused = not self._lp_paused
+        self.frame.client.update_local_playback(self._lp_session_id, paused=self._lp_paused)
+        if self._lp_paused:
+            self.lp_pause_btn.SetLabel("&Fortsetzen")
+            self.frame.set_status("Lokale Wiedergabe pausiert")
+        else:
+            self.lp_pause_btn.SetLabel("&Pause")
+            self.frame.set_status("Lokale Wiedergabe fortgesetzt")
+
+    def on_lp_stop(self, _event):
+        if self._lp_session_id is None:
+            return
+        self.frame.client.stop_local_playback(self._lp_session_id)
+        self._lp_session_id = None
+        self._lp_paused = False
+        self.lp_pause_btn.Disable()
+        self.lp_stop_btn.Disable()
+        self.lp_pause_btn.SetLabel("&Pause")
+        self.frame.set_status("Lokale Wiedergabe gestoppt")
 
 
 class _NewAccountDialog(wx.Dialog):

@@ -38,7 +38,7 @@ from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "1.0.2"
+APP_VERSION = "1.1.0"
 
 
 def _init_startup_logging() -> None:

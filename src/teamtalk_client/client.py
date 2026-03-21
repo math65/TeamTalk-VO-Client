@@ -962,6 +962,12 @@ class TeamTalkClient:
     def do_ban_user_ex(self, user_id: int, ban_types: int) -> int:
         return self.client.doBanUserEx(user_id, int(ban_types))
 
+    def do_ban_ip_address(self, ip_address: str, channel_id: int = 0) -> int:
+        return self.client.doBanIPAddress(self.tt.ttstr(ip_address), channel_id)
+
+    def get_user_by_username(self, username: str) -> Any:
+        return self.client.getUserByUsername(self.tt.ttstr(username))
+
     def do_move_user(self, user_id: int, channel_id: int) -> int:
         return self.client.doMoveUser(int(user_id), int(channel_id))
 
@@ -1010,6 +1016,26 @@ class TeamTalkClient:
         return self.tt._UpdateStreamingMediaFileToChannel(
             self.client._tt, ctypes.byref(playback), ctypes.byref(codec)
         )
+
+    def init_local_playback(self, filepath: str, offset_ms: int = 0) -> int:
+        playback = self.tt.MediaFilePlayback()
+        playback.uOffsetMSec = offset_ms
+        playback.bPaused = False
+        playback.audioPreprocessor = self._build_stream_preprocessor(1.0)
+        return self.client.initLocalPlayback(self.tt.ttstr(filepath), playback)
+
+    def update_local_playback(self, session_id: int, paused: bool, offset_ms: Optional[int] = None) -> bool:
+        playback = self.tt.MediaFilePlayback()
+        if offset_ms is None:
+            playback.uOffsetMSec = self.tt.TT_MEDIAPLAYBACK_OFFSET_IGNORE
+        else:
+            playback.uOffsetMSec = offset_ms
+        playback.bPaused = paused
+        playback.audioPreprocessor = self._build_stream_preprocessor(1.0)
+        return self.client.updateLocalPlayback(session_id, playback)
+
+    def stop_local_playback(self, session_id: int) -> bool:
+        return self.client.stopLocalPlayback(session_id)
 
     def _build_stream_preprocessor(self, preamp_gain: float):
         ap = self.tt.AudioPreprocessor()

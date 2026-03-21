@@ -67,6 +67,20 @@ class OnlineUsersDialog(wx.Dialog):
         self.count_label.SetName("Online-Benutzer Anzahl")
         sizer.Add(self.count_label, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+        search_row = wx.BoxSizer(wx.HORIZONTAL)
+        search_lbl = wx.StaticText(self, label="Suche nach Benutzername:")
+        search_lbl.SetName("Suche nach Benutzername")
+        self.search_ctrl = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.search_ctrl.SetName("Benutzername Suchfeld")
+        self.search_ctrl.Bind(wx.EVT_TEXT_ENTER, self._on_search)
+        self.search_btn = wx.Button(self, label="&Suchen")
+        self.search_btn.SetName("Benutzer suchen")
+        self.search_btn.Bind(wx.EVT_BUTTON, self._on_search)
+        search_row.Add(search_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        search_row.Add(self.search_ctrl, 1, wx.EXPAND | wx.RIGHT, 4)
+        search_row.Add(self.search_btn, 0)
+        sizer.Add(search_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         btn_row = wx.BoxSizer(wx.HORIZONTAL)
         self.refresh_btn = wx.Button(self, label="&Aktualisieren")
         self.refresh_btn.SetName("Online-Benutzer aktualisieren")
@@ -86,6 +100,31 @@ class OnlineUsersDialog(wx.Dialog):
 
     def on_refresh(self, _event) -> None:
         self.refresh()
+
+    def _on_search(self, _event) -> None:
+        username = self.search_ctrl.GetValue().strip()
+        if not username:
+            return
+        user = self.frame.client.get_user_by_username(username)
+        user_id = int(getattr(user, "nUserID", 0) or 0)
+        if not user_id:
+            wx.MessageBox(
+                f"Kein verbundener Benutzer mit dem Benutzernamen '{username}' gefunden.",
+                "Suche", wx.OK | wx.ICON_INFORMATION, self,
+            )
+            return
+        for idx, u in enumerate(self._users):
+            if int(u.nUserID) == user_id:
+                self.user_list.SetSelection(idx)
+                self.user_list.EnsureVisible(idx)
+                return
+        # Nutzer ist verbunden aber noch nicht in der Liste – neu laden
+        self.refresh()
+        for idx, u in enumerate(self._users):
+            if int(u.nUserID) == user_id:
+                self.user_list.SetSelection(idx)
+                self.user_list.EnsureVisible(idx)
+                return
 
     def refresh(self) -> None:
         users = list(self.frame.client.get_server_users())

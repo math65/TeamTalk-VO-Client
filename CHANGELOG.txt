@@ -1,6 +1,18 @@
 Changelog
 =========
 
+2026-03-21 (v1.1.0)
+- Neu: IP-Adresse direkt bannen – neuer Button "IP-Adresse bannen..." im
+  Admin-Tab (Sperren-Bereich). Sperrt eine beliebige IP ohne dass der
+  Benutzer gerade verbunden sein muss (doBanIPAddress).
+- Neu: Benutzersuche nach Benutzername in der Online-Benutzer-Liste.
+  Suchfeld mit Enter-Unterstützung; findet den Eintrag in der Liste und
+  wählt ihn aus (getUserByUsername).
+- Neu: Lokale Wiedergabe (nur Admin) – neuer Abschnitt im Admin-Tab.
+  Audiodatei lokal abspielen, pausieren und stoppen ohne Kanal-Streaming.
+  Wie im Original-TeamTalk-Client auf Admins beschränkt
+  (initLocalPlayback / updateLocalPlayback / stopLocalPlayback).
+
 2026-03-21 (v1.0.2)
 - Bugfix: Video-Tab – wenn kein Gerät ausgewählt war, griff GetSelection()=-1
   auf das letzte Listenelement zu statt abzubrechen (betrifft on_apply und
