@@ -162,6 +162,17 @@ class SettingsTab(wx.Panel):
         bearware_sizer.Add(bw_form, 0, wx.ALL | wx.EXPAND, 4)
         sizer.Add(bearware_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
+        # v1.3.0 feature checkboxes
+        self._save_chat_history = wx.CheckBox(panel, label="&Chat-Verlauf speichern (pro Server)")
+        self._save_chat_history.SetName("Chat-Verlauf speichern")
+        self._save_chat_history.SetValue(bool(s.save_chat_history))
+        sizer.Add(self._save_chat_history, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._auto_join_last_channel = wx.CheckBox(panel, label="&Letzten Kanal automatisch beitreten")
+        self._auto_join_last_channel.SetName("Letzten Kanal automatisch beitreten")
+        self._auto_join_last_channel.SetValue(bool(s.auto_join_last_channel))
+        sizer.Add(self._auto_join_last_channel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
         # Save button
         save_btn = wx.Button(panel, label="&Speichern")
         save_btn.SetName("Allgemein speichern")
@@ -357,7 +368,10 @@ class SettingsTab(wx.Panel):
         s.bearware_username = self._bearware_user.GetValue().strip()
         s.bearware_password = self._bearware_pass.GetValue()
         s.bearware_login = self._bearware_enable.GetValue()
+        s.save_chat_history = self._save_chat_history.GetValue()
+        s.auto_join_last_channel = self._auto_join_last_channel.GetValue()
         self.frame.settings_store.save()
+        self.frame.apply_general_settings()
         self.frame.set_status("Allgemeine Einstellungen gespeichert")
 
     def _on_save_display(self, _event):

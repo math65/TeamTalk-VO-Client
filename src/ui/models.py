@@ -149,6 +149,13 @@ class AppSettings:
     tts_rate: int = 175
     tts_volume: int = 100
     tts_espeak_path: str = ""
+    # v1.3.0 features
+    save_chat_history: bool = False
+    auto_join_last_channel: bool = False
+    last_channel_per_server: Dict[str, int] = field(default_factory=dict)
+    global_hotkeys_enabled: bool = False
+    global_hotkey_ptt: int = 0
+    global_hotkey_mute: int = 0
 
 
 class SettingsStore:
@@ -208,6 +215,15 @@ class SettingsStore:
             self.settings.tts_rate = int(data.get("tts_rate", 175) or 175)
             self.settings.tts_volume = int(data.get("tts_volume", 100) or 100)
             self.settings.tts_espeak_path = str(data.get("tts_espeak_path", "") or "")
+            self.settings.save_chat_history = bool(data.get("save_chat_history", False))
+            self.settings.auto_join_last_channel = bool(data.get("auto_join_last_channel", False))
+            lc = data.get("last_channel_per_server", {})
+            self.settings.last_channel_per_server = {
+                str(k): int(v) for k, v in lc.items() if isinstance(v, int)
+            } if isinstance(lc, dict) else {}
+            self.settings.global_hotkeys_enabled = bool(data.get("global_hotkeys_enabled", False))
+            self.settings.global_hotkey_ptt = int(data.get("global_hotkey_ptt", 0) or 0)
+            self.settings.global_hotkey_mute = int(data.get("global_hotkey_mute", 0) or 0)
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -251,5 +267,13 @@ class SettingsStore:
             "tts_rate": int(self.settings.tts_rate or 175),
             "tts_volume": int(self.settings.tts_volume or 100),
             "tts_espeak_path": str(self.settings.tts_espeak_path or ""),
+            "save_chat_history": bool(self.settings.save_chat_history),
+            "auto_join_last_channel": bool(self.settings.auto_join_last_channel),
+            "last_channel_per_server": {
+                str(k): int(v) for k, v in (self.settings.last_channel_per_server or {}).items()
+            },
+            "global_hotkeys_enabled": bool(self.settings.global_hotkeys_enabled),
+            "global_hotkey_ptt": int(self.settings.global_hotkey_ptt or 0),
+            "global_hotkey_mute": int(self.settings.global_hotkey_mute or 0),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

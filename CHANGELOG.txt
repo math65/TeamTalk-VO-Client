@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2026-03-22 (v1.3.0)
+- Feature: Globale Hotkeys (macOS) – PTT und Stummschalten funktionieren
+  jetzt systemweit, auch wenn die App im Hintergrund ist. Konfiguration
+  im Einstellungen-Tab unter „Tastenkürzel" → „Globale Hotkeys".
+  Verwendet macOS NSEvent-Global-Monitor in eigenem Hintergrund-Thread.
+- Feature: Chat-Verlauf speichern – Nachrichten werden optional pro Server
+  als JSON gespeichert (max. 200 Einträge) und beim nächsten Verbinden
+  automatisch geladen. Einstellung: Einstellungen → Allgemein →
+  „Chat-Verlauf speichern".
+- Feature: Letzten Kanal automatisch beitreten – nach dem Verbinden mit
+  einem Server wird der zuletzt genutzte Kanal automatisch betreten.
+  Einstellung: Einstellungen → Allgemein → „Letzten Kanal automatisch
+  beitreten".
+
 2026-03-22 (v1.2.5)
 - Bugfix: Audio-Tab on_apply_audio / on_loopback_toggle: fehlende obere
   Schrankenprüfung für Geräte-Index (nur NOT_FOUND wurde geprüft, nicht

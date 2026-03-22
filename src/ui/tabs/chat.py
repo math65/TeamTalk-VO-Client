@@ -77,6 +77,8 @@ class ChatTab(wx.Panel):
         self.chat_log.ShowPosition(self.chat_log.GetLastPosition()) # Scroll to bottom
         if speak:
             self.frame.tts.speak(text, kind=kind)
+        if self.frame.settings_store.settings.save_chat_history:
+            self.frame.save_chat_message(text, kind)
 
     def on_chat_send(self, _event):
         msg = self.chat_input.GetValue().strip()

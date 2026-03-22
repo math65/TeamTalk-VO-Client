@@ -36,9 +36,10 @@ from ui.client_stats import ClientStatisticsDialog
 from tts import TTSManager
 from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
+from chat_history import ChatHistoryManager
 
 
-APP_VERSION = "1.2.5"
+APP_VERSION = "1.3.0"
 
 
 def _init_startup_logging() -> None:
@@ -271,6 +272,8 @@ class MainFrame(wx.Frame):
         self.store = ServerStore(app_dir / "servers.json")
         self.settings_store = SettingsStore(app_dir / "settings.json")
         self.logger = FileLogger(app_dir / "client.log")
+        self._chat_history = ChatHistoryManager(app_dir)
+        self._current_server_key = ""
         self.tts = TTSManager(self)
         _ts = self.settings_store.settings
         self.tts.settings.enabled = _ts.tts_enabled
@@ -286,6 +289,15 @@ class MainFrame(wx.Frame):
         self.tts.settings.espeak_path = _ts.tts_espeak_path
         self.sound_manager = SoundManager()
         self._ptt_hotkey = int(self.settings_store.settings.ptt_hotkey or 0) or wx.WXK_SPACE
+        # Global hotkeys (macOS)
+        self._global_hotkey_mgr = None
+        self._global_capture_target: Optional[str] = None
+        if sys.platform == "darwin":
+            try:
+                from global_hotkeys import GlobalHotkeyManager
+                self._global_hotkey_mgr = GlobalHotkeyManager()
+            except Exception:
+                pass
 
         # Tray
         self.tray = TrayIcon(self)
@@ -475,6 +487,9 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_TIMER, self._on_vu_timer, self._vu_timer)
         self._vu_timer.Start(100)
 
+        # Start global hotkeys if configured
+        wx.CallLater(500, self.apply_global_hotkeys)
+
     # ------------------------------------------------------------------
     # Toolbar / Quick-Actions handlers
     # ------------------------------------------------------------------
@@ -574,6 +589,125 @@ class MainFrame(wx.Frame):
         else:
             self.SetWindowStyle(self.GetWindowStyle() & ~wx.STAY_ON_TOP)
         self.Layout()
+
+    def apply_general_settings(self) -> None:
+        """Wendet allgemeine Einstellungen an (Chat-Verlauf, Auto-Kanal)."""
+        pass  # Settings are read lazily; nothing immediate to apply here.
+
+    # ------------------------------------------------------------------
+    # Chat history
+    # ------------------------------------------------------------------
+
+    def _get_server_key(self) -> str:
+        try:
+            lc = self.client._last_connect
+            if lc:
+                return f"{lc[0]}:{lc[1]}"
+        except Exception:
+            pass
+        return self._current_server_key
+
+    def save_chat_message(self, text: str, kind: str) -> None:
+        key = self._get_server_key()
+        if key:
+            self._chat_history.append(key, text, kind)
+
+    def _load_chat_history_to_ui(self) -> None:
+        """Lädt den gespeicherten Chat-Verlauf in den Chat-Tab."""
+        key = self._get_server_key()
+        if not key:
+            return
+        entries = self._chat_history.load(key)
+        if not entries:
+            return
+        self.chat_tab.append_chat("--- Gespeicherter Verlauf ---", kind="system", speak=False)
+        for entry in entries:
+            ts = entry.get("ts", "")
+            text = entry.get("text", "")
+            kind = entry.get("kind", "chat")
+            line = f"[{ts}] {text}" if ts else text
+            self.chat_tab.append_chat(line, kind=kind, speak=False)
+        self.chat_tab.append_chat("--- Ende Verlauf ---", kind="system", speak=False)
+
+    # ------------------------------------------------------------------
+    # Global hotkeys
+    # ------------------------------------------------------------------
+
+    def apply_global_hotkeys(self) -> None:
+        """Startet oder stoppt den GlobalHotkeyManager entsprechend den Einstellungen."""
+        if self._global_hotkey_mgr is None:
+            return
+        s = self.settings_store.settings
+        self._global_hotkey_mgr.stop()
+        if s.global_hotkeys_enabled and (s.global_hotkey_ptt or s.global_hotkey_mute):
+            self._global_hotkey_mgr.start(
+                ptt_vk=int(s.global_hotkey_ptt or 0),
+                mute_vk=int(s.global_hotkey_mute or 0),
+                on_ptt_down=self._on_global_ptt_down,
+                on_ptt_up=self._on_global_ptt_up,
+                on_mute=self._on_global_mute,
+            )
+
+    def _on_global_ptt_down(self) -> None:
+        if not self.client.is_connected():
+            return
+        if not self._ptt_active:
+            self._ptt_active = True
+            self.client.enable_voice_transmission(True)
+            self.set_status("Sprechen an (global)")
+
+    def _on_global_ptt_up(self) -> None:
+        if self._ptt_active:
+            self._ptt_active = False
+            self.client.enable_voice_transmission(False)
+            self.set_status("Sprechen aus")
+
+    def _on_global_mute(self) -> None:
+        self._mute_all = not self._mute_all
+        self.client.mute_all(self._mute_all)
+        self.set_status("Stummgeschaltet" if self._mute_all else "Stummschaltung aufgehoben")
+
+    def start_global_hotkey_capture(self, target: str) -> None:
+        if self._global_hotkey_mgr is None:
+            self.set_status("Globale Hotkeys nur auf macOS verfügbar")
+            return
+        self._global_capture_target = target
+        try:
+            self.shortcuts_tab.set_global_capture_label(target, True)
+        except Exception:
+            pass
+        self.set_status("Globaler Hotkey: Taste drücken (ESC = Abbruch)")
+        self._global_hotkey_mgr.capture_key_vk(self._on_global_key_captured)
+
+    def _on_global_key_captured(self, vk: int) -> None:
+        target = self._global_capture_target
+        self._global_capture_target = None
+        if not target:
+            return
+        if vk == 53:  # ESC virtual key code
+            try:
+                self.shortcuts_tab.set_global_capture_label(target, False)
+            except Exception:
+                pass
+            self.set_status("Globale Hotkey-Aufnahme abgebrochen")
+            return
+        s = self.settings_store.settings
+        if target == "global_hotkey_ptt":
+            s.global_hotkey_ptt = vk
+        elif target == "global_hotkey_mute":
+            s.global_hotkey_mute = vk
+        self.settings_store.save()
+        try:
+            self.shortcuts_tab.set_global_capture_label(target, False)
+        except Exception:
+            pass
+        try:
+            from global_hotkeys import vk_to_name
+            name = vk_to_name(vk)
+        except Exception:
+            name = str(vk)
+        self.set_status(f"Globaler Hotkey gespeichert: {name}")
+        self.apply_global_hotkeys()
 
     # ------------------------------------------------------------------
     # Menu
@@ -3548,6 +3682,7 @@ class MainFrame(wx.Frame):
         self.set_status(result.message)
         if result.ok:
             self._reconnect_attempts = 0
+            self._current_server_key = self._get_server_key()
             self._auto_init_sound_devices()
             self.client.start_event_loop(self.handle_tt_message)
             self._refresh_channels_with_retry()
@@ -3555,12 +3690,34 @@ class MainFrame(wx.Frame):
                 wx.CallLater(800, self.files_tab.refresh_file_list)
             if self._pending_join is not None:
                 wx.CallLater(500, self._join_from_pending)
+            elif self.settings_store.settings.auto_join_last_channel:
+                wx.CallLater(800, self._auto_join_last_channel)
             if self.audio_tab.voice_activation.GetValue() and not self._ptt_enabled:
                 self.client.enable_voice_transmission(True)
             if self.admin_tab is not None:
                 self.admin_tab.check_admin_visibility()
             api_key = self.settings_store.settings.elevenlabs_api_key or ""
             self._update_speak_tab(api_key)
+            if self.settings_store.settings.save_chat_history:
+                wx.CallLater(200, self._load_chat_history_to_ui)
+
+    def _auto_join_last_channel(self) -> None:
+        """Tritt dem zuletzt verwendeten Kanal automatisch bei (falls gespeichert)."""
+        key = self._get_server_key()
+        if not key:
+            return
+        last = self.settings_store.settings.last_channel_per_server.get(key, 0)
+        if not last:
+            return
+        self.logger.write(f"Auto-join last channel {last} for server {key}")
+        self.join_channel(last)
+
+    def _save_last_channel(self, channel_id: int) -> None:
+        key = self._get_server_key()
+        if not key or not channel_id:
+            return
+        self.settings_store.settings.last_channel_per_server[key] = channel_id
+        self.settings_store.save()
 
     def scan_saved_servers_presence(self):
         servers = list(self.store.items())
@@ -3695,6 +3852,7 @@ class MainFrame(wx.Frame):
                 self.client.start_event_loop(self.handle_tt_message)
                 if result.ok:
                     wx.CallAfter(self.set_status, result.message)
+                    wx.CallAfter(self._save_last_channel, channel_id)
                     self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
                     wx.CallAfter(self.channels_tab.refresh_channels_and_users)
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
@@ -3880,6 +4038,7 @@ class MainFrame(wx.Frame):
                 if target_id and self._verify_join(target_id, timeout_sec=4):
                     self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
                     wx.CallAfter(self.set_status, "Kanalbeitritt erfolgreich")
+                    wx.CallAfter(self._save_last_channel, target_id)
                     wx.CallAfter(self.channels_tab.refresh_channels_and_users)
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
                     if self.files_tab is not None:
@@ -3888,6 +4047,7 @@ class MainFrame(wx.Frame):
                 wx.CallAfter(self.set_status, result_join.message)
                 if result_join.ok:
                     self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
+                    wx.CallAfter(self._save_last_channel, parsed.channel_id or 0)
                     wx.CallAfter(self.channels_tab.refresh_channels_and_users)
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
                     if self.files_tab is not None:
@@ -4547,6 +4707,12 @@ class MainFrame(wx.Frame):
         if self.speak_tab is not None:
             try:
                 self.speak_tab.cleanup()
+            except Exception:
+                pass
+        # Stop global hotkeys
+        if self._global_hotkey_mgr is not None:
+            try:
+                self._global_hotkey_mgr.stop()
             except Exception:
                 pass
         # Stop TTS worker thread
