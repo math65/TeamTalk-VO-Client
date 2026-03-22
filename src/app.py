@@ -38,7 +38,7 @@ from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "1.2.0"
+APP_VERSION = "1.2.1"
 
 
 def _init_startup_logging() -> None:
@@ -3682,7 +3682,7 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
-    def join_channel(self, channel_id: int):
+    def join_channel(self, channel_id: int, password: str = ""):
         tab = self.connection_tab
         tab.join_root_btn.Disable()
         self.set_status("Trete Kanal bei...")
@@ -3690,15 +3690,20 @@ class MainFrame(wx.Frame):
         def worker():
             try:
                 self.client.stop_event_loop_and_wait()
-                result = self.client.join_channel_by_id(channel_id, timeout_ms=8000)
+                result = self.client.join_channel_by_id(channel_id, password=password, timeout_ms=8000)
                 self.client.start_event_loop(self.handle_tt_message)
-                wx.CallAfter(self.set_status, result.message)
                 if result.ok:
+                    wx.CallAfter(self.set_status, result.message)
                     self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
                     wx.CallAfter(self.channels_tab.refresh_channels_and_users)
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
                     if self.files_tab is not None:
                         wx.CallAfter(self.files_tab.refresh_file_list)
+                elif result.error_code == 2002:  # CMDERR_WRONG_PASSWORD
+                    wx.CallAfter(self.set_status, "Kanal ist passwortgeschützt")
+                    wx.CallAfter(self._ask_channel_password, channel_id)
+                else:
+                    wx.CallAfter(self.set_status, result.message)
             except Exception as exc:
                 self.client.start_event_loop(self.handle_tt_message)
                 wx.CallAfter(self.set_status, f"Fehler: {exc}")
@@ -3706,6 +3711,11 @@ class MainFrame(wx.Frame):
                 wx.CallAfter(tab.join_root_btn.Enable)
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _ask_channel_password(self, channel_id: int):
+        password = self._ask_text("Kanalpasswort", "Passwort für den Kanal eingeben:")
+        if password is not None:
+            self.join_channel(channel_id, password=password)
 
     def schedule_reconnect(self):
         if self._closing or not self._auto_reconnect:
@@ -4503,6 +4513,13 @@ class MainFrame(wx.Frame):
         if self._closing:
             return
         self._closing = True
+        # Dismiss any open modal dialogs so Destroy() can proceed
+        for win in wx.GetTopLevelWindows():
+            try:
+                if isinstance(win, wx.Dialog) and win.IsModal():
+                    win.EndModal(wx.ID_CANCEL)
+            except Exception:
+                pass
         # Stop all timers first so no callbacks fire during teardown
         self._vu_timer.Stop()
         try:

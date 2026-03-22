@@ -18,6 +18,7 @@ TTMessage = Any
 class ConnectResult:
     ok: bool
     message: str
+    error_code: int = 0
 
 
 class TeamTalkClient:
@@ -414,7 +415,8 @@ class TeamTalkClient:
         if not ok:
             if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_CMD_ERROR:
                 err = self.tt.ttstr(msg.clienterrormsg.szErrorMsg)
-                return ConnectResult(False, f"Kanalbeitritt fehlgeschlagen: {err}")
+                error_code = int(getattr(msg.clienterrormsg, "nErrorNo", 0) or 0)
+                return ConnectResult(False, f"Kanalbeitritt fehlgeschlagen: {err}", error_code)
             if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_NONE:
                 return ConnectResult(False, "Kanalbeitritt fehlgeschlagen: Timeout")
             return ConnectResult(False, "Kanalbeitritt fehlgeschlagen")

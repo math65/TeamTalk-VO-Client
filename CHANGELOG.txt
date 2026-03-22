@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2026-03-22 (v1.2.1)
+- Bugfix: Beim Beitritt zu einem passwortgeschützten Kanal erscheint jetzt
+  ein Passwort-Eingabedialog (CMDERR_WRONG_PASSWORD, Fehlercode 2002).
+  Vorher wurde der Fehler nur in der Statuszeile angezeigt.
+- Bugfix: App lässt sich jetzt auch schließen, wenn ein Dialogfeld (z. B.
+  Handbuch, Changelog) im Vordergrund ist. Beim Beenden werden alle offenen
+  Modal-Dialoge automatisch geschlossen bevor die App sich abbaut.
+
 2026-03-21 (v1.2.0)
 - Neu: Playlist-Streaming im Medien-Tab (Streaming-Quelle "Playlist").
   - Mehrere lokale Dateien per Mehrfachauswahl hinzufügen.
