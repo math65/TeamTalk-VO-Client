@@ -44,6 +44,18 @@ class ChatTab(wx.Panel):
         self.chat_log.SetName("Chatverlauf")
         sizer.Add(self.chat_log, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
+        # Chat history action buttons
+        history_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.export_btn = wx.Button(self, label="Verlauf &exportieren")
+        self.export_btn.SetName("Verlauf exportieren")
+        self.export_btn.Bind(wx.EVT_BUTTON, self._on_export_history)
+        self.clear_btn = wx.Button(self, label="Verlauf &leeren")
+        self.clear_btn.SetName("Verlauf leeren")
+        self.clear_btn.Bind(wx.EVT_BUTTON, self._on_clear_history)
+        history_row.Add(self.export_btn, 0, wx.RIGHT, 8)
+        history_row.Add(self.clear_btn, 0)
+        sizer.Add(history_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
         input_row = wx.BoxSizer(wx.HORIZONTAL)
         lbl_msg = wx.StaticText(self, label="Nachricht eingeben")
         self.chat_input = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
@@ -79,6 +91,52 @@ class ChatTab(wx.Panel):
             self.frame.tts.speak(text, kind=kind)
         if self.frame.settings_store.settings.save_chat_history:
             self.frame.save_chat_message(text, kind)
+
+    def _on_export_history(self, _event) -> None:
+        content = self.chat_log.GetValue()
+        if not content.strip():
+            self.frame.set_status("Kein Chat-Verlauf zum Exportieren")
+            return
+        import time
+        default_name = f"chatverlauf_{time.strftime('%Y%m%d_%H%M%S')}.txt"
+        with wx.FileDialog(
+            self,
+            "Chat-Verlauf exportieren",
+            wildcard="Textdateien (*.txt)|*.txt|Alle Dateien|*.*",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+            defaultFile=default_name,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(content)
+            self.frame.set_status(f"Chat-Verlauf exportiert: {path}")
+        except Exception as exc:
+            self.frame.set_status(f"Export fehlgeschlagen: {exc}")
+
+    def _on_clear_history(self, _event) -> None:
+        dlg = wx.MessageDialog(
+            self,
+            "Chat-Verlauf wirklich leeren?\n\nDies löscht den angezeigten Verlauf und – falls aktiviert – auch die gespeicherte Verlaufsdatei für diesen Server.",
+            "Verlauf leeren",
+            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+        )
+        result = dlg.ShowModal()
+        dlg.Destroy()
+        if result != wx.ID_YES:
+            return
+        self.chat_log.Clear()
+        # Also clear the persisted file if chat history saving is enabled
+        if self.frame.settings_store.settings.save_chat_history:
+            try:
+                key = self.frame._get_server_key()
+                if key:
+                    self.frame._chat_history.clear(key)
+            except Exception:
+                pass
+        self.frame.set_status("Chat-Verlauf geleert")
 
     def on_chat_send(self, _event):
         msg = self.chat_input.GetValue().strip()
@@ -138,7 +196,7 @@ class ChatTab(wx.Panel):
         if not users:
             self.private_user.Disable()
             return
-        
+
         self.private_user.Enable()
         items = []
         for user in users:
@@ -153,11 +211,10 @@ class ChatTab(wx.Panel):
 
         # Sort alphabetically by label
         items.sort(key=lambda x: x[0].lower())
-        
+
         for label, user_id in items:
             self.private_user.Append(label, clientData=user_id)
-        
+
         if items:
             self.private_user.SetSelection(0)
         self.update_chat_target()
-

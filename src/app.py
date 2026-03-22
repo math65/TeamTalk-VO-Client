@@ -39,7 +39,7 @@ from platform_paths import log_dir as _log_dir # Moved this import up
 from chat_history import ChatHistoryManager
 
 
-APP_VERSION = "1.3.0"
+APP_VERSION = "1.3.1"
 
 
 def _init_startup_logging() -> None:

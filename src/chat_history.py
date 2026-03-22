@@ -30,6 +30,14 @@ class ChatHistoryManager:
         except Exception:
             return []
 
+    def clear(self, server_key: str) -> None:
+        try:
+            p = self._path(server_key)
+            if p.exists():
+                p.unlink()
+        except Exception:
+            pass
+
     def append(self, server_key: str, text: str, kind: str) -> None:
         entries = self.load(server_key)
         entries.append({

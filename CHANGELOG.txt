@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-03-22 (v1.3.1)
+- Feature: Chat-Verlauf exportieren – neuer Button "Verlauf exportieren"
+  im Chat-Bereich speichert den aktuellen Verlauf als TXT-Datei.
+- Feature: Chat-Verlauf leeren – neuer Button "Verlauf leeren" löscht den
+  angezeigten Chat-Verlauf und (bei aktivierter Verlaufsspeicherung) auch
+  die gespeicherte JSON-Datei für den aktuellen Server.
+- Handbuch: Abschnitte Chat, Einstellungen und Tastaturkürzel um v1.3-
+  Features ergänzt (Verlauf-Export/-Leeren, Chat-Verlauf speichern,
+  Auto-join, Globale Hotkeys).
+
 2026-03-22 (v1.3.0)
 - Feature: Globale Hotkeys (macOS) – PTT und Stummschalten funktionieren
   jetzt systemweit, auch wenn die App im Hintergrund ist. Konfiguration

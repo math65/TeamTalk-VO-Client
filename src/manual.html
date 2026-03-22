@@ -272,7 +272,13 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <ul>
   <li><strong>Eingabefeld</strong>: Nachricht eintippen, dann Enter oder "Senden" (Alt+S).</li>
   <li><strong>Privat-Checkbox</strong> (Alt+P): Wenn aktiviert, wird die Nachricht als Privatnachricht an den in der Nutzerliste ausgewählten Nutzer geschickt.</li>
+  <li><strong>Verlauf exportieren</strong> (Alt+E): Speichert den aktuell angezeigten Chat-Verlauf als TXT-Datei. Ein Datei-Speicherdialog erscheint.</li>
+  <li><strong>Verlauf leeren</strong> (Alt+L): Löscht den angezeigten Chat-Verlauf nach Rückfrage. Falls die Verlaufsspeicherung aktiviert ist, wird auch die gespeicherte Datei für diesen Server gelöscht.</li>
 </ul>
+
+<h2>Chat-Verlauf speichern (optional)</h2>
+<p>Wenn unter <em>Einstellungen → Allgemein → Chat-Verlauf speichern</em> aktiviert, werden Nachrichten serverseitig in einer JSON-Datei gespeichert (max. 200 Einträge pro Server). Beim nächsten Verbinden mit demselben Server wird der gespeicherte Verlauf automatisch in den Chat-Bereich geladen.</p>
+<div class="note">Der Verlauf kann jederzeit über "Verlauf leeren" zurückgesetzt werden.</div>
 
 <!-- ================================================================ -->
 <h1 id="audio">8 · Audio-Einstellungen</h1>
@@ -466,6 +472,8 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <tr><th>Option</th><th>Beschreibung</th></tr>
 <tr><td>BearWare Web-Login</td><td>Verwendet BearWare.dk-Anmeldedaten für Server die dies erfordern</td></tr>
 <tr><td>Benutzername / Passwort</td><td>BearWare-Zugangsdaten</td></tr>
+<tr><td>Chat-Verlauf speichern</td><td>Speichert Chat-Nachrichten pro Server als JSON (max. 200 Einträge). Verlauf wird beim nächsten Verbinden automatisch geladen.</td></tr>
+<tr><td>Letzten Kanal automatisch beitreten</td><td>Tritt nach dem Verbinden automatisch dem zuletzt genutzten Kanal dieses Servers bei.</td></tr>
 </table>
 
 <h2>Bereich: Anzeige</h2>
@@ -531,13 +539,36 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <!-- ================================================================ -->
 <h1 id="kuerzel">16 · Tastaturkürzel anpassen</h1>
 <p>Erreichbar über: <em>Datei → Einstellungen</em> → Bereich "Tastaturkürzel"</p>
-<p>Hier können globale Tastenkombinationen für häufig verwendete Aktionen festgelegt werden, z.B. PTT-Hotkey, Stumm-Schalter usw.</p>
+
+<h2>App-Hotkeys (innerhalb der App)</h2>
+<p>Diese Hotkeys funktionieren nur wenn das App-Fenster fokussiert ist.</p>
+<table>
+<tr><th>Aktion</th><th>Beschreibung</th></tr>
+<tr><td>Alles stummschalten</td><td>Schaltet alle anderen Nutzer stumm/wieder an</td></tr>
+<tr><td>Sprachaktivierung umschalten</td><td>Voice Activation ein-/ausschalten</td></tr>
+<tr><td>Video senden umschalten</td><td>Kamera-Übertragung ein-/ausschalten</td></tr>
+</table>
 <ol>
-  <li>Aktion in der Liste auswählen.</li>
   <li><strong>Hotkey aufnehmen</strong> klicken.</li>
-  <li>Gewünschte Taste oder Kombination drücken.</li>
-  <li>Enter oder Klick zum Bestätigen.</li>
+  <li>Gewünschte Taste drücken.</li>
+  <li>Hotkey wird sofort gespeichert.</li>
 </ol>
+
+<h2>Globale Hotkeys <span class="platform mac">macOS</span></h2>
+<p>Globale Hotkeys funktionieren systemweit – auch wenn die App im Hintergrund oder minimiert ist.</p>
+<table>
+<tr><th>Option</th><th>Beschreibung</th></tr>
+<tr><td>Globale Hotkeys aktivieren</td><td>Schaltet die systemweite Überwachung ein. Die Taste wird über NSEvent abgehört (kein Eingabe-Abfangen, nur Beobachten).</td></tr>
+<tr><td>PTT (Sprechtaste)</td><td>Gedrückt halten zum Sprechen, loslassen stoppt die Übertragung</td></tr>
+<tr><td>Stummschalten umschalten</td><td>Einzelner Tastendruck schaltet alle Nutzer stumm oder wieder an</td></tr>
+</table>
+<ol>
+  <li>"Globale Hotkeys aktivieren" einschalten.</li>
+  <li>Für PTT oder Stummschalten: <strong>Hotkey aufnehmen</strong> klicken.</li>
+  <li>Gewünschte Taste drücken – der macOS Virtual Key Code wird gespeichert und der Name angezeigt.</li>
+  <li>ESC bricht die Aufnahme ab.</li>
+</ol>
+<div class="note"><strong>Hinweis:</strong> Globale Hotkeys sind nur auf macOS verfügbar. Es werden keine Tastenanschläge abgefangen – die App beobachtet nur Tastendrücke via NSEvent-Monitor.</div>
 
 <!-- ================================================================ -->
 <h1 id="schnellaktionen">17 · Schnellaktionen-Leiste</h1>
