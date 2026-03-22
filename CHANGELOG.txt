@@ -1,9 +1,15 @@
 Changelog
 =========
 
+2026-03-22 (v1.2.2)
+- Bugfix: Falscher Fehlercode für passwortgeschützte Kanäle korrigiert.
+  Der tatsächliche SDK-Fehler ist CMDERR_INCORRECT_CHANNEL_PASSWORD (2001),
+  nicht 2002 (CMDERR_INVALID_ACCOUNT). Der Passwort-Eingabedialog erscheint
+  jetzt korrekt beim Beitritt zu passwortgeschützten Kanälen.
+
 2026-03-22 (v1.2.1)
 - Bugfix: Beim Beitritt zu einem passwortgeschützten Kanal erscheint jetzt
-  ein Passwort-Eingabedialog (CMDERR_WRONG_PASSWORD, Fehlercode 2002).
+  ein Passwort-Eingabedialog (CMDERR_INCORRECT_CHANNEL_PASSWORD, Fehlercode 2001).
   Vorher wurde der Fehler nur in der Statuszeile angezeigt.
 - Bugfix: App lässt sich jetzt auch schließen, wenn ein Dialogfeld (z. B.
   Handbuch, Changelog) im Vordergrund ist. Beim Beenden werden alle offenen

@@ -38,7 +38,7 @@ from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "1.2.1"
+APP_VERSION = "1.2.2"
 
 
 def _init_startup_logging() -> None:
@@ -3699,7 +3699,7 @@ class MainFrame(wx.Frame):
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
                     if self.files_tab is not None:
                         wx.CallAfter(self.files_tab.refresh_file_list)
-                elif result.error_code == 2002:  # CMDERR_WRONG_PASSWORD
+                elif result.error_code == 2001:  # CMDERR_INCORRECT_CHANNEL_PASSWORD
                     wx.CallAfter(self.set_status, "Kanal ist passwortgeschützt")
                     wx.CallAfter(self._ask_channel_password, channel_id)
                 else:
