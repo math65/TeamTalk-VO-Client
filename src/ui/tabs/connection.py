@@ -8,6 +8,7 @@ import wx
 from ..tt_file_parser import build_teamtalk_url, build_teamtalk_xml, parse_teamtalk_file
 from ..models import ServerProfile
 from ..a11y import setup_list_accessible
+from ..server_browser import ServerBrowserDialog
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -61,10 +62,14 @@ class ConnectionTab(wx.Panel):
         self.join_code_btn = wx.Button(self, label="Bei&trittscode eingeben")
         self.join_code_btn.SetName("Beitrittscode eingeben")
         self.join_code_btn.Bind(wx.EVT_BUTTON, self.on_enter_join_code)
+        self.public_servers_btn = wx.Button(self, label="Öffentliche &Server…")
+        self.public_servers_btn.SetName("Öffentliche Serverliste öffnen")
+        self.public_servers_btn.Bind(wx.EVT_BUTTON, self.on_open_server_browser)
         btn_row.Add(self.server_add, 0, wx.RIGHT, 8)
         btn_row.Add(self.server_edit, 0, wx.RIGHT, 8)
         btn_row.Add(self.server_remove, 0, wx.RIGHT, 8)
-        btn_row.Add(self.join_code_btn, 0)
+        btn_row.Add(self.join_code_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(self.public_servers_btn, 0)
 
         server_sizer.Add(self.server_list, 0, wx.ALL | wx.EXPAND, 8)
         server_sizer.Add(btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
@@ -391,6 +396,15 @@ class ConnectionTab(wx.Panel):
     def on_auto_reconnect(self, event):
         self.frame._auto_reconnect = event.IsChecked()
 
+    def get_ping_text(self) -> str:
+        """Gibt den aktuellen Ping als lesbaren String zurück."""
+        stats = self.frame.client.get_client_statistics()
+        if stats is None:
+            return "Ping: nicht verbunden"
+        udp_ms = int(stats.nUdpPingTimeMs)
+        tcp_ms = int(stats.nTcpPingTimeMs)
+        return f"UDP {udp_ms} Millisekunden, TCP {tcp_ms} Millisekunden"
+
     def _on_stats_timer(self, _event):
         if self.frame._closing:
             return
@@ -561,3 +575,8 @@ class ConnectionTab(wx.Panel):
         if confirm.ShowModal() == wx.ID_YES:
             self.on_connect(None)
         confirm.Destroy()
+
+    def on_open_server_browser(self, _event):
+        dlg = ServerBrowserDialog(self, self.frame)
+        dlg.ShowModal()
+        dlg.Destroy()

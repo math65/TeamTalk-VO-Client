@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, List
 
 import wx
 
+from ui.a11y import setup_list_accessible
+
 if TYPE_CHECKING:
     from app import MainFrame
 
@@ -15,6 +17,7 @@ class ChatTab(wx.Panel):
         super().__init__(parent)
         self.frame = frame
         self.SetName("Chat")
+        self._search_positions: List[int] = []
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -56,6 +59,30 @@ class ChatTab(wx.Panel):
         history_row.Add(self.clear_btn, 0)
         sizer.Add(history_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+        # Search box
+        search_box = wx.StaticBox(self, label="Verlauf durchsuchen")
+        search_sizer = wx.StaticBoxSizer(search_box, wx.VERTICAL)
+        search_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.search_input = wx.TextCtrl(search_box, style=wx.TE_PROCESS_ENTER)
+        self.search_input.SetName("Suchbegriff")
+        self.search_input.Bind(wx.EVT_TEXT_ENTER, self._on_search)
+        self.search_btn = wx.Button(search_box, label="&Suchen")
+        self.search_btn.SetName("Im Verlauf suchen")
+        self.search_btn.Bind(wx.EVT_BUTTON, self._on_search)
+        self.search_count = wx.StaticText(search_box, label="0 Treffer")
+        self.search_count.SetName("Suchergebnis Anzahl")
+        search_row.Add(self.search_input, 1, wx.RIGHT, 8)
+        search_row.Add(self.search_btn, 0, wx.RIGHT, 8)
+        search_row.Add(self.search_count, 0, wx.ALIGN_CENTER_VERTICAL)
+        search_sizer.Add(search_row, 0, wx.ALL | wx.EXPAND, 8)
+        self.search_results = wx.ListBox(search_box)
+        self.search_results.SetName("Suchergebnisse")
+        self.search_results.SetMinSize((-1, 100))
+        setup_list_accessible(self.search_results)
+        self.search_results.Bind(wx.EVT_LISTBOX, self._on_search_result_selected)
+        search_sizer.Add(self.search_results, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        sizer.Add(search_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         input_row = wx.BoxSizer(wx.HORIZONTAL)
         lbl_msg = wx.StaticText(self, label="Nachricht eingeben")
         self.chat_input = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
@@ -71,9 +98,41 @@ class ChatTab(wx.Panel):
 
         self.SetSizer(sizer)
 
+    def _is_muted_sender(self, text: str) -> bool:
+        """Gibt True zurück, wenn der Absender in der Stummschalten-Liste ist."""
+        s = self.frame.settings_store.settings
+        raw = (s.chat_muted_users or "").strip()
+        if not raw:
+            return False
+        muted = [u.strip().lower() for u in raw.split(",") if u.strip()]
+        if not muted:
+            return False
+        # Format: "Username: Nachricht" oder "* Username hat ..."
+        lower = text.lower()
+        for name in muted:
+            if lower.startswith(name + ":") or lower.startswith("* " + name + " "):
+                return True
+        return False
+
+    def _has_highlight_keyword(self, text: str) -> bool:
+        """Gibt True zurück, wenn ein Stichwort im Text vorkommt."""
+        s = self.frame.settings_store.settings
+        raw = (s.chat_highlight_keywords or "").strip()
+        if not raw:
+            return False
+        keywords = [k.strip().lower() for k in raw.split(",") if k.strip()]
+        lower = text.lower()
+        return any(k in lower for k in keywords)
+
     def append_chat(self, text: str, kind: str = "chat", speak: bool = True) -> None:
         if not text:
             return
+        # Muted users filter (system/own messages are never filtered)
+        if kind not in ("system", "own") and self._is_muted_sender(text):
+            return
+        # Keyword highlight marker
+        if kind not in ("system", "own") and self._has_highlight_keyword(text):
+            text = "[!] " + text
         if self.chat_log.GetLastPosition() > 0:
             self.chat_log.AppendText("\n")
         if kind == "system":
@@ -85,8 +144,8 @@ class ChatTab(wx.Panel):
         else:
             self.chat_log.SetDefaultStyle(wx.TextAttr(wx.BLACK))  # Black
         self.chat_log.AppendText(text)
-        self.chat_log.SetDefaultStyle(wx.TextAttr(wx.BLACK)) # Reset for next messages
-        self.chat_log.ShowPosition(self.chat_log.GetLastPosition()) # Scroll to bottom
+        self.chat_log.SetDefaultStyle(wx.TextAttr(wx.BLACK))  # Reset for next messages
+        self.chat_log.ShowPosition(self.chat_log.GetLastPosition())  # Scroll to bottom
         if speak:
             self.frame.tts.speak(text, kind=kind)
         if self.frame.settings_store.settings.save_chat_history:
@@ -155,6 +214,9 @@ class ChatTab(wx.Panel):
                 self.frame.set_status("Privater Chat: Bitte Benutzer wählen")
                 return
             target_user_id = self.private_user.GetClientData(user_idx)
+            if target_user_id is None:
+                self.frame.set_status("Benutzer-ID nicht verfügbar")
+                return
             if client.send_user_message(target_user_id, msg):
                 self.append_chat(f"An {self.private_user.GetString(user_idx)}: {msg}", kind="own")
             else:
@@ -190,6 +252,55 @@ class ChatTab(wx.Panel):
                     self.chat_target.SetLabel("Ziel: Aktueller Kanal")
             else:
                 self.chat_target.SetLabel("Ziel: (kein)")
+
+    def _on_search(self, _event=None) -> None:
+        """Durchsucht den aktuellen Chat-Verlauf nach dem Suchbegriff."""
+        query = self.search_input.GetValue().strip().lower()
+        self.search_results.Clear()
+        self._search_positions = []
+        if not query:
+            self.search_count.SetLabel("0 Treffer")
+            return
+        text = self.chat_log.GetValue()
+        lines = text.split("\n")
+        hits = []
+        pos = 0
+        for line in lines:
+            if query in line.lower():
+                hits.append((line, pos))
+            pos += len(line) + 1
+        display_hits = hits[:100]
+        for label, _ in display_hits:
+            self.search_results.Append(label[:150] if len(label) > 150 else label)
+        self._search_positions = [p for _, p in display_hits]
+        total = len(hits)
+        shown = len(display_hits)
+        if total > shown:
+            self.search_count.SetLabel(f"{total} Treffer (zeige {shown})")
+        else:
+            self.search_count.SetLabel(f"{total} Treffer")
+        if display_hits:
+            self.search_results.SetSelection(0)
+
+    def _on_search_result_selected(self, _event) -> None:
+        """Springt zur ausgewählten Fundstelle im Chat-Verlauf."""
+        idx = self.search_results.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._search_positions):
+            return
+        pos = self._search_positions[idx]
+        self.chat_log.SetInsertionPoint(pos)
+        self.chat_log.ShowPosition(pos)
+        self.chat_log.SetFocus()
+
+    def select_private_recipient(self, user_id: int) -> None:
+        """Wählt den Nutzer im Privat-Chat-Dropdown aus (für Antwort-Hotkey)."""
+        for i in range(self.private_user.GetCount()):
+            if self.private_user.GetClientData(i) == user_id:
+                self.private_chat.SetValue(True)
+                self.private_user.SetSelection(i)
+                self.update_chat_target()
+                self.private_user.Enable(True)
+                return
 
     def refresh_private_user_choice(self, users: List) -> None:
         self.private_user.Clear()

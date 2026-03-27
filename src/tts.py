@@ -20,6 +20,12 @@ class TTSSettings:
     speak_system: bool = True
     speak_own: bool = True
     interrupt: bool = False
+    speak_user_join: bool = True
+    speak_user_leave: bool = True
+    speak_file_transfer: bool = False
+    speak_who_speaks: bool = False
+    speak_channel_topic: bool = False
+    connect_announce: bool = True
     language: str = "de"
     voice: str = ""
     rate: int = 175
@@ -297,6 +303,18 @@ class TTSManager:
             return
         if kind == "own" and not self.settings.speak_own:
             return
+        if kind == "user_join" and not self.settings.speak_user_join:
+            return
+        if kind == "user_leave" and not self.settings.speak_user_leave:
+            return
+        if kind == "file_transfer" and not self.settings.speak_file_transfer:
+            return
+        if kind == "who_speaks" and not self.settings.speak_who_speaks:
+            return
+        if kind == "channel_topic" and not self.settings.speak_channel_topic:
+            return
+        if kind == "connect" and not self.settings.connect_announce:
+            return
 
         if self.settings.interrupt:
             self._stop_current()
@@ -344,19 +362,19 @@ class TTSManager:
                     fallback_lang = self.settings.language or "en"
                     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                         tmp_path = tmp.name
-                    proc = run_espeak(selected)
-                    if proc.returncode != 0 and fallback_lang and fallback_lang != selected:
-                        proc = run_espeak(fallback_lang)
-                    if proc.returncode != 0:
-                        try:
-                            if not self._stop.is_set():
-                                self.frame.logger.write(
-                                    f"TTS: espeak-ng failed {proc.stderr.decode('utf-8', 'ignore')}"
-                                )
-                        except Exception:
-                            pass
-                    else:
-                        try:
+                    try:
+                        proc = run_espeak(selected)
+                        if proc.returncode != 0 and fallback_lang and fallback_lang != selected:
+                            proc = run_espeak(fallback_lang)
+                        if proc.returncode != 0:
+                            try:
+                                if not self._stop.is_set():
+                                    self.frame.logger.write(
+                                        f"TTS: espeak-ng failed {proc.stderr.decode('utf-8', 'ignore')}"
+                                    )
+                            except Exception:
+                                pass
+                        elif proc.stdout:
                             with open(tmp_path, "wb") as f:
                                 f.write(proc.stdout)
                             self._current_proc = subprocess.Popen(
@@ -365,37 +383,37 @@ class TTSManager:
                                 stderr=subprocess.DEVNULL,
                             )
                             self._current_proc.wait()
-                        finally:
-                            try:
-                                os.unlink(tmp_path)
-                            except Exception:
-                                pass
+                    finally:
+                        try:
+                            os.unlink(tmp_path)
+                        except Exception:
+                            pass
                 elif sys.platform == "win32":
                     import winsound
                     fallback_lang = self.settings.language or "en"
                     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                         tmp_path = tmp.name
-                    proc = run_espeak(selected)
-                    if proc.returncode != 0 and fallback_lang and fallback_lang != selected:
-                        proc = run_espeak(fallback_lang)
-                    if proc.returncode != 0:
-                        try:
-                            if not self._stop.is_set():
-                                self.frame.logger.write(
-                                    f"TTS: espeak-ng failed {proc.stderr.decode('utf-8', 'ignore')}"
-                                )
-                        except Exception:
-                            pass
-                    else:
-                        try:
+                    try:
+                        proc = run_espeak(selected)
+                        if proc.returncode != 0 and fallback_lang and fallback_lang != selected:
+                            proc = run_espeak(fallback_lang)
+                        if proc.returncode != 0:
+                            try:
+                                if not self._stop.is_set():
+                                    self.frame.logger.write(
+                                        f"TTS: espeak-ng failed {proc.stderr.decode('utf-8', 'ignore')}"
+                                    )
+                            except Exception:
+                                pass
+                        elif proc.stdout:
                             with open(tmp_path, "wb") as f:
                                 f.write(proc.stdout)
                             winsound.PlaySound(tmp_path, winsound.SND_FILENAME)
-                        finally:
-                            try:
-                                os.unlink(tmp_path)
-                            except Exception:
-                                pass
+                    finally:
+                        try:
+                            os.unlink(tmp_path)
+                        except Exception:
+                            pass
                 else:
                     cmd = [
                         binary,

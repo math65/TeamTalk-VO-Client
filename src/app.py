@@ -39,7 +39,7 @@ from platform_paths import log_dir as _log_dir # Moved this import up
 from chat_history import ChatHistoryManager
 
 
-APP_VERSION = "1.3.2"
+APP_VERSION = "1.10.2"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -261,12 +261,15 @@ class MainFrame(wx.Frame):
         self._video_tx_enabled = False
         self._mute_all = False
         self._move_target_channel_id: Optional[int] = None
+        self._last_private_sender_id: Optional[int] = None
         self._status_mode = 0
         self._status_message = ""
         self._capture_hotkey_target: Optional[str] = None
         self._user_volume_levels: Dict[int, int] = {}
         self._user_media_volume_levels: Dict[int, int] = {}
         self._channel_message_log: List[str] = []
+        self._offline_event_log: List[Tuple[str, str, str]] = []  # (ts, text, kind)
+        self._offline_buffering = False
         self._sound_input_menu: Optional[wx.Menu] = None
         self._sound_output_menu: Optional[wx.Menu] = None
         self._sound_menu_device_map: Dict[int, Tuple[str, int]] = {}
@@ -286,6 +289,19 @@ class MainFrame(wx.Frame):
         self.settings_store = SettingsStore(app_dir / "settings.json")
         self.logger = FileLogger(app_dir / "client.log")
         self._chat_history = ChatHistoryManager(app_dir)
+        from scheduled_recordings import ScheduledRecordingManager
+        self._scheduled_rec_manager = ScheduledRecordingManager(app_dir)
+        # v1.10.0 – Event-Bus + Plugin-Loader
+        from event_bus import EventBus
+        self.bus = EventBus()
+        from plugin_api import PluginAPI
+        from plugin_loader import PluginLoader
+        self._plugin_api = PluginAPI(self)
+        plugins_dir = Path(__file__).parent.parent / "plugins"
+        self._plugin_loader = PluginLoader(self.bus, plugins_dir, api=self._plugin_api)
+        n = self._plugin_loader.load_all()
+        if n:
+            self.logger.write(f"Plugins geladen: {n}")
         self._current_server_key = ""
         self.tts = TTSManager(self)
         _ts = self.settings_store.settings
@@ -300,6 +316,12 @@ class MainFrame(wx.Frame):
         self.tts.settings.rate = _ts.tts_rate
         self.tts.settings.volume = _ts.tts_volume
         self.tts.settings.espeak_path = _ts.tts_espeak_path
+        self.tts.settings.speak_user_join = _ts.tts_speak_user_join
+        self.tts.settings.speak_user_leave = _ts.tts_speak_user_leave
+        self.tts.settings.speak_file_transfer = _ts.tts_speak_file_transfer
+        self.tts.settings.speak_who_speaks = _ts.tts_speak_who_speaks
+        self.tts.settings.speak_channel_topic = _ts.tts_speak_channel_topic
+        self.tts.settings.connect_announce = _ts.tts_connect_announce
         self.sound_manager = SoundManager()
         self._ptt_hotkey = int(self.settings_store.settings.ptt_hotkey or 0) or wx.WXK_SPACE
         # Global hotkeys (macOS)
@@ -467,6 +489,10 @@ class MainFrame(wx.Frame):
         # Apply saved audio prefs (if enabled) after UI is ready.
         wx.CallLater(300, self._apply_saved_audio_prefs_on_startup)
 
+        # Update-Checker beim Start
+        if self.settings_store.settings.update_check_on_start:
+            wx.CallLater(4000, self._check_for_update)
+
         # Tab order inside each tab is handled by the tab panels themselves.
         # Global keyboard hooks
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key_hook)
@@ -500,8 +526,15 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_TIMER, self._on_vu_timer, self._vu_timer)
         self._vu_timer.Start(100)
 
+        # Geplante Aufnahmen: alle 30 Sekunden prüfen
+        self._scheduled_rec_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_scheduled_rec_timer, self._scheduled_rec_timer)
+        self._scheduled_rec_timer.Start(30_000)
+
         # Start global hotkeys if configured
         wx.CallLater(500, self.apply_global_hotkeys)
+        # Plugin-Event: App vollständig initialisiert
+        wx.CallLater(2000, lambda: self.bus.emit("app_startup"))
 
     # ------------------------------------------------------------------
     # Toolbar / Quick-Actions handlers
@@ -591,6 +624,84 @@ class MainFrame(wx.Frame):
         except Exception:
             pass
 
+    def _announce_vu_level(self) -> None:
+        """Liest den aktuellen Eingangspegel via TTS vor."""
+        try:
+            level = self.client.get_sound_input_level()
+            pct = min(100, int(level * 100 / 32768)) if level is not None else 0
+            self.tts.speak(f"Eingangspegel {pct} Prozent", kind="system")
+        except Exception:
+            self.tts.speak("Pegel nicht verfügbar", kind="system")
+
+    def _cycle_sound_profile(self) -> None:
+        """Schaltet zum nächsten Sound-Profil und sagt es via TTS an."""
+        s = self.settings_store.settings
+        builtin = ["Standard", "Minimal", "Stumm"]
+        user_profiles = [p.get("name", "") for p in (s.sound_profiles or []) if p.get("name")]
+        all_profiles = builtin + user_profiles
+        current = s.active_sound_profile or "Standard"
+        try:
+            idx = all_profiles.index(current)
+        except ValueError:
+            idx = 0
+        next_idx = (idx + 1) % len(all_profiles)
+        next_profile = all_profiles[next_idx]
+        s.active_sound_profile = next_profile
+        self.settings_store.save()
+        self.tts.speak(f"Sound-Profil: {next_profile}", kind="system")
+
+    def _reply_last_sender(self) -> None:
+        """Öffnet Privat-Chat mit dem zuletzt sprechenden Absender."""
+        uid = self._last_private_sender_id
+        if not uid:
+            self.tts.speak("Kein letzter Absender", kind="system")
+            return
+        if self.chat_tab:
+            self.chat_tab.select_private_recipient(uid)
+            self.tts.speak("Privatantwort bereit", kind="system")
+
+    def _announce_user_info(self) -> None:
+        """Liest Infos über den aktuell ausgewählten Nutzer via TTS vor."""
+        try:
+            self.channels_tab.announce_selected_user_info()
+        except Exception:
+            self.tts.speak("Nutzerinfo nicht verfügbar", kind="system")
+
+    def _announce_ping(self) -> None:
+        """Liest den aktuellen Ping via TTS vor."""
+        try:
+            text = self.connection_tab.get_ping_text()
+            self.tts.speak(text, kind="system")
+        except Exception:
+            self.tts.speak("Ping nicht verfügbar", kind="system")
+
+    def _on_scheduled_rec_timer(self, _event) -> None:
+        """Prüft ob eine geplante Aufnahme jetzt starten soll."""
+        if getattr(self, '_closing', False):
+            return
+        try:
+            rec = self._scheduled_rec_manager.check_due()
+            if rec:
+                if not self._recording_active:
+                    self.on_menu_record_start(None)
+                    self.set_status(f"Geplante Aufnahme gestartet: {rec.label}")
+                    if rec.duration_min > 0:
+                        wx.CallLater(rec.duration_min * 60_000, self._stop_scheduled_recording, rec.label)
+        except Exception:
+            pass
+
+    def _stop_scheduled_recording(self, label: str) -> None:
+        if self._recording_active:
+            self.on_menu_record_stop(None)
+            self.set_status(f"Geplante Aufnahme beendet: {label}")
+
+    def on_menu_scheduled_recordings(self, _event) -> None:
+        """Öffnet den Dialog für geplante Aufnahmen."""
+        from ui.scheduled_recordings_dialog import ScheduledRecordingsDialog
+        dlg = ScheduledRecordingsDialog(self, self._scheduled_rec_manager)
+        dlg.ShowModal()
+        dlg.Destroy()
+
     def apply_display_settings(self) -> None:
         """Wendet Anzeigeeinstellungen auf das Hauptfenster an (Toolbar, Log, Immer-vorne)."""
         s = self.settings_store.settings
@@ -604,8 +715,29 @@ class MainFrame(wx.Frame):
         self.Layout()
 
     def apply_general_settings(self) -> None:
-        """Wendet allgemeine Einstellungen an (Chat-Verlauf, Auto-Kanal)."""
-        pass  # Settings are read lazily; nothing immediate to apply here.
+        """Wendet allgemeine Einstellungen an (Chat-Verlauf, Auto-Kanal, Braillemodus)."""
+        s = self.settings_store.settings
+        if s.braille_compact_mode:
+            self._apply_braille_compact_labels()
+
+    def _apply_braille_compact_labels(self) -> None:
+        """Kürzt ausgewählte VoiceOver-Beschriftungen für Braillezeilen."""
+        _map = {
+            "Eingabegerät": "Eingang",
+            "Ausgabegerät": "Ausgang",
+            "Mikrofonverstärkung (0–32000)": "Mikrofon",
+            "Ausgabe-Lautstärke (0–32000)": "Lautstärke",
+            "Aktivierungspegel (0–100)": "VA-Pegel",
+            "Nachlauf (ms, 0–5000)": "VA-Nachlauf",
+        }
+        try:
+            for win in self.GetChildren():
+                name = win.GetName()
+                short = _map.get(name)
+                if short:
+                    win.SetName(short)
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Chat history
@@ -754,6 +886,17 @@ class MainFrame(wx.Frame):
         file_menu.AppendSeparator()
         con_join_root = file_menu.Append(wx.ID_ANY, "Root-Kanal beitreten")
         con_leave = file_menu.Append(wx.ID_ANY, "Kanal verlassen")
+        file_menu.AppendSeparator()
+        # Server-Favoriten Kurzwahl Cmd+1..9
+        favorites_menu = wx.Menu()
+        self._favorites_menu_items = []
+        for i in range(1, 10):
+            fav_item = favorites_menu.Append(wx.ID_ANY, f"Server {i}\tCtrl+{i}")
+            self._favorites_menu_items.append(fav_item)
+            self.Bind(wx.EVT_MENU, lambda e, idx=i - 1: self._connect_favorite(idx), fav_item)
+        self._favorites_menu = favorites_menu
+        file_menu.AppendSubMenu(favorites_menu, "Schnellverbindung (Cmd+1–9)")
+        self.Bind(wx.EVT_MENU_OPEN, self._on_favorites_menu_open)
         file_menu.AppendSeparator()
         con_server_check = file_menu.Append(wx.ID_ANY, "Server prüfen")
         file_menu.AppendSeparator()
@@ -923,6 +1066,8 @@ class MainFrame(wx.Frame):
         rec_menu.AppendSeparator()
         rec_start = rec_menu.Append(wx.ID_ANY, "Aufnahme starten...")
         rec_stop = rec_menu.Append(wx.ID_ANY, "Aufnahme stoppen")
+        rec_menu.AppendSeparator()
+        rec_scheduled = rec_menu.Append(wx.ID_ANY, "Geplante Aufnahmen...")
         menubar.Append(rec_menu, "Aufnahmen")
 
         # Hilfe
@@ -1066,6 +1211,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_record_start, rec_start)
         self.Bind(wx.EVT_MENU, self.on_menu_record_stop, rec_stop)
         self.Bind(wx.EVT_MENU, self.on_menu_record_conversations, rec_convo)
+        self.Bind(wx.EVT_MENU, self.on_menu_scheduled_recordings, rec_scheduled)
 
         self.Bind(wx.EVT_MENU, self.on_menu_settings, help_settings)
         self.Bind(wx.EVT_MENU, self.on_menu_export_logs, help_logs)
@@ -4004,6 +4150,7 @@ class MainFrame(wx.Frame):
         self.set_status(result.message)
         if result.ok:
             self._reconnect_attempts = 0
+            self._offline_buffering = False
             self._current_server_key = self._get_server_key()
             self._auto_init_sound_devices()
             self.client.start_event_loop(self.handle_tt_message)
@@ -4022,6 +4169,11 @@ class MainFrame(wx.Frame):
             self._update_speak_tab(api_key)
             if self.settings_store.settings.save_chat_history:
                 wx.CallLater(200, self._load_chat_history_to_ui)
+            # Verbindungsansage
+            wx.CallLater(600, self._announce_connected)
+            # Offline-Ereignisse wiedergeben
+            if self._offline_event_log:
+                wx.CallLater(800, self._replay_offline_log)
 
     def _auto_join_last_channel(self) -> None:
         """Tritt dem zuletzt verwendeten Kanal automatisch bei (falls gespeichert)."""
@@ -4040,6 +4192,93 @@ class MainFrame(wx.Frame):
             return
         self.settings_store.settings.last_channel_per_server[key] = channel_id
         self.settings_store.save()
+
+    def _on_favorites_menu_open(self, _event) -> None:
+        """Aktualisiert die Favoriten-Menü-Labels mit echten Servernamen."""
+        servers = self.store.items()
+        for i, item in enumerate(self._favorites_menu_items):
+            if i < len(servers):
+                label = f"{i + 1}: {servers[i].name}\tCtrl+{i + 1}"
+            else:
+                label = f"Server {i + 1}\tCtrl+{i + 1}"
+            try:
+                item.SetItemLabel(label)
+            except Exception:
+                pass
+
+    def _connect_favorite(self, index: int) -> None:
+        """Verbindet mit dem N-ten Server aus der Serverliste (0-basiert)."""
+        servers = self.store.items()
+        if index >= len(servers):
+            self.set_status(f"Kein Server #{index + 1} in der Liste")
+            return
+        profile = servers[index]
+        self.connection_tab.fill_form(profile)
+        self.set_status(f"Schnellverbindung zu: {profile.name}")
+        self.connect_with_form()
+
+    def _announce_connected(self) -> None:
+        """Gibt Servername + Kanal via TTS aus (falls aktiviert)."""
+        try:
+            lc = getattr(self.client, "_last_connect", None)
+            server = getattr(lc, "host", "") if lc else ""
+            channel_name = ""
+            try:
+                ch_id = self.client.get_my_channel_id()
+                if ch_id:
+                    ch = self.client.get_channel(int(ch_id))
+                    if ch:
+                        channel_name = self.tt_str(ch.szName)
+            except Exception:
+                pass
+            parts = [server] if server else []
+            if channel_name:
+                parts.append(f"Kanal {channel_name}")
+            text = "Verbunden" + (", " + ", ".join(parts) if parts else "")
+            self.tts.speak(text, kind="connect")
+            self.bus.emit("connection_state_changed", connected=True, reason="login")
+        except Exception:
+            pass
+
+    def _replay_offline_log(self) -> None:
+        """Gibt im Offline-Puffer gesammelte Ereignisse im Chat aus."""
+        if not self._offline_event_log:
+            return
+        log = list(self._offline_event_log)
+        self._offline_event_log.clear()
+        self.chat_tab.append_chat("--- Verpasste Ereignisse ---", kind="system", speak=False)
+        for ts, text, kind in log:
+            self.chat_tab.append_chat(f"[{ts}] {text}", kind=kind, speak=False)
+        self.tts.speak(f"{len(log)} verpasste Ereignisse", kind="system")
+
+    def _buffer_offline_event(self, text: str, kind: str) -> None:
+        """Puffert ein Ereignis während der Offline-Phase (max. 50)."""
+        if not self._offline_buffering:
+            return
+        ts = time.strftime("%H:%M:%S")
+        self._offline_event_log.append((ts, text, kind))
+        if len(self._offline_event_log) > 50:
+            self._offline_event_log = self._offline_event_log[-50:]
+
+    def _check_for_update(self) -> None:
+        """Prüft im Hintergrund ob eine neuere Version verfügbar ist."""
+        import urllib.request
+        import urllib.error
+        def _worker():
+            try:
+                url = "https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client/releases/latest"
+                with urllib.request.urlopen(url, timeout=5) as resp:  # noqa: S310
+                    data = json.loads(resp.read().decode("utf-8"))
+                tag = str(data.get("tag_name", "") or "").lstrip("v")
+                if tag and tag != APP_VERSION:
+                    wx.CallAfter(
+                        self.set_status,
+                        f"Update verfügbar: v{tag} (aktuell: v{APP_VERSION})",
+                    )
+                    wx.CallAfter(self.tts.speak, f"Update verfügbar, Version {tag}", kind="system")
+            except Exception:
+                pass
+        threading.Thread(target=_worker, daemon=True).start()
 
     def scan_saved_servers_presence(self):
         servers = list(self.store.items())
@@ -4162,7 +4401,7 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
-    def join_channel(self, channel_id: int, password: str = ""):
+    def join_channel(self, channel_id: int, password: str = "", _save_pw_to_keychain: bool = False):
         tab = self.connection_tab
         tab.join_root_btn.Disable()
         self.set_status("Trete Kanal bei...")
@@ -4178,10 +4417,29 @@ class MainFrame(wx.Frame):
                     self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
                     wx.CallAfter(self.channels_tab.refresh_channels_and_users)
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
+                    self.bus.emit("channel_joined", channel_id=channel_id)
                     if self.files_tab is not None:
                         wx.CallAfter(self.files_tab.refresh_file_list)
+                    # Keychain: Passwort nach erfolgreichem Beitritt speichern
+                    if _save_pw_to_keychain and password:
+                        try:
+                            import keychain as kc
+                            key = self._get_server_key()
+                            if key:
+                                kc.save_channel_password(key, channel_id, password)
+                        except Exception:
+                            pass
                 elif result.error_code == 2001:  # CMDERR_INCORRECT_CHANNEL_PASSWORD
                     wx.CallAfter(self.set_status, "Kanal ist passwortgeschützt")
+                    # Keychain-Eintrag löschen wenn er falsch war
+                    if password:
+                        try:
+                            import keychain as kc
+                            key = self._get_server_key()
+                            if key:
+                                kc.delete_channel_password(key, channel_id)
+                        except Exception:
+                            pass
                     wx.CallAfter(self._ask_channel_password, channel_id)
                 else:
                     wx.CallAfter(self.set_status, result.message)
@@ -4194,16 +4452,38 @@ class MainFrame(wx.Frame):
         threading.Thread(target=worker, daemon=True).start()
 
     def _ask_channel_password(self, channel_id: int):
+        s = self.settings_store.settings
+        # Keychain prüfen
+        if s.save_channel_passwords:
+            try:
+                import keychain as kc
+                key = self._get_server_key()
+                if key:
+                    saved_pw = kc.get_channel_password(key, channel_id)
+                    if saved_pw is not None:
+                        self.join_channel(channel_id, password=saved_pw)
+                        return
+            except Exception:
+                pass
+        # Benutzer fragen
         password = self._ask_text("Kanalpasswort", "Passwort für den Kanal eingeben:")
         if password is not None:
-            self.join_channel(channel_id, password=password)
+            save_to_keychain = bool(s.save_channel_passwords)
+            self.join_channel(channel_id, password=password, _save_pw_to_keychain=save_to_keychain)
 
     def schedule_reconnect(self):
         if self._closing or not self._auto_reconnect:
             return
+        s = self.settings_store.settings
+        max_attempts = int(s.reconnect_max_attempts or 0)
+        if max_attempts > 0 and self._reconnect_attempts >= max_attempts:
+            self.set_status(f"Maximale Wiederverbindungsversuche ({max_attempts}) erreicht")
+            return
         self._reconnect_attempts += 1
-        delay = min(30000, 1000 * (2 ** min(self._reconnect_attempts, 5)))
-        self.set_status(f"Reconnection in {delay // 1000}s")
+        min_delay_ms = max(1000, int(s.reconnect_delay_sec or 2) * 1000)
+        delay = min(30000, min_delay_ms * (2 ** min(self._reconnect_attempts - 1, 4)))
+        self._offline_buffering = True
+        self.set_status(f"Wiederverbinden in {delay // 1000}s (Versuch {self._reconnect_attempts})")
         wx.CallLater(delay, self.connect_with_form)
 
     def _update_speak_tab(self, api_key: str) -> None:
@@ -4497,6 +4777,21 @@ class MainFrame(wx.Frame):
                 self._video_tx_enabled = not self._video_tx_enabled
                 self.video_tab.set_transmission_enabled(self._video_tx_enabled)
                 return
+            if key and key == int(settings.hotkey_announce_level or 0):
+                self._announce_vu_level()
+                return
+            if key and key == int(settings.hotkey_announce_user_info or 0):
+                self._announce_user_info()
+                return
+            if key and key == int(settings.hotkey_announce_ping or 0):
+                self._announce_ping()
+                return
+            if key and key == int(settings.hotkey_reply_last_sender or 0):
+                self._reply_last_sender()
+                return
+            if key and key == int(settings.hotkey_cycle_sound_profile or 0):
+                self._cycle_sound_profile()
+                return
         event.Skip()
 
     def on_key_down(self, event):
@@ -4518,6 +4813,16 @@ class MainFrame(wx.Frame):
                     self.settings_store.settings.hotkey_voice_activation = int(key)
                 elif target == "hotkey_video_tx":
                     self.settings_store.settings.hotkey_video_tx = int(key)
+                elif target == "hotkey_announce_level":
+                    self.settings_store.settings.hotkey_announce_level = int(key)
+                elif target == "hotkey_announce_user_info":
+                    self.settings_store.settings.hotkey_announce_user_info = int(key)
+                elif target == "hotkey_announce_ping":
+                    self.settings_store.settings.hotkey_announce_ping = int(key)
+                elif target == "hotkey_reply_last_sender":
+                    self.settings_store.settings.hotkey_reply_last_sender = int(key)
+                elif target == "hotkey_cycle_sound_profile":
+                    self.settings_store.settings.hotkey_cycle_sound_profile = int(key)
                 self.settings_store.save()
                 self.shortcuts_tab.set_capture_label(target, False)
                 self._capture_hotkey_target = None
@@ -4690,11 +4995,15 @@ class MainFrame(wx.Frame):
 
         if event == tt.ClientEvent.CLIENTEVENT_CON_FAILED:
             wx.CallAfter(self.set_status, "Verbindung fehlgeschlagen")
+            self._offline_buffering = True
             wx.CallAfter(self.schedule_reconnect)
+            self.bus.emit("connection_state_changed", connected=False, reason="failed")
         elif event == tt.ClientEvent.CLIENTEVENT_CON_LOST:
             wx.CallAfter(self.set_status, "Verbindung verloren")
+            self._offline_buffering = True
             wx.CallAfter(self.schedule_reconnect)
             self.sound_manager.play("server_disconnect", self.settings_store.settings.sound_events.get("server_disconnect"))
+            self.bus.emit("connection_state_changed", connected=False, reason="lost")
         elif event == tt.ClientEvent.CLIENTEVENT_CON_CRYPT_ERROR:
             err = self.tt_str(msg.clienterrormsg.szErrorMsg)
             no = int(getattr(msg.clienterrormsg, "nErrorNo", 0) or 0)
@@ -4725,6 +5034,17 @@ class MainFrame(wx.Frame):
             tt.ClientEvent.CLIENTEVENT_CMD_CHANNEL_UPDATE,
             tt.ClientEvent.CLIENTEVENT_CMD_CHANNEL_REMOVE,
         ):
+            if event == tt.ClientEvent.CLIENTEVENT_CMD_CHANNEL_UPDATE:
+                try:
+                    ch = getattr(msg, "channel", None)
+                    if ch is not None:
+                        my_ch = self.client.get_my_channel_id()
+                        if my_ch and int(getattr(ch, "nChannelID", 0) or 0) == int(my_ch):
+                            topic = self.tt_str(getattr(ch, "szTopic", "") or "")
+                            if topic:
+                                wx.CallAfter(self.tts.speak, f"Kanal-Thema: {topic}", kind="channel_topic")
+                except Exception:
+                    pass
             wx.CallAfter(self.channels_tab.refresh_channels_and_users)
         elif event in (
             tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN,
@@ -4766,6 +5086,12 @@ class MainFrame(wx.Frame):
             try:
                 if int(getattr(msg.filetransfer, "nStatus", 0)) == 2:  # FILETRANSFER_FINISHED
                     self.sound_manager.play("file_transfer", self.settings_store.settings.sound_events.get("file_transfer"))
+                    try:
+                        fname = self.tt_str(getattr(msg.filetransfer, "szRemoteFileName", "")) or "Datei"
+                        wx.CallAfter(self.tts.speak, f"Dateitransfer abgeschlossen: {fname}", kind="file_transfer")
+                        self.bus.emit("file_transfer_complete", filename=fname)
+                    except Exception:
+                        pass
             except Exception:
                 pass
         elif event in (
@@ -4823,16 +5149,26 @@ class MainFrame(wx.Frame):
 
         if event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN:
             text = f"* {name} hat sich angemeldet"
+            tts_kind = "system"
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDOUT:
             text = f"* {name} hat sich abgemeldet"
+            tts_kind = "system"
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED:
             text = f"* {name} hat Kanal {channel_name or channel_id} betreten"
+            tts_kind = "user_join"
+            user_id = int(getattr(user, "nUserID", 0) or 0)
+            self.bus.emit("user_joined", user=name, user_id=user_id, channel_id=channel_id, channel_name=channel_name)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
             text = f"* {name} hat Kanal {channel_name or channel_id} verlassen"
+            tts_kind = "user_leave"
+            user_id = int(getattr(user, "nUserID", 0) or 0)
+            self.bus.emit("user_left", user=name, user_id=user_id, channel_id=channel_id, channel_name=channel_name)
         else:
             return
 
-        self.chat_tab.append_chat(text, kind="system")
+        self.chat_tab.append_chat(text, kind="system", speak=False)
+        self.tts.speak(text, kind=tts_kind)
+        self._buffer_offline_event(text, "system")
         self.emit_system_message(text, speak=False)
         self._send_notification("Status", text)
 
@@ -4970,9 +5306,26 @@ class MainFrame(wx.Frame):
                     self._channel_message_log = self._channel_message_log[-200:]
             wx.CallAfter(self.chat_tab.append_chat, f"{from_user}: {content}", kind, speak)
             self._message_buffers.pop(key, None)
+            # Bus-Event für Plugins
+            self.bus.emit("chat_message", text=content, kind=kind, from_user=from_user, from_id=from_id)
+            # Letzten privaten Absender merken (für Antwort-Hotkey)
+            is_own = bool(from_id and my_id and from_id == my_id)
+            if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and not is_own and from_id:
+                self._last_private_sender_id = from_id
+            # Privatnachrichten-Verlauf speichern
+            if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and self.settings_store.settings.save_private_chat_history:
+                server_key = self._get_server_key()
+                if server_key:
+                    partner = from_user or f"id{from_id}"
+                    wx.CallAfter(
+                        self._chat_history.append_private,
+                        server_key, partner, f"{from_user}: {content}", kind,
+                    )
+            # Offline-Puffer für Chat-Nachrichten (bei Wiederverbindung)
+            if msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL):
+                wx.CallAfter(self._buffer_offline_event, f"{from_user}: {content}", kind)
             # Sound-Ereignisse
             se = self.settings_store.settings.sound_events
-            is_own = bool(from_id and my_id and from_id == my_id)
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER):
                 sound_key = "msg_private_tx" if is_own else "msg_private_rx"
                 self.sound_manager.play(sound_key, se.get(sound_key))
@@ -5026,7 +5379,10 @@ class MainFrame(wx.Frame):
             except Exception:
                 pass
         # Stop all timers first so no callbacks fire during teardown
-        self._vu_timer.Stop()
+        if hasattr(self, '_vu_timer'):
+            self._vu_timer.Stop()
+        if hasattr(self, '_scheduled_rec_timer'):
+            self._scheduled_rec_timer.Stop()
         try:
             self.connection_tab.destroy_timers()
         except Exception:

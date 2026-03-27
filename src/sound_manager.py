@@ -96,11 +96,12 @@ class SoundManager:
         def _run():
             try:
                 if sys.platform == "darwin":
-                    subprocess.Popen(
+                    proc = subprocess.Popen(
                         ["afplay", path],
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
                     )
+                    proc.wait()
                 else:
                     import wx.adv  # noqa: PLC0415
                     sound = wx.adv.Sound(path)

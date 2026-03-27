@@ -27,6 +27,11 @@ class ShortcutsTab(wx.Panel):
         self._rows.append(self._make_row(inapp_box, "Alles stummschalten", "hotkey_mute_all", global_key=False))
         self._rows.append(self._make_row(inapp_box, "Sprachaktivierung umschalten", "hotkey_voice_activation", global_key=False))
         self._rows.append(self._make_row(inapp_box, "Video senden umschalten", "hotkey_video_tx", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Eingangspegel ansagen", "hotkey_announce_level", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Nutzerinfo ansagen", "hotkey_announce_user_info", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Ping ansagen", "hotkey_announce_ping", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Privatantwort (letzter Absender)", "hotkey_reply_last_sender", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Sound-Profil wechseln", "hotkey_cycle_sound_profile", global_key=False))
 
         for row in self._rows:
             inapp_sizer.Add(row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
@@ -55,6 +60,19 @@ class ShortcutsTab(wx.Panel):
         else:
             self._global_enable = None
             self._global_rows = []
+
+        # --- Profile import/export ---
+        profile_box = wx.StaticBox(self, label="Profil Import/Export")
+        profile_sizer = wx.StaticBoxSizer(profile_box, wx.HORIZONTAL)
+        export_btn = wx.Button(profile_box, label="Profil &exportieren")
+        export_btn.SetName("Tastenkürzel-Profil exportieren")
+        export_btn.Bind(wx.EVT_BUTTON, self._on_export_profile)
+        import_btn = wx.Button(profile_box, label="Profil &importieren")
+        import_btn.SetName("Tastenkürzel-Profil importieren")
+        import_btn.Bind(wx.EVT_BUTTON, self._on_import_profile)
+        profile_sizer.Add(export_btn, 0, wx.ALL, 8)
+        profile_sizer.Add(import_btn, 0, wx.ALL, 8)
+        root.Add(profile_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(root)
         self.update_labels()
@@ -87,6 +105,11 @@ class ShortcutsTab(wx.Panel):
             "hotkey_mute_all": int(settings.hotkey_mute_all or 0),
             "hotkey_voice_activation": int(settings.hotkey_voice_activation or 0),
             "hotkey_video_tx": int(settings.hotkey_video_tx or 0),
+            "hotkey_announce_level": int(settings.hotkey_announce_level or 0),
+            "hotkey_announce_user_info": int(settings.hotkey_announce_user_info or 0),
+            "hotkey_announce_ping": int(settings.hotkey_announce_ping or 0),
+            "hotkey_reply_last_sender": int(settings.hotkey_reply_last_sender or 0),
+            "hotkey_cycle_sound_profile": int(settings.hotkey_cycle_sound_profile or 0),
         }
         global_map = {
             "global_hotkey_ptt": int(settings.global_hotkey_ptt or 0),
@@ -156,3 +179,64 @@ class ShortcutsTab(wx.Panel):
             return vk_to_name(vk)
         except Exception:
             return f"VK-{vk:#04x}"
+
+    def _on_export_profile(self, _event) -> None:
+        """Exportiert alle App-Hotkeys als JSON-Profildatei."""
+        import json
+        import dataclasses
+        s = self.frame.settings_store.settings
+        profile = {
+            f.name: getattr(s, f.name)
+            for f in dataclasses.fields(s)
+            if f.name.startswith("hotkey_") or f.name.startswith("global_hotkey_")
+        }
+        with wx.FileDialog(
+            self, "Tastenkürzel-Profil exportieren",
+            wildcard="JSON-Profil (*.json)|*.json|Alle Dateien|*.*",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+            defaultFile="shortcuts_profil.json",
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(profile, f, indent=2, ensure_ascii=False)
+            self.frame.set_status(f"Profil exportiert: {path}")
+        except Exception as exc:
+            self.frame.set_status(f"Export fehlgeschlagen: {exc}")
+
+    def _on_import_profile(self, _event) -> None:
+        """Importiert App-Hotkeys aus einer JSON-Profildatei."""
+        import json
+        import dataclasses
+        with wx.FileDialog(
+            self, "Tastenkürzel-Profil importieren",
+            wildcard="JSON-Profil (*.json)|*.json|Alle Dateien|*.*",
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                profile = json.load(f)
+        except Exception as exc:
+            self.frame.set_status(f"Import fehlgeschlagen: {exc}")
+            return
+        s = self.frame.settings_store.settings
+        valid_keys = {
+            f.name for f in dataclasses.fields(s)
+            if f.name.startswith("hotkey_") or f.name.startswith("global_hotkey_")
+        }
+        count = 0
+        for key, value in profile.items():
+            if key in valid_keys:
+                try:
+                    setattr(s, key, int(value or 0))
+                    count += 1
+                except Exception:
+                    pass
+        self.frame.settings_store.save()
+        self.update_labels()
+        self.frame.set_status(f"Profil importiert: {count} Tastenkürzel übernommen")

@@ -1,6 +1,126 @@
 Changelog
 =========
 
+2026-03-27 (v1.10.2)
+- UI: Kanalbaum komplett überarbeitet – Nutzerliste in den Baum integriert.
+  Nutzer erscheinen jetzt als Kinder-Knoten unter ihrem Kanal (Server → Kanal → Nutzer).
+  Kanalknoten zeigen Nutzeranzahl ("Allgemein, 3 Nutzer") und Passwort-Hinweis.
+  Nutzerknoten zeigen Status komma-getrennt ("Alice, Admin, Spricht").
+- UI: Flache Schnellbeitritt-ListBox entfernt. Kanal beitreten via Doppelklick/Enter
+  direkt im Baum. Nutzerknoten-Doppelklick wechselt in Chat-Tab.
+- Barrierefreiheit: TTS-Ansage beim Navigieren im Baum – Kanalname bzw. Nutzerinfo
+  wird automatisch gesprochen wenn Knoten ausgewählt wird.
+- Barrierefreiheit: Kontextmenü auf Nutzerknoten via Rechtsklick oder Shift+F10.
+  Kein Pipe-Zeichen in Labels (VoiceOver-konform, nur Komma als Trennzeichen).
+- Barrierefreiheit: Auswahl wird nach Baum-Rebuild wiederhergestellt
+  (z. B. nach Nutzer-Beitritt/-Abgang).
+
+2026-03-27 (v1.10.1)
+- Architektur: Plugin-API (src/plugin_api.py) – Plugins erhalten jetzt eine
+  PluginAPI-Instanz als zweiten Parameter: register(bus, api). Verfügbare Methoden:
+  speak(), is_connected(), get_server_name(), get_my_user_id(), get_my_channel_id(),
+  get_channel_users(), send_channel_message(), send_private_message(), join_channel(),
+  get_config(). Rückwärtskompatibel: register(bus) ohne api-Parameter weiterhin möglich.
+- Architektur: Plugin-Konfiguration (src/plugin_config.py) – persistenter Key-Value-Store
+  je Plugin (JSON in ~/Library/Application Support/TeamTalkVOClient/plugin_configs/).
+- Architektur: Erweiterte Bus-Events – user_joined, user_left, chat_message,
+  channel_joined, file_transfer_complete, app_startup werden jetzt vom Bus gefeuert.
+- Architektur: Plugin-Metadaten – Plugins können ein metadata-Dict exportieren
+  (name, version, description, author). Wird im Plugin-Loader gelesen.
+- Dokumentation: Plugin-Entwickler-Handbuch (docs/plugin_entwicklung.md) vollständig
+  überarbeitet – neue API, alle Events dokumentiert, 5 Beispiel-Plugins.
+
+2026-03-27 (v1.10.0)
+- Architektur: Event-Bus (src/event_bus.py) – einfacher synchroner Observer
+  (on/off/emit) als Fundament für zukünftiges Plugin-System und Multi-Server.
+  Feuert bereits: connection_state_changed, weitere Events folgen.
+- Architektur: Plugin-Loader-Stub (src/plugin_loader.py) – lädt Python-Dateien
+  aus dem plugins/-Verzeichnis und registriert sie am Event-Bus. Plugins müssen
+  eine register(bus)-Funktion exportieren. Aktuell nur Fundament.
+
+2026-03-27 (v1.9.0)
+- Feature: Sound-Profile – drei eingebaute Profile: Standard (alle Sounds),
+  Minimal (nur Verbindung + Privatnachricht), Stumm (kein Sound). Benutzerdefinierte
+  Profile können über "Als Profil speichern..." im Sound-Ereignisse-Tab angelegt und
+  gespeichert werden. Hotkey "Sound-Profil wechseln" schaltet zyklisch durch alle
+  Profile und sagt den Profilnamen via TTS an.
+
+2026-03-27 (v1.8.0)
+- Feature: Geplante Aufnahmen – neuer Menüpunkt Aufnahmen → Geplante Aufnahmen.
+  Aufnahmen können nach Wochentag, Uhrzeit und Dauer geplant werden.
+  Der Manager prüft alle 30 Sekunden ob eine Aufnahme fällig ist und startet
+  bzw. stoppt sie automatisch. Persistenz in scheduled_recordings.json.
+
+2026-03-27 (v1.7.0)
+- Feature: Kanalpasswort in Keychain – neue Option "Kanalpasswörter in Keychain
+  speichern" (Einstellungen → Allgemein). Passwörter werden automatisch in der
+  Betriebssystem-Keychain gespeichert und beim nächsten Beitritt automatisch
+  verwendet. Falsche gespeicherte Passwörter werden automatisch gelöscht.
+  Erfordert optionale `keyring`-Bibliothek (pip install keyring).
+- Feature: Privatantwort-Hotkey – neuer App-Hotkey "Privatantwort (letzter
+  Absender)" öffnet den Privat-Chat direkt mit dem zuletzt schreibenden Nutzer.
+- Feature: Tastenkürzel-Profile – neue Buttons "Profil exportieren" und
+  "Profil importieren" im Tastenkürzel-Tab. Erlaubt Sichern und Wiederherstellen
+  aller App-Hotkey-Belegungen als JSON-Datei.
+
+2026-03-27 (v1.6.0)
+- Feature: Chat-Verlauf-Suche – neues Suchfeld im Chat-Tab durchsucht den
+  aktuellen Chatverlauf nach einem Stichwort. Treffer werden in einer Liste
+  angezeigt; Auswahl springt zur entsprechenden Stelle im Verlauf.
+- Feature: Nutzerinfo ansagen – neuer App-Hotkey (Einstellungen → Tastenkürzel)
+  liest via TTS Infos über den ausgewählten Nutzer vor: Name, Admin-Status,
+  ob er gerade spricht, stumm oder abwesend ist.
+- Feature: Ping ansagen – neuer App-Hotkey liest den aktuellen UDP- und
+  TCP-Ping zur verbundenen Server via TTS vor.
+
+2026-03-27 (v1.5.0)
+- Feature: Erweiterte TTS-Ereignisse – Nutzerbeitritt/-austritt, Kanal-Thema,
+  Dateitransfer und Verbindungsansage als eigene, einzeln schaltbare TTS-Kinds
+  (System & TTS → neue Checkboxen: Beitritt, Abgang, Dateitransfer, Kanal-Thema,
+  Verbindung).
+- Feature: Statusansage beim Verbinden – nach erfolgreichem Login spricht die
+  TTS automatisch Servername und aktuellen Kanal an (abschaltbar).
+- Feature: Sprechende Pegelskala – neuer App-Hotkey "Eingangspegel ansagen"
+  liest den aktuellen Mikrofonpegel in Prozent vor (Einstellungen → Tastenkürzel).
+- Feature: Chat-Benachrichtigungsfilter – Stichwörter hervorheben ([!]-Prefix)
+  und Nutzer stumm schalten per Komma-Liste (Einstellungen → Allgemein).
+- Feature: Privatnachrichten-Verlauf – separat gespeicherter Verlauf pro
+  Partner je Server (aktivierbar in Einstellungen → Allgemein).
+- Feature: Verbindungswiederholung konfigurierbar – max. Versuche und
+  Mindestverzögerung einstellbar (Einstellungen → Verbindung).
+- Feature: Offline-Ereignislog – verpasste Kanal-Nachrichten und
+  Nutzer-Ereignisse werden während Verbindungsunterbrechung gepuffert (max. 50)
+  und nach Reconnect im Chat angezeigt.
+- Feature: Server-Favoriten Kurzwahl – Datei-Menü "Schnellverbindung (Cmd+1–9)"
+  verbindet direkt mit dem N-ten Server aus der Serverliste.
+- Feature: App-Update-Checker – beim Start wird im Hintergrund geprüft ob eine
+  neuere Version auf dem Git-Server verfügbar ist (abschaltbar).
+- Feature: Braillezeilen-Kompaktmodus – Option kürzt ausgewählte Widget-Labels
+  für Braillezeilen-Nutzung (Einstellungen → Allgemein).
+- Hinweis: Aufnahme auf Knopfdruck war bereits verfügbar (Toolbar "Aufnahme"
+  bzw. Datei-Menü → Aufnahme starten/stoppen).
+- Hinweis: Gerätewechsel ohne Neustart war bereits möglich über
+  Audio → "Audio anwenden".
+
+2026-03-27 (v1.4.0)
+- Feature: Öffentliche Serverliste (bearware.dk) – neuer Button "Öffentliche
+  Server…" im Verbindungs-Tab ruft die öffentliche Serverliste von
+  bearware.dk ab und zeigt sie in einem zugänglichen Dialog an.
+  Jeder Server kann direkt verbunden oder in die persönliche Serverliste
+  gespeichert werden. Abruf erfolgt im Hintergrund ohne UI-Blockade.
+- Bugfix: tts.py – Temporäre WAV-Datei wurde nicht gelöscht, wenn
+  espeak-ng mit Fehlercode zurückkehrte (Datei-Leak).
+- Bugfix: tts.py – Leere espeak-Ausgabe (proc.stdout leer) wird nun
+  abgefangen; kein Schreiben einer leeren WAV-Datei mehr.
+- Bugfix: sound_manager.py – afplay-Prozesse werden jetzt per .wait()
+  ordentlich abgewartet (verhindert Zombie-Prozesse auf macOS).
+- Bugfix: chat.py – GetClientData() im privaten Chat-Versand wird auf
+  None geprüft, bevor die Benutzer-ID verwendet wird.
+- Bugfix: app.py – _vu_timer.Stop() in force_close() nur noch aufgerufen,
+  wenn das Attribut existiert (verhindert AttributeError bei frühem Absturz).
+- Bugfix: global_hotkeys.py – Hotkey-Thread wird beim Stoppen per
+  .join(timeout=1.0) sauber abgewartet.
+
 2026-03-26 (v1.3.2)
 - Benutzer:
     - Desktopzugriff erlauben (Desktop-Input abonnieren).

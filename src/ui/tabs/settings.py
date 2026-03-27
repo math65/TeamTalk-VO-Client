@@ -173,6 +173,44 @@ class SettingsTab(wx.Panel):
         self._auto_join_last_channel.SetValue(bool(s.auto_join_last_channel))
         sizer.Add(self._auto_join_last_channel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+        self._save_private_history = wx.CheckBox(panel, label="&Privatnachrichten-Verlauf speichern")
+        self._save_private_history.SetName("Privatnachrichten-Verlauf speichern")
+        self._save_private_history.SetValue(bool(s.save_private_chat_history))
+        sizer.Add(self._save_private_history, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._update_check = wx.CheckBox(panel, label="Beim &Start auf Updates prüfen")
+        self._update_check.SetName("Auf Updates prüfen")
+        self._update_check.SetValue(bool(s.update_check_on_start))
+        sizer.Add(self._update_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._braille_compact = wx.CheckBox(panel, label="&Braillezeilen-Kompaktmodus (kürzere Labels)")
+        self._braille_compact.SetName("Braillezeilen-Kompaktmodus")
+        self._braille_compact.SetValue(bool(s.braille_compact_mode))
+        sizer.Add(self._braille_compact, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._save_channel_passwords = wx.CheckBox(panel, label="Kanalpasswörter in &Keychain speichern")
+        self._save_channel_passwords.SetName("Kanalpasswörter in Keychain speichern")
+        self._save_channel_passwords.SetValue(bool(s.save_channel_passwords))
+        sizer.Add(self._save_channel_passwords, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        # Chat filter
+        filter_box = wx.StaticBox(panel, label="Chat-Filter")
+        filter_sizer = wx.StaticBoxSizer(filter_box, wx.VERTICAL)
+        filter_form = wx.FlexGridSizer(cols=2, vgap=4, hgap=8)
+        filter_form.AddGrowableCol(1)
+        filter_form.Add(wx.StaticText(panel, label="Stichwörter hervorheben"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._highlight_keywords = wx.TextCtrl(panel, value=str(s.chat_highlight_keywords or ""))
+        self._highlight_keywords.SetName("Stichwörter hervorheben")
+        self._highlight_keywords.SetHelpText("Komma-getrennte Stichwörter, z. B.: wichtig,dringend")
+        filter_form.Add(self._highlight_keywords, 1, wx.EXPAND)
+        filter_form.Add(wx.StaticText(panel, label="Nutzer stumm"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._muted_users = wx.TextCtrl(panel, value=str(s.chat_muted_users or ""))
+        self._muted_users.SetName("Nutzer stumm")
+        self._muted_users.SetHelpText("Komma-getrennte Nutzernamen, deren Nachrichten ausgeblendet werden")
+        filter_form.Add(self._muted_users, 1, wx.EXPAND)
+        filter_sizer.Add(filter_form, 0, wx.ALL | wx.EXPAND, 6)
+        sizer.Add(filter_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         # Save button
         save_btn = wx.Button(panel, label="&Speichern")
         save_btn.SetName("Allgemein speichern")
@@ -264,6 +302,22 @@ class SettingsTab(wx.Panel):
         self._default_subs_raw = current_subs
         sizer.Add(subs_sizer, 0, wx.ALL | wx.EXPAND, 8)
 
+        # Reconnect config
+        reconnect_box = wx.StaticBox(panel, label="Automatische Wiederverbindung")
+        reconnect_sizer = wx.StaticBoxSizer(reconnect_box, wx.VERTICAL)
+        reconnect_form = wx.FlexGridSizer(cols=2, vgap=4, hgap=8)
+        reconnect_form.AddGrowableCol(1)
+        reconnect_form.Add(wx.StaticText(panel, label="Max. Versuche (0=unbegrenzt)"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._reconnect_max = wx.SpinCtrl(panel, min=0, max=999, initial=int(s.reconnect_max_attempts or 0))
+        self._reconnect_max.SetName("Max. Reconnect-Versuche")
+        reconnect_form.Add(self._reconnect_max, 0)
+        reconnect_form.Add(wx.StaticText(panel, label="Mindestverzögerung (Sek.)"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._reconnect_delay = wx.SpinCtrl(panel, min=1, max=300, initial=int(s.reconnect_delay_sec or 2))
+        self._reconnect_delay.SetName("Reconnect-Verzögerung")
+        reconnect_form.Add(self._reconnect_delay, 0)
+        reconnect_sizer.Add(reconnect_form, 0, wx.ALL | wx.EXPAND, 6)
+        sizer.Add(reconnect_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
         # Port binding
         ports_box = wx.StaticBox(panel, label="Port-Bindung")
         ports_sizer = wx.StaticBoxSizer(ports_box, wx.VERTICAL)
@@ -350,6 +404,34 @@ class SettingsTab(wx.Panel):
         save_btn.Bind(wx.EVT_BUTTON, self._on_save_sound_events)
         bottom_sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
 
+        # Sound-Profile
+        profile_box = wx.StaticBox(panel, label="Sound-Profile")
+        profile_sizer = wx.StaticBoxSizer(profile_box, wx.VERTICAL)
+        profile_row = wx.BoxSizer(wx.HORIZONTAL)
+        profile_row.Add(wx.StaticText(panel, label="Aktives Profil:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._sound_profile_choice = wx.Choice(panel, choices=["Standard", "Minimal", "Stumm"])
+        self._sound_profile_choice.SetName("Aktives Sound-Profil")
+        active = s.active_sound_profile or "Standard"
+        choices = self._sound_profile_choice.GetStrings()
+        if active in choices:
+            self._sound_profile_choice.SetSelection(choices.index(active))
+        else:
+            self._sound_profile_choice.SetSelection(0)
+        self._sound_profile_choice.Bind(wx.EVT_CHOICE, self._on_sound_profile_changed)
+        profile_row.Add(self._sound_profile_choice, 1)
+        profile_sizer.Add(profile_row, 0, wx.ALL | wx.EXPAND, 8)
+        profile_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        save_profile_btn = wx.Button(panel, label="Als Profil &speichern...")
+        save_profile_btn.SetName("Als Sound-Profil speichern")
+        save_profile_btn.Bind(wx.EVT_BUTTON, self._on_save_sound_profile)
+        delete_profile_btn = wx.Button(panel, label="Profil &löschen")
+        delete_profile_btn.SetName("Sound-Profil löschen")
+        delete_profile_btn.Bind(wx.EVT_BUTTON, self._on_delete_sound_profile)
+        profile_btn_row.Add(save_profile_btn, 0, wx.RIGHT, 8)
+        profile_btn_row.Add(delete_profile_btn, 0)
+        profile_sizer.Add(profile_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        bottom_sizer.Add(profile_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
         outer.Add(bottom_sizer, 0, wx.EXPAND)
         panel.SetSizer(outer)
         panel.Show(False)
@@ -370,6 +452,12 @@ class SettingsTab(wx.Panel):
         s.bearware_login = self._bearware_enable.GetValue()
         s.save_chat_history = self._save_chat_history.GetValue()
         s.auto_join_last_channel = self._auto_join_last_channel.GetValue()
+        s.save_private_chat_history = self._save_private_history.GetValue()
+        s.update_check_on_start = self._update_check.GetValue()
+        s.braille_compact_mode = self._braille_compact.GetValue()
+        s.save_channel_passwords = self._save_channel_passwords.GetValue()
+        s.chat_highlight_keywords = self._highlight_keywords.GetValue().strip()
+        s.chat_muted_users = self._muted_users.GetValue().strip()
         self.frame.settings_store.save()
         self.frame.apply_general_settings()
         self.frame.set_status("Allgemeine Einstellungen gespeichert")
@@ -416,6 +504,8 @@ class SettingsTab(wx.Panel):
 
     def _on_save_connection(self, _event):
         s = self.frame.settings_store.settings
+        s.reconnect_max_attempts = int(self._reconnect_max.GetValue())
+        s.reconnect_delay_sec = int(self._reconnect_delay.GetValue())
         # Compute subscriptions bitmask using tt constants if available
         total = 0
         try:
@@ -467,6 +557,89 @@ class SettingsTab(wx.Panel):
         self.frame.sound_manager.play(key, custom or None)
         if not custom:
             self.frame.set_status("Standard-Sound wird abgespielt")
+
+    # ---------------------------------------------------------------
+    # Sound-Profile
+    # ---------------------------------------------------------------
+
+    _BUILTIN_PROFILES = {
+        "Minimal": {"server_connect", "msg_private_rx"},
+        "Stumm": set(),
+    }
+
+    def _apply_sound_profile(self, profile_name: str) -> None:
+        """Wendet ein Sound-Profil auf die aktuellen Sound-Events an."""
+        s = self.frame.settings_store.settings
+        if profile_name == "Standard":
+            # Standard: nichts ändern – der Nutzer hat self._sound_event_paths
+            pass
+        elif profile_name in self._BUILTIN_PROFILES:
+            active_keys = self._BUILTIN_PROFILES[profile_name]
+            for key, ctrl in self._sound_event_paths.items():
+                if key not in active_keys:
+                    ctrl.SetValue("")
+        else:
+            # Benutzerdefiniertes Profil laden
+            for p in s.sound_profiles:
+                if p.get("name") == profile_name:
+                    for key, ctrl in self._sound_event_paths.items():
+                        ctrl.SetValue(str(p.get(key, "") or ""))
+                    break
+        s.active_sound_profile = profile_name
+        self.frame.settings_store.save()
+        self.frame.set_status(f"Sound-Profil: {profile_name}")
+
+    def _on_sound_profile_changed(self, _event) -> None:
+        idx = self._sound_profile_choice.GetSelection()
+        if idx == wx.NOT_FOUND:
+            return
+        name = self._sound_profile_choice.GetString(idx)
+        self._apply_sound_profile(name)
+
+    def _on_save_sound_profile(self, _event) -> None:
+        dlg = wx.TextEntryDialog(self, "Profilname:", "Als Sound-Profil speichern")
+        if dlg.ShowModal() != wx.ID_OK:
+            dlg.Destroy()
+            return
+        name = dlg.GetValue().strip()
+        dlg.Destroy()
+        if not name or name in ("Standard", "Minimal", "Stumm"):
+            wx.MessageBox("Bitte einen anderen Namen wählen (Standard/Minimal/Stumm sind reserviert).",
+                          "Hinweis", wx.OK | wx.ICON_WARNING, self)
+            return
+        s = self.frame.settings_store.settings
+        profile: dict = {"name": name}
+        for key, ctrl in self._sound_event_paths.items():
+            profile[key] = ctrl.GetValue().strip()
+        # Vorhandenes überschreiben
+        s.sound_profiles = [p for p in s.sound_profiles if p.get("name") != name]
+        s.sound_profiles.append(profile)
+        s.active_sound_profile = name
+        self.frame.settings_store.save()
+        # Choice aktualisieren
+        existing = list(self._sound_profile_choice.GetStrings())
+        if name not in existing:
+            self._sound_profile_choice.Append(name)
+            existing.append(name)
+        self._sound_profile_choice.SetSelection(existing.index(name))
+        self.frame.set_status(f"Sound-Profil gespeichert: {name}")
+
+    def _on_delete_sound_profile(self, _event) -> None:
+        idx = self._sound_profile_choice.GetSelection()
+        if idx == wx.NOT_FOUND:
+            return
+        name = self._sound_profile_choice.GetString(idx)
+        if name in ("Standard", "Minimal", "Stumm"):
+            wx.MessageBox("Eingebaute Profile können nicht gelöscht werden.",
+                          "Hinweis", wx.OK | wx.ICON_INFORMATION, self)
+            return
+        s = self.frame.settings_store.settings
+        s.sound_profiles = [p for p in s.sound_profiles if p.get("name") != name]
+        s.active_sound_profile = "Standard"
+        self.frame.settings_store.save()
+        self._sound_profile_choice.Delete(idx)
+        self._sound_profile_choice.SetSelection(0)
+        self.frame.set_status(f"Sound-Profil gelöscht: {name}")
 
     def _build_elevenlabs_tab(self) -> wx.Panel:
         panel = wx.Panel(self)

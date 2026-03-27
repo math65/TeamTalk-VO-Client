@@ -156,6 +156,31 @@ class AppSettings:
     global_hotkeys_enabled: bool = False
     global_hotkey_ptt: int = 0
     global_hotkey_mute: int = 0
+    # v1.5.0 features
+    tts_speak_user_join: bool = True
+    tts_speak_user_leave: bool = True
+    tts_speak_file_transfer: bool = False
+    tts_speak_who_speaks: bool = False
+    tts_speak_channel_topic: bool = False
+    tts_connect_announce: bool = True
+    reconnect_max_attempts: int = 0
+    reconnect_delay_sec: int = 2
+    chat_highlight_keywords: str = ""
+    chat_muted_users: str = ""
+    save_private_chat_history: bool = False
+    update_check_on_start: bool = True
+    braille_compact_mode: bool = False
+    hotkey_announce_level: int = 0
+    # v1.6.0 features
+    hotkey_announce_user_info: int = 0
+    hotkey_announce_ping: int = 0
+    # v1.7.0 features
+    save_channel_passwords: bool = False
+    hotkey_reply_last_sender: int = 0
+    # v1.9.0 features
+    sound_profiles: List[Dict[str, str]] = field(default_factory=list)
+    active_sound_profile: str = "Standard"
+    hotkey_cycle_sound_profile: int = 0
 
 
 class SettingsStore:
@@ -224,6 +249,32 @@ class SettingsStore:
             self.settings.global_hotkeys_enabled = bool(data.get("global_hotkeys_enabled", False))
             self.settings.global_hotkey_ptt = int(data.get("global_hotkey_ptt", 0) or 0)
             self.settings.global_hotkey_mute = int(data.get("global_hotkey_mute", 0) or 0)
+            # v1.5.0
+            self.settings.tts_speak_user_join = bool(data.get("tts_speak_user_join", True))
+            self.settings.tts_speak_user_leave = bool(data.get("tts_speak_user_leave", True))
+            self.settings.tts_speak_file_transfer = bool(data.get("tts_speak_file_transfer", False))
+            self.settings.tts_speak_who_speaks = bool(data.get("tts_speak_who_speaks", False))
+            self.settings.tts_speak_channel_topic = bool(data.get("tts_speak_channel_topic", False))
+            self.settings.tts_connect_announce = bool(data.get("tts_connect_announce", True))
+            self.settings.reconnect_max_attempts = int(data.get("reconnect_max_attempts", 0) or 0)
+            self.settings.reconnect_delay_sec = int(data.get("reconnect_delay_sec", 2) or 2)
+            self.settings.chat_highlight_keywords = str(data.get("chat_highlight_keywords", "") or "")
+            self.settings.chat_muted_users = str(data.get("chat_muted_users", "") or "")
+            self.settings.save_private_chat_history = bool(data.get("save_private_chat_history", False))
+            self.settings.update_check_on_start = bool(data.get("update_check_on_start", True))
+            self.settings.braille_compact_mode = bool(data.get("braille_compact_mode", False))
+            self.settings.hotkey_announce_level = int(data.get("hotkey_announce_level", 0) or 0)
+            # v1.6.0
+            self.settings.hotkey_announce_user_info = int(data.get("hotkey_announce_user_info", 0) or 0)
+            self.settings.hotkey_announce_ping = int(data.get("hotkey_announce_ping", 0) or 0)
+            # v1.7.0
+            self.settings.save_channel_passwords = bool(data.get("save_channel_passwords", False))
+            self.settings.hotkey_reply_last_sender = int(data.get("hotkey_reply_last_sender", 0) or 0)
+            # v1.9.0
+            raw_profiles = data.get("sound_profiles", [])
+            self.settings.sound_profiles = raw_profiles if isinstance(raw_profiles, list) else []
+            self.settings.active_sound_profile = str(data.get("active_sound_profile", "Standard") or "Standard")
+            self.settings.hotkey_cycle_sound_profile = int(data.get("hotkey_cycle_sound_profile", 0) or 0)
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -275,5 +326,30 @@ class SettingsStore:
             "global_hotkeys_enabled": bool(self.settings.global_hotkeys_enabled),
             "global_hotkey_ptt": int(self.settings.global_hotkey_ptt or 0),
             "global_hotkey_mute": int(self.settings.global_hotkey_mute or 0),
+            # v1.5.0
+            "tts_speak_user_join": bool(self.settings.tts_speak_user_join),
+            "tts_speak_user_leave": bool(self.settings.tts_speak_user_leave),
+            "tts_speak_file_transfer": bool(self.settings.tts_speak_file_transfer),
+            "tts_speak_who_speaks": bool(self.settings.tts_speak_who_speaks),
+            "tts_speak_channel_topic": bool(self.settings.tts_speak_channel_topic),
+            "tts_connect_announce": bool(self.settings.tts_connect_announce),
+            "reconnect_max_attempts": int(self.settings.reconnect_max_attempts or 0),
+            "reconnect_delay_sec": int(self.settings.reconnect_delay_sec or 2),
+            "chat_highlight_keywords": str(self.settings.chat_highlight_keywords or ""),
+            "chat_muted_users": str(self.settings.chat_muted_users or ""),
+            "save_private_chat_history": bool(self.settings.save_private_chat_history),
+            "update_check_on_start": bool(self.settings.update_check_on_start),
+            "braille_compact_mode": bool(self.settings.braille_compact_mode),
+            "hotkey_announce_level": int(self.settings.hotkey_announce_level or 0),
+            # v1.6.0
+            "hotkey_announce_user_info": int(self.settings.hotkey_announce_user_info or 0),
+            "hotkey_announce_ping": int(self.settings.hotkey_announce_ping or 0),
+            # v1.7.0
+            "save_channel_passwords": bool(self.settings.save_channel_passwords),
+            "hotkey_reply_last_sender": int(self.settings.hotkey_reply_last_sender or 0),
+            # v1.9.0
+            "sound_profiles": self.settings.sound_profiles or [],
+            "active_sound_profile": str(self.settings.active_sound_profile or "Standard"),
+            "hotkey_cycle_sound_profile": int(self.settings.hotkey_cycle_sound_profile or 0),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

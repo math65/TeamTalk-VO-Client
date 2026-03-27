@@ -58,6 +58,24 @@ class SystemTab(wx.Panel):
         row2.Add(self.tts_own, 0)
         tts_sizer.Add(row2, 0, wx.ALL, 6)
 
+        row3 = wx.BoxSizer(wx.HORIZONTAL)
+        self.tts_user_join = wx.CheckBox(self, label="&Beitritt")
+        self.tts_user_join.SetName("Nutzerbeitritt ansagen")
+        self.tts_user_leave = wx.CheckBox(self, label="Ab&gang")
+        self.tts_user_leave.SetName("Nutzerabgang ansagen")
+        self.tts_file_transfer = wx.CheckBox(self, label="&Dateitransfer")
+        self.tts_file_transfer.SetName("Dateitransfer ansagen")
+        self.tts_channel_topic = wx.CheckBox(self, label="Kanal-&Thema")
+        self.tts_channel_topic.SetName("Kanal-Thema ansagen")
+        self.tts_connect_announce = wx.CheckBox(self, label="&Verbindung")
+        self.tts_connect_announce.SetName("Verbindungsansage")
+        row3.Add(self.tts_user_join, 0, wx.RIGHT, 12)
+        row3.Add(self.tts_user_leave, 0, wx.RIGHT, 12)
+        row3.Add(self.tts_file_transfer, 0, wx.RIGHT, 12)
+        row3.Add(self.tts_channel_topic, 0, wx.RIGHT, 12)
+        row3.Add(self.tts_connect_announce, 0)
+        tts_sizer.Add(row3, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
+
         grid = wx.FlexGridSizer(cols=2, vgap=6, hgap=8)
         grid.AddGrowableCol(1)
 
@@ -118,6 +136,11 @@ class SystemTab(wx.Panel):
         self.tts_private.Bind(wx.EVT_CHECKBOX, self._apply_settings)
         self.tts_system.Bind(wx.EVT_CHECKBOX, self._apply_settings)
         self.tts_own.Bind(wx.EVT_CHECKBOX, self._apply_settings)
+        self.tts_user_join.Bind(wx.EVT_CHECKBOX, self._apply_settings)
+        self.tts_user_leave.Bind(wx.EVT_CHECKBOX, self._apply_settings)
+        self.tts_file_transfer.Bind(wx.EVT_CHECKBOX, self._apply_settings)
+        self.tts_channel_topic.Bind(wx.EVT_CHECKBOX, self._apply_settings)
+        self.tts_connect_announce.Bind(wx.EVT_CHECKBOX, self._apply_settings)
         self.tts_language.Bind(wx.EVT_CHOICE, self._refresh_voices)
         self.tts_voice_filter.Bind(wx.EVT_TEXT, self._refresh_voices)
         self.tts_voice.Bind(wx.EVT_LISTBOX, self._apply_settings)
@@ -135,6 +158,11 @@ class SystemTab(wx.Panel):
         self.tts_private.SetValue(s.speak_private)
         self.tts_system.SetValue(s.speak_system)
         self.tts_own.SetValue(s.speak_own)
+        self.tts_user_join.SetValue(s.speak_user_join)
+        self.tts_user_leave.SetValue(s.speak_user_leave)
+        self.tts_file_transfer.SetValue(s.speak_file_transfer)
+        self.tts_channel_topic.SetValue(s.speak_channel_topic)
+        self.tts_connect_announce.SetValue(s.connect_announce)
         if s.enabled:
             self._refresh_languages(force=True)
             # Default to "Alle" if language not set
@@ -158,6 +186,11 @@ class SystemTab(wx.Panel):
         s.speak_private = self.tts_private.GetValue()
         s.speak_system = self.tts_system.GetValue()
         s.speak_own = self.tts_own.GetValue()
+        s.speak_user_join = self.tts_user_join.GetValue()
+        s.speak_user_leave = self.tts_user_leave.GetValue()
+        s.speak_file_transfer = self.tts_file_transfer.GetValue()
+        s.speak_channel_topic = self.tts_channel_topic.GetValue()
+        s.connect_announce = self.tts_connect_announce.GetValue()
         s.language = self._get_language_value() or "de"
         s.voice = self._get_voice_value()
         s.rate = self.tts_rate.GetValue()
@@ -176,6 +209,11 @@ class SystemTab(wx.Panel):
         app.tts_rate = s.rate
         app.tts_volume = s.volume
         app.tts_espeak_path = s.espeak_path
+        app.tts_speak_user_join = s.speak_user_join
+        app.tts_speak_user_leave = s.speak_user_leave
+        app.tts_speak_file_transfer = s.speak_file_transfer
+        app.tts_speak_channel_topic = s.speak_channel_topic
+        app.tts_connect_announce = s.connect_announce
         self.frame.settings_store.save()
 
     def _refresh_voices(self, _event, force: bool = False):

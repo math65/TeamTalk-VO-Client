@@ -91,6 +91,8 @@ class GlobalHotkeyManager:
             except Exception:
                 pass
             self._loop = None
+        if self._thread is not None:
+            self._thread.join(timeout=1.0)
         self._thread = None
 
     def capture_key_vk(self, callback: Callable[[int], None]) -> None:
