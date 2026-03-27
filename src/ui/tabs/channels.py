@@ -53,6 +53,15 @@ class ChannelsTab(wx.Panel):
         self.channel_tree.Bind(wx.EVT_KEY_DOWN, self._on_tree_key)
 
         box_sizer.Add(self.channel_tree, 1, wx.ALL | wx.EXPAND, 8)
+
+        # Beitreten-Button als barrierefreie Alternative zum Doppelklick
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.join_btn = wx.Button(box, label="&Kanal beitreten")
+        self.join_btn.SetName("Kanal beitreten")
+        self.join_btn.Bind(wx.EVT_BUTTON, self._on_join_btn)
+        btn_row.Add(self.join_btn, 0)
+        box_sizer.Add(btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
         sizer.Add(box_sizer, 1, wx.ALL | wx.EXPAND, 8)
         self.SetSizer(sizer)
 
@@ -291,6 +300,20 @@ class ChannelsTab(wx.Panel):
                 return cid
         return None
 
+    def _node_info_from_item(self, item: wx.TreeItemId):
+        """Gibt (node_type, node_id) zurück. Primär via GetItemData, Fallback via Dict-Lookup."""
+        data = self.channel_tree.GetItemData(item)
+        if isinstance(data, dict):
+            return data.get("type"), data.get("id")
+        # Fallback: Reverse-Lookup über die ID-Dicts
+        for cid, ti in self._channel_items.items():
+            if ti == item:
+                return _NODE_CHANNEL, cid
+        for uid, ti in self._user_items.items():
+            if ti == item:
+                return _NODE_USER, uid
+        return None, None
+
     def _announce_channel_members(self, users: List, channel_id: int) -> None:
         names = [self._format_user_label(u) for u in users]
         self.frame.logger.write(f"Channel members update: channel_id={channel_id} count={len(names)}")
@@ -311,72 +334,84 @@ class ChannelsTab(wx.Panel):
     # Baum-Events
     # ------------------------------------------------------------------
 
-    def _on_tree_sel_changed(self, _event) -> None:
-        item = self.channel_tree.GetSelection()
+    def _on_tree_sel_changed(self, event) -> None:
+        item = event.GetItem()
+        if not item.IsOk():
+            item = self.channel_tree.GetSelection()
         if not item.IsOk():
             return
-        data = self.channel_tree.GetItemData(item)
-        if not isinstance(data, dict):
-            return
-        node_type = data.get("type")
-        node_id = data.get("id")
-        if node_type == _NODE_CHANNEL:
+        node_type, node_id = self._node_info_from_item(item)
+        if node_type == _NODE_CHANNEL and node_id is not None:
             self._selected_channel_id = node_id
             self._selected_user_id = None
-            # TTS: Kanalname ansagen
             label = self.channel_tree.GetItemText(item)
             self.frame.tts.speak(label, kind="system")
             self.frame.chat_tab.update_chat_target()
-        elif node_type == _NODE_USER:
+        elif node_type == _NODE_USER and node_id is not None:
             self._selected_user_id = node_id
-            # TTS: Nutzerinfo ansagen
             user = self._find_user(node_id)
             if user:
                 self.frame.tts.speak(self._format_user_label(user), kind="system")
-            # Chat-Tab: Private-Nutzer-Auswahl synchronisieren
             for i, uid in enumerate(self._private_user_ids):
                 if uid == node_id:
                     self.frame.chat_tab.private_user.SetSelection(i)
                     break
             self.frame.chat_tab.update_chat_target()
 
-    def _on_tree_activated(self, _event) -> None:
-        item = self.channel_tree.GetSelection()
+    def _on_tree_activated(self, event) -> None:
+        item = event.GetItem()
+        if not item.IsOk():
+            item = self.channel_tree.GetSelection()
         if not item.IsOk():
             return
-        data = self.channel_tree.GetItemData(item)
-        if not isinstance(data, dict):
-            return
-        if data.get("type") == _NODE_CHANNEL:
-            self.frame.join_channel(data["id"])
-        elif data.get("type") == _NODE_USER:
-            # Zu Chat-Tab wechseln (Privatchat)
+        node_type, node_id = self._node_info_from_item(item)
+        if node_type == _NODE_CHANNEL and node_id is not None:
+            self.frame.join_channel(node_id)
+        elif node_type == _NODE_USER:
             try:
                 self.frame.notebook.SetSelection(2)
             except Exception:
                 pass
 
+    def _on_join_btn(self, _event) -> None:
+        if self._selected_channel_id:
+            self.frame.join_channel(self._selected_channel_id)
+        else:
+            self.frame.set_status("Bitte zuerst einen Kanal im Baum auswählen")
+
     def _on_tree_key(self, event) -> None:
         key = event.GetKeyCode()
+        if key in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
+            item = self.channel_tree.GetSelection()
+            if item.IsOk():
+                node_type, node_id = self._node_info_from_item(item)
+                if node_type == _NODE_CHANNEL and node_id is not None:
+                    self.frame.join_channel(node_id)
+                elif node_type == _NODE_USER:
+                    try:
+                        self.frame.notebook.SetSelection(2)
+                    except Exception:
+                        pass
+            return
         if key == wx.WXK_WINDOWS_MENU or (key == wx.WXK_F10 and event.ShiftDown()):
             item = self.channel_tree.GetSelection()
             if item.IsOk():
-                data = self.channel_tree.GetItemData(item)
-                if isinstance(data, dict) and data.get("type") == _NODE_USER:
-                    self._show_user_context_menu_for(data["id"])
+                node_type, node_id = self._node_info_from_item(item)
+                if node_type == _NODE_USER and node_id is not None:
+                    self._show_user_context_menu_for(node_id)
             return
         event.Skip()
 
     def _on_tree_right_click(self, event) -> None:
         pos = event.GetPosition()
-        item, flags = self.channel_tree.HitTest(pos)
+        item, _flags = self.channel_tree.HitTest(pos)
         if item.IsOk():
-            data = self.channel_tree.GetItemData(item)
-            if isinstance(data, dict) and data.get("type") == _NODE_USER:
+            node_type, node_id = self._node_info_from_item(item)
+            if node_type == _NODE_USER and node_id is not None:
                 self.channel_tree.SelectItem(item)
-                self._selected_user_id = data["id"]
+                self._selected_user_id = node_id
                 self.frame.chat_tab.update_chat_target()
-                self._show_user_context_menu_for(data["id"])
+                self._show_user_context_menu_for(node_id)
         event.Skip()
 
     # ------------------------------------------------------------------
