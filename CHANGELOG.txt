@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-03-27 (v1.10.4)
+- UI: SplitterWindow in ChannelsChatTab durch festes BoxSizer-Layout ersetzt.
+  Kanalbaum (60 %) und Chat (40 %) sind jetzt immer sichtbar ohne interaktiven Teiler.
+  Behebt Render-Probleme von wx.TreeCtrl innerhalb von wx.SplitterWindow auf macOS.
+
+2026-03-27 (v1.10.3)
+- Bugfix: Kanalbaum blieb leer wenn SDK direkt nach Login None statt leere Liste
+  zurückgab (TypeError in _refresh_channels_with_retry abgefangen via or []).
+- Bugfix: Doppelter Baum-Rebuild beim Kanal-Beitritt behoben (refresh_channels_and_users
+  wurde redundant neben refresh_members_for_my_channel aufgerufen).
+- Stabilität: Event-Handler im Kanalbaum (_on_tree_sel_changed, _on_tree_right_click)
+  mit try/except abgesichert damit Exceptions keine weiteren Events blockieren.
+
 2026-03-27 (v1.10.2)
 - UI: Kanalbaum komplett überarbeitet – Nutzerliste in den Baum integriert.
   Nutzer erscheinen jetzt als Kinder-Knoten unter ihrem Kanal (Server → Kanal → Nutzer).

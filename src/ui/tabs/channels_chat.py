@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class ChannelsChatTab(wx.Panel):
-    """Combined tab: channels + chat."""
+    """Combined tab: channels (tree, always visible) + chat below."""
 
     def __init__(self, parent: wx.Window, frame: MainFrame) -> None:
         super().__init__(parent)
@@ -21,20 +21,15 @@ class ChannelsChatTab(wx.Panel):
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE)
-        self.channels_tab = ChannelsTab(splitter, frame)
-        self.chat_tab = ChatTab(splitter, frame)
+        # Kanalbaum – nimmt 60 % der verfügbaren Höhe (proportion=3)
+        self.channels_tab = ChannelsTab(self, frame)
+        sizer.Add(self.channels_tab, 3, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
 
-        splitter.SplitHorizontally(self.channels_tab, self.chat_tab, sashPosition=420)
-        splitter.SetMinimumPaneSize(160)
-        splitter.SetSashGravity(0.6)
+        # Trennlinie
+        sizer.Add(wx.StaticLine(self), 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
 
-        sizer.Add(splitter, 1, wx.ALL | wx.EXPAND, 8)
+        # Chat – nimmt 40 % der verfügbaren Höhe (proportion=2)
+        self.chat_tab = ChatTab(self, frame)
+        sizer.Add(self.chat_tab, 2, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         self.SetSizer(sizer)
-
-        def _apply_default_sash():
-            size = self.GetClientSize()
-            if size.height > 0:
-                splitter.SetSashPosition(int(size.height * 0.6))
-
-        wx.CallAfter(_apply_default_sash)

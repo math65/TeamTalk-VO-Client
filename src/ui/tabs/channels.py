@@ -387,7 +387,10 @@ class ChannelsTab(wx.Panel):
             self._selected_user_id = None
             label = self.channel_tree.GetItemText(item)
             self.frame.tts.speak(label, kind="system")
-            self.frame.chat_tab.update_chat_target()
+            try:
+                self.frame.chat_tab.update_chat_target()
+            except Exception:
+                pass
         elif node_type == _NODE_USER and node_id is not None:
             self._selected_user_id = node_id
             user = self._find_user(node_id)
@@ -395,9 +398,15 @@ class ChannelsTab(wx.Panel):
                 self.frame.tts.speak(self._format_user_label(user), kind="system")
             for i, uid in enumerate(self._private_user_ids):
                 if uid == node_id:
-                    self.frame.chat_tab.private_user.SetSelection(i)
+                    try:
+                        self.frame.chat_tab.private_user.SetSelection(i)
+                    except Exception:
+                        pass
                     break
-            self.frame.chat_tab.update_chat_target()
+            try:
+                self.frame.chat_tab.update_chat_target()
+            except Exception:
+                pass
 
     def _on_tree_activated(self, event) -> None:
         item = event.GetItem()
@@ -451,7 +460,10 @@ class ChannelsTab(wx.Panel):
             if node_type == _NODE_USER and node_id is not None:
                 self.channel_tree.SelectItem(item)
                 self._selected_user_id = node_id
-                self.frame.chat_tab.update_chat_target()
+                try:
+                    self.frame.chat_tab.update_chat_target()
+                except Exception:
+                    pass
                 self._show_user_context_menu_for(node_id)
         event.Skip()
 

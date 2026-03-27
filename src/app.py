@@ -39,7 +39,7 @@ from platform_paths import log_dir as _log_dir # Moved this import up
 from chat_history import ChatHistoryManager
 
 
-APP_VERSION = "1.10.2"
+APP_VERSION = "1.10.4"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -4415,7 +4415,6 @@ class MainFrame(wx.Frame):
                     wx.CallAfter(self.set_status, result.message)
                     wx.CallAfter(self._save_last_channel, channel_id)
                     self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
-                    wx.CallAfter(self.channels_tab.refresh_channels_and_users)
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
                     self.bus.emit("channel_joined", channel_id=channel_id)
                     if self.files_tab is not None:
@@ -4528,7 +4527,7 @@ class MainFrame(wx.Frame):
             self.logger.write(f"Auto-init sound devices failed: {exc}")
 
     def _refresh_channels_with_retry(self, attempts: int = 8, delay_ms: int = 500):
-        channels = list(self.client.get_server_channels())
+        channels = list(self.client.get_server_channels() or [])
         if channels:
             self.channels_tab.refresh_channels_and_users()
             return
@@ -4641,7 +4640,6 @@ class MainFrame(wx.Frame):
                     self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
                     wx.CallAfter(self.set_status, "Kanalbeitritt erfolgreich")
                     wx.CallAfter(self._save_last_channel, target_id)
-                    wx.CallAfter(self.channels_tab.refresh_channels_and_users)
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
                     if self.files_tab is not None:
                         wx.CallAfter(self.files_tab.refresh_file_list)
@@ -4650,7 +4648,6 @@ class MainFrame(wx.Frame):
                 if result_join.ok:
                     self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
                     wx.CallAfter(self._save_last_channel, parsed.channel_id or 0)
-                    wx.CallAfter(self.channels_tab.refresh_channels_and_users)
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
                     if self.files_tab is not None:
                         wx.CallAfter(self.files_tab.refresh_file_list)
