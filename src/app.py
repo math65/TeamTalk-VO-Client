@@ -42,9 +42,13 @@ from tts import TTSManager
 from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 from chat_history import ChatHistoryManager
+from pronunciation import PronunciationManager
+from bookmark_manager import BookmarkManager
+from mute_scheduler import MuteScheduler
+from macro_manager import MacroManager
 
 
-APP_VERSION = "2.0.3"
+APP_VERSION = "2.1.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -354,8 +358,22 @@ class MainFrame(wx.Frame):
         self.tts.settings.speak_who_speaks = _ts.tts_speak_who_speaks
         self.tts.settings.speak_channel_topic = _ts.tts_speak_channel_topic
         self.tts.settings.connect_announce = _ts.tts_connect_announce
+        # v2.2.0 per-context TTS rates
+        self.tts.settings.chat_rate = int(getattr(_ts, "tts_chat_rate", 0) or 0)
+        self.tts.settings.system_rate = int(getattr(_ts, "tts_system_rate", 0) or 0)
+        self.tts.settings.channel_rate = int(getattr(_ts, "tts_channel_rate", 0) or 0)
+        self.tts.settings.chat_voice = str(getattr(_ts, "tts_chat_voice", "") or "")
+        self.tts.settings.system_voice = str(getattr(_ts, "tts_system_voice", "") or "")
         self.sound_manager = SoundManager()
         self._ptt_hotkey = int(self.settings_store.settings.ptt_hotkey or 0) or wx.WXK_SPACE
+        # v2.1.0 – Auto-Reconnect persistent
+        self._auto_reconnect = bool(getattr(self.settings_store.settings, "auto_reconnect_enabled", True))
+        # v2.2.0 – Aussprache, Lesezeichen
+        self._pronunciation = PronunciationManager(dict(getattr(_ts, "pronunciation_dict", {}) or {}))
+        self._bookmarks = BookmarkManager(self.settings_store)
+        # v2.3.0 – Zeitgesteuerte Stille, Makros
+        self._mute_scheduler = MuteScheduler(self)
+        self._macros = MacroManager(self)
         # v2.0.0 – Braille-Manager (nach TTS-Init)
         self.braille = BrailleOutputManager(self.tts)
         _braille_verbosity = getattr(self.settings_store.settings, "braille_verbosity", "normal")
@@ -558,6 +576,10 @@ class MainFrame(wx.Frame):
         # Update-Checker beim Start
         if self.settings_store.settings.update_check_on_start:
             wx.CallLater(4000, self._check_for_update)
+
+        # v2.3.0 – Zeitgesteuerte Stille starten
+        if getattr(self.settings_store.settings, "mute_schedule", None):
+            self._mute_scheduler.start()
 
         # Tab order inside each tab is handled by the tab panels themselves.
         # Global keyboard hooks
@@ -1861,6 +1883,8 @@ class MainFrame(wx.Frame):
         enabled = event.IsChecked()
         self._auto_reconnect = enabled
         self.connection_tab.auto_reconnect.SetValue(enabled)
+        self.settings_store.settings.auto_reconnect_enabled = enabled
+        self.settings_store.save()
 
     def on_menu_join_root(self, _event):
         if not self._require_connected("Root-Kanal beitreten"):
@@ -4339,6 +4363,9 @@ class MainFrame(wx.Frame):
                 wx.CallLater(500, self._join_from_pending)
             elif self.settings_store.settings.auto_join_last_channel:
                 wx.CallLater(800, self._auto_join_last_channel)
+            # v2.3.0 – Auto-Kanal nach Name beitreten
+            elif getattr(self.settings_store.settings, "auto_join_channel_per_server", None):
+                wx.CallLater(900, self._auto_join_channel_by_name)
             if self.audio_tab.voice_activation.GetValue() and not self._ptt_enabled:
                 self.client.enable_voice_transmission(True)
             if self.admin_tab is not None:
@@ -4363,6 +4390,27 @@ class MainFrame(wx.Frame):
             return
         self.logger.write(f"Auto-join last channel {last} for server {key}")
         self.join_channel(last)
+
+    def _auto_join_channel_by_name(self) -> None:
+        """Tritt dem konfigurierten Auto-Kanal (nach Name) bei – v2.3.0."""
+        key = self._get_server_key()
+        if not key:
+            return
+        mapping = getattr(self.settings_store.settings, "auto_join_channel_per_server", {}) or {}
+        channel_name = mapping.get(key, "").strip()
+        if not channel_name:
+            return
+        try:
+            channels = list(self.client.get_channels() or [])
+            name_l = channel_name.lower()
+            for ch in channels:
+                ch_name = (self.tt_str(getattr(ch, "szName", "")) or "").lower()
+                if ch_name == name_l or name_l in ch_name:
+                    self.join_channel(int(getattr(ch, "nChannelID", 0)))
+                    return
+            self.logger.write(f"Auto-join: Kanal '{channel_name}' nicht gefunden")
+        except Exception as exc:
+            self.logger.write(f"Auto-join Fehler: {exc}")
 
     def _save_last_channel(self, channel_id: int) -> None:
         key = self._get_server_key()
@@ -4452,14 +4500,34 @@ class MainFrame(wx.Frame):
                     data = json.loads(resp.read().decode("utf-8"))
                 tag = str(data.get("tag_name", "") or "").lstrip("v")
                 if tag and tag != APP_VERSION:
+                    assets = data.get("assets", [])
+                    dl_url = ""
+                    if assets:
+                        dl_url = str(assets[0].get("browser_download_url", "") or "")
+                    if not dl_url:
+                        dl_url = str(data.get("html_url", "") or "")
                     wx.CallAfter(
                         self.set_status,
                         f"Update verfügbar: v{tag} (aktuell: v{APP_VERSION})",
                     )
                     wx.CallAfter(self.tts.speak, f"Update verfügbar, Version {tag}", kind="system")
+                    if dl_url:
+                        wx.CallAfter(self._show_update_dialog, tag, dl_url)
             except Exception:
                 pass
         threading.Thread(target=_worker, daemon=True).start()
+
+    def _show_update_dialog(self, tag: str, url: str) -> None:
+        dlg = wx.MessageDialog(
+            self,
+            f"Version {tag} ist verfügbar (aktuell: {APP_VERSION}).\n\nJetzt herunterladen?",
+            "Update verfügbar",
+            wx.YES_NO | wx.YES_DEFAULT | wx.ICON_INFORMATION,
+        )
+        dlg.SetYesNoLabels("Jetzt herunterladen", "Später")
+        if dlg.ShowModal() == wx.ID_YES:
+            wx.LaunchDefaultBrowser(url)
+        dlg.Destroy()
 
     def scan_saved_servers_presence(self):
         servers = list(self.store.items())
@@ -4977,6 +5045,17 @@ class MainFrame(wx.Frame):
             if key and key == int(getattr(settings, "hotkey_ai_summary", 0) or 0):
                 self._trigger_ai_summary()
                 return
+            # v2.2.0 – Lesezeichen-Hotkeys
+            for idx, hk_attr in enumerate(["hotkey_bookmark_1", "hotkey_bookmark_2", "hotkey_bookmark_3"]):
+                hk = int(getattr(settings, hk_attr, 0) or 0)
+                if key and key == hk:
+                    self._bookmarks.jump(self, idx)
+                    return
+            # v2.3.0 – Makro-Hotkeys
+            macro = self._macros.find_by_hotkey(key)
+            if macro:
+                self._macros.execute(macro)
+                return
         event.Skip()
 
     def on_key_down(self, event):
@@ -5012,6 +5091,12 @@ class MainFrame(wx.Frame):
                     self.settings_store.settings.hotkey_cycle_braille_verbosity = int(key)
                 elif target == "hotkey_ai_summary":
                     self.settings_store.settings.hotkey_ai_summary = int(key)
+                elif target == "hotkey_bookmark_1":
+                    self.settings_store.settings.hotkey_bookmark_1 = int(key)
+                elif target == "hotkey_bookmark_2":
+                    self.settings_store.settings.hotkey_bookmark_2 = int(key)
+                elif target == "hotkey_bookmark_3":
+                    self.settings_store.settings.hotkey_bookmark_3 = int(key)
                 self.settings_store.save()
                 self.shortcuts_tab.set_capture_label(target, False)
                 self._capture_hotkey_target = None
@@ -5073,8 +5158,24 @@ class MainFrame(wx.Frame):
         event.Skip()
 
     def _send_notification(self, title: str, message: str):
+        if not getattr(self.settings_store.settings, "notifications_enabled", True):
+            return
         if self._window_focused and self.IsShown():
             return
+        if sys.platform == "darwin":
+            try:
+                script = (
+                    f'display notification {json.dumps(message)} '
+                    f'with title {json.dumps(title)} '
+                    f'subtitle "TeamTalk VO Client"'
+                )
+                subprocess.Popen(
+                    ["osascript", "-e", script],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                )
+                return
+            except Exception:
+                pass
         try:
             notif = wx.adv.NotificationMessage(title, message, self)
             notif.Show()
@@ -5595,6 +5696,11 @@ class MainFrame(wx.Frame):
         # v2.0.0 – Sprachsteuerung beenden
         try:
             self._stop_voice_control()
+        except Exception:
+            pass
+        # v2.3.0 – Zeitgesteuerte Stille beenden
+        try:
+            self._mute_scheduler.stop()
         except Exception:
             pass
         # v2.0.0 – SQLite-DB schließen

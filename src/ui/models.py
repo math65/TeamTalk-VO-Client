@@ -191,6 +191,24 @@ class AppSettings:
     active_server_session: str = ""
     # v2.0.2 features
     gemini_api_key: str = ""
+    # v2.1.0 features
+    auto_reconnect_enabled: bool = True
+    notifications_enabled: bool = True
+    # v2.2.0 features
+    tts_chat_rate: int = 0
+    tts_system_rate: int = 0
+    tts_channel_rate: int = 0
+    tts_chat_voice: str = ""
+    tts_system_voice: str = ""
+    channel_bookmarks: List[Dict[str, Any]] = field(default_factory=list)
+    hotkey_bookmark_1: int = 0
+    hotkey_bookmark_2: int = 0
+    hotkey_bookmark_3: int = 0
+    pronunciation_dict: Dict[str, str] = field(default_factory=dict)
+    # v2.3.0 features
+    auto_join_channel_per_server: Dict[str, str] = field(default_factory=dict)
+    mute_schedule: List[Dict] = field(default_factory=list)
+    macros: List[Dict] = field(default_factory=list)
 
 
 class SettingsStore:
@@ -295,6 +313,29 @@ class SettingsStore:
             self.settings.active_server_session = str(data.get("active_server_session", "") or "")
             # v2.0.2
             self.settings.gemini_api_key = str(data.get("gemini_api_key", "") or "")
+            # v2.1.0
+            self.settings.auto_reconnect_enabled = bool(data.get("auto_reconnect_enabled", True))
+            self.settings.notifications_enabled = bool(data.get("notifications_enabled", True))
+            # v2.2.0
+            self.settings.tts_chat_rate = int(data.get("tts_chat_rate", 0) or 0)
+            self.settings.tts_system_rate = int(data.get("tts_system_rate", 0) or 0)
+            self.settings.tts_channel_rate = int(data.get("tts_channel_rate", 0) or 0)
+            self.settings.tts_chat_voice = str(data.get("tts_chat_voice", "") or "")
+            self.settings.tts_system_voice = str(data.get("tts_system_voice", "") or "")
+            raw_bm = data.get("channel_bookmarks", [])
+            self.settings.channel_bookmarks = raw_bm if isinstance(raw_bm, list) else []
+            self.settings.hotkey_bookmark_1 = int(data.get("hotkey_bookmark_1", 0) or 0)
+            self.settings.hotkey_bookmark_2 = int(data.get("hotkey_bookmark_2", 0) or 0)
+            self.settings.hotkey_bookmark_3 = int(data.get("hotkey_bookmark_3", 0) or 0)
+            raw_pd = data.get("pronunciation_dict", {})
+            self.settings.pronunciation_dict = raw_pd if isinstance(raw_pd, dict) else {}
+            # v2.3.0
+            raw_ajc = data.get("auto_join_channel_per_server", {})
+            self.settings.auto_join_channel_per_server = raw_ajc if isinstance(raw_ajc, dict) else {}
+            raw_ms = data.get("mute_schedule", [])
+            self.settings.mute_schedule = raw_ms if isinstance(raw_ms, list) else []
+            raw_mac = data.get("macros", [])
+            self.settings.macros = raw_mac if isinstance(raw_mac, list) else []
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -381,5 +422,23 @@ class SettingsStore:
             "active_server_session": str(self.settings.active_server_session or ""),
             # v2.0.2
             "gemini_api_key": str(self.settings.gemini_api_key or ""),
+            # v2.1.0
+            "auto_reconnect_enabled": bool(self.settings.auto_reconnect_enabled),
+            "notifications_enabled": bool(self.settings.notifications_enabled),
+            # v2.2.0
+            "tts_chat_rate": int(self.settings.tts_chat_rate or 0),
+            "tts_system_rate": int(self.settings.tts_system_rate or 0),
+            "tts_channel_rate": int(self.settings.tts_channel_rate or 0),
+            "tts_chat_voice": str(self.settings.tts_chat_voice or ""),
+            "tts_system_voice": str(self.settings.tts_system_voice or ""),
+            "channel_bookmarks": list(self.settings.channel_bookmarks or []),
+            "hotkey_bookmark_1": int(self.settings.hotkey_bookmark_1 or 0),
+            "hotkey_bookmark_2": int(self.settings.hotkey_bookmark_2 or 0),
+            "hotkey_bookmark_3": int(self.settings.hotkey_bookmark_3 or 0),
+            "pronunciation_dict": dict(self.settings.pronunciation_dict or {}),
+            # v2.3.0
+            "auto_join_channel_per_server": dict(self.settings.auto_join_channel_per_server or {}),
+            "mute_schedule": list(self.settings.mute_schedule or []),
+            "macros": list(self.settings.macros or []),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

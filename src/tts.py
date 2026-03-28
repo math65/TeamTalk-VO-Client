@@ -31,6 +31,12 @@ class TTSSettings:
     rate: int = 175
     volume: int = 100
     espeak_path: str = ""
+    # v2.2.0 per-context overrides (0 / "" = use global)
+    chat_rate: int = 0
+    system_rate: int = 0
+    channel_rate: int = 0
+    chat_voice: str = ""
+    system_voice: str = ""
 
 
 class TTSManager:
@@ -319,16 +325,38 @@ class TTSManager:
         if self.settings.interrupt:
             self._stop_current()
             self.clear_queue()
+        # Apply pronunciation rules if available
         try:
-            self._queue.put_nowait(text)
+            pm = getattr(self.frame, "_pronunciation", None)
+            if pm is not None:
+                text = pm.apply(text)
+        except Exception:
+            pass
+        # Per-context rate/voice override stored as (rate, voice) tuple in queue item
+        ctx_rate = 0
+        ctx_voice = ""
+        if kind in ("chat", "private"):
+            ctx_rate = self.settings.chat_rate or 0
+            ctx_voice = self.settings.chat_voice or ""
+        elif kind in ("system", "connect"):
+            ctx_rate = self.settings.system_rate or 0
+            ctx_voice = self.settings.system_voice or ""
+        elif kind == "channel_topic":
+            ctx_rate = self.settings.channel_rate or 0
+        try:
+            self._queue.put_nowait((text, ctx_rate, ctx_voice))
         except Exception:
             pass
 
     def _worker(self) -> None:
         while not self._stop.is_set():
-            text = self._queue.get()
+            item = self._queue.get()
             if self._stop.is_set():
                 break
+            if isinstance(item, tuple):
+                text, ctx_rate, ctx_voice = item
+            else:
+                text, ctx_rate, ctx_voice = item, 0, ""
             if not text:
                 continue
             binary = self._resolve_binary()
@@ -345,12 +373,14 @@ class TTSManager:
             if mbrola_bin:
                 env["PATH"] = f"{mbrola_bin.parent}{os.pathsep}{env.get('PATH','')}"
             try:
-                selected = self.settings.voice or self.settings.language or "de"
+                eff_rate = ctx_rate if ctx_rate else self.settings.rate
+                eff_voice = ctx_voice if ctx_voice else (self.settings.voice or self.settings.language or "de")
+                selected = eff_voice
 
-                def run_espeak(voice: str):
+                def run_espeak(voice: str, _rate: int = eff_rate):
                     cmd = [
                         binary, "-v", voice,
-                        "-s", str(self.settings.rate),
+                        "-s", str(_rate),
                         "-a", str(self.settings.volume),
                         "--stdout", text,
                     ]
@@ -420,7 +450,7 @@ class TTSManager:
                         "-v",
                         selected,
                         "-s",
-                        str(self.settings.rate),
+                        str(eff_rate),
                         "-a",
                         str(self.settings.volume),
                         text,

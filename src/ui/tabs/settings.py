@@ -65,7 +65,8 @@ class SettingsTab(wx.Panel):
         self.section_choice = wx.Choice(self, choices=[
             "Allgemein", "Anzeige", "Verbindung", "Sound-Ereignisse",
             "Audio", "Video", "Tastenkürzel", "System & TTS", "ElevenLabs",
-            "KI & Barrierefreiheit",
+            "KI & Barrierefreiheit", "TTS-Kontexte & Aussprache",
+            "Lesezeichen", "Automation",
         ])
         self.section_choice.SetName("Einstellungsbereich")
         self.section_choice.SetSelection(0)
@@ -95,6 +96,9 @@ class SettingsTab(wx.Panel):
         self.sound_events_tab = self._build_sound_events_tab()
         self.elevenlabs_tab = self._build_elevenlabs_tab()
         self.ai_tab = self._build_ai_tab()
+        self.tts_ctx_tab = self._build_tts_ctx_tab()
+        self.bookmarks_tab = self._build_bookmarks_tab()
+        self.automation_tab = self._build_automation_tab()
 
         self._sections = {
             "Allgemein": self.general_tab,
@@ -107,6 +111,9 @@ class SettingsTab(wx.Panel):
             "System & TTS": self.system_tab,
             "ElevenLabs": self.elevenlabs_tab,
             "KI & Barrierefreiheit": self.ai_tab,
+            "TTS-Kontexte & Aussprache": self.tts_ctx_tab,
+            "Lesezeichen": self.bookmarks_tab,
+            "Automation": self.automation_tab,
         }
 
         for panel in self._sections.values():
@@ -905,6 +912,314 @@ class SettingsTab(wx.Panel):
             self.frame.set_status("Sprachsteuerung gestoppt")
         except Exception as exc:
             self.frame.set_status(f"Sprachsteuerung: {exc}")
+
+    # ------------------------------------------------------------------
+    # v2.2.0 – TTS-Kontexte & Aussprache
+    # ------------------------------------------------------------------
+
+    def _build_tts_ctx_tab(self) -> wx.Panel:
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        s = self.frame.settings_store.settings
+
+        # --- Per-Kontext-Raten ---
+        ctx_box = wx.StaticBox(panel, label="Sprechgeschwindigkeit je Kontext (0 = global)")
+        ctx_sizer = wx.StaticBoxSizer(ctx_box, wx.VERTICAL)
+        grid = wx.FlexGridSizer(3, 2, 8, 8)
+        grid.AddGrowableCol(1)
+
+        grid.Add(wx.StaticText(panel, label="Chat / Privat (Wörter/Min):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._tts_chat_rate = wx.SpinCtrl(panel, min=0, max=500, initial=int(getattr(s, "tts_chat_rate", 0) or 0))
+        self._tts_chat_rate.SetName("Chat TTS Geschwindigkeit")
+        grid.Add(self._tts_chat_rate, 0)
+
+        grid.Add(wx.StaticText(panel, label="System-Meldungen (Wörter/Min):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._tts_system_rate = wx.SpinCtrl(panel, min=0, max=500, initial=int(getattr(s, "tts_system_rate", 0) or 0))
+        self._tts_system_rate.SetName("System TTS Geschwindigkeit")
+        grid.Add(self._tts_system_rate, 0)
+
+        grid.Add(wx.StaticText(panel, label="Kanal-Thema (Wörter/Min):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._tts_channel_rate = wx.SpinCtrl(panel, min=0, max=500, initial=int(getattr(s, "tts_channel_rate", 0) or 0))
+        self._tts_channel_rate.SetName("Kanal TTS Geschwindigkeit")
+        grid.Add(self._tts_channel_rate, 0)
+
+        ctx_sizer.Add(grid, 0, wx.ALL, 8)
+
+        ctx_voice_row = wx.BoxSizer(wx.HORIZONTAL)
+        ctx_voice_row.Add(wx.StaticText(panel, label="Chat-Stimme (leer = global):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._tts_chat_voice = wx.TextCtrl(panel, value=str(getattr(s, "tts_chat_voice", "") or ""))
+        self._tts_chat_voice.SetName("Chat TTS Stimme")
+        ctx_voice_row.Add(self._tts_chat_voice, 1)
+        ctx_sizer.Add(ctx_voice_row, 0, wx.ALL | wx.EXPAND, 8)
+
+        sys_voice_row = wx.BoxSizer(wx.HORIZONTAL)
+        sys_voice_row.Add(wx.StaticText(panel, label="System-Stimme (leer = global):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._tts_system_voice = wx.TextCtrl(panel, value=str(getattr(s, "tts_system_voice", "") or ""))
+        self._tts_system_voice.SetName("System TTS Stimme")
+        sys_voice_row.Add(self._tts_system_voice, 1)
+        ctx_sizer.Add(sys_voice_row, 0, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(ctx_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        # --- Aussprache-Wörterbuch ---
+        pron_box = wx.StaticBox(panel, label="Aussprache-Wörterbuch (Suche → Ersatz, eine Zeile je Regel: Wort=Ersatz)")
+        pron_sizer = wx.StaticBoxSizer(pron_box, wx.VERTICAL)
+        rules = getattr(s, "pronunciation_dict", {}) or {}
+        rules_text = "\n".join(f"{k}={v}" for k, v in rules.items())
+        self._pronunciation_text = wx.TextCtrl(panel, value=rules_text,
+                                               style=wx.TE_MULTILINE, size=(-1, 120))
+        self._pronunciation_text.SetName("Aussprache-Wörterbuch")
+        pron_sizer.Add(self._pronunciation_text, 1, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(pron_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        save_btn = wx.Button(panel, label="&Speichern")
+        save_btn.SetName("TTS-Kontexte speichern")
+        save_btn.Bind(wx.EVT_BUTTON, self._on_save_tts_ctx)
+        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        return panel
+
+    def _on_save_tts_ctx(self, _event) -> None:
+        s = self.frame.settings_store.settings
+        s.tts_chat_rate = int(self._tts_chat_rate.GetValue() or 0)
+        s.tts_system_rate = int(self._tts_system_rate.GetValue() or 0)
+        s.tts_channel_rate = int(self._tts_channel_rate.GetValue() or 0)
+        s.tts_chat_voice = self._tts_chat_voice.GetValue().strip()
+        s.tts_system_voice = self._tts_system_voice.GetValue().strip()
+        # Apply to running TTS
+        self.frame.tts.settings.chat_rate = s.tts_chat_rate
+        self.frame.tts.settings.system_rate = s.tts_system_rate
+        self.frame.tts.settings.channel_rate = s.tts_channel_rate
+        self.frame.tts.settings.chat_voice = s.tts_chat_voice
+        self.frame.tts.settings.system_voice = s.tts_system_voice
+        # Parse pronunciation dict
+        rules = {}
+        for line in self._pronunciation_text.GetValue().splitlines():
+            line = line.strip()
+            if "=" in line:
+                k, _, v = line.partition("=")
+                k = k.strip()
+                v = v.strip()
+                if k:
+                    rules[k] = v
+        s.pronunciation_dict = rules
+        self.frame._pronunciation.update_rules(rules)
+        self.frame.settings_store.save()
+        self.frame.set_status("TTS-Kontexte & Aussprache gespeichert")
+
+    # ------------------------------------------------------------------
+    # v2.2.0 – Lesezeichen
+    # ------------------------------------------------------------------
+
+    def _build_bookmarks_tab(self) -> wx.Panel:
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        info = wx.StaticText(panel, label=(
+            "Speichere bis zu 9 Kanal-Lesezeichen. Lesezeichen 1-3 können\n"
+            "per Hotkey (Tastenkürzel-Seite) direkt angesprungen werden."
+        ))
+        sizer.Add(info, 0, wx.ALL, 8)
+
+        # Lesezeichen-Liste
+        bm_box = wx.StaticBox(panel, label="Gespeicherte Lesezeichen")
+        bm_sizer = wx.StaticBoxSizer(bm_box, wx.VERTICAL)
+        self._bm_list = wx.ListBox(panel, style=wx.LB_SINGLE)
+        self._bm_list.SetName("Lesezeichen-Liste")
+        bm_sizer.Add(self._bm_list, 1, wx.ALL | wx.EXPAND, 8)
+
+        bm_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        add_bm_btn = wx.Button(panel, label="Aktuellen Kanal &hinzufügen")
+        add_bm_btn.SetName("Lesezeichen hinzufügen")
+        add_bm_btn.Bind(wx.EVT_BUTTON, self._on_bm_add)
+        del_bm_btn = wx.Button(panel, label="&Entfernen")
+        del_bm_btn.SetName("Lesezeichen entfernen")
+        del_bm_btn.Bind(wx.EVT_BUTTON, self._on_bm_remove)
+        jump_bm_btn = wx.Button(panel, label="&Springen")
+        jump_bm_btn.SetName("Zum Lesezeichen springen")
+        jump_bm_btn.Bind(wx.EVT_BUTTON, self._on_bm_jump)
+        bm_btn_row.Add(add_bm_btn, 0, wx.RIGHT, 8)
+        bm_btn_row.Add(del_bm_btn, 0, wx.RIGHT, 8)
+        bm_btn_row.Add(jump_bm_btn, 0)
+        bm_sizer.Add(bm_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(bm_sizer, 1, wx.ALL | wx.EXPAND, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        self._refresh_bm_list()
+        return panel
+
+    def _refresh_bm_list(self) -> None:
+        try:
+            bms = self.frame._bookmarks.get_all()
+            self._bm_list.Clear()
+            for i, bm in enumerate(bms):
+                hotkey_hint = " (HK)" if i < 3 else ""
+                self._bm_list.Append(f"{bm.get('name', '?')}{hotkey_hint}, {bm.get('server_key', '')}")
+        except Exception:
+            pass
+
+    def _on_bm_add(self, _event) -> None:
+        try:
+            if not self.frame.client.is_connected():
+                self.frame.set_status("Nicht verbunden")
+                return
+            chan_id = int(self.frame.client.get_my_channel_id() or 0)
+            if not chan_id:
+                self.frame.set_status("Kein Kanal aktiv")
+                return
+            ch = self.frame.client.get_channel(chan_id)
+            chan_name = self.frame.tt_str(getattr(ch, "szName", "")) or str(chan_id)
+            server_key = self.frame._get_server_key() or ""
+            with wx.TextEntryDialog(self.frame, "Name für das Lesezeichen:", "Lesezeichen", chan_name) as dlg:
+                if dlg.ShowModal() != wx.ID_OK:
+                    return
+                name = dlg.GetValue().strip() or chan_name
+            self.frame._bookmarks.add(name, chan_id, server_key)
+            self._refresh_bm_list()
+            self.frame.set_status(f"Lesezeichen '{name}' gespeichert")
+        except Exception as exc:
+            self.frame.set_status(f"Lesezeichen: {exc}")
+
+    def _on_bm_remove(self, _event) -> None:
+        idx = self._bm_list.GetSelection()
+        if idx == wx.NOT_FOUND:
+            return
+        self.frame._bookmarks.remove(idx)
+        self._refresh_bm_list()
+        self.frame.set_status("Lesezeichen entfernt")
+
+    def _on_bm_jump(self, _event) -> None:
+        idx = self._bm_list.GetSelection()
+        if idx == wx.NOT_FOUND:
+            return
+        self.frame._bookmarks.jump(self.frame, idx)
+
+    # ------------------------------------------------------------------
+    # v2.3.0 – Automation (Auto-Kanal, Zeitgesteuerte Stille, Makros)
+    # ------------------------------------------------------------------
+
+    def _build_automation_tab(self) -> wx.Panel:
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        s = self.frame.settings_store.settings
+
+        # --- Auto-Kanal ---
+        ac_box = wx.StaticBox(panel, label="Auto-Kanal beim Verbinden")
+        ac_sizer = wx.StaticBoxSizer(ac_box, wx.VERTICAL)
+        ac_sizer.Add(wx.StaticText(panel, label=(
+            "Kanalname, dem nach dem Verbinden automatisch beigetreten wird.\n"
+            "Leer lassen = deaktiviert. Wird pro Server-Key gespeichert."
+        )), 0, wx.ALL, 8)
+        ac_row = wx.BoxSizer(wx.HORIZONTAL)
+        ac_row.Add(wx.StaticText(panel, label="Kanalname:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        server_key = getattr(self.frame, "_current_server_key", "") or ""
+        ajc = getattr(s, "auto_join_channel_per_server", {}) or {}
+        self._auto_join_channel = wx.TextCtrl(panel, value=ajc.get(server_key, ""))
+        self._auto_join_channel.SetName("Auto-Kanal Kanalname")
+        ac_row.Add(self._auto_join_channel, 1)
+        ac_sizer.Add(ac_row, 0, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(ac_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        # --- Zeitgesteuerte Stille ---
+        ms_box = wx.StaticBox(panel, label="Zeitgesteuerte Stille")
+        ms_sizer = wx.StaticBoxSizer(ms_box, wx.VERTICAL)
+        ms_sizer.Add(wx.StaticText(panel, label=(
+            "Format: HH:MM-HH:MM Label (eine Zeile je Zeitfenster)\n"
+            "Beispiel:  12:00-13:00 Mittagspause\n"
+            "           22:00-07:00 Nachtruhe"
+        )), 0, wx.ALL, 8)
+        schedule = getattr(s, "mute_schedule", []) or []
+        sched_text = "\n".join(
+            f"{r.get('start','00:00')}-{r.get('end','00:00')} {r.get('label','')}"
+            for r in schedule
+        )
+        self._mute_schedule_text = wx.TextCtrl(panel, value=sched_text,
+                                               style=wx.TE_MULTILINE, size=(-1, 80))
+        self._mute_schedule_text.SetName("Zeitgesteuerte Stille Zeitfenster")
+        ms_sizer.Add(self._mute_schedule_text, 1, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(ms_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # --- Makros ---
+        mac_box = wx.StaticBox(panel, label="Makros")
+        mac_sizer = wx.StaticBoxSizer(mac_box, wx.VERTICAL)
+        mac_sizer.Add(wx.StaticText(panel, label=(
+            "Format je Makro (JSON, eine Zeile):\n"
+            '  {"name":"Begrüßung","hotkey":0,"actions":[{"type":"speak","value":"Hallo!"}]}\n'
+            "  Aktions-Typen: speak, channel, ptt_on, ptt_off, mute_toggle, status, wait"
+        )), 0, wx.ALL, 8)
+        macros = getattr(s, "macros", []) or []
+        import json as _json
+        mac_text = "\n".join(_json.dumps(m, ensure_ascii=False) for m in macros)
+        self._macros_text = wx.TextCtrl(panel, value=mac_text,
+                                        style=wx.TE_MULTILINE, size=(-1, 120))
+        self._macros_text.SetName("Makros JSON")
+        mac_sizer.Add(self._macros_text, 1, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(mac_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        save_btn = wx.Button(panel, label="&Speichern")
+        save_btn.SetName("Automation speichern")
+        save_btn.Bind(wx.EVT_BUTTON, self._on_save_automation)
+        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        return panel
+
+    def _on_save_automation(self, _event) -> None:
+        import json as _json
+        s = self.frame.settings_store.settings
+
+        # Auto-Kanal
+        server_key = getattr(self.frame, "_current_server_key", "") or ""
+        ajc = dict(getattr(s, "auto_join_channel_per_server", {}) or {})
+        channel_name = self._auto_join_channel.GetValue().strip()
+        if channel_name:
+            ajc[server_key] = channel_name
+        elif server_key in ajc:
+            del ajc[server_key]
+        s.auto_join_channel_per_server = ajc
+
+        # Zeitgesteuerte Stille
+        schedule = []
+        for line in self._mute_schedule_text.GetValue().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                parts = line.split(None, 1)
+                time_range = parts[0]
+                label = parts[1] if len(parts) > 1 else ""
+                start, _, end = time_range.partition("-")
+                if start and end:
+                    schedule.append({"start": start.strip(), "end": end.strip(), "label": label.strip()})
+            except Exception:
+                continue
+        s.mute_schedule = schedule
+        if schedule and not self.frame._mute_scheduler._running:
+            self.frame._mute_scheduler.start()
+        elif not schedule:
+            self.frame._mute_scheduler.stop()
+
+        # Makros
+        macros = []
+        for line in self._macros_text.GetValue().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                m = _json.loads(line)
+                if isinstance(m, dict):
+                    macros.append(m)
+            except Exception:
+                continue
+        s.macros = macros
+
+        self.frame.settings_store.save()
+        self.frame.set_status("Automation gespeichert")
 
     # ------------------------------------------------------------------
     # Section navigation

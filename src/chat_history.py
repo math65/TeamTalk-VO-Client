@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from typing import Dict, List
 
-MAX_HISTORY = 200
+MAX_HISTORY = 500
 
 
 class ChatHistoryManager:
@@ -52,7 +52,7 @@ class ChatHistoryManager:
     def append(self, server_key: str, text: str, kind: str) -> None:
         entries = self.load(server_key)
         entries.append({
-            "ts": time.strftime("%H:%M:%S"),
+            "ts": time.strftime("%Y-%m-%d %H:%M:%S"),
             "text": text,
             "kind": kind,
         })
@@ -82,7 +82,7 @@ class ChatHistoryManager:
     def append_private(self, server_key: str, partner: str, text: str, kind: str) -> None:
         entries = self.load_private(server_key, partner)
         entries.append({
-            "ts": time.strftime("%H:%M:%S"),
+            "ts": time.strftime("%Y-%m-%d %H:%M:%S"),
             "text": text,
             "kind": kind,
         })
