@@ -37,6 +37,10 @@ class ShortcutsTab(wx.Panel):
         self._rows.append(self._make_row(inapp_box, "Lesezeichen 1 springen", "hotkey_bookmark_1", global_key=False))
         self._rows.append(self._make_row(inapp_box, "Lesezeichen 2 springen", "hotkey_bookmark_2", global_key=False))
         self._rows.append(self._make_row(inapp_box, "Lesezeichen 3 springen", "hotkey_bookmark_3", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Aufnahme umschalten", "hotkey_record_toggle", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Status-Vorlage 1", "hotkey_status_template_1", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Status-Vorlage 2", "hotkey_status_template_2", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Status-Vorlage 3", "hotkey_status_template_3", global_key=False))
 
         for row in self._rows:
             inapp_sizer.Add(row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
@@ -120,6 +124,10 @@ class ShortcutsTab(wx.Panel):
             "hotkey_bookmark_1": int(getattr(settings, "hotkey_bookmark_1", 0) or 0),
             "hotkey_bookmark_2": int(getattr(settings, "hotkey_bookmark_2", 0) or 0),
             "hotkey_bookmark_3": int(getattr(settings, "hotkey_bookmark_3", 0) or 0),
+            "hotkey_record_toggle": int(getattr(settings, "hotkey_record_toggle", 0) or 0),
+            "hotkey_status_template_1": int(getattr(settings, "hotkey_status_template_1", 0) or 0),
+            "hotkey_status_template_2": int(getattr(settings, "hotkey_status_template_2", 0) or 0),
+            "hotkey_status_template_3": int(getattr(settings, "hotkey_status_template_3", 0) or 0),
         }
         global_map = {
             "global_hotkey_ptt": int(settings.global_hotkey_ptt or 0),

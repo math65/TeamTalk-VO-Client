@@ -67,6 +67,8 @@ class SettingsTab(wx.Panel):
             "Audio", "Video", "Tastenkürzel", "System & TTS", "ElevenLabs",
             "KI & Barrierefreiheit", "TTS-Kontexte & Aussprache",
             "Lesezeichen", "Automation",
+            "Aufnahme & Audio-Extras", "Chat & Status",
+            "Verbindung & Anzeige", "Integration & API",
         ])
         self.section_choice.SetName("Einstellungsbereich")
         self.section_choice.SetSelection(0)
@@ -99,6 +101,10 @@ class SettingsTab(wx.Panel):
         self.tts_ctx_tab = self._build_tts_ctx_tab()
         self.bookmarks_tab = self._build_bookmarks_tab()
         self.automation_tab = self._build_automation_tab()
+        self.recording_tab = self._build_recording_tab()
+        self.chat_status_tab = self._build_chat_status_tab()
+        self.extra_connection_tab = self._build_extra_connection_tab()
+        self.integration_tab = self._build_integration_tab()
 
         self._sections = {
             "Allgemein": self.general_tab,
@@ -114,6 +120,10 @@ class SettingsTab(wx.Panel):
             "TTS-Kontexte & Aussprache": self.tts_ctx_tab,
             "Lesezeichen": self.bookmarks_tab,
             "Automation": self.automation_tab,
+            "Aufnahme & Audio-Extras": self.recording_tab,
+            "Chat & Status": self.chat_status_tab,
+            "Verbindung & Anzeige": self.extra_connection_tab,
+            "Integration & API": self.integration_tab,
         }
 
         for panel in self._sections.values():
@@ -1220,6 +1230,246 @@ class SettingsTab(wx.Panel):
 
         self.frame.settings_store.save()
         self.frame.set_status("Automation gespeichert")
+
+    # ------------------------------------------------------------------
+    # v2.4.0 – Aufnahme & Audio-Extras
+    # ------------------------------------------------------------------
+
+    def _build_recording_tab(self) -> wx.ScrolledWindow:
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        s = self.frame.settings_store.settings
+
+        ng_box = wx.StaticBox(panel, label="Noise Gate / Rauschunterdrückung")
+        ng_sizer = wx.StaticBoxSizer(ng_box, wx.VERTICAL)
+
+        self._noise_gate_enabled = wx.CheckBox(panel, label="&Rauschunterdrückung aktivieren")
+        self._noise_gate_enabled.SetName("Rauschunterdrückung aktivieren")
+        self._noise_gate_enabled.SetValue(bool(getattr(s, "noise_gate_enabled", False)))
+        ng_sizer.Add(self._noise_gate_enabled, 0, wx.ALL, 8)
+
+        ng_thresh_row = wx.BoxSizer(wx.HORIZONTAL)
+        ng_thresh_row.Add(wx.StaticText(panel, label="Schwellenwert (0-10000):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._noise_gate_threshold = wx.SpinCtrl(panel, min=0, max=10000,
+                                                  initial=int(getattr(s, "noise_gate_threshold", 0) or 0))
+        self._noise_gate_threshold.SetName("Noise Gate Schwellenwert")
+        ng_thresh_row.Add(self._noise_gate_threshold, 0)
+        ng_sizer.Add(ng_thresh_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(ng_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        save_btn = wx.Button(panel, label="&Speichern")
+        save_btn.SetName("Aufnahme & Audio-Extras speichern")
+        save_btn.Bind(wx.EVT_BUTTON, self._on_save_recording)
+        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        return panel
+
+    def _on_save_recording(self, _event) -> None:
+        s = self.frame.settings_store.settings
+        s.noise_gate_enabled = self._noise_gate_enabled.GetValue()
+        s.noise_gate_threshold = int(self._noise_gate_threshold.GetValue())
+        self.frame.settings_store.save()
+        self.frame._apply_noise_gate()
+        self.frame.set_status("Aufnahme & Audio-Extras gespeichert")
+
+    # ------------------------------------------------------------------
+    # v2.5.0 – Chat & Status
+    # ------------------------------------------------------------------
+
+    def _build_chat_status_tab(self) -> wx.ScrolledWindow:
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        s = self.frame.settings_store.settings
+
+        ar_box = wx.StaticBox(panel, label="Auto-Antwort auf Privatnachrichten")
+        ar_sizer = wx.StaticBoxSizer(ar_box, wx.VERTICAL)
+
+        self._auto_reply_enabled = wx.CheckBox(panel, label="&Auto-Antwort aktivieren")
+        self._auto_reply_enabled.SetName("Auto-Antwort aktivieren")
+        self._auto_reply_enabled.SetValue(bool(getattr(s, "auto_reply_enabled", False)))
+        ar_sizer.Add(self._auto_reply_enabled, 0, wx.ALL, 8)
+
+        ar_msg_row = wx.BoxSizer(wx.HORIZONTAL)
+        ar_msg_row.Add(wx.StaticText(panel, label="Nachricht:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._auto_reply_message = wx.TextCtrl(panel, value=str(getattr(s, "auto_reply_message", "") or ""))
+        self._auto_reply_message.SetName("Auto-Antwort Nachricht")
+        ar_msg_row.Add(self._auto_reply_message, 1)
+        ar_sizer.Add(ar_msg_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        sizer.Add(ar_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        tpl_box = wx.StaticBox(panel, label="Status-Vorlagen (eine Vorlage je Zeile, max. 3 per Hotkey)")
+        tpl_sizer = wx.StaticBoxSizer(tpl_box, wx.VERTICAL)
+        templates = list(getattr(s, "status_templates", []) or [])
+        tpl_text = "\n".join(str(t) for t in templates)
+        self._status_templates = wx.TextCtrl(panel, value=tpl_text,
+                                              style=wx.TE_MULTILINE, size=(-1, 100))
+        self._status_templates.SetName("Status-Vorlagen")
+        tpl_sizer.Add(self._status_templates, 1, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(tpl_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        save_btn = wx.Button(panel, label="&Speichern")
+        save_btn.SetName("Chat & Status speichern")
+        save_btn.Bind(wx.EVT_BUTTON, self._on_save_chat_status)
+        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        return panel
+
+    def _on_save_chat_status(self, _event) -> None:
+        s = self.frame.settings_store.settings
+        s.auto_reply_enabled = self._auto_reply_enabled.GetValue()
+        s.auto_reply_message = self._auto_reply_message.GetValue().strip()
+        templates = [line.strip() for line in self._status_templates.GetValue().splitlines() if line.strip()]
+        s.status_templates = templates
+        self.frame.settings_store.save()
+        # Sync auto-reply manager settings
+        try:
+            self.frame._auto_reply.enabled = s.auto_reply_enabled
+            self.frame._auto_reply.message = s.auto_reply_message
+        except Exception:
+            pass
+        self.frame.set_status("Chat & Status gespeichert")
+
+    # ------------------------------------------------------------------
+    # v2.6.0 – Verbindung & Anzeige (Extras)
+    # ------------------------------------------------------------------
+
+    def _build_extra_connection_tab(self) -> wx.ScrolledWindow:
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        s = self.frame.settings_store.settings
+
+        cq_box = wx.StaticBox(panel, label="Verbindungsqualität")
+        cq_sizer = wx.StaticBoxSizer(cq_box, wx.VERTICAL)
+
+        self._cq_announce = wx.CheckBox(panel, label="&Schlechte Verbindungsqualität ansagen")
+        self._cq_announce.SetName("Verbindungsqualität ansagen")
+        self._cq_announce.SetValue(bool(getattr(s, "connection_quality_announce", False)))
+        cq_sizer.Add(self._cq_announce, 0, wx.ALL, 8)
+
+        cq_thresh_row = wx.BoxSizer(wx.HORIZONTAL)
+        cq_thresh_row.Add(wx.StaticText(panel, label="Ping-Schwellenwert (ms):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._cq_threshold = wx.SpinCtrl(panel, min=50, max=5000,
+                                          initial=int(getattr(s, "connection_quality_threshold_ms", 200) or 200))
+        self._cq_threshold.SetName("Verbindungsqualität Schwellenwert ms")
+        cq_thresh_row.Add(self._cq_threshold, 0)
+        cq_sizer.Add(cq_thresh_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(cq_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        self._server_info_titlebar = wx.CheckBox(panel, label="Nutzeranzahl und Ping in &Titelleiste anzeigen")
+        self._server_info_titlebar.SetName("Serverinfo in Titelleiste")
+        self._server_info_titlebar.SetValue(bool(getattr(s, "server_info_in_titlebar", False)))
+        sizer.Add(self._server_info_titlebar, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        save_btn = wx.Button(panel, label="&Speichern")
+        save_btn.SetName("Verbindung & Anzeige speichern")
+        save_btn.Bind(wx.EVT_BUTTON, self._on_save_extra_connection)
+        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        return panel
+
+    def _on_save_extra_connection(self, _event) -> None:
+        s = self.frame.settings_store.settings
+        s.connection_quality_announce = self._cq_announce.GetValue()
+        s.connection_quality_threshold_ms = int(self._cq_threshold.GetValue())
+        s.server_info_in_titlebar = self._server_info_titlebar.GetValue()
+        self.frame.settings_store.save()
+        self.frame._update_titlebar()
+        self.frame.set_status("Verbindung & Anzeige gespeichert")
+
+    # ------------------------------------------------------------------
+    # v2.7.0 – Integration & API
+    # ------------------------------------------------------------------
+
+    def _build_integration_tab(self) -> wx.ScrolledWindow:
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        s = self.frame.settings_store.settings
+
+        wh_box = wx.StaticBox(panel, label="Webhook")
+        wh_sizer = wx.StaticBoxSizer(wh_box, wx.VERTICAL)
+
+        wh_url_row = wx.BoxSizer(wx.HORIZONTAL)
+        wh_url_row.Add(wx.StaticText(panel, label="Webhook-URL:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._webhook_url = wx.TextCtrl(panel, value=str(getattr(s, "webhook_url", "") or ""))
+        self._webhook_url.SetName("Webhook URL")
+        wh_url_row.Add(self._webhook_url, 1)
+        wh_sizer.Add(wh_url_row, 0, wx.ALL | wx.EXPAND, 8)
+
+        wh_events_row = wx.BoxSizer(wx.HORIZONTAL)
+        wh_events_row.Add(wx.StaticText(panel, label="Ereignisse (Komma-getrennt):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        wh_events_val = ", ".join(list(getattr(s, "webhook_events", []) or []))
+        self._webhook_events = wx.TextCtrl(panel, value=wh_events_val)
+        self._webhook_events.SetName("Webhook Ereignisse")
+        self._webhook_events.SetHelpText("Mögliche Werte: private_msg, channel_msg, user_join, user_leave, connect, disconnect")
+        wh_events_row.Add(self._webhook_events, 1)
+        wh_sizer.Add(wh_events_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        sizer.Add(wh_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        api_box = wx.StaticBox(panel, label="HTTP-API")
+        api_sizer = wx.StaticBoxSizer(api_box, wx.VERTICAL)
+
+        self._http_api_enabled = wx.CheckBox(panel, label="&HTTP-API aktivieren")
+        self._http_api_enabled.SetName("HTTP-API aktivieren")
+        self._http_api_enabled.SetValue(bool(getattr(s, "http_api_enabled", False)))
+        api_sizer.Add(self._http_api_enabled, 0, wx.ALL, 8)
+
+        api_port_row = wx.BoxSizer(wx.HORIZONTAL)
+        api_port_row.Add(wx.StaticText(panel, label="Port:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._http_api_port = wx.SpinCtrl(panel, min=1024, max=65535,
+                                           initial=int(getattr(s, "http_api_port", 8765) or 8765))
+        self._http_api_port.SetName("HTTP-API Port")
+        api_port_row.Add(self._http_api_port, 0)
+        api_sizer.Add(api_port_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(api_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        save_btn = wx.Button(panel, label="&Speichern")
+        save_btn.SetName("Integration & API speichern")
+        save_btn.Bind(wx.EVT_BUTTON, self._on_save_integration)
+        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        return panel
+
+    def _on_save_integration(self, _event) -> None:
+        s = self.frame.settings_store.settings
+        s.webhook_url = self._webhook_url.GetValue().strip()
+        events_text = self._webhook_events.GetValue()
+        s.webhook_events = [e.strip() for e in events_text.split(",") if e.strip()]
+        new_enabled = self._http_api_enabled.GetValue()
+        new_port = int(self._http_api_port.GetValue())
+        old_enabled = bool(getattr(s, "http_api_enabled", False))
+        s.http_api_enabled = new_enabled
+        s.http_api_port = new_port
+        # Apply webhook URL/events to running manager
+        try:
+            self.frame._webhook.url = s.webhook_url
+            self.frame._webhook.events = s.webhook_events
+        except Exception:
+            pass
+        # Start/stop HTTP API
+        try:
+            if new_enabled and not old_enabled:
+                self.frame._http_api.start(new_port)
+            elif not new_enabled and old_enabled:
+                self.frame._http_api.stop()
+            elif new_enabled and old_enabled:
+                self.frame._http_api.stop()
+                self.frame._http_api.start(new_port)
+        except Exception:
+            pass
+        self.frame.settings_store.save()
+        self.frame.set_status("Integration & API gespeichert")
 
     # ------------------------------------------------------------------
     # Section navigation

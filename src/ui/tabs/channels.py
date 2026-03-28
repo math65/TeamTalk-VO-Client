@@ -36,8 +36,21 @@ class ChannelsTab(wx.Panel):
         self._selected_channel_id: Optional[int] = None
         self._selected_user_id: Optional[int] = None
         self._cached_channels: List = []
+        # v2.4.0 – Schnellsuche: alle Labels/Items vor Filterung
+        self._all_labels: List[str] = []
+        self._all_items: List[Tuple[str, int]] = []
 
         sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # v2.4.0 – Schnellsuche
+        search_row = wx.BoxSizer(wx.HORIZONTAL)
+        search_row.Add(wx.StaticText(self, label="Suche:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
+        self._channel_search = wx.TextCtrl(self)
+        self._channel_search.SetName("Kanal suchen")
+        self._channel_search.SetHelpText("Kanalnamen filtern (Eingabe filtert die Liste)")
+        self._channel_search.Bind(wx.EVT_TEXT, self._on_channel_search)
+        search_row.Add(self._channel_search, 1)
+        sizer.Add(search_row, 0, wx.ALL | wx.EXPAND, 4)
 
         self.channel_list = wx.ListBox(self, style=wx.LB_SINGLE)
         self.channel_list.SetName("Kanalliste")
@@ -130,9 +143,20 @@ class ChannelsTab(wx.Panel):
             root_id, root_channel, server_name, channels_by_id, users_by_channel
         )
 
+        # v2.4.0 – Vollständige Liste für Schnellsuche merken
+        self._all_labels = list(labels)
+        self._all_items = list(items)
+
         self._items = items
         self.channel_list.Clear()
-        if labels:
+        # v2.4.0 – Filter anwenden (falls Suche aktiv)
+        search = self._channel_search.GetValue().strip().lower() if hasattr(self, "_channel_search") else ""
+        if search:
+            filtered_labels, filtered_items = self._filter_by_search(labels, items, search)
+            if filtered_labels:
+                self.channel_list.InsertItems(filtered_labels, 0)
+            self._items = filtered_items
+        elif labels:
             self.channel_list.InsertItems(labels, 0)
 
         # Eigenen Kanal und Nutzer aktualisieren
@@ -253,6 +277,48 @@ class ChannelsTab(wx.Panel):
             if t == node_type and n == node_id:
                 return i
         return -1
+
+    def _filter_by_search(
+        self,
+        labels: List[str],
+        items: List[Tuple[str, int]],
+        search: str,
+    ) -> Tuple[List[str], List[Tuple[str, int]]]:
+        """Returns labels/items whose stripped text contains the search string."""
+        filtered_labels: List[str] = []
+        filtered_items: List[Tuple[str, int]] = []
+        for label, item in zip(labels, items):
+            if search in label.strip().lower():
+                filtered_labels.append(label)
+                filtered_items.append(item)
+        return filtered_labels, filtered_items
+
+    def _on_channel_search(self, _event) -> None:
+        """v2.4.0 – Filters the channel list based on the search text."""
+        search = self._channel_search.GetValue().strip().lower()
+        if not search:
+            # Restore full list
+            self._items = list(self._all_items)
+            self.channel_list.Clear()
+            if self._all_labels:
+                self.channel_list.InsertItems(self._all_labels, 0)
+            # Try to restore selection to current channel
+            try:
+                my_ch = int(self.frame.client.get_my_channel_id() or 0)
+                if my_ch:
+                    idx = self._find_item_index(_NODE_CHANNEL, my_ch)
+                    if idx >= 0:
+                        self.channel_list.SetSelection(idx)
+            except Exception:
+                pass
+            return
+        filtered_labels, filtered_items = self._filter_by_search(
+            self._all_labels, self._all_items, search
+        )
+        self._items = filtered_items
+        self.channel_list.Clear()
+        if filtered_labels:
+            self.channel_list.InsertItems(filtered_labels, 0)
 
     def _find_user(self, user_id: int):
         for user in self._all_users:

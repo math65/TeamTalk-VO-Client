@@ -209,6 +209,27 @@ class AppSettings:
     auto_join_channel_per_server: Dict[str, str] = field(default_factory=dict)
     mute_schedule: List[Dict] = field(default_factory=list)
     macros: List[Dict] = field(default_factory=list)
+    # v2.4.0 features
+    user_volume_presets: Dict[str, int] = field(default_factory=dict)
+    noise_gate_enabled: bool = False
+    noise_gate_threshold: int = 500
+    hotkey_record_toggle: int = 0
+    # v2.5.0 features
+    auto_reply_enabled: bool = False
+    auto_reply_message: str = "Ich bin gerade nicht erreichbar."
+    status_templates: List[str] = field(default_factory=list)
+    hotkey_status_template_1: int = 0
+    hotkey_status_template_2: int = 0
+    hotkey_status_template_3: int = 0
+    # v2.6.0 features
+    connection_quality_announce: bool = False
+    connection_quality_threshold_ms: int = 300
+    server_info_in_titlebar: bool = False
+    # v2.7.0 features
+    webhook_url: str = ""
+    webhook_events: List[str] = field(default_factory=list)
+    http_api_enabled: bool = False
+    http_api_port: int = 8765
 
 
 class SettingsStore:
@@ -336,6 +357,30 @@ class SettingsStore:
             self.settings.mute_schedule = raw_ms if isinstance(raw_ms, list) else []
             raw_mac = data.get("macros", [])
             self.settings.macros = raw_mac if isinstance(raw_mac, list) else []
+            # v2.4.0
+            raw_uvp = data.get("user_volume_presets", {})
+            self.settings.user_volume_presets = raw_uvp if isinstance(raw_uvp, dict) else {}
+            self.settings.noise_gate_enabled = bool(data.get("noise_gate_enabled", False))
+            self.settings.noise_gate_threshold = int(data.get("noise_gate_threshold", 500) or 500)
+            self.settings.hotkey_record_toggle = int(data.get("hotkey_record_toggle", 0) or 0)
+            # v2.5.0
+            self.settings.auto_reply_enabled = bool(data.get("auto_reply_enabled", False))
+            self.settings.auto_reply_message = str(data.get("auto_reply_message", "Ich bin gerade nicht erreichbar.") or "")
+            raw_st = data.get("status_templates", [])
+            self.settings.status_templates = raw_st if isinstance(raw_st, list) else []
+            self.settings.hotkey_status_template_1 = int(data.get("hotkey_status_template_1", 0) or 0)
+            self.settings.hotkey_status_template_2 = int(data.get("hotkey_status_template_2", 0) or 0)
+            self.settings.hotkey_status_template_3 = int(data.get("hotkey_status_template_3", 0) or 0)
+            # v2.6.0
+            self.settings.connection_quality_announce = bool(data.get("connection_quality_announce", False))
+            self.settings.connection_quality_threshold_ms = int(data.get("connection_quality_threshold_ms", 300) or 300)
+            self.settings.server_info_in_titlebar = bool(data.get("server_info_in_titlebar", False))
+            # v2.7.0
+            self.settings.webhook_url = str(data.get("webhook_url", "") or "")
+            raw_we = data.get("webhook_events", [])
+            self.settings.webhook_events = raw_we if isinstance(raw_we, list) else []
+            self.settings.http_api_enabled = bool(data.get("http_api_enabled", False))
+            self.settings.http_api_port = int(data.get("http_api_port", 8765) or 8765)
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -440,5 +485,26 @@ class SettingsStore:
             "auto_join_channel_per_server": dict(self.settings.auto_join_channel_per_server or {}),
             "mute_schedule": list(self.settings.mute_schedule or []),
             "macros": list(self.settings.macros or []),
+            # v2.4.0
+            "user_volume_presets": dict(self.settings.user_volume_presets or {}),
+            "noise_gate_enabled": bool(self.settings.noise_gate_enabled),
+            "noise_gate_threshold": int(self.settings.noise_gate_threshold or 500),
+            "hotkey_record_toggle": int(self.settings.hotkey_record_toggle or 0),
+            # v2.5.0
+            "auto_reply_enabled": bool(self.settings.auto_reply_enabled),
+            "auto_reply_message": str(self.settings.auto_reply_message or ""),
+            "status_templates": list(self.settings.status_templates or []),
+            "hotkey_status_template_1": int(self.settings.hotkey_status_template_1 or 0),
+            "hotkey_status_template_2": int(self.settings.hotkey_status_template_2 or 0),
+            "hotkey_status_template_3": int(self.settings.hotkey_status_template_3 or 0),
+            # v2.6.0
+            "connection_quality_announce": bool(self.settings.connection_quality_announce),
+            "connection_quality_threshold_ms": int(self.settings.connection_quality_threshold_ms or 300),
+            "server_info_in_titlebar": bool(self.settings.server_info_in_titlebar),
+            # v2.7.0
+            "webhook_url": str(self.settings.webhook_url or ""),
+            "webhook_events": list(self.settings.webhook_events or []),
+            "http_api_enabled": bool(self.settings.http_api_enabled),
+            "http_api_port": int(self.settings.http_api_port or 8765),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

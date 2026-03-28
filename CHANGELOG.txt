@@ -1,6 +1,28 @@
 Changelog
 =========
 
+2026-03-28 (v2.4.0)
+- v2.4.0: Lautstärke-Voreinstellungen – einmal eingestellte Benutzerlautstärken
+  werden beim nächsten Beitreten desselben Nutzers automatisch wiederhergestellt
+- v2.4.0: Noise Gate – Rauschunterdrückung per SDK aktivierbar (Einstellungen →
+  Aufnahme & Audio-Extras)
+- v2.4.0: Aufnahme-Hotkey – Aufnahme per konfigurierbarem In-App-Hotkey starten/
+  stoppen (Tastenkürzel → Aufnahme umschalten)
+- v2.4.0: Kanal-Schnellsuche – TextCtrl über der Kanalliste filtert die Einträge
+  nach dem eingegebenen Suchbegriff (Groß-/Kleinschreibung egal)
+- v2.5.0: Auto-Antwort – automatische Antwort auf Privatnachrichten (Einstellungen
+  → Chat & Status), zurückgesetzt bei Wiederverbindung
+- v2.5.0: Status-Vorlagen – bis zu 3 Statusmeldungen per Hotkey setzen
+  (Tastenkürzel → Status-Vorlage 1/2/3)
+- v2.6.0: Verbindungsqualitäts-Monitoring – Ping-Schwellenwert konfigurierbar,
+  TTS-Ansage bei schlechter Qualität (Einstellungen → Verbindung & Anzeige)
+- v2.6.0: Serverinfo in Titelleiste – Nutzeranzahl und Ping optional im
+  Fenstertitel anzeigen
+- v2.7.0: Webhook-Integration – ausgehende HTTP-Webhooks für Ereignisse
+  (Privatnachricht, Kanalnachricht, Nutzer beigetreten/verlassen, Verbindung)
+- v2.7.0: HTTP-API – einfacher lokaler HTTP-Server für externe Steuerung
+  (Einstellungen → Integration & API), Start/Stop beim Verbinden/Trennen
+
 2026-03-28 (v2.3.0)
 - Automation: Auto-Kanal – tritt nach dem Verbinden automatisch einem Kanal per
   Name bei (pro Server konfigurierbar, Einstellungen → Automation)

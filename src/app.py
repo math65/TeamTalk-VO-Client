@@ -46,9 +46,12 @@ from pronunciation import PronunciationManager
 from bookmark_manager import BookmarkManager
 from mute_scheduler import MuteScheduler
 from macro_manager import MacroManager
+from auto_reply import AutoReplyManager
+from webhook_manager import WebhookManager
+from http_api import HttpApiServer
 
 
-APP_VERSION = "2.3.0"
+APP_VERSION = "2.4.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -374,6 +377,12 @@ class MainFrame(wx.Frame):
         # v2.3.0 – Zeitgesteuerte Stille, Makros
         self._mute_scheduler = MuteScheduler(self)
         self._macros = MacroManager(self)
+        # v2.5.0 – Auto-Antwort
+        self._auto_reply = AutoReplyManager(self)
+        # v2.7.0 – Webhook + HTTP-API
+        self._webhook = WebhookManager(self)
+        self._http_api = HttpApiServer(self)
+        self._ping_last_ms: int = 0
         # v2.0.0 – Braille-Manager (nach TTS-Init)
         self.braille = BrailleOutputManager(self.tts)
         _braille_verbosity = getattr(self.settings_store.settings, "braille_verbosity", "normal")
@@ -580,6 +589,10 @@ class MainFrame(wx.Frame):
         # v2.3.0 – Zeitgesteuerte Stille starten
         if getattr(self.settings_store.settings, "mute_schedule", None):
             self._mute_scheduler.start()
+        # v2.7.0 – HTTP-API starten
+        if getattr(self.settings_store.settings, "http_api_enabled", False):
+            port = int(getattr(self.settings_store.settings, "http_api_port", 8765) or 8765)
+            self._http_api.start(port)
 
         # Tab order inside each tab is handled by the tab panels themselves.
         # Global keyboard hooks
@@ -1558,7 +1571,138 @@ class MainFrame(wx.Frame):
         volume = max(0, min(32000, int(level)))
         self._user_volume_levels[int(user_id)] = volume
         self.client.set_user_volume(int(user_id), int(self.client.tt.StreamType.STREAMTYPE_VOICE), volume)
+        # v2.4.0 – persist volume preset by username
+        try:
+            user = self.client.get_user(int(user_id))
+            if user is not None:
+                username = self.tt_str(getattr(user, "szUsername", "")) or ""
+                if username:
+                    presets = getattr(self.settings_store.settings, "user_volume_presets", {}) or {}
+                    presets[username] = volume
+                    self.settings_store.settings.user_volume_presets = presets
+                    self.settings_store.save()
+        except Exception:
+            pass
         return volume
+
+    def _apply_saved_user_volume(self, user_id: int) -> None:
+        """v2.4.0 – Applies a persisted volume preset for a user who just joined."""
+        try:
+            user = self.client.get_user(int(user_id))
+            if user is None:
+                return
+            username = self.tt_str(getattr(user, "szUsername", "")) or ""
+            if not username:
+                return
+            presets = getattr(self.settings_store.settings, "user_volume_presets", {}) or {}
+            if username in presets:
+                vol = int(presets[username])
+                self._user_volume_levels[int(user_id)] = vol
+                self.client.set_user_volume(int(user_id), int(self.client.tt.StreamType.STREAMTYPE_VOICE), vol)
+        except Exception:
+            pass
+
+    def _apply_noise_gate(self) -> None:
+        """v2.4.0 – Applies noise gate / denoiser settings from settings store."""
+        try:
+            enabled = bool(getattr(self.settings_store.settings, "noise_gate_enabled", False))
+            fn = getattr(self.client, "enable_denoiser", None)
+            if fn is not None:
+                fn(enabled)
+        except Exception:
+            pass
+
+    def _apply_status_template(self, idx: int) -> None:
+        """v2.5.0 – Applies a status template by index (0-based)."""
+        try:
+            templates = list(getattr(self.settings_store.settings, "status_templates", []) or [])
+            if idx < 0 or idx >= len(templates):
+                self.tts.speak(f"Keine Status-Vorlage {idx + 1}", kind="system")
+                return
+            text = str(templates[idx])
+            self.client.change_status(self._status_mode, text)
+            self._status_message = text
+            self.tts.speak(f"Status: {text}", kind="system")
+        except Exception as exc:
+            self.tts.speak(f"Status-Vorlage Fehler: {exc}", kind="system")
+
+    def _http_api_join_channel(self, name: str) -> None:
+        """v2.7.0 – Finds a channel by name and joins it (for HTTP API use)."""
+        try:
+            channels = list(self.client.get_channels() or [])
+            name_l = name.strip().lower()
+            for ch in channels:
+                ch_name = (self.tt_str(getattr(ch, "szName", "")) or "").lower()
+                if name_l == ch_name or name_l in ch_name:
+                    wx.CallAfter(self.join_channel, int(getattr(ch, "nChannelID", 0)))
+                    return
+        except Exception as exc:
+            self.logger.write(f"http_api_join_channel error: {exc}")
+
+    def _check_connection_quality(self) -> None:
+        """v2.6.0 – Announces poor connection quality via TTS (once per bad event)."""
+        try:
+            if not self.client.is_connected():
+                return
+            threshold = int(getattr(self.settings_store.settings, "connection_quality_threshold_ms", 200) or 200)
+            ping = int(self._ping_last_ms or 0)
+            if ping <= 0:
+                # Try reading from connection tab
+                try:
+                    ping_text = self.connection_tab.get_ping_text()
+                    import re as _re
+                    m = _re.search(r"(\d+)", ping_text)
+                    if m:
+                        ping = int(m.group(1))
+                except Exception:
+                    pass
+            if ping > threshold:
+                if not getattr(self, "_quality_bad_announced", False):
+                    self._quality_bad_announced = True
+                    self.tts.speak(f"Verbindungsqualität schlecht, Ping {ping} ms", kind="system")
+            else:
+                self._quality_bad_announced = False
+        except Exception:
+            pass
+
+    def _on_quality_timer(self, _event) -> None:
+        """v2.6.0 – Timer callback for connection quality monitoring and titlebar update."""
+        if getattr(self, "_closing", False):
+            return
+        try:
+            if getattr(self.settings_store.settings, "connection_quality_announce", False):
+                self._check_connection_quality()
+        except Exception:
+            pass
+        self._update_titlebar()
+
+    def _update_titlebar(self) -> None:
+        """v2.6.0 – Updates window title with user count and ping if enabled."""
+        try:
+            if not getattr(self.settings_store.settings, "server_info_in_titlebar", False):
+                self.SetTitle(f"TeamTalk VoiceOver Client {APP_VERSION}")
+                return
+            if not self.client.is_connected():
+                self.SetTitle(f"TeamTalk VoiceOver Client {APP_VERSION}")
+                return
+            ping = int(self._ping_last_ms or 0)
+            user_count = 0
+            try:
+                users = list(self.client.get_server_users() or [])
+                user_count = len(users)
+            except Exception:
+                pass
+            title = f"TeamTalk VoiceOver Client {APP_VERSION}"
+            info_parts = []
+            if user_count:
+                info_parts.append(f"{user_count} Nutzer")
+            if ping:
+                info_parts.append(f"Ping {ping} ms")
+            if info_parts:
+                title += " — " + ", ".join(info_parts)
+            self.SetTitle(title)
+        except Exception:
+            pass
 
     def _channel_details_dialog(
         self,
@@ -1874,6 +2018,17 @@ class MainFrame(wx.Frame):
             pass
         self.sound_manager.play("server_disconnect", self.settings_store.settings.sound_events.get("server_disconnect"))
         self.client.disconnect_transport()
+        # v2.6.0 – Verbindungsqualitäts-Timer stoppen
+        try:
+            if hasattr(self, "_quality_timer") and self._quality_timer.IsRunning():
+                self._quality_timer.Stop()
+        except Exception:
+            pass
+        # v2.7.0 – Webhook: Verbindung getrennt
+        try:
+            self._webhook.emit("disconnect", {"server": getattr(self, "_current_server_key", "")})
+        except Exception:
+            pass
         self.set_status("Verbindung getrennt")
 
     def on_menu_reconnect(self, _event):
@@ -4379,6 +4534,24 @@ class MainFrame(wx.Frame):
             # Offline-Ereignisse wiedergeben
             if self._offline_event_log:
                 wx.CallLater(800, self._replay_offline_log)
+            # v2.4.0 – Noise gate anwenden
+            self._apply_noise_gate()
+            # v2.5.0 – Auto-Antwort zurücksetzen
+            self._auto_reply.reset()
+            # v2.6.0 – Verbindungsqualitäts-Timer starten
+            if not hasattr(self, "_quality_timer"):
+                self._quality_timer = wx.Timer(self)
+                self.Bind(wx.EVT_TIMER, self._on_quality_timer, self._quality_timer)
+            self._quality_bad_announced = False
+            self._quality_timer.Start(10_000)
+            # v2.7.0 – HTTP-API starten (on-connect)
+            if getattr(self.settings_store.settings, "http_api_enabled", False):
+                try:
+                    self._http_api.start(int(getattr(self.settings_store.settings, "http_api_port", 8765) or 8765))
+                except Exception:
+                    pass
+            # v2.7.0 – Webhook: Verbindung
+            self._webhook.emit("connect", {"server": self._current_server_key})
 
     def _auto_join_last_channel(self) -> None:
         """Tritt dem zuletzt verwendeten Kanal automatisch bei (falls gespeichert)."""
@@ -5056,6 +5229,20 @@ class MainFrame(wx.Frame):
             if macro:
                 self._macros.execute(macro)
                 return
+            # v2.4.0 – Aufnahme umschalten
+            hk_rec = int(getattr(settings, "hotkey_record_toggle", 0) or 0)
+            if key and key == hk_rec:
+                if self._recording_active:
+                    self.on_menu_record_stop(None)
+                else:
+                    self.on_menu_record_start(None)
+                return
+            # v2.5.0 – Status-Vorlagen
+            for _idx, _hk_attr in enumerate(["hotkey_status_template_1", "hotkey_status_template_2", "hotkey_status_template_3"]):
+                _hk = int(getattr(settings, _hk_attr, 0) or 0)
+                if key and key == _hk:
+                    self._apply_status_template(_idx)
+                    return
         event.Skip()
 
     def on_key_down(self, event):
@@ -5097,6 +5284,14 @@ class MainFrame(wx.Frame):
                     self.settings_store.settings.hotkey_bookmark_2 = int(key)
                 elif target == "hotkey_bookmark_3":
                     self.settings_store.settings.hotkey_bookmark_3 = int(key)
+                elif target == "hotkey_record_toggle":
+                    self.settings_store.settings.hotkey_record_toggle = int(key)
+                elif target == "hotkey_status_template_1":
+                    self.settings_store.settings.hotkey_status_template_1 = int(key)
+                elif target == "hotkey_status_template_2":
+                    self.settings_store.settings.hotkey_status_template_2 = int(key)
+                elif target == "hotkey_status_template_3":
+                    self.settings_store.settings.hotkey_status_template_3 = int(key)
                 self.settings_store.save()
                 self.shortcuts_tab.set_capture_label(target, False)
                 self._capture_hotkey_target = None
@@ -5448,11 +5643,18 @@ class MainFrame(wx.Frame):
             tts_kind = "user_join"
             user_id = int(getattr(user, "nUserID", 0) or 0)
             self.bus.emit("user_joined", user=name, user_id=user_id, channel_id=channel_id, channel_name=channel_name)
+            # v2.4.0 – Gespeicherte Lautstärke anwenden
+            if user_id:
+                wx.CallAfter(self._apply_saved_user_volume, user_id)
+            # v2.7.0 – Webhook
+            self._webhook.emit("user_join", {"user": name, "channel": channel_name})
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
             text = f"* {name} hat Kanal {channel_name or channel_id} verlassen"
             tts_kind = "user_leave"
             user_id = int(getattr(user, "nUserID", 0) or 0)
             self.bus.emit("user_left", user=name, user_id=user_id, channel_id=channel_id, channel_name=channel_name)
+            # v2.7.0 – Webhook
+            self._webhook.emit("user_leave", {"user": name, "channel": channel_name})
         else:
             return
 
@@ -5629,6 +5831,17 @@ class MainFrame(wx.Frame):
                 wx.CallAfter(self._send_notification, "Kanalnachricht", f"{from_user}: {content}")
             elif msg_type == int(tt.TextMsgType.MSGTYPE_BROADCAST):
                 wx.CallAfter(self._send_notification, "Rundnachricht", f"{from_user}: {content}")
+            # v2.5.0 – Auto-Antwort
+            if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and not is_own and from_id:
+                self._auto_reply.handle_private_message(from_id, from_user)
+            # v2.7.0 – Webhook
+            wh_event = {
+                int(tt.TextMsgType.MSGTYPE_USER): "private_msg",
+                int(tt.TextMsgType.MSGTYPE_CHANNEL): "channel_msg",
+                int(tt.TextMsgType.MSGTYPE_BROADCAST): "broadcast_msg",
+            }.get(msg_type)
+            if wh_event:
+                self._webhook.emit(wh_event, {"from_user": from_user, "text": content})
 
     def emit_system_message(self, text: str, speak: bool = False) -> None:
         self.system_tab.append_system(text)
@@ -5701,6 +5914,17 @@ class MainFrame(wx.Frame):
         # v2.3.0 – Zeitgesteuerte Stille beenden
         try:
             self._mute_scheduler.stop()
+        except Exception:
+            pass
+        # v2.6.0 – Verbindungsqualitäts-Timer beenden
+        try:
+            if hasattr(self, "_quality_timer") and self._quality_timer.IsRunning():
+                self._quality_timer.Stop()
+        except Exception:
+            pass
+        # v2.7.0 – HTTP-API stoppen
+        try:
+            self._http_api.stop()
         except Exception:
             pass
         # v2.0.0 – SQLite-DB schließen
