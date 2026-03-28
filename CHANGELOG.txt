@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2026-03-28 (v2.6.0)
+- Verbindungsqualitaet: Ping-Ueberwachung im Hintergrund, TTS-Ansage bei
+  Ueberschreitung des konfigurierten Schwellenwerts (Einstellungen: Verbindung & Anzeige)
+- Serverinfo in Titelleiste: optionale Anzeige von Nutzeranzahl und Ping im Fenstertitel
+- Kanal-Schnellsuche bereits in v2.4.0 eingefuehrt
+
 2026-03-28 (v2.5.0)
 - Auto-Antwort: automatische Antwort auf Privatnachrichten bei Abwesend-Status,
   5-Minuten-Cooldown pro Absender, zurueckgesetzt bei Wiederverbindung
