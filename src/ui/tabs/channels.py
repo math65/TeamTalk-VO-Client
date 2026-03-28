@@ -1,26 +1,27 @@
-"""Tab 2: Kanäle – integrierter Kanalbaum mit Nutzern (ab v1.10.1).
+"""Tab 2: Kanäle – flache ListBox mit Kanal/Nutzer-Einträgen (VoiceOver-zugänglich).
 
-Layout: einzelner wx.TreeCtrl füllt den gesamten Tab.
-Kanäle erscheinen als übergeordnete Knoten, Nutzer als deren Kinder.
+Layout: wx.ListBox füllt den gesamten Tab (VoiceOver-zuverlässiger als wx.TreeCtrl).
+Tiefe wird durch Leerzeichen-Einrückung dargestellt (gut für Braillezeile).
 Doppelklick/Enter auf Kanal → Kanal beitreten.
-Kontextmenü auf Nutzer-Knoten (Rechtsklick / Shift+F10).
+Kontextmenü auf Nutzer-Einträge (Rechtsklick / Shift+F10).
 """
 from __future__ import annotations
 
-from typing import Dict, List, Optional, TYPE_CHECKING
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import wx
+
+from ui.a11y import setup_list_accessible
 
 if TYPE_CHECKING:
     from app import MainFrame
 
-# Knotentypen im Baum
 _NODE_CHANNEL = "channel"
 _NODE_USER = "user"
 
 
 class ChannelsTab(wx.Panel):
-    """Tab 2: Kanäle -- integrierter Kanalbaum mit Nutzerknoten."""
+    """Tab 2: Kanäle – flache ListBox, VoiceOver-zugänglich."""
 
     def __init__(self, parent: wx.Window, frame: "MainFrame") -> None:
         super().__init__(parent)
@@ -28,32 +29,25 @@ class ChannelsTab(wx.Panel):
         self.SetName("Kanäle")
 
         # Interne Zustandsvariablen
-        self._channel_items: Dict[int, wx.TreeItemId] = {}   # channel_id → TreeItemId
-        self._user_items: Dict[int, wx.TreeItemId] = {}      # user_id → TreeItemId
-        self._current_users: List = []   # Nutzer im eigenen Kanal (für Chat-Tab, Kontext-Menü)
-        self._all_users: List = []       # Alle Server-Nutzer (für baumweite Anzeige)
+        self._items: List[Tuple[str, int]] = []   # [(node_type, node_id), ...]
+        self._current_users: List = []
+        self._all_users: List = []
         self._private_user_ids: List[int] = []
         self._selected_channel_id: Optional[int] = None
         self._selected_user_id: Optional[int] = None
         self._cached_channels: List = []
 
-        # TreeCtrl direkt im Panel – kein StaticBox-Wrapper (verhindert Render-Probleme
-        # wenn ChannelsTab in einem äußeren SplitterWindow sitzt)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.channel_tree = wx.TreeCtrl(
-            self,
-            style=wx.TR_HAS_BUTTONS | wx.TR_LINES_AT_ROOT | wx.TR_SINGLE,
-        )
-        self.channel_tree.SetName("Kanalliste")
-        self.channel_tree.Bind(wx.EVT_TREE_SEL_CHANGED, self._on_tree_sel_changed)
-        self.channel_tree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self._on_tree_activated)
-        self.channel_tree.Bind(wx.EVT_RIGHT_DOWN, self._on_tree_right_click)
-        self.channel_tree.Bind(wx.EVT_KEY_DOWN, self._on_tree_key)
+        self.channel_list = wx.ListBox(self, style=wx.LB_SINGLE)
+        self.channel_list.SetName("Kanalliste")
+        setup_list_accessible(self.channel_list)
+        self.channel_list.Bind(wx.EVT_LISTBOX, self._on_list_sel)
+        self.channel_list.Bind(wx.EVT_LISTBOX_DCLICK, self._on_list_activate)
+        self.channel_list.Bind(wx.EVT_KEY_DOWN, self._on_list_key)
+        self.channel_list.Bind(wx.EVT_RIGHT_DOWN, self._on_list_right_click)
+        sizer.Add(self.channel_list, 1, wx.ALL | wx.EXPAND, 4)
 
-        sizer.Add(self.channel_tree, 1, wx.ALL | wx.EXPAND, 4)
-
-        # Beitreten-Button als barrierefreie Alternative zum Doppelklick/Enter
         self.join_btn = wx.Button(self, label="&Kanal beitreten")
         self.join_btn.SetName("Kanal beitreten")
         self.join_btn.Bind(wx.EVT_BUTTON, self._on_join_btn)
@@ -62,7 +56,7 @@ class ChannelsTab(wx.Panel):
         self.SetSizer(sizer)
 
     # ------------------------------------------------------------------
-    # Baum aufbauen
+    # Liste aufbauen
     # ------------------------------------------------------------------
 
     def refresh_channels_and_users(self) -> None:
@@ -76,7 +70,6 @@ class ChannelsTab(wx.Panel):
             logger.write(f"get_server_channels failed: {exc}")
             channels = []
         self._cached_channels = channels
-        logger.write(f"Channels received: {len(channels)}")
 
         try:
             all_users = list(client.get_server_users() or [])
@@ -85,7 +78,6 @@ class ChannelsTab(wx.Panel):
             all_users = []
         self._all_users = all_users
 
-        # Nutzer nach Kanal gruppieren
         users_by_channel: Dict[int, List] = {}
         for u in all_users:
             try:
@@ -94,21 +86,16 @@ class ChannelsTab(wx.Panel):
             except Exception:
                 pass
 
-        # Vorherige Auswahl merken (robust gegen ungültige Items)
+        # Vorherige Auswahl merken
         prev_type: Optional[str] = None
         prev_id: Optional[int] = None
-        try:
-            sel = self.channel_tree.GetSelection()
-            if sel.IsOk():
-                prev_type, prev_id = self._node_info_from_item(sel)
-        except Exception:
-            pass
-
-        self.channel_tree.DeleteAllItems()
-        self._channel_items.clear()
-        self._user_items.clear()
+        sel_idx = self.channel_list.GetSelection()
+        if sel_idx != wx.NOT_FOUND and sel_idx < len(self._items):
+            prev_type, prev_id = self._items[sel_idx]
 
         if not channels:
+            self.channel_list.Clear()
+            self._items = []
             return
 
         # Root-Kanal ermitteln
@@ -119,61 +106,34 @@ class ChannelsTab(wx.Panel):
         channel_ids = {c.nChannelID for c in channels}
         parent_ids = {c.nParentID for c in channels}
         if root_id <= 0 or root_id not in channel_ids:
-            if len(parent_ids) == 1:
-                root_id = next(iter(parent_ids))
-            elif 1 in parent_ids:
+            if 1 in parent_ids:
                 root_id = 1
             elif parent_ids:
-                root_id = min(parent_ids)
+                root_id = min(parent_ids - {0})
 
-        root_channel = next((c for c in channels if c.nChannelID == root_id), None)
-        # Bearware Qt reference: root channel displays server name, not szName (which is empty)
+        # Servernamen für Root-Kanal (Bearware Qt-Referenz)
         try:
             server_props = client.get_server_properties()
             server_name = tt_str(server_props.szServerName)
         except Exception:
             server_name = ""
-        root_name = server_name or (tt_str(root_channel.szName) if root_channel else "") or "Server"
-        root_label = self._make_channel_label(root_name, root_channel, users_by_channel.get(root_id, []))
-        root_item = self.channel_tree.AddRoot(root_label)
-        try:
-            self.channel_tree.SetItemData(root_item, {"type": _NODE_CHANNEL, "id": root_id})
-        except Exception:
-            pass
-        self._channel_items[root_id] = root_item
-        self._add_user_nodes(root_item, users_by_channel.get(root_id, []))
+        root_channel = next((c for c in channels if c.nChannelID == root_id), None)
+        if not server_name and root_channel:
+            server_name = tt_str(root_channel.szName)
+        if not server_name:
+            server_name = "Server"
 
-        # Unterkanäle iterativ einbauen – alphabetisch sortiert (wie Bearware Qt-Client)
-        pending = {c.nChannelID: c for c in channels if c.nChannelID != root_id}
-        while pending:
-            progressed = False
-            # Sort pending channels by name for alphabetical insertion (Bearware behaviour)
-            for chan_id in sorted(pending.keys(), key=lambda cid: tt_str(pending[cid].szName).lower()):
-                chan = pending[chan_id]
-                parent_item = self._channel_items.get(chan.nParentID)
-                if parent_item is None:
-                    continue
-                try:
-                    name = tt_str(chan.szName)
-                    label = self._make_channel_label(name, chan, users_by_channel.get(chan_id, []))
-                    item = self.channel_tree.AppendItem(parent_item, label)
-                    try:
-                        self.channel_tree.SetItemData(item, {"type": _NODE_CHANNEL, "id": chan_id})
-                    except Exception:
-                        pass
-                    self._channel_items[chan_id] = item
-                    self._add_user_nodes(item, users_by_channel.get(chan_id, []))
-                except Exception as exc:
-                    logger.write(f"Fehler beim Einbauen von Kanal {chan_id}: {exc}")
-                pending.pop(chan_id)
-                progressed = True
-            if not progressed:
-                break
+        channels_by_id = {c.nChannelID: c for c in channels}
 
-        try:
-            self.channel_tree.ExpandAll()
-        except Exception:
-            pass
+        # Flache Liste per DFS aufbauen
+        labels, items = self._build_flat_list(
+            root_id, root_channel, server_name, channels_by_id, users_by_channel
+        )
+
+        self._items = items
+        self.channel_list.Clear()
+        if labels:
+            self.channel_list.InsertItems(labels, 0)
 
         # Eigenen Kanal und Nutzer aktualisieren
         try:
@@ -194,20 +154,56 @@ class ChannelsTab(wx.Panel):
                 pass
 
         # Vorherige Auswahl wiederherstellen
-        restore_item = None
-        if prev_type == _NODE_CHANNEL and prev_id is not None:
-            restore_item = self._channel_items.get(prev_id)
-        elif prev_type == _NODE_USER and prev_id is not None:
-            restore_item = self._user_items.get(prev_id)
-        try:
-            if restore_item and restore_item.IsOk():
-                self.channel_tree.SelectItem(restore_item)
-            elif my_ch and my_ch in self._channel_items:
-                self.channel_tree.SelectItem(self._channel_items[my_ch])
-            elif root_item.IsOk():
-                self.channel_tree.SelectItem(root_item)
-        except Exception:
-            pass
+        restore_idx = -1
+        if prev_type is not None and prev_id is not None:
+            restore_idx = self._find_item_index(prev_type, prev_id)
+        if restore_idx == -1 and my_ch:
+            restore_idx = self._find_item_index(_NODE_CHANNEL, my_ch)
+        if restore_idx == -1 and items:
+            restore_idx = 0
+        if restore_idx >= 0:
+            self.channel_list.SetSelection(restore_idx)
+
+    def _build_flat_list(
+        self,
+        root_id: int,
+        root_channel,
+        server_name: str,
+        channels_by_id: Dict[int, object],
+        users_by_channel: Dict[int, List],
+    ) -> Tuple[List[str], List[Tuple[str, int]]]:
+        labels: List[str] = []
+        items: List[Tuple[str, int]] = []
+
+        def visit(chan_id: int, depth: int) -> None:
+            indent = "  " * depth
+            chan = channels_by_id.get(chan_id)
+            if chan_id == root_id:
+                name = server_name
+            else:
+                name = self.frame.tt_str(chan.szName) if chan else str(chan_id)
+
+            users = users_by_channel.get(chan_id, [])
+            label = indent + self._make_channel_label(name, chan if chan_id != root_id else None, users)
+            labels.append(label)
+            items.append((_NODE_CHANNEL, chan_id))
+
+            # Nutzer alphabetisch
+            for user in sorted(users, key=lambda u: (self.frame.tt_str(u.szNickname) or "").lower()):
+                user_indent = "  " * (depth + 1)
+                labels.append(user_indent + self._format_user_label(user))
+                items.append((_NODE_USER, int(user.nUserID)))
+
+            # Unterkanäle alphabetisch
+            children = sorted(
+                [c for c in channels_by_id.values() if c.nParentID == chan_id],
+                key=lambda c: (self.frame.tt_str(c.szName) or "").lower(),
+            )
+            for child in children:
+                visit(child.nChannelID, depth + 1)
+
+        visit(root_id, 0)
+        return labels, items
 
     def _make_channel_label(self, name: str, chan, users: List) -> str:
         parts = [name]
@@ -219,21 +215,6 @@ class ChannelsTab(wx.Panel):
         elif n > 1:
             parts.append(f"{n} Nutzer")
         return ", ".join(parts)
-
-    def _add_user_nodes(self, parent_item: wx.TreeItemId, users: List) -> None:
-        # Sort alphabetically by nickname, like Bearware Qt client (wcscmp on szNickname)
-        for user in sorted(users, key=lambda u: (self.frame.tt_str(u.szNickname) or "").lower()):
-            try:
-                label = self._format_user_label(user)
-                item = self.channel_tree.AppendItem(parent_item, label)
-                uid = int(user.nUserID)
-                try:
-                    self.channel_tree.SetItemData(item, {"type": _NODE_USER, "id": uid})
-                except Exception:
-                    pass
-                self._user_items[uid] = item
-            except Exception:
-                pass
 
     def _format_user_label(self, user) -> str:
         try:
@@ -259,16 +240,57 @@ class ChannelsTab(wx.Panel):
             return f"{name}, {', '.join(flags)}"
         return name
 
-    # Rückwärtskompatibilität: alter Name wird weiter genutzt
+    # Rückwärtskompatibilität
     def _format_member_label(self, user) -> str:
         return self._format_user_label(user)
+
+    # ------------------------------------------------------------------
+    # Hilfsmethoden
+    # ------------------------------------------------------------------
+
+    def _find_item_index(self, node_type: str, node_id: int) -> int:
+        for i, (t, n) in enumerate(self._items):
+            if t == node_type and n == node_id:
+                return i
+        return -1
+
+    def _find_user(self, user_id: int):
+        for user in self._all_users:
+            if int(user.nUserID) == user_id:
+                return user
+        for user in self._current_users:
+            if int(user.nUserID) == user_id:
+                return user
+        try:
+            return self.frame.client.get_user(user_id)
+        except Exception:
+            return None
+
+    # Rückwärtskompatibilität
+    def _get_user_by_id(self, user_id: int):
+        return self._find_user(user_id)
+
+    def _announce_channel_members(self, users: List, channel_id: int) -> None:
+        names = [self._format_user_label(u) for u in users]
+        self.frame.logger.write(f"Channel members update: channel_id={channel_id} count={len(names)}")
+        try:
+            channel = self.frame.client.get_channel(channel_id)
+            ch_name = self.frame.tt_str(channel.szName)
+        except Exception:
+            ch_name = ""
+        if not ch_name:
+            ch_name = "aktuellen Kanal"
+        if names:
+            announce = f"Im Kanal {ch_name}: " + ", ".join(names)
+        else:
+            announce = f"Im Kanal {ch_name} ist niemand."
+        self.frame.set_status(announce)
 
     # ------------------------------------------------------------------
     # Nutzer im eigenen Kanal aktualisieren
     # ------------------------------------------------------------------
 
     def refresh_users_for_channel(self, channel_id: int) -> None:
-        """Aktualisiert _current_users für den angegebenen Kanal (für Chat-Tab)."""
         client = self.frame.client
         actual = channel_id or int(client.get_my_channel_id() or 0)
         users = list(client.get_channel_users(actual))
@@ -290,7 +312,6 @@ class ChannelsTab(wx.Panel):
     # ------------------------------------------------------------------
 
     def announce_selected_user_info(self) -> None:
-        """Liest Infos über den aktuell ausgewählten Nutzer via TTS vor."""
         if self._selected_user_id is None:
             self.frame.tts.speak("Kein Nutzer ausgewählt", kind="system")
             return
@@ -323,127 +344,72 @@ class ChannelsTab(wx.Panel):
         self.frame.tts.speak(", ".join(parts), kind="system")
 
     # ------------------------------------------------------------------
-    # Hilfsmethoden
+    # Listen-Events
     # ------------------------------------------------------------------
 
-    def _find_user(self, user_id: int):
-        """Sucht Nutzer erst in _all_users, dann in _current_users."""
-        for user in self._all_users:
-            if int(user.nUserID) == user_id:
-                return user
-        for user in self._current_users:
-            if int(user.nUserID) == user_id:
-                return user
+    def _on_list_sel(self, event) -> None:
         try:
-            return self.frame.client.get_user(int(user_id))
+            idx = self.channel_list.GetSelection()
+            if idx == wx.NOT_FOUND or idx >= len(self._items):
+                return
+            node_type, node_id = self._items[idx]
+            if node_type == _NODE_CHANNEL:
+                self._selected_channel_id = node_id
+                self._selected_user_id = None
+                label = self.channel_list.GetString(idx).strip()
+                self.frame.tts.speak(label, kind="system")
+                try:
+                    self.frame.chat_tab.update_chat_target()
+                except Exception:
+                    pass
+            elif node_type == _NODE_USER:
+                self._selected_user_id = node_id
+                user = self._find_user(node_id)
+                if user:
+                    self.frame.tts.speak(self._format_user_label(user), kind="system")
+                for i, uid in enumerate(self._private_user_ids):
+                    if uid == node_id:
+                        try:
+                            self.frame.chat_tab.private_user.SetSelection(i)
+                        except Exception:
+                            pass
+                        break
+                try:
+                    self.frame.chat_tab.update_chat_target()
+                except Exception:
+                    pass
         except Exception:
-            return None
+            pass
 
-    # Rückwärtskompatibilität
-    def _get_user_by_id(self, user_id: int):
-        return self._find_user(user_id)
-
-    def _channel_id_from_item(self, item: wx.TreeItemId) -> Optional[int]:
-        for cid, ti in self._channel_items.items():
-            if ti == item:
-                return cid
-        return None
-
-    def _node_info_from_item(self, item: wx.TreeItemId):
-        """Gibt (node_type, node_id) zurück. Primär via GetItemData, Fallback via Dict-Lookup."""
-        data = self.channel_tree.GetItemData(item)
-        if isinstance(data, dict):
-            return data.get("type"), data.get("id")
-        # Fallback: Reverse-Lookup über die ID-Dicts
-        for cid, ti in self._channel_items.items():
-            if ti == item:
-                return _NODE_CHANNEL, cid
-        for uid, ti in self._user_items.items():
-            if ti == item:
-                return _NODE_USER, uid
-        return None, None
-
-    def _announce_channel_members(self, users: List, channel_id: int) -> None:
-        names = [self._format_user_label(u) for u in users]
-        self.frame.logger.write(f"Channel members update: channel_id={channel_id} count={len(names)}")
+    def _on_list_activate(self, event) -> None:
         try:
-            channel = self.frame.client.get_channel(channel_id)
-            ch_name = self.frame.tt_str(channel.szName)
+            idx = self.channel_list.GetSelection()
+            if idx == wx.NOT_FOUND or idx >= len(self._items):
+                return
+            node_type, node_id = self._items[idx]
+            if node_type == _NODE_CHANNEL:
+                self.frame.join_channel(node_id)
+            elif node_type == _NODE_USER:
+                try:
+                    self.frame.notebook.SetSelection(2)
+                except Exception:
+                    pass
         except Exception:
-            ch_name = ""
-        if not ch_name:
-            ch_name = "aktuellen Kanal"
-        if names:
-            announce = f"Im Kanal {ch_name}: " + ", ".join(names)
-        else:
-            announce = f"Im Kanal {ch_name} ist niemand."
-        self.frame.set_status(announce)
-
-    # ------------------------------------------------------------------
-    # Baum-Events
-    # ------------------------------------------------------------------
-
-    def _on_tree_sel_changed(self, event) -> None:
-        item = event.GetItem()
-        if not item.IsOk():
-            item = self.channel_tree.GetSelection()
-        if not item.IsOk():
-            return
-        node_type, node_id = self._node_info_from_item(item)
-        if node_type == _NODE_CHANNEL and node_id is not None:
-            self._selected_channel_id = node_id
-            self._selected_user_id = None
-            label = self.channel_tree.GetItemText(item)
-            self.frame.tts.speak(label, kind="system")
-            try:
-                self.frame.chat_tab.update_chat_target()
-            except Exception:
-                pass
-        elif node_type == _NODE_USER and node_id is not None:
-            self._selected_user_id = node_id
-            user = self._find_user(node_id)
-            if user:
-                self.frame.tts.speak(self._format_user_label(user), kind="system")
-            for i, uid in enumerate(self._private_user_ids):
-                if uid == node_id:
-                    try:
-                        self.frame.chat_tab.private_user.SetSelection(i)
-                    except Exception:
-                        pass
-                    break
-            try:
-                self.frame.chat_tab.update_chat_target()
-            except Exception:
-                pass
-
-    def _on_tree_activated(self, event) -> None:
-        item = event.GetItem()
-        if not item.IsOk():
-            item = self.channel_tree.GetSelection()
-        if not item.IsOk():
-            return
-        node_type, node_id = self._node_info_from_item(item)
-        if node_type == _NODE_CHANNEL and node_id is not None:
-            self.frame.join_channel(node_id)
-        elif node_type == _NODE_USER:
-            try:
-                self.frame.notebook.SetSelection(2)
-            except Exception:
-                pass
+            pass
 
     def _on_join_btn(self, _event) -> None:
         if self._selected_channel_id:
             self.frame.join_channel(self._selected_channel_id)
         else:
-            self.frame.set_status("Bitte zuerst einen Kanal im Baum auswählen")
+            self.frame.set_status("Bitte zuerst einen Kanal in der Liste auswählen")
 
-    def _on_tree_key(self, event) -> None:
+    def _on_list_key(self, event) -> None:
         key = event.GetKeyCode()
         if key in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
-            item = self.channel_tree.GetSelection()
-            if item.IsOk():
-                node_type, node_id = self._node_info_from_item(item)
-                if node_type == _NODE_CHANNEL and node_id is not None:
+            idx = self.channel_list.GetSelection()
+            if idx != wx.NOT_FOUND and idx < len(self._items):
+                node_type, node_id = self._items[idx]
+                if node_type == _NODE_CHANNEL:
                     self.frame.join_channel(node_id)
                 elif node_type == _NODE_USER:
                     try:
@@ -452,27 +418,30 @@ class ChannelsTab(wx.Panel):
                         pass
             return
         if key == wx.WXK_WINDOWS_MENU or (key == wx.WXK_F10 and event.ShiftDown()):
-            item = self.channel_tree.GetSelection()
-            if item.IsOk():
-                node_type, node_id = self._node_info_from_item(item)
-                if node_type == _NODE_USER and node_id is not None:
+            idx = self.channel_list.GetSelection()
+            if idx != wx.NOT_FOUND and idx < len(self._items):
+                node_type, node_id = self._items[idx]
+                if node_type == _NODE_USER:
                     self._show_user_context_menu_for(node_id)
             return
         event.Skip()
 
-    def _on_tree_right_click(self, event) -> None:
-        pos = event.GetPosition()
-        item, _flags = self.channel_tree.HitTest(pos)
-        if item.IsOk():
-            node_type, node_id = self._node_info_from_item(item)
-            if node_type == _NODE_USER and node_id is not None:
-                self.channel_tree.SelectItem(item)
-                self._selected_user_id = node_id
-                try:
-                    self.frame.chat_tab.update_chat_target()
-                except Exception:
-                    pass
-                self._show_user_context_menu_for(node_id)
+    def _on_list_right_click(self, event) -> None:
+        try:
+            pos = event.GetPosition()
+            idx = self.channel_list.HitTest(pos)
+            if idx != wx.NOT_FOUND and idx < len(self._items):
+                node_type, node_id = self._items[idx]
+                self.channel_list.SetSelection(idx)
+                if node_type == _NODE_USER:
+                    self._selected_user_id = node_id
+                    try:
+                        self.frame.chat_tab.update_chat_target()
+                    except Exception:
+                        pass
+                    self._show_user_context_menu_for(node_id)
+        except Exception:
+            pass
         event.Skip()
 
     # ------------------------------------------------------------------

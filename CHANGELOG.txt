@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2026-03-28 (v1.10.7)
+- Bugfix: Kanalliste für VoiceOver zugänglich gemacht.
+  wx.TreeCtrl (NSOutlineView) hatte keine Patches für Item-Text – VoiceOver las keine Einträge.
+  Ersetzt durch wx.ListBox (NSTableRow vollständig gepatcht: AXLabel/AXValue pro Zeile).
+- UI: Kanäle und Chat wieder kombiniert ("Kanäle und Chat"), wie in v1.10.5.
+  Flache Kanalliste mit Einrückung (Leerzeichen je Kanalebene) für Braillezeile.
+  Nutzer erscheinen direkt unter ihrem Kanal, alphabetisch sortiert.
+
 2026-03-28 (v1.10.6)
 - UI: Kanalbaum und Chat wieder als separate Bereiche getrennt ("Kanäle" / "Chat").
   Der kombinierte "Kanäle und Chat"-Tab war zu eng – der Kanalbaum wurde durch den
