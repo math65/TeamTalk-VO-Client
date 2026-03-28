@@ -133,7 +133,9 @@
       "Bash(.venv/bin/python -m py_compile src/ui/tabs/settings.py)",
       "Bash(.venv/bin/python -m py_compile src/ui/tabs/shortcuts.py)",
       "Bash(.venv/bin/python -m py_compile src/ui/tabs/channels.py)",
-      "Bash(bash release.sh)"
+      "Bash(bash release.sh)",
+      "Bash(sed -i '' \"s/''CFBundleShortVersionString'': ''2.4.0''/''CFBundleShortVersionString'': ''2.5.0''/\" \"TeamTalk VO Client.spec\")",
+      "Bash(sed -i '' \"s/''CFBundleVersion'': ''2.4.0''/''CFBundleVersion'': ''2.5.0''/\" \"TeamTalk VO Client.spec\")"
     ]
   }
 }
