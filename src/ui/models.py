@@ -181,6 +181,16 @@ class AppSettings:
     sound_profiles: List[Dict[str, str]] = field(default_factory=list)
     active_sound_profile: str = "Standard"
     hotkey_cycle_sound_profile: int = 0
+    # v2.0.0 features
+    claude_api_key: str = ""
+    voice_control_enabled: bool = False
+    transcription_enabled: bool = False
+    braille_verbosity: str = "normal"
+    hotkey_cycle_braille_verbosity: int = 0
+    hotkey_ai_summary: int = 0
+    active_server_session: str = ""
+    # v2.0.2 features
+    gemini_api_key: str = ""
 
 
 class SettingsStore:
@@ -275,6 +285,16 @@ class SettingsStore:
             self.settings.sound_profiles = raw_profiles if isinstance(raw_profiles, list) else []
             self.settings.active_sound_profile = str(data.get("active_sound_profile", "Standard") or "Standard")
             self.settings.hotkey_cycle_sound_profile = int(data.get("hotkey_cycle_sound_profile", 0) or 0)
+            # v2.0.0
+            self.settings.claude_api_key = str(data.get("claude_api_key", "") or "")
+            self.settings.voice_control_enabled = bool(data.get("voice_control_enabled", False))
+            self.settings.transcription_enabled = bool(data.get("transcription_enabled", False))
+            self.settings.braille_verbosity = str(data.get("braille_verbosity", "normal") or "normal")
+            self.settings.hotkey_cycle_braille_verbosity = int(data.get("hotkey_cycle_braille_verbosity", 0) or 0)
+            self.settings.hotkey_ai_summary = int(data.get("hotkey_ai_summary", 0) or 0)
+            self.settings.active_server_session = str(data.get("active_server_session", "") or "")
+            # v2.0.2
+            self.settings.gemini_api_key = str(data.get("gemini_api_key", "") or "")
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -351,5 +371,15 @@ class SettingsStore:
             "sound_profiles": self.settings.sound_profiles or [],
             "active_sound_profile": str(self.settings.active_sound_profile or "Standard"),
             "hotkey_cycle_sound_profile": int(self.settings.hotkey_cycle_sound_profile or 0),
+            # v2.0.0
+            "claude_api_key": str(self.settings.claude_api_key or ""),
+            "voice_control_enabled": bool(self.settings.voice_control_enabled),
+            "transcription_enabled": bool(self.settings.transcription_enabled),
+            "braille_verbosity": str(self.settings.braille_verbosity or "normal"),
+            "hotkey_cycle_braille_verbosity": int(self.settings.hotkey_cycle_braille_verbosity or 0),
+            "hotkey_ai_summary": int(self.settings.hotkey_ai_summary or 0),
+            "active_server_session": str(self.settings.active_server_session or ""),
+            # v2.0.2
+            "gemini_api_key": str(self.settings.gemini_api_key or ""),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

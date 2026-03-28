@@ -20,6 +20,11 @@ from ui.models import (
     ServerStore,
     SettingsStore,
 )
+from settings_db import SettingsDB, SQLiteSettingsStore, SQLiteServerStore, migrate_from_json
+from server_session import ServerManager
+from braille_output import BrailleOutputManager
+from ai_summary import ChatSummaryManager
+from gemini_auth import GeminiAuthManager
 from ui.tray import TrayIcon
 from ui.tt_file_parser import parse_teamtalk_file
 from ui.tabs.connection import ConnectionTab
@@ -39,7 +44,7 @@ from platform_paths import log_dir as _log_dir # Moved this import up
 from chat_history import ChatHistoryManager
 
 
-APP_VERSION = "1.10.7"
+APP_VERSION = "2.0.2"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -285,8 +290,23 @@ class MainFrame(wx.Frame):
         from platform_paths import app_data_dir
         app_dir = app_data_dir()
         app_dir.mkdir(parents=True, exist_ok=True)
-        self.store = ServerStore(app_dir / "servers.json")
-        self.settings_store = SettingsStore(app_dir / "settings.json")
+
+        # v2.0.0: SQLite-Datenbank (migriert automatisch aus JSON)
+        self._settings_db = SettingsDB(app_dir / "settings.db")
+        migrated = migrate_from_json(
+            self._settings_db,
+            app_dir / "settings.json",
+            app_dir / "servers.json",
+        )
+        if migrated:
+            print("[v2.0.0] Einstellungen aus JSON nach SQLite migriert.")
+        self.settings_store = SQLiteSettingsStore(self._settings_db)
+        self.store = SQLiteServerStore(self._settings_db)
+
+        # JSON-Stores als Fallback (werden nicht mehr aktiv beschrieben)
+        self._json_settings_store = SettingsStore(app_dir / "settings.json")
+        self._json_server_store = ServerStore(app_dir / "servers.json")
+
         self.logger = FileLogger(app_dir / "client.log")
         self._chat_history = ChatHistoryManager(app_dir)
         from scheduled_recordings import ScheduledRecordingManager
@@ -297,6 +317,12 @@ class MainFrame(wx.Frame):
         from plugin_api import PluginAPI
         from plugin_loader import PluginLoader
         self._plugin_api = PluginAPI(self)
+        # v2.0.0 – Multi-Server, Braille, KI
+        self.server_manager = ServerManager(self.bus)
+        self._ai_summary: ChatSummaryManager | None = None  # wird nach TTS-Init gesetzt
+        # Bus-Handler für Multi-Server
+        self.bus.on("active_server_changed", self._on_active_server_changed)
+        self.bus.on("server_state_changed", self._on_server_state_changed)
         plugins_dir = Path(__file__).parent.parent / "plugins"
         self._plugin_loader = PluginLoader(self.bus, plugins_dir, api=self._plugin_api)
         n = self._plugin_loader.load_all()
@@ -324,6 +350,18 @@ class MainFrame(wx.Frame):
         self.tts.settings.connect_announce = _ts.tts_connect_announce
         self.sound_manager = SoundManager()
         self._ptt_hotkey = int(self.settings_store.settings.ptt_hotkey or 0) or wx.WXK_SPACE
+        # v2.0.0 – Braille-Manager (nach TTS-Init)
+        self.braille = BrailleOutputManager(self.tts)
+        _braille_verbosity = getattr(self.settings_store.settings, "braille_verbosity", "normal")
+        self.braille.verbosity = _braille_verbosity if _braille_verbosity in ("compact", "normal", "verbose") else "normal"
+        # v2.0.2 – Gemini OAuth
+        self._gemini_auth = GeminiAuthManager(app_dir)
+        # v2.0.0 – KI-Zusammenfassung (mit Gemini-Auth)
+        self._ai_summary = ChatSummaryManager(
+            self.settings_store, self._chat_history, self._gemini_auth
+        )
+        # v2.0.0 – Sprachsteuerung (lazy init: wird erst bei Bedarf gestartet)
+        self._voice_control = None
         # Global hotkeys (macOS)
         self._global_hotkey_mgr = None
         self._global_capture_target: Optional[str] = None
@@ -344,6 +382,28 @@ class MainFrame(wx.Frame):
         panel = wx.Panel(self)
         panel.SetName("Hauptfenster")
         main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # --- Multi-Server Switcher (v2.0.1) ---
+        self.server_panel = wx.Panel(panel)
+        self.server_panel.SetName("Server-Switcher")
+        srv_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        srv_sizer.Add(wx.StaticText(self.server_panel, label="Server:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
+        self.server_choice = wx.Choice(self.server_panel)
+        self.server_choice.SetName("Aktiver Server")
+        self.server_choice.SetMinSize((200, -1))
+        self.server_choice.Bind(wx.EVT_CHOICE, self._on_server_choice_changed)
+        srv_sizer.Add(self.server_choice, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._srv_connect_btn = wx.Button(self.server_panel, label="&Verbinden")
+        self._srv_connect_btn.SetName("Server verbinden")
+        self._srv_connect_btn.Bind(wx.EVT_BUTTON, lambda _e: self.on_menu_connect(None))
+        srv_sizer.Add(self._srv_connect_btn, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
+        self._srv_disconnect_btn = wx.Button(self.server_panel, label="&Trennen")
+        self._srv_disconnect_btn.SetName("Server trennen")
+        self._srv_disconnect_btn.Bind(wx.EVT_BUTTON, lambda _e: self.on_menu_disconnect(None))
+        srv_sizer.Add(self._srv_disconnect_btn, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.server_panel.SetSizer(srv_sizer)
+        main_sizer.Add(self.server_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 12)
+        self._server_session_ids: List[str] = []  # parallel list to server_choice items
 
         nav_panel = wx.Panel(panel)
         nav_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -533,6 +593,9 @@ class MainFrame(wx.Frame):
 
         # Start global hotkeys if configured
         wx.CallLater(500, self.apply_global_hotkeys)
+        # v2.0.0 – Sprachsteuerung starten wenn konfiguriert
+        if getattr(self.settings_store.settings, "voice_control_enabled", False):
+            wx.CallLater(3000, self._start_voice_control)
         # Plugin-Event: App vollständig initialisiert
         wx.CallLater(2000, lambda: self.bus.emit("app_startup"))
 
@@ -613,6 +676,114 @@ class MainFrame(wx.Frame):
             self.audio_tab.input_gain.SetValue(sdk_level)
         except Exception:
             pass
+
+    # ------------------------------------------------------------------
+    # v2.0.0 – Multi-Server Bus-Handler
+    # ------------------------------------------------------------------
+
+    def _on_active_server_changed(self, session_id: str, session) -> None:
+        """Wird aufgerufen wenn die aktive Session wechselt."""
+        try:
+            self.client = session.client
+            label = session.profile.name
+            wx.CallAfter(self.set_status, f"Server: {label}")
+            wx.CallAfter(self._refresh_server_choice)
+        except Exception as exc:
+            print(f"[MultiServer] active_server_changed fehlgeschlagen: {exc}")
+
+    def _on_server_state_changed(self, session_id: str, state: str, session) -> None:
+        """Wird aufgerufen wenn sich der Verbindungsstatus einer Session ändert."""
+        try:
+            active = self.server_manager.get_active()
+            if active and active.session_id == session_id:
+                state_label = {"connected": "Verbunden", "connecting": "Verbinde...", "disconnected": "Getrennt"}.get(state, state)
+                wx.CallAfter(self.set_status, f"{session.profile.name}: {state_label}")
+            wx.CallAfter(self._refresh_server_choice)
+        except Exception:
+            pass
+
+    def _refresh_server_choice(self) -> None:
+        """Aktualisiert die Server-Choice mit allen aktiven Sessions."""
+        try:
+            sessions = self.server_manager.all_sessions()
+            active = self.server_manager.get_active()
+            self.server_choice.Clear()
+            self._server_session_ids = []
+            for s in sessions:
+                self.server_choice.Append(s.display_label_ascii())
+                self._server_session_ids.append(s.session_id)
+            # Aktive Session markieren
+            if active and active.session_id in self._server_session_ids:
+                idx = self._server_session_ids.index(active.session_id)
+                self.server_choice.SetSelection(idx)
+            # Panel nur anzeigen wenn mehr als eine Session existiert
+            self.server_panel.Show(len(sessions) > 1)
+            self.server_panel.GetParent().Layout()
+        except Exception as exc:
+            print(f"[MultiServer] _refresh_server_choice fehlgeschlagen: {exc}")
+
+    def add_server_session(self, profile) -> str:
+        """Fügt eine neue Server-Session hinzu und aktualisiert die UI."""
+        sid = self.server_manager.add_session(profile)
+        wx.CallAfter(self._refresh_server_choice)
+        return sid
+
+    def _on_server_choice_changed(self, event) -> None:
+        """Wechselt zur ausgewählten Server-Session."""
+        idx = event.GetSelection()
+        if 0 <= idx < len(self._server_session_ids):
+            sid = self._server_session_ids[idx]
+            try:
+                self.server_manager.switch_to(sid)
+            except Exception as exc:
+                self.set_status(f"Server-Wechsel fehlgeschlagen: {exc}")
+
+    # ------------------------------------------------------------------
+    # v2.0.0 – Sprachsteuerung
+    # ------------------------------------------------------------------
+
+    def _start_voice_control(self) -> None:
+        """Initialisiert und startet den VoiceCommandManager."""
+        try:
+            from voice_control import VoiceCommandManager
+            self._voice_control = VoiceCommandManager(self)
+            if self._voice_control.is_available():
+                ok = self._voice_control.start()
+                if ok:
+                    self.logger.write("Sprachsteuerung gestartet.")
+                    self.set_status("Sprachsteuerung aktiv")
+                else:
+                    self.logger.write("Sprachsteuerung konnte nicht gestartet werden.")
+            else:
+                self.logger.write("Sprachsteuerung nicht verfügbar (whisper/pyaudio fehlt).")
+        except Exception as exc:
+            self.logger.write(f"Sprachsteuerung Fehler: {exc}")
+
+    def _stop_voice_control(self) -> None:
+        if self._voice_control is not None:
+            try:
+                self._voice_control.stop()
+            except Exception:
+                pass
+            self._voice_control = None
+
+    # ------------------------------------------------------------------
+    # v2.0.0 – KI-Zusammenfassung
+    # ------------------------------------------------------------------
+
+    def _trigger_ai_summary(self) -> None:
+        """Fasst verpasste Nachrichten zusammen und spricht sie via TTS an."""
+        if self._ai_summary is None:
+            return
+        import time as _time
+        import threading as _threading
+        server_key = getattr(self, "_current_server_key", "")
+        since = _time.time() - 3600  # letzte Stunde
+        def _work():
+            text = self._ai_summary.summarize_missed(server_key, since)
+            import wx as _wx
+            _wx.CallAfter(self.tts.speak, text, kind="system")
+        _threading.Thread(target=_work, daemon=True).start()
 
     def _on_vu_timer(self, _event):
         if self._closing:
@@ -4790,6 +4961,13 @@ class MainFrame(wx.Frame):
             if key and key == int(settings.hotkey_cycle_sound_profile or 0):
                 self._cycle_sound_profile()
                 return
+            # v2.0.0
+            if key and key == int(getattr(settings, "hotkey_cycle_braille_verbosity", 0) or 0):
+                self.braille.cycle_verbosity()
+                return
+            if key and key == int(getattr(settings, "hotkey_ai_summary", 0) or 0):
+                self._trigger_ai_summary()
+                return
         event.Skip()
 
     def on_key_down(self, event):
@@ -4821,6 +4999,10 @@ class MainFrame(wx.Frame):
                     self.settings_store.settings.hotkey_reply_last_sender = int(key)
                 elif target == "hotkey_cycle_sound_profile":
                     self.settings_store.settings.hotkey_cycle_sound_profile = int(key)
+                elif target == "hotkey_cycle_braille_verbosity":
+                    self.settings_store.settings.hotkey_cycle_braille_verbosity = int(key)
+                elif target == "hotkey_ai_summary":
+                    self.settings_store.settings.hotkey_ai_summary = int(key)
                 self.settings_store.save()
                 self.shortcuts_tab.set_capture_label(target, False)
                 self._capture_hotkey_target = None
@@ -5401,6 +5583,16 @@ class MainFrame(wx.Frame):
                 self.speak_tab.cleanup()
             except Exception:
                 pass
+        # v2.0.0 – Sprachsteuerung beenden
+        try:
+            self._stop_voice_control()
+        except Exception:
+            pass
+        # v2.0.0 – SQLite-DB schließen
+        try:
+            self._settings_db.close()
+        except Exception:
+            pass
         # Stop global hotkeys
         if self._global_hotkey_mgr is not None:
             try:

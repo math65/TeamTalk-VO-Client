@@ -32,6 +32,8 @@ class ShortcutsTab(wx.Panel):
         self._rows.append(self._make_row(inapp_box, "Ping ansagen", "hotkey_announce_ping", global_key=False))
         self._rows.append(self._make_row(inapp_box, "Privatantwort (letzter Absender)", "hotkey_reply_last_sender", global_key=False))
         self._rows.append(self._make_row(inapp_box, "Sound-Profil wechseln", "hotkey_cycle_sound_profile", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Braille-Verbosität wechseln", "hotkey_cycle_braille_verbosity", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "KI-Zusammenfassung ansagen", "hotkey_ai_summary", global_key=False))
 
         for row in self._rows:
             inapp_sizer.Add(row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
@@ -110,6 +112,8 @@ class ShortcutsTab(wx.Panel):
             "hotkey_announce_ping": int(settings.hotkey_announce_ping or 0),
             "hotkey_reply_last_sender": int(settings.hotkey_reply_last_sender or 0),
             "hotkey_cycle_sound_profile": int(settings.hotkey_cycle_sound_profile or 0),
+            "hotkey_cycle_braille_verbosity": int(getattr(settings, "hotkey_cycle_braille_verbosity", 0) or 0),
+            "hotkey_ai_summary": int(getattr(settings, "hotkey_ai_summary", 0) or 0),
         }
         global_map = {
             "global_hotkey_ptt": int(settings.global_hotkey_ptt or 0),

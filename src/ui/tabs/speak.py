@@ -24,6 +24,7 @@ class SpeakTab(wx.Panel):
         self._model_ids: List[str] = []
         self._generating = False
         self._temp_file: Optional[str] = None
+        self._streaming_temp_file: Optional[str] = None
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -49,6 +50,17 @@ class SpeakTab(wx.Panel):
         self.model_choice.Bind(wx.EVT_CHOICE, self.on_model_changed)
         sel_form.Add(self.model_choice, 1, wx.EXPAND)
         sel_form.Add((0, 0), 0)  # empty cell
+
+        # Streaming-Option
+        sel_form.Add((0, 0), 0)
+        self.streaming_check = wx.CheckBox(self, label="&Echtzeit-Streaming")
+        self.streaming_check.SetName("Echtzeit-Streaming")
+        self.streaming_check.SetHelpText(
+            "Audio wird gestreamt während es generiert wird (niedrigere Latenz)"
+        )
+        self.streaming_check.SetValue(False)
+        sel_form.Add(self.streaming_check, 0)
+        sel_form.Add((0, 0), 0)
 
         tts_sizer.Add(sel_form, 0, wx.ALL | wx.EXPAND, 8)
 
@@ -224,13 +236,22 @@ class SpeakTab(wx.Panel):
 
         self._generating = True
         self.speak_btn.Disable()
-        self._set_status("Generiere Audio...")
 
-        threading.Thread(
-            target=self._speak_worker,
-            args=(text, voice_id, model_id, stability, similarity, style, use_boost),
-            daemon=True,
-        ).start()
+        use_streaming = self.streaming_check.GetValue() and self._can_stream(model_id)
+        if use_streaming:
+            self._set_status("Echtzeit-Streaming...")
+            threading.Thread(
+                target=self._generate_streaming,
+                args=(text, voice_id, model_id, stability, similarity, style, use_boost),
+                daemon=True,
+            ).start()
+        else:
+            self._set_status("Generiere Audio...")
+            threading.Thread(
+                target=self._speak_worker,
+                args=(text, voice_id, model_id, stability, similarity, style, use_boost),
+                daemon=True,
+            ).start()
 
     def _speak_worker(
         self,
@@ -283,9 +304,115 @@ class SpeakTab(wx.Panel):
             self._generating = False
             wx.CallAfter(self.speak_btn.Enable)
 
+    # ------------------------------------------------------------------
+    # ElevenLabs Echtzeit-Streaming (v2.0.0)
+    # ------------------------------------------------------------------
+
+    def _can_stream(self, model_id: str) -> bool:
+        """Gibt True zurück wenn das Modell Streaming unterstützt."""
+        # Alle eleven_*-Modelle außer eleven_turbo_v2_5 unterstützen Streaming
+        if not model_id.startswith("eleven_"):
+            return False
+        return model_id != "eleven_turbo_v2_5"
+
+    def _generate_streaming(
+        self,
+        text: str,
+        voice_id: str,
+        model_id: str,
+        stability: float,
+        similarity: float,
+        style: float,
+        use_boost: bool,
+    ) -> None:
+        """Generiert Audio per Streaming-API und spielt es progressiv ab."""
+        import tempfile as _tempfile
+        try:
+            import requests as _req
+        except ImportError:
+            wx.CallAfter(self._set_status, "Fehlendes Modul: requests")
+            self._generating = False
+            wx.CallAfter(self.speak_btn.Enable)
+            return
+
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream"
+        payload = {
+            "text": text,
+            "model_id": model_id,
+            "voice_settings": {
+                "stability": stability,
+                "similarity_boost": similarity,
+                "style": style,
+                "use_speaker_boost": use_boost,
+            },
+        }
+        headers = {
+            "xi-api-key": self._api_key,
+            "Content-Type": "application/json",
+            "Accept": "audio/mpeg",
+        }
+
+        try:
+            with _req.post(url, json=payload, headers=headers, stream=True, timeout=30) as resp:
+                if resp.status_code != 200:
+                    wx.CallAfter(
+                        self._set_status,
+                        f"ElevenLabs Fehler: HTTP {resp.status_code}",
+                    )
+                    return
+
+                # Temporäre Datei für Audio-Chunks
+                with _tempfile.NamedTemporaryFile(
+                    suffix=".mp3", delete=False
+                ) as tmp:
+                    self._streaming_temp_file = tmp.name
+                    received = 0
+                    playback_started = False
+                    for chunk in resp.iter_content(chunk_size=4096):
+                        if not self._generating:
+                            break
+                        if chunk:
+                            tmp.write(chunk)
+                            tmp.flush()
+                            received += len(chunk)
+                            # Playback starten sobald genug Daten da sind (~32 KB)
+                            if not playback_started and received >= 32_768:
+                                playback_started = True
+                                fname = self._streaming_temp_file
+                                wx.CallAfter(self._start_streaming_playback, fname)
+
+                if not playback_started and self._streaming_temp_file:
+                    # Weniger als 32 KB – trotzdem abspielen
+                    wx.CallAfter(
+                        self._start_streaming_playback,
+                        self._streaming_temp_file,
+                    )
+
+                wx.CallAfter(
+                    self._set_status,
+                    f"Streaming abgeschlossen ({received // 1024} KB)",
+                )
+        except Exception as exc:
+            wx.CallAfter(self._set_status, f"Streaming Fehler: {exc}")
+        finally:
+            self._generating = False
+            wx.CallAfter(self.speak_btn.Enable)
+
+    def _start_streaming_playback(self, filepath: str) -> None:
+        """Startet die Wiedergabe der gestreamten Datei im Kanal."""
+        try:
+            self.frame.client.stop_streaming_media()
+            ok = self.frame.client.start_streaming_media_to_channel(filepath)
+            if not ok:
+                self._set_status("Streaming-Wiedergabe konnte nicht gestartet werden")
+        except Exception as exc:
+            self._set_status(f"Wiedergabe-Fehler: {exc}")
+
     def on_stop(self, _event) -> None:
+        self._generating = False
         self.frame.client.stop_streaming_media()
         self._cleanup_temp()
+        self._cleanup_streaming_temp()
         self._set_status("Streaming gestoppt")
 
     # ------------------------------------------------------------------
@@ -303,12 +430,22 @@ class SpeakTab(wx.Panel):
                 pass
             self._temp_file = None
 
+    def _cleanup_streaming_temp(self) -> None:
+        if self._streaming_temp_file and os.path.exists(self._streaming_temp_file):
+            try:
+                os.unlink(self._streaming_temp_file)
+            except OSError:
+                pass
+            self._streaming_temp_file = None
+
     def cleanup(self) -> None:
         """Called from force_close to stop streaming and remove temp files."""
+        self._generating = False
         try:
             self.frame.client.stop_streaming_media()
         except Exception:
             pass
         self._cleanup_temp()
+        self._cleanup_streaming_temp()
 
 

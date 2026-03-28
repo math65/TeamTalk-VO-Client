@@ -1,6 +1,75 @@
 Changelog
 =========
 
+2026-03-28 (v2.0.2)
+- KI: Anthropic Python SDK (`anthropic`) integriert – Claude-Zusammenfassungen
+  laufen jetzt über das offizielle SDK statt manueller HTTP-Anfragen.
+  Fallback auf HTTP wenn SDK nicht installiert (rückwärtskompatibel).
+- KI: Google Gemini als zweites KI-Backend eingebaut (`google-genai` SDK).
+  Zwei Authentifizierungswege:
+  1. API-Key aus https://aistudio.google.com/app/apikey (einfach)
+  2. OAuth Browser-Login (kein Key nötig, braucht client_secrets.json aus
+     Google Cloud Console → "Via Google anmelden"-Button öffnet Browser,
+     Token wird lokal gespeichert und automatisch erneuert)
+- KI: Zusammenfassungs-Reihenfolge: Claude SDK → Gemini → Ollama → Extraktion
+- Einstellungen "KI & Barrierefreiheit": neuer Block "Google Gemini KI" mit
+  API-Key-Feld, "Via Google anmelden"-, "Abmelden"-Button und Auth-Status-Anzeige
+- Neu: src/gemini_auth.py – GeminiAuthManager für Token-Verwaltung und OAuth-Flow
+
+2026-03-28 (v2.0.1)
+- UI: Neue Einstellungsseite "KI & Barrierefreiheit" im Einstellungs-Fenster.
+  Claude-API-Schlüssel, Sprachsteuerung an/aus mit Jetzt-starten/stoppen-Buttons,
+  Braille-Verbositätsstufe (kompakt/normal/ausführlich), Live-Transkription an/aus.
+- UI: Multi-Server-Switcher im Hauptfenster (über der Bereichsauswahl).
+  Wird automatisch eingeblendet wenn mehr als eine Server-Session aktiv ist.
+  Choice-Liste zeigt alle Sessions mit Verbindungsstatus, Verbinden/Trennen-Buttons.
+  Wechsel zwischen Sessions via Dropdown oder server_manager.switch_to().
+- UI: Transkriptions-Panel im "Kanäle und Chat"-Tab (standardmäßig versteckt).
+  Erscheint automatisch sobald das Whisper-Modell geladen ist oder eine Transkription
+  eintrifft. Zeigt Zeitstempel + Text, max. 50 Zeilen. Ausblenden/Leeren-Buttons.
+- Tastenkürzel: "Braille-Verbosität wechseln" und "KI-Zusammenfassung ansagen"
+  im Tastenkürzel-Tab belegbar. Werden korrekt gespeichert und geladen.
+
+2026-03-28 (v2.0.0)
+- Säule 1 – Architektur:
+  * SQLite-Einstellungsdatenbank (settings_db.py): Alle App-Einstellungen und
+    Serverprofile werden jetzt in einer einzigen SQLite-Datei (settings.db)
+    gespeichert. Beim ersten Start automatische Migration aus JSON-Dateien.
+    SQLiteSettingsStore / SQLiteServerStore haben identische API zu den alten
+    SettingsStore / ServerStore – volle Rückwärtskompatibilität.
+  * Multi-Server nativ (server_session.py): ServerSession kapselt je einen
+    TeamTalkClient, ServerManager verwaltet beliebig viele Sessions.
+    Events: active_server_changed, server_state_changed auf dem Bus.
+    Aktive Session steuert die Haupt-UI; Wechsel via ServerManager.switch_to().
+  * Plugin-System: bereits vollständig in v1.10.x implementiert.
+
+- Säule 2 – Barrierefreiheit first:
+  * Braillezeilen-Ausgabe (braille_output.py): BrailleOutputManager mit drei
+    Verbositätsstufen (kompakt / normal / ausführlich). Hotkey zum Durchschalten
+    (hotkey_cycle_braille_verbosity). Fokus-Tracking mit automatischen Ansagen
+    bei Gebietswechseln. strip_for_braille() entfernt Emojis und Sonderzeichen.
+    format_channel_entry() / format_user_entry() / format_message() passen
+    Ausgabe je Verbositätsstufe an.
+  * Sprachsteuerung (voice_control.py): VoiceCommandManager mit Whisper-Backend
+    (openai-whisper + pyaudio, optional). Erkennt Befehle: stumm, sprechen,
+    kanal <Name> (fuzzy), status, hilfe, beenden. VAD-basiertes Lauschen im
+    Hintergrundthread. Graceful fallback wenn Whisper nicht installiert.
+    Aktivierung über settings.voice_control_enabled.
+
+- Säule 3 – Medien & KI:
+  * Live-Transkription (transcription.py): TranscriptionManager puffert PCM-
+    Audio und transkribiert es alle 5 Sekunden via Whisper. Ergebnis als
+    transcription_result-Event auf dem Bus. Resampling beliebiger Samplerates
+    auf 16 kHz. Optionales Modell-Laden im Hintergrundthread.
+  * KI-Chat-Zusammenfassung (ai_summary.py): ChatSummaryManager fasst verpasste
+    Nachrichten zusammen. Backends: Claude API (claude-haiku-4-5-20251001) →
+    Ollama (llama3.2/phi3/mistral) → einfache Extraktion (immer verfügbar).
+    Hotkey hotkey_ai_summary. Automatisch aufrufbar nach "away"-Rückkehr.
+  * ElevenLabs Echtzeit-Streaming (speak.py): Neue Checkbox "Echtzeit-Streaming"
+    im Sprechen-Tab. Nutzt /v1/text-to-speech/{id}/stream API. Playback startet
+    progressiv ab ~32 KB empfangener Daten. _can_stream() prüft Modell-
+    Kompatibilität. Unabhängige Temp-Datei-Verwaltung für Streaming.
+
 2026-03-28 (v1.10.7)
 - Bugfix: Kanalliste für VoiceOver zugänglich gemacht.
   wx.TreeCtrl (NSOutlineView) hatte keine Patches für Item-Text – VoiceOver las keine Einträge.

@@ -65,6 +65,7 @@ class SettingsTab(wx.Panel):
         self.section_choice = wx.Choice(self, choices=[
             "Allgemein", "Anzeige", "Verbindung", "Sound-Ereignisse",
             "Audio", "Video", "Tastenkürzel", "System & TTS", "ElevenLabs",
+            "KI & Barrierefreiheit",
         ])
         self.section_choice.SetName("Einstellungsbereich")
         self.section_choice.SetSelection(0)
@@ -93,6 +94,7 @@ class SettingsTab(wx.Panel):
         self.connection_tab_settings = self._build_connection_tab()
         self.sound_events_tab = self._build_sound_events_tab()
         self.elevenlabs_tab = self._build_elevenlabs_tab()
+        self.ai_tab = self._build_ai_tab()
 
         self._sections = {
             "Allgemein": self.general_tab,
@@ -104,6 +106,7 @@ class SettingsTab(wx.Panel):
             "Tastenkürzel": self.shortcuts_tab,
             "System & TTS": self.system_tab,
             "ElevenLabs": self.elevenlabs_tab,
+            "KI & Barrierefreiheit": self.ai_tab,
         }
 
         for panel in self._sections.values():
@@ -681,6 +684,229 @@ class SettingsTab(wx.Panel):
         self.frame.settings_store.save()
         self.frame._update_speak_tab(key)
         self.frame.set_status("ElevenLabs API-Schlüssel gespeichert")
+
+    # ------------------------------------------------------------------
+    # KI & Barrierefreiheit (v2.0.0)
+    # ------------------------------------------------------------------
+
+    def _build_ai_tab(self) -> wx.Panel:
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        s = self.frame.settings_store.settings
+
+        # --- Claude API ---
+        claude_box = wx.StaticBox(panel, label="Claude KI (Anthropic)")
+        claude_sizer = wx.StaticBoxSizer(claude_box, wx.VERTICAL)
+
+        info_claude = wx.StaticText(panel, label=(
+            "Claude-API-Schlüssel für KI-Chat-Zusammenfassungen.\n"
+            "Alternativ: Umgebungsvariable ANTHROPIC_API_KEY setzen.\n"
+            "Ohne Schlüssel: Ollama (lokal) oder einfache Extraktion."
+        ))
+        info_claude.SetName("Claude Info")
+        claude_sizer.Add(info_claude, 0, wx.ALL, 8)
+
+        key_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
+        key_form.AddGrowableCol(1)
+        key_form.Add(wx.StaticText(panel, label="API-Schlüssel"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._claude_api_key = wx.TextCtrl(
+            panel, value=str(getattr(s, "claude_api_key", "") or ""), style=wx.TE_PASSWORD
+        )
+        self._claude_api_key.SetName("Claude API-Schlüssel")
+        key_form.Add(self._claude_api_key, 1, wx.EXPAND)
+        claude_sizer.Add(key_form, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        sizer.Add(claude_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        # --- Google Gemini ---
+        gemini_box = wx.StaticBox(panel, label="Google Gemini KI")
+        gemini_sizer = wx.StaticBoxSizer(gemini_box, wx.VERTICAL)
+
+        info_gemini = wx.StaticText(panel, label=(
+            "API-Key aus https://aistudio.google.com/app/apikey\n"
+            "oder Via Google anmelden (Browser-OAuth, kein Key nötig).\n"
+            "Für OAuth: client_secrets.json aus Google Cloud Console\n"
+            "in den App-Daten-Ordner legen."
+        ))
+        info_gemini.SetName("Gemini Info")
+        gemini_sizer.Add(info_gemini, 0, wx.ALL, 8)
+
+        gemini_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
+        gemini_form.AddGrowableCol(1)
+        gemini_form.Add(wx.StaticText(panel, label="API-Schlüssel"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._gemini_api_key = wx.TextCtrl(
+            panel, value=str(getattr(s, "gemini_api_key", "") or ""), style=wx.TE_PASSWORD
+        )
+        self._gemini_api_key.SetName("Gemini API-Schlüssel")
+        gemini_form.Add(self._gemini_api_key, 1, wx.EXPAND)
+        gemini_sizer.Add(gemini_form, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        gemini_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._gemini_login_btn = wx.Button(panel, label="&Via Google anmelden")
+        self._gemini_login_btn.SetName("Via Google anmelden")
+        self._gemini_login_btn.Bind(wx.EVT_BUTTON, self._on_gemini_login)
+        self._gemini_logout_btn = wx.Button(panel, label="&Abmelden")
+        self._gemini_logout_btn.SetName("Google Abmelden")
+        self._gemini_logout_btn.Bind(wx.EVT_BUTTON, self._on_gemini_logout)
+        gemini_btn_row.Add(self._gemini_login_btn, 0, wx.RIGHT, 8)
+        gemini_btn_row.Add(self._gemini_logout_btn, 0, wx.RIGHT, 12)
+        self._gemini_status_label = wx.StaticText(panel, label="")
+        self._gemini_status_label.SetName("Gemini Auth-Status")
+        gemini_btn_row.Add(self._gemini_status_label, 1, wx.ALIGN_CENTER_VERTICAL)
+        gemini_sizer.Add(gemini_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(gemini_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        # Status initial befüllen
+        wx.CallAfter(self._refresh_gemini_status)
+
+        # --- Sprachsteuerung ---
+        vc_box = wx.StaticBox(panel, label="Sprachsteuerung (Whisper)")
+        vc_sizer = wx.StaticBoxSizer(vc_box, wx.VERTICAL)
+
+        info_vc = wx.StaticText(panel, label=(
+            "Erfordert: pip install openai-whisper pyaudio\n"
+            "Beim Start wird Whisper-Modell 'base' geladen (~150 MB)."
+        ))
+        info_vc.SetName("Sprachsteuerung Info")
+        vc_sizer.Add(info_vc, 0, wx.ALL, 8)
+
+        self._voice_control_enabled = wx.CheckBox(panel, label="&Sprachsteuerung beim Start aktivieren")
+        self._voice_control_enabled.SetName("Sprachsteuerung aktivieren")
+        self._voice_control_enabled.SetValue(bool(getattr(s, "voice_control_enabled", False)))
+        vc_sizer.Add(self._voice_control_enabled, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        vc_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._vc_start_btn = wx.Button(panel, label="&Jetzt starten")
+        self._vc_start_btn.SetName("Sprachsteuerung jetzt starten")
+        self._vc_start_btn.Bind(wx.EVT_BUTTON, self._on_vc_start)
+        self._vc_stop_btn = wx.Button(panel, label="&Stoppen")
+        self._vc_stop_btn.SetName("Sprachsteuerung stoppen")
+        self._vc_stop_btn.Bind(wx.EVT_BUTTON, self._on_vc_stop)
+        vc_btn_row.Add(self._vc_start_btn, 0, wx.RIGHT, 8)
+        vc_btn_row.Add(self._vc_stop_btn, 0)
+        vc_sizer.Add(vc_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(vc_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # --- Braille-Verbosität ---
+        braille_box = wx.StaticBox(panel, label="Braillezeilen-Ausgabe")
+        braille_sizer = wx.StaticBoxSizer(braille_box, wx.VERTICAL)
+
+        braille_row = wx.BoxSizer(wx.HORIZONTAL)
+        braille_row.Add(wx.StaticText(panel, label="Verbositätsstufe"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._braille_verbosity = wx.Choice(panel, choices=["kompakt", "normal", "ausführlich"])
+        self._braille_verbosity.SetName("Braille-Verbositätsstufe")
+        _vmap = {"compact": 0, "normal": 1, "verbose": 2}
+        self._braille_verbosity.SetSelection(_vmap.get(getattr(s, "braille_verbosity", "normal"), 1))
+        braille_row.Add(self._braille_verbosity, 0)
+        braille_sizer.Add(braille_row, 0, wx.ALL, 8)
+        sizer.Add(braille_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # --- Live-Transkription ---
+        trans_box = wx.StaticBox(panel, label="Live-Transkription")
+        trans_sizer = wx.StaticBoxSizer(trans_box, wx.VERTICAL)
+
+        info_trans = wx.StaticText(panel, label=(
+            "Erfordert: pip install openai-whisper numpy\n"
+            "Transkribiert Kanal-Sprache und zeigt sie im Kanäle-Tab an."
+        ))
+        info_trans.SetName("Transkription Info")
+        trans_sizer.Add(info_trans, 0, wx.ALL, 8)
+
+        self._transcription_enabled = wx.CheckBox(panel, label="Live-&Transkription aktivieren")
+        self._transcription_enabled.SetName("Live-Transkription aktivieren")
+        self._transcription_enabled.SetValue(bool(getattr(s, "transcription_enabled", False)))
+        trans_sizer.Add(self._transcription_enabled, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(trans_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # --- Speichern ---
+        save_btn = wx.Button(panel, label="&Speichern")
+        save_btn.SetName("KI & Barrierefreiheit speichern")
+        save_btn.Bind(wx.EVT_BUTTON, self._on_save_ai)
+        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        return panel
+
+    def _on_save_ai(self, _event) -> None:
+        s = self.frame.settings_store.settings
+        s.claude_api_key = self._claude_api_key.GetValue().strip()
+        s.gemini_api_key = self._gemini_api_key.GetValue().strip()
+        s.voice_control_enabled = self._voice_control_enabled.GetValue()
+        _vmap_rev = {0: "compact", 1: "normal", 2: "verbose"}
+        verbosity = _vmap_rev.get(self._braille_verbosity.GetSelection(), "normal")
+        s.braille_verbosity = verbosity
+        self.frame.braille.verbosity = verbosity
+        s.transcription_enabled = self._transcription_enabled.GetValue()
+        # Transkription starten/stoppen je nach Einstellung
+        self._apply_transcription_setting(s.transcription_enabled)
+        self.frame.settings_store.save()
+        self.frame.set_status("KI & Barrierefreiheit gespeichert")
+
+    def _apply_transcription_setting(self, enabled: bool) -> None:
+        try:
+            mgr = getattr(self.frame, "_transcription_mgr", None)
+            if enabled and mgr is None:
+                from transcription import TranscriptionManager
+                self.frame._transcription_mgr = TranscriptionManager(self.frame.bus)
+                self.frame._transcription_mgr.load_model()
+                self.frame._transcription_mgr.start()
+            elif not enabled and mgr is not None:
+                mgr.stop()
+                self.frame._transcription_mgr = None
+        except Exception as exc:
+            self.frame.set_status(f"Transkription: {exc}")
+
+    def _refresh_gemini_status(self) -> None:
+        try:
+            label = self.frame._gemini_auth.auth_status_label()
+            self._gemini_status_label.SetLabel(label)
+        except Exception:
+            pass
+
+    def _on_gemini_login(self, _event) -> None:
+        self._gemini_login_btn.Disable()
+        self._gemini_status_label.SetLabel("Browser öffnet sich...")
+
+        def _on_success(_creds) -> None:
+            import wx as _wx
+            _wx.CallAfter(self._gemini_login_btn.Enable)
+            _wx.CallAfter(self._refresh_gemini_status)
+            _wx.CallAfter(self.frame.set_status, "Google-Anmeldung erfolgreich")
+
+        def _on_error(msg: str) -> None:
+            import wx as _wx
+            _wx.CallAfter(self._gemini_login_btn.Enable)
+            _wx.CallAfter(self._gemini_status_label.SetLabel, f"Fehler: {msg[:60]}")
+            _wx.CallAfter(self.frame.set_status, f"Gemini-Anmeldung fehlgeschlagen: {msg}")
+
+        try:
+            self.frame._gemini_auth.start_oauth_flow(
+                on_success=_on_success,
+                on_error=_on_error,
+            )
+        except Exception as exc:
+            self._gemini_login_btn.Enable()
+            self._gemini_status_label.SetLabel(f"Fehler: {exc}")
+
+    def _on_gemini_logout(self, _event) -> None:
+        try:
+            self.frame._gemini_auth.revoke()
+            self._refresh_gemini_status()
+            self.frame.set_status("Google-Abmeldung erfolgreich")
+        except Exception as exc:
+            self.frame.set_status(f"Gemini-Abmeldung: {exc}")
+
+    def _on_vc_start(self, _event) -> None:
+        try:
+            self.frame._start_voice_control()
+        except Exception as exc:
+            self.frame.set_status(f"Sprachsteuerung: {exc}")
+
+    def _on_vc_stop(self, _event) -> None:
+        try:
+            self.frame._stop_voice_control()
+            self.frame.set_status("Sprachsteuerung gestoppt")
+        except Exception as exc:
+            self.frame.set_status(f"Sprachsteuerung: {exc}")
 
     # ------------------------------------------------------------------
     # Section navigation
