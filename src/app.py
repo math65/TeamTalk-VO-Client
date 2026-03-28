@@ -51,7 +51,7 @@ from webhook_manager import WebhookManager
 from http_api import HttpApiServer
 
 
-APP_VERSION = "3.3.0"
+APP_VERSION = "3.4.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -646,6 +646,12 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_TIMER, self._on_recording_seg_timer, self._recording_seg_timer)
         self._recording_seg_timer.Start(30_000)
 
+        # v3.4.0 – Stille-Erkennung: alle 2 Sekunden prüfen
+        self._silence_seconds: float = 0.0
+        self._silence_check_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_silence_check_timer, self._silence_check_timer)
+        self._silence_check_timer.Start(2_000)
+
         # Start global hotkeys if configured
         wx.CallLater(500, self.apply_global_hotkeys)
         # v2.0.0 – Sprachsteuerung starten wenn konfiguriert
@@ -994,6 +1000,31 @@ class MainFrame(wx.Frame):
                     self.on_menu_record_stop(None)
                     self.on_menu_record_start(None)
                     self._recording_seg_start = time.time()
+        except Exception:
+            pass
+
+    # v3.4.0 – Stille-Erkennung während Aufnahme
+    def _on_silence_check_timer(self, _event) -> None:
+        if self._closing or not self._recording_active:
+            self._silence_seconds = 0.0
+            return
+        s = self.settings_store.settings
+        silence_enabled = bool(getattr(s, "silence_detection_enabled", False))
+        if not silence_enabled:
+            return
+        silence_timeout = int(getattr(s, "silence_detection_timeout_sec", 30) or 30)
+        silence_threshold = int(getattr(s, "silence_detection_threshold_pct", 2) or 2)
+        try:
+            level = self.client.get_sound_input_level()
+            pct = min(100, int(level * 100 / 32768)) if level is not None else 0
+            if pct <= silence_threshold:
+                self._silence_seconds += 2.0
+                if self._silence_seconds >= silence_timeout:
+                    self._silence_seconds = 0.0
+                    self.on_menu_record_stop(None)
+                    self.set_status(f"Aufnahme durch Stille-Erkennung gestoppt ({silence_timeout}s Stille)")
+            else:
+                self._silence_seconds = 0.0
         except Exception:
             pass
 
@@ -1498,6 +1529,8 @@ class MainFrame(wx.Frame):
         audio_loopback = audio_menu.AppendCheckItem(wx.ID_ANY, "Mikrofontest")
         audio_menu.AppendSeparator()
         audio_mute_all = audio_menu.AppendCheckItem(wx.ID_ANY, "Alles stummschalten")
+        audio_menu.AppendSeparator()
+        audio_eq_presets = audio_menu.Append(wx.ID_ANY, "Equalizer-Voreinstellungen...")
         menubar.Append(audio_menu, "Audio")
 
         # Video
@@ -1516,6 +1549,7 @@ class MainFrame(wx.Frame):
         rec_stop = rec_menu.Append(wx.ID_ANY, "Aufnahme stoppen")
         rec_menu.AppendSeparator()
         rec_scheduled = rec_menu.Append(wx.ID_ANY, "Geplante Aufnahmen...")
+        rec_browser = rec_menu.Append(wx.ID_ANY, "Aufnahmen durchsuchen...")
         menubar.Append(rec_menu, "Aufnahmen")
 
         # Hilfe
@@ -1655,6 +1689,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_audio_refresh, audio_refresh)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_loopback, audio_loopback)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_mute_all, audio_mute_all)
+        self.Bind(wx.EVT_MENU, self.on_menu_eq_presets, audio_eq_presets)
 
         self.Bind(wx.EVT_MENU, self.on_menu_video_toggle, video_tx)
         self.Bind(wx.EVT_MENU, self.on_menu_video_settings, video_settings)
@@ -1664,6 +1699,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_record_stop, rec_stop)
         self.Bind(wx.EVT_MENU, self.on_menu_record_conversations, rec_convo)
         self.Bind(wx.EVT_MENU, self.on_menu_scheduled_recordings, rec_scheduled)
+        self.Bind(wx.EVT_MENU, self.on_menu_recording_browser, rec_browser)
 
         self.Bind(wx.EVT_MENU, self.on_menu_settings, help_settings)
         self.Bind(wx.EVT_MENU, self.on_menu_export_logs, help_logs)
@@ -3734,6 +3770,92 @@ class MainFrame(wx.Frame):
         self.client.set_sound_output_mute(enabled)
         self.set_status("Ausgabe stummgeschaltet" if enabled else "Ausgabe aktiv")
 
+    def on_menu_eq_presets(self, _event):
+        """v3.4.0 – Equalizer-Voreinstellungen: Mikrofon- und Ausgabelautstärke Presets."""
+        # Presets: (name, mic_gain_pct, out_volume_pct)
+        _PRESETS = [
+            ("Standard",      50, 100),
+            ("Sprache (klar)", 65, 90),
+            ("Musik",          45, 110),
+            ("Laut",           70, 120),
+            ("Leise",          35, 70),
+            ("Stille",         0,  0),
+        ]
+        s = self.settings_store.settings
+        current_preset = getattr(s, "eq_active_preset", "Standard")
+
+        dlg = wx.Dialog(self, title="Equalizer-Voreinstellungen",
+                        style=wx.DEFAULT_DIALOG_STYLE)
+        root = wx.BoxSizer(wx.VERTICAL)
+
+        root.Add(wx.StaticText(dlg, label="Voreinstellung wählen:"), 0, wx.ALL, 8)
+        preset_choice = wx.Choice(dlg, choices=[p[0] for p in _PRESETS])
+        preset_choice.SetName("Equalizer-Voreinstellung")
+        # select current preset
+        names = [p[0] for p in _PRESETS]
+        if current_preset in names:
+            preset_choice.SetSelection(names.index(current_preset))
+        else:
+            preset_choice.SetSelection(0)
+        root.Add(preset_choice, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # Custom adjustment sliders
+        custom_box = wx.StaticBox(dlg, label="Manuelle Anpassung")
+        custom_sizer = wx.StaticBoxSizer(custom_box, wx.VERTICAL)
+
+        mic_row = wx.BoxSizer(wx.HORIZONTAL)
+        mic_row.Add(wx.StaticText(dlg, label="Mikrofon-Gain (%):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        mic_spin = wx.SpinCtrl(dlg, min=0, max=200, initial=int(getattr(s, "eq_mic_gain_pct", 50) or 50))
+        mic_spin.SetName("Mikrofon-Gain Prozent")
+        mic_row.Add(mic_spin, 0)
+        custom_sizer.Add(mic_row, 0, wx.ALL, 8)
+
+        out_row = wx.BoxSizer(wx.HORIZONTAL)
+        out_row.Add(wx.StaticText(dlg, label="Ausgabe-Lautstärke (%):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        out_spin = wx.SpinCtrl(dlg, min=0, max=200, initial=int(getattr(s, "eq_out_volume_pct", 100) or 100))
+        out_spin.SetName("Ausgabe-Lautstärke Prozent")
+        out_row.Add(out_spin, 0)
+        custom_sizer.Add(out_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        root.Add(custom_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        def _on_preset_changed(_evt):
+            idx = preset_choice.GetSelection()
+            if 0 <= idx < len(_PRESETS):
+                _, mic, out = _PRESETS[idx]
+                mic_spin.SetValue(mic)
+                out_spin.SetValue(out)
+
+        preset_choice.Bind(wx.EVT_CHOICE, _on_preset_changed)
+
+        btns = dlg.CreateButtonSizer(wx.OK | wx.CANCEL)
+        root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
+        dlg.SetSizerAndFit(root)
+        dlg.CentreOnParent()
+
+        if dlg.ShowModal() == wx.ID_OK:
+            mic_pct = mic_spin.GetValue()
+            out_pct = out_spin.GetValue()
+            preset_name = preset_choice.GetString(preset_choice.GetSelection())
+            # Save to settings
+            s.eq_active_preset = preset_name
+            s.eq_mic_gain_pct = mic_pct
+            s.eq_out_volume_pct = out_pct
+            self.settings_store.save()
+            # Apply: mic gain (0-32768 SDK range, 50% = 8192 mid)
+            try:
+                sdk_mic = min(32768, int(mic_pct * 32768 / 100))
+                self.client.set_sound_input_gain(sdk_mic)
+            except Exception:
+                pass
+            # Apply: output volume (0-32768, 100% = full)
+            try:
+                sdk_out = min(32768, int(out_pct * 32768 / 100))
+                self.client.set_sound_output_volume(sdk_out)
+            except Exception:
+                pass
+            self.set_status(f"Equalizer: {preset_name} angewendet (Mikrofon {mic_pct}%, Ausgabe {out_pct}%)")
+        dlg.Destroy()
+
     def on_menu_record_conversations(self, _event):
         if not self._select_tab_by_label("Aufnahme & Medien"):
             self._replace_lazy_tab("media", MediaTab)
@@ -3776,6 +3898,132 @@ class MainFrame(wx.Frame):
             self.set_status("Aufnahme beendet")
         else:
             self.set_status("Aufnahme beenden fehlgeschlagen")
+
+    def on_menu_recording_browser(self, _event):
+        """v3.4.0 – Aufnahmen-Browser: durchsuche und spiele vergangene Aufnahmen ab."""
+        import os, glob as _glob
+        s = self.settings_store.settings
+        # Determine search directories
+        dirs_to_scan = []
+        user_dir = getattr(s, "_last_recording_dir", "")
+        if user_dir and os.path.isdir(user_dir):
+            dirs_to_scan.append(user_dir)
+        from platform_paths import app_data_dir
+        default_dir = str(app_data_dir() / "Aufnahmen")
+        if os.path.isdir(default_dir):
+            dirs_to_scan.append(default_dir)
+        # Collect .wav and .mp3 files
+        files = []
+        for d in dirs_to_scan:
+            for ext in ("*.wav", "*.mp3"):
+                files.extend(_glob.glob(os.path.join(d, ext)))
+        # Also search home Downloads
+        dl = os.path.join(os.path.expanduser("~"), "Downloads")
+        if os.path.isdir(dl):
+            for ext in ("*.wav", "*.mp3"):
+                files.extend(_glob.glob(os.path.join(dl, ext)))
+        files = sorted(set(files), key=os.path.getmtime, reverse=True)[:200]
+
+        dlg = wx.Dialog(self, title="Aufnahmen-Browser",
+                        style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
+        root = wx.BoxSizer(wx.VERTICAL)
+
+        info_lbl = wx.StaticText(dlg, label=f"{len(files)} Aufnahme(n) gefunden")
+        info_lbl.SetName("Aufnahmen Anzahl")
+        root.Add(info_lbl, 0, wx.ALL, 8)
+
+        lb = wx.ListBox(dlg, style=wx.LB_SINGLE)
+        lb.SetName("Aufnahmeliste")
+        for f in files:
+            size_kb = os.path.getsize(f) // 1024
+            mtime = os.path.getmtime(f)
+            import datetime as _dt
+            dt_str = _dt.datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
+            lb.Append(f"{os.path.basename(f)}, {dt_str}, {size_kb} KB")
+        lb.SetMinSize((600, 320))
+        root.Add(lb, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
+
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        play_btn = wx.Button(dlg, label="&Abspielen")
+        play_btn.SetName("Aufnahme abspielen")
+        delete_btn = wx.Button(dlg, label="&Löschen")
+        delete_btn.SetName("Aufnahme löschen")
+        open_btn = wx.Button(dlg, label="Im &Finder öffnen")
+        open_btn.SetName("Aufnahme im Finder öffnen")
+        close_btn = wx.Button(dlg, wx.ID_CANCEL, label="&Schließen")
+        btn_row.Add(play_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(delete_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(open_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(close_btn, 0)
+        root.Add(btn_row, 0, wx.ALL, 8)
+        dlg.SetSizer(root)
+        dlg.Fit()
+        dlg.CentreOnParent()
+
+        def _get_selected_file():
+            idx = lb.GetSelection()
+            if idx == wx.NOT_FOUND or idx >= len(files):
+                return None
+            return files[idx]
+
+        def _on_play(_evt):
+            f = _get_selected_file()
+            if not f:
+                return
+            import subprocess
+            try:
+                if sys.platform == "darwin":
+                    subprocess.Popen(["afplay", f])
+                elif sys.platform == "win32":
+                    import winsound
+                    winsound.PlaySound(f, winsound.SND_FILENAME | winsound.SND_ASYNC)
+                else:
+                    subprocess.Popen(["xdg-open", f])
+            except Exception as exc:
+                wx.MessageBox(f"Abspielen fehlgeschlagen: {exc}", "Fehler", wx.OK | wx.ICON_ERROR)
+
+        def _on_delete(_evt):
+            f = _get_selected_file()
+            if not f:
+                return
+            if wx.MessageBox(
+                f"'{os.path.basename(f)}' wirklich löschen?",
+                "Löschen bestätigen",
+                wx.YES_NO | wx.ICON_WARNING
+            ) != wx.YES:
+                return
+            try:
+                os.remove(f)
+                idx = lb.GetSelection()
+                files.pop(idx)
+                lb.Delete(idx)
+                info_lbl.SetLabel(f"{len(files)} Aufnahme(n) gefunden")
+            except Exception as exc:
+                wx.MessageBox(f"Löschen fehlgeschlagen: {exc}", "Fehler", wx.OK | wx.ICON_ERROR)
+
+        def _on_open(_evt):
+            f = _get_selected_file()
+            if not f:
+                return
+            import subprocess
+            try:
+                if sys.platform == "darwin":
+                    subprocess.Popen(["open", "-R", f])
+                elif sys.platform == "win32":
+                    subprocess.Popen(["explorer", "/select,", f])
+                else:
+                    subprocess.Popen(["xdg-open", os.path.dirname(f)])
+            except Exception:
+                pass
+
+        play_btn.Bind(wx.EVT_BUTTON, _on_play)
+        delete_btn.Bind(wx.EVT_BUTTON, _on_delete)
+        open_btn.Bind(wx.EVT_BUTTON, _on_open)
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def on_menu_export_logs(self, _event):
         try:

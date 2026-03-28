@@ -468,6 +468,25 @@ class SettingsTab(wx.Panel):
         seg_sizer.Add(seg_grid, 0, wx.ALL, 8)
         sizer.Add(seg_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
+        # v3.4.0 – Stille-Erkennung
+        silence_box = wx.StaticBox(panel, label="Stille-Erkennung (stoppt Aufnahme bei Stille)")
+        silence_sizer = wx.StaticBoxSizer(silence_box, wx.VERTICAL)
+        self._silence_detection_enabled = wx.CheckBox(panel, label="&Stille-Erkennung aktivieren")
+        self._silence_detection_enabled.SetName("Stille-Erkennung aktivieren")
+        self._silence_detection_enabled.SetValue(bool(getattr(s, "silence_detection_enabled", False)))
+        silence_sizer.Add(self._silence_detection_enabled, 0, wx.ALL, 8)
+        silence_grid = wx.FlexGridSizer(2, 2, 8, 8)
+        silence_grid.Add(wx.StaticText(panel, label="Stille-Schwellenwert (%):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._silence_threshold = wx.SpinCtrl(panel, min=0, max=50, initial=int(getattr(s, "silence_detection_threshold_pct", 2) or 2))
+        self._silence_threshold.SetName("Stille-Schwellenwert Prozent")
+        silence_grid.Add(self._silence_threshold, 0)
+        silence_grid.Add(wx.StaticText(panel, label="Stille-Timeout (Sekunden):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._silence_timeout = wx.SpinCtrl(panel, min=5, max=600, initial=int(getattr(s, "silence_detection_timeout_sec", 30) or 30))
+        self._silence_timeout.SetName("Stille-Timeout Sekunden")
+        silence_grid.Add(self._silence_timeout, 0)
+        silence_sizer.Add(silence_grid, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(silence_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         # Single save button
         save_btn = wx.Button(panel, label="&Speichern")
         save_btn.SetName("Aufnahme & PTT speichern")
@@ -1555,6 +1574,10 @@ class SettingsTab(wx.Panel):
         s.vu_alert_threshold = int(self._vu_alert_threshold.GetValue())
         s.recording_max_size_mb = int(self._rec_max_size.GetValue())
         s.recording_max_minutes = int(self._rec_max_minutes.GetValue())
+        # v3.4.0 – Stille-Erkennung
+        s.silence_detection_enabled = self._silence_detection_enabled.GetValue()
+        s.silence_detection_threshold_pct = int(self._silence_threshold.GetValue())
+        s.silence_detection_timeout_sec = int(self._silence_timeout.GetValue())
         self.frame.settings_store.save()
         self.frame.set_status("PTT & Erweitert gespeichert")
 

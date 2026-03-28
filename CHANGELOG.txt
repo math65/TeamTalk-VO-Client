@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-03-28 (v3.4.0)
+- Aufnahmen-Browser: neuer Menüpunkt Aufnahmen → Aufnahmen durchsuchen
+  listet vergangene .wav/.mp3-Aufnahmen aus üblichen Verzeichnissen;
+  Abspielen, Löschen und im Finder öffnen direkt aus dem Dialog
+- Stille-Erkennung: Aufnahme wird automatisch gestoppt wenn der
+  Eingangspegel für konfigurierbare Zeit unter den Schwellenwert fällt
+  (Einstellungen → Audio & Aufnahme)
+- Equalizer-Voreinstellungen: Audio → Equalizer-Voreinstellungen mit
+  sechs Presets (Standard, Sprache, Musik, Laut, Leise, Stille) und
+  manueller Mikrofon/Ausgabe-Lautstärke Feinabstimmung
+
 2026-03-28 (v3.3.0)
 - VoiceOver-Ankündigung für eingehende Privatnachrichten via
   NSAccessibilityAnnouncementRequested (macOS)
