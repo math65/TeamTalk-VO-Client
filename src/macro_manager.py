@@ -95,3 +95,60 @@ class MacroManager:
             self._frame.client.set_sound_output_mute(new_val)
         except Exception:
             pass
+
+    # ------------------------------------------------------------------
+    # v3.5.0 – Trigger-System
+    # ------------------------------------------------------------------
+
+    def fire_event(self, event_name: str, **kwargs) -> None:
+        """Prüft alle Trigger-Regeln und führt passende Makros aus."""
+        triggers = list(
+            (self._frame.settings_store.settings.macro_triggers or [])
+        )
+        for rule in triggers:
+            if not isinstance(rule, dict):
+                continue
+            if rule.get("event") != event_name:
+                continue
+            # Optional filter: user name / channel name
+            filter_val = str(rule.get("filter", "") or "").strip().lower()
+            if filter_val:
+                match_val = str(kwargs.get("user", "") or kwargs.get("channel", "")).lower()
+                if filter_val not in match_val:
+                    continue
+            macro_name = str(rule.get("macro", "") or "")
+            macro = self._find_by_name(macro_name)
+            if macro:
+                self.execute(macro)
+
+    def _find_by_name(self, name: str) -> Optional[Dict]:
+        for m in self.get_macros():
+            if m.get("name", "") == name:
+                return m
+        return None
+
+    # ------------------------------------------------------------------
+    # v3.5.0 – Geplante Makros
+    # ------------------------------------------------------------------
+
+    def check_scheduled(self) -> None:
+        """Wird periodisch aufgerufen; führt fällige Makros aus."""
+        import datetime as _dt
+        now = _dt.datetime.now().strftime("%H:%M")
+        scheduled = list(
+            (self._frame.settings_store.settings.scheduled_macros or [])
+        )
+        for entry in scheduled:
+            if not isinstance(entry, dict):
+                continue
+            if entry.get("time") != now:
+                continue
+            # Avoid double-firing within the same minute
+            last_fired = entry.get("_last_fired", "")
+            if last_fired == now:
+                continue
+            entry["_last_fired"] = now
+            macro_name = str(entry.get("macro", "") or "")
+            macro = self._find_by_name(macro_name)
+            if macro:
+                self.execute(macro)

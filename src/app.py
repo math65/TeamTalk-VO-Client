@@ -51,7 +51,7 @@ from webhook_manager import WebhookManager
 from http_api import HttpApiServer
 
 
-APP_VERSION = "3.4.0"
+APP_VERSION = "3.5.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -336,6 +336,11 @@ class MainFrame(wx.Frame):
         # Bus-Handler für Multi-Server
         self.bus.on("active_server_changed", self._on_active_server_changed)
         self.bus.on("server_state_changed", self._on_server_state_changed)
+        # v3.5.0 – Makro-Trigger via Bus-Events
+        self.bus.on("user_joined", lambda **kw: self._macros.fire_event("user_join", **kw))
+        self.bus.on("user_left", lambda **kw: self._macros.fire_event("user_leave", **kw))
+        self.bus.on("chat_message", lambda **kw: self._macros.fire_event("chat_message", **kw))
+        self.bus.on("channel_joined", lambda **kw: self._macros.fire_event("channel_join", **kw))
         plugins_dir = Path(__file__).parent.parent / "plugins"
         self._plugin_loader = PluginLoader(self.bus, plugins_dir, api=self._plugin_api)
         n = self._plugin_loader.load_all()
@@ -651,6 +656,11 @@ class MainFrame(wx.Frame):
         self._silence_check_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._on_silence_check_timer, self._silence_check_timer)
         self._silence_check_timer.Start(2_000)
+
+        # v3.5.0 – Geplante Makros: jede Minute prüfen
+        self._scheduled_macro_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_scheduled_macro_timer, self._scheduled_macro_timer)
+        self._scheduled_macro_timer.Start(60_000)
 
         # Start global hotkeys if configured
         wx.CallLater(500, self.apply_global_hotkeys)
@@ -1000,6 +1010,15 @@ class MainFrame(wx.Frame):
                     self.on_menu_record_stop(None)
                     self.on_menu_record_start(None)
                     self._recording_seg_start = time.time()
+        except Exception:
+            pass
+
+    # v3.5.0 – Geplante Makros
+    def _on_scheduled_macro_timer(self, _event) -> None:
+        if self._closing:
+            return
+        try:
+            self._macros.check_scheduled()
         except Exception:
             pass
 
@@ -1552,6 +1571,14 @@ class MainFrame(wx.Frame):
         rec_browser = rec_menu.Append(wx.ID_ANY, "Aufnahmen durchsuchen...")
         menubar.Append(rec_menu, "Aufnahmen")
 
+        # Automation
+        auto_menu = wx.Menu()
+        auto_macro_editor = auto_menu.Append(wx.ID_ANY, "Makro-Editor...")
+        auto_scheduled_macros = auto_menu.Append(wx.ID_ANY, "Geplante Makros...")
+        auto_menu.AppendSeparator()
+        auto_trigger_editor = auto_menu.Append(wx.ID_ANY, "Trigger-Regeln...")
+        menubar.Append(auto_menu, "Automation")
+
         # Hilfe
         help_menu = wx.Menu()
         help_settings = help_menu.Append(wx.ID_PREFERENCES, "Einstellungen...\tCmd+,")
@@ -1700,6 +1727,9 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_record_conversations, rec_convo)
         self.Bind(wx.EVT_MENU, self.on_menu_scheduled_recordings, rec_scheduled)
         self.Bind(wx.EVT_MENU, self.on_menu_recording_browser, rec_browser)
+        self.Bind(wx.EVT_MENU, self.on_menu_macro_editor, auto_macro_editor)
+        self.Bind(wx.EVT_MENU, self.on_menu_scheduled_macros, auto_scheduled_macros)
+        self.Bind(wx.EVT_MENU, self.on_menu_trigger_editor, auto_trigger_editor)
 
         self.Bind(wx.EVT_MENU, self.on_menu_settings, help_settings)
         self.Bind(wx.EVT_MENU, self.on_menu_export_logs, help_logs)
@@ -3854,6 +3884,300 @@ class MainFrame(wx.Frame):
             except Exception:
                 pass
             self.set_status(f"Equalizer: {preset_name} angewendet (Mikrofon {mic_pct}%, Ausgabe {out_pct}%)")
+        dlg.Destroy()
+
+    # ------------------------------------------------------------------
+    # v3.5.0 – Automation: Makro-Editor, Geplante Makros, Trigger-Regeln
+    # ------------------------------------------------------------------
+
+    def on_menu_macro_editor(self, _event):
+        """Grafischer Makro-Editor: Erstellen, bearbeiten und löschen von Makros."""
+        import json as _json
+        s = self.settings_store.settings
+        macros = list(s.macros or [])
+
+        dlg = wx.Dialog(self, title="Makro-Editor",
+                        style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
+        root = wx.BoxSizer(wx.HORIZONTAL)
+
+        # Left: Makro list
+        left = wx.BoxSizer(wx.VERTICAL)
+        left.Add(wx.StaticText(dlg, label="Makros:"), 0, wx.ALL, 4)
+        macro_lb = wx.ListBox(dlg, style=wx.LB_SINGLE)
+        macro_lb.SetName("Makroliste")
+        for m in macros:
+            macro_lb.Append(m.get("name", "?"))
+        macro_lb.SetMinSize((200, 300))
+        left.Add(macro_lb, 1, wx.EXPAND | wx.BOTTOM, 4)
+
+        lb_btns = wx.BoxSizer(wx.HORIZONTAL)
+        new_btn = wx.Button(dlg, label="&Neu")
+        new_btn.SetName("Makro neu")
+        del_btn = wx.Button(dlg, label="&Löschen")
+        del_btn.SetName("Makro löschen")
+        lb_btns.Add(new_btn, 1, wx.RIGHT, 4)
+        lb_btns.Add(del_btn, 1)
+        left.Add(lb_btns, 0, wx.EXPAND)
+        root.Add(left, 0, wx.ALL | wx.EXPAND, 8)
+
+        # Right: Makro detail editor
+        right = wx.BoxSizer(wx.VERTICAL)
+
+        name_row = wx.BoxSizer(wx.HORIZONTAL)
+        name_row.Add(wx.StaticText(dlg, label="Name:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        name_field = wx.TextCtrl(dlg, size=(200, -1))
+        name_field.SetName("Makro Name")
+        name_row.Add(name_field, 1)
+        right.Add(name_row, 0, wx.BOTTOM | wx.EXPAND, 8)
+
+        right.Add(wx.StaticText(dlg, label="Aktionen (eine pro Zeile, Format: type=value):"), 0, wx.BOTTOM, 4)
+        right.Add(wx.StaticText(dlg, label="  speak=Text | channel=Kanalname | status=Status"), 0, wx.BOTTOM, 2)
+        right.Add(wx.StaticText(dlg, label="  ptt_on | ptt_off | mute_toggle | wait=Sekunden"), 0, wx.BOTTOM, 8)
+        actions_field = wx.TextCtrl(dlg, style=wx.TE_MULTILINE, size=(350, 200))
+        actions_field.SetName("Makro Aktionen")
+        right.Add(actions_field, 1, wx.EXPAND | wx.BOTTOM, 8)
+
+        save_macro_btn = wx.Button(dlg, label="Makro &speichern")
+        save_macro_btn.SetName("Makro speichern")
+        right.Add(save_macro_btn, 0, wx.BOTTOM, 8)
+
+        close_btn = wx.Button(dlg, wx.ID_CLOSE, label="&Schließen")
+        right.Add(close_btn, 0)
+        root.Add(right, 1, wx.TOP | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        dlg.SetSizer(root)
+        dlg.Fit()
+        dlg.CentreOnParent()
+
+        _current_idx = [None]
+
+        def _load_macro(idx):
+            if 0 <= idx < len(macros):
+                m = macros[idx]
+                name_field.SetValue(m.get("name", ""))
+                lines = []
+                for a in m.get("actions", []):
+                    atype = a.get("type", "")
+                    aval = a.get("value", "")
+                    lines.append(f"{atype}={aval}" if aval else atype)
+                actions_field.SetValue("\n".join(lines))
+                _current_idx[0] = idx
+
+        def _on_select(evt):
+            idx = macro_lb.GetSelection()
+            if idx != wx.NOT_FOUND:
+                _load_macro(idx)
+
+        def _on_new(_evt):
+            new_name = f"Makro {len(macros) + 1}"
+            macros.append({"name": new_name, "hotkey": 0, "actions": []})
+            macro_lb.Append(new_name)
+            macro_lb.SetSelection(len(macros) - 1)
+            _load_macro(len(macros) - 1)
+
+        def _on_delete(_evt):
+            idx = macro_lb.GetSelection()
+            if idx == wx.NOT_FOUND:
+                return
+            macros.pop(idx)
+            macro_lb.Delete(idx)
+            _current_idx[0] = None
+            name_field.SetValue("")
+            actions_field.SetValue("")
+
+        def _on_save_macro(_evt):
+            idx = _current_idx[0]
+            if idx is None:
+                return
+            name = name_field.GetValue().strip()
+            if not name:
+                return
+            actions = []
+            for line in actions_field.GetValue().splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                if "=" in line:
+                    atype, _, aval = line.partition("=")
+                    actions.append({"type": atype.strip(), "value": aval.strip()})
+                else:
+                    actions.append({"type": line})
+            macros[idx]["name"] = name
+            macros[idx]["actions"] = actions
+            macro_lb.SetString(idx, name)
+            # Persist immediately
+            s.macros = list(macros)
+            self.settings_store.save()
+            self.set_status(f"Makro '{name}' gespeichert")
+
+        macro_lb.Bind(wx.EVT_LISTBOX, _on_select)
+        new_btn.Bind(wx.EVT_BUTTON, _on_new)
+        del_btn.Bind(wx.EVT_BUTTON, _on_delete)
+        save_macro_btn.Bind(wx.EVT_BUTTON, _on_save_macro)
+        close_btn.Bind(wx.EVT_BUTTON, lambda e: dlg.EndModal(wx.ID_CLOSE))
+
+        dlg.ShowModal()
+        # Final save on close
+        s.macros = list(macros)
+        self.settings_store.save()
+        dlg.Destroy()
+
+    def on_menu_scheduled_macros(self, _event):
+        """v3.5.0 – Geplante Makros: Makros zu bestimmten Uhrzeiten ausführen."""
+        s = self.settings_store.settings
+        scheduled = list(s.scheduled_macros or [])
+        macro_names = [m.get("name", "?") for m in (s.macros or [])]
+
+        dlg = wx.Dialog(self, title="Geplante Makros",
+                        style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        root = wx.BoxSizer(wx.VERTICAL)
+
+        root.Add(wx.StaticText(dlg, label="Format HH:MM – täglich ausführen"), 0, wx.ALL, 8)
+
+        lb = wx.ListBox(dlg, style=wx.LB_SINGLE)
+        lb.SetName("Geplante Makros Liste")
+        for e in scheduled:
+            lb.Append(f"{e.get('time','?')}, Makro: {e.get('macro','?')}")
+        lb.SetMinSize((400, 200))
+        root.Add(lb, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
+
+        form = wx.BoxSizer(wx.HORIZONTAL)
+        form.Add(wx.StaticText(dlg, label="Zeit (HH:MM):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        time_field = wx.TextCtrl(dlg, value="08:00", size=(80, -1))
+        time_field.SetName("Geplante Zeit")
+        form.Add(time_field, 0, wx.RIGHT, 16)
+        form.Add(wx.StaticText(dlg, label="Makro:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        macro_choice = wx.Choice(dlg, choices=macro_names)
+        macro_choice.SetName("Makro auswählen")
+        if macro_names:
+            macro_choice.SetSelection(0)
+        form.Add(macro_choice, 1)
+        root.Add(form, 0, wx.ALL | wx.EXPAND, 8)
+
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        add_btn = wx.Button(dlg, label="&Hinzufügen")
+        add_btn.SetName("Geplantes Makro hinzufügen")
+        del_btn = wx.Button(dlg, label="&Entfernen")
+        del_btn.SetName("Geplantes Makro entfernen")
+        close_btn = wx.Button(dlg, wx.ID_CLOSE, label="&Schließen")
+        btn_row.Add(add_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(del_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(close_btn, 0)
+        root.Add(btn_row, 0, wx.ALL, 8)
+        dlg.SetSizerAndFit(root)
+        dlg.CentreOnParent()
+
+        def _on_add(_evt):
+            t = time_field.GetValue().strip()
+            if len(t) != 5 or t[2] != ":":
+                wx.MessageBox("Ungültiges Zeitformat. Bitte HH:MM eingeben.", "Fehler", wx.OK)
+                return
+            idx = macro_choice.GetSelection()
+            mname = macro_names[idx] if 0 <= idx < len(macro_names) else ""
+            if not mname:
+                return
+            entry = {"time": t, "macro": mname}
+            scheduled.append(entry)
+            lb.Append(f"{t}, Makro: {mname}")
+            s.scheduled_macros = list(scheduled)
+            self.settings_store.save()
+
+        def _on_del(_evt):
+            idx = lb.GetSelection()
+            if idx == wx.NOT_FOUND:
+                return
+            scheduled.pop(idx)
+            lb.Delete(idx)
+            s.scheduled_macros = list(scheduled)
+            self.settings_store.save()
+
+        add_btn.Bind(wx.EVT_BUTTON, _on_add)
+        del_btn.Bind(wx.EVT_BUTTON, _on_del)
+        close_btn.Bind(wx.EVT_BUTTON, lambda e: dlg.EndModal(wx.ID_CLOSE))
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def on_menu_trigger_editor(self, _event):
+        """v3.5.0 – Trigger-Regeln: Makros automatisch bei Ereignissen ausführen."""
+        s = self.settings_store.settings
+        triggers = list(s.macro_triggers or [])
+        macro_names = [m.get("name", "?") for m in (s.macros or [])]
+        _EVENTS = ["user_join", "user_leave", "chat_message", "private_msg", "channel_join"]
+
+        dlg = wx.Dialog(self, title="Trigger-Regeln",
+                        style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        root = wx.BoxSizer(wx.VERTICAL)
+        root.Add(wx.StaticText(dlg, label="Makro automatisch ausführen wenn Ereignis eintritt:"), 0, wx.ALL, 8)
+
+        lb = wx.ListBox(dlg, style=wx.LB_SINGLE)
+        lb.SetName("Trigger-Regeln Liste")
+        for t in triggers:
+            filt = t.get("filter", "") or ""
+            filt_str = f" (Filter: {filt})" if filt else ""
+            lb.Append(f"{t.get('event','?')}{filt_str} → {t.get('macro','?')}")
+        lb.SetMinSize((500, 200))
+        root.Add(lb, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
+
+        form = wx.FlexGridSizer(3, 2, 6, 8)
+        form.AddGrowableCol(1)
+        form.Add(wx.StaticText(dlg, label="Ereignis:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        event_choice = wx.Choice(dlg, choices=_EVENTS)
+        event_choice.SetName("Trigger-Ereignis")
+        event_choice.SetSelection(0)
+        form.Add(event_choice, 1, wx.EXPAND)
+        form.Add(wx.StaticText(dlg, label="Filter (Name, leer=alle):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        filter_field = wx.TextCtrl(dlg)
+        filter_field.SetName("Trigger-Filter")
+        form.Add(filter_field, 1, wx.EXPAND)
+        form.Add(wx.StaticText(dlg, label="Makro:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        macro_choice = wx.Choice(dlg, choices=macro_names)
+        macro_choice.SetName("Trigger-Makro")
+        if macro_names:
+            macro_choice.SetSelection(0)
+        form.Add(macro_choice, 1, wx.EXPAND)
+        root.Add(form, 0, wx.ALL | wx.EXPAND, 8)
+
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        add_btn = wx.Button(dlg, label="&Hinzufügen")
+        del_btn = wx.Button(dlg, label="&Entfernen")
+        close_btn = wx.Button(dlg, wx.ID_CLOSE, label="&Schließen")
+        btn_row.Add(add_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(del_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(close_btn, 0)
+        root.Add(btn_row, 0, wx.ALL, 8)
+        dlg.SetSizerAndFit(root)
+        dlg.CentreOnParent()
+
+        def _on_add(_evt):
+            ev = _EVENTS[event_choice.GetSelection()]
+            filt = filter_field.GetValue().strip()
+            idx = macro_choice.GetSelection()
+            mname = macro_names[idx] if 0 <= idx < len(macro_names) else ""
+            if not mname:
+                return
+            rule = {"event": ev, "filter": filt, "macro": mname}
+            triggers.append(rule)
+            fstr = f" (Filter: {filt})" if filt else ""
+            lb.Append(f"{ev}{fstr} → {mname}")
+            s.macro_triggers = list(triggers)
+            self.settings_store.save()
+
+        def _on_del(_evt):
+            idx = lb.GetSelection()
+            if idx == wx.NOT_FOUND:
+                return
+            triggers.pop(idx)
+            lb.Delete(idx)
+            s.macro_triggers = list(triggers)
+            self.settings_store.save()
+
+        add_btn.Bind(wx.EVT_BUTTON, _on_add)
+        del_btn.Bind(wx.EVT_BUTTON, _on_del)
+        close_btn.Bind(wx.EVT_BUTTON, lambda e: dlg.EndModal(wx.ID_CLOSE))
+        dlg.ShowModal()
         dlg.Destroy()
 
     def on_menu_record_conversations(self, _event):
@@ -6466,6 +6790,8 @@ class MainFrame(wx.Frame):
                 # v3.3.0 – VoiceOver-Ankündigung für eingehende Privatnachrichten
                 from ui.a11y import post_voiceover_announcement
                 wx.CallAfter(post_voiceover_announcement, f"Privatnachricht von {from_user}: {content}")
+                # v3.5.0 – Makro-Trigger für eingehende Privatnachrichten
+                self._macros.fire_event("private_msg", user=from_user or "", text=content or "")
             # Privatnachrichten-Verlauf speichern
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and self.settings_store.settings.save_private_chat_history:
                 server_key = self._get_server_key()
