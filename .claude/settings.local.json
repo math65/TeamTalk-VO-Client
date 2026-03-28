@@ -138,7 +138,10 @@
       "Bash(sed -i '' \"s/''CFBundleVersion'': ''2.4.0''/''CFBundleVersion'': ''2.5.0''/\" \"TeamTalk VO Client.spec\")",
       "Bash(sed -i '' 's/APP_VERSION = \"\"\"\"2.5.0\"\"\"\"/APP_VERSION = \"\"\"\"2.6.0\"\"\"\"/' src/app.py)",
       "Bash(sed -i '' \"s/''''CFBundleShortVersionString'''': ''''2.5.0''''/''''CFBundleShortVersionString'''': ''''2.6.0''''/\" \"TeamTalk VO Client.spec\")",
-      "Bash(sed -i '' \"s/''''CFBundleVersion'''': ''''2.5.0''''/''''CFBundleVersion'''': ''''2.6.0''''/\" \"TeamTalk VO Client.spec\")"
+      "Bash(sed -i '' \"s/''''CFBundleVersion'''': ''''2.5.0''''/''''CFBundleVersion'''': ''''2.6.0''''/\" \"TeamTalk VO Client.spec\")",
+      "Bash(sed -i '' 's/APP_VERSION = \"\"\"\"2.6.0\"\"\"\"/APP_VERSION = \"\"\"\"2.7.0\"\"\"\"/' src/app.py)",
+      "Bash(sed -i '' \"s/''''CFBundleShortVersionString'''': ''''2.6.0''''/''''CFBundleShortVersionString'''': ''''2.7.0''''/\" \"TeamTalk VO Client.spec\")",
+      "Bash(sed -i '' \"s/''''CFBundleVersion'''': ''''2.6.0''''/''''CFBundleVersion'''': ''''2.7.0''''/\" \"TeamTalk VO Client.spec\")"
     ]
   }
 }
