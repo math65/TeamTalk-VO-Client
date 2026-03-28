@@ -51,7 +51,7 @@ from webhook_manager import WebhookManager
 from http_api import HttpApiServer
 
 
-APP_VERSION = "3.2.0"
+APP_VERSION = "3.3.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -913,6 +913,43 @@ class MainFrame(wx.Frame):
         except Exception:
             self.tts.speak("Ping nicht verfügbar", kind="system")
 
+    def _announce_braille_status(self) -> None:
+        """v3.3.0 – Liest konfigurierbaren Braille-Status via TTS vor."""
+        s = self.settings_store.settings
+        parts = []
+        # Kanal
+        if getattr(s, "braille_status_show_channel", True):
+            try:
+                ch = self.client.get_my_channel()
+                name = ch.szName.decode() if ch and hasattr(ch.szName, "decode") else (str(ch.szName) if ch else "")
+                if name:
+                    parts.append(f"Kanal: {name}")
+            except Exception:
+                pass
+        # Nutzeranzahl im Kanal
+        if getattr(s, "braille_status_show_users", True):
+            try:
+                users = self.client.get_channel_users(self.client.get_my_channel_id())
+                parts.append(f"Nutzer: {len(users)}")
+            except Exception:
+                pass
+        # Ping
+        if getattr(s, "braille_status_show_ping", True):
+            try:
+                ping_text = self.connection_tab.get_ping_text()
+                parts.append(ping_text)
+            except Exception:
+                pass
+        # Stummgeschaltet
+        if getattr(s, "braille_status_show_mute", False):
+            parts.append("Stummgeschaltet" if self._mute_all else "Ton aktiv")
+        # Verbindungsstatus
+        if getattr(s, "braille_status_show_connection", True):
+            connected = self.client.is_connected()
+            parts.append("Verbunden" if connected else "Getrennt")
+        text = ", ".join(parts) if parts else "Kein Status konfiguriert"
+        self.tts.speak(text, kind="system")
+
     def _on_scheduled_rec_timer(self, _event) -> None:
         """Prüft ob eine geplante Aufnahme jetzt starten soll."""
         if getattr(self, '_closing', False):
@@ -1489,6 +1526,7 @@ class MainFrame(wx.Frame):
         help_stats_speak = help_menu.Append(wx.ID_ANY, "Statistiken vorlesen")
         help_menu.AppendSeparator()
         help_manual = help_menu.Append(wx.ID_ANY, "Handbuch")
+        help_hotkeys = help_menu.Append(wx.ID_ANY, "Tastenkürzel-Referenz...")
         help_menu.AppendSeparator()
         help_changelog = help_menu.Append(wx.ID_ANY, "Changelog")
         help_about = help_menu.Append(wx.ID_ANY, "Über")
@@ -1632,6 +1670,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_client_stats, help_stats)
         self.Bind(wx.EVT_MENU, self.on_menu_client_stats_speak, help_stats_speak)
         self.Bind(wx.EVT_MENU, self.on_menu_manual, help_manual)
+        self.Bind(wx.EVT_MENU, self.on_menu_hotkey_reference, help_hotkeys)
         self.Bind(wx.EVT_MENU, self.on_menu_changelog, help_changelog)
         self.Bind(wx.EVT_MENU, self.on_menu_about, help_about)
 
@@ -4395,6 +4434,80 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
+    def on_menu_hotkey_reference(self, _event):
+        """Zeigt eine übersichtliche Tastenkürzel-Referenz als Text-Dialog."""
+        s = self.settings_store.settings
+
+        def _fmt(code):
+            if not code:
+                return "(nicht gesetzt)"
+            import wx as _wx
+            if code == _wx.WXK_SPACE:
+                return "Leertaste"
+            if _wx.WXK_F1 <= code <= _wx.WXK_F24:
+                return f"F{code - _wx.WXK_F1 + 1}"
+            if 32 <= code <= 126:
+                return chr(code).upper()
+            return str(code)
+
+        rows = [
+            ("Alles stummschalten",       _fmt(int(s.hotkey_mute_all or 0))),
+            ("Sprachaktivierung",          _fmt(int(s.hotkey_voice_activation or 0))),
+            ("Video senden",              _fmt(int(s.hotkey_video_tx or 0))),
+            ("Eingangspegel ansagen",     _fmt(int(s.hotkey_announce_level or 0))),
+            ("Nutzerinfo ansagen",        _fmt(int(s.hotkey_announce_user_info or 0))),
+            ("Ping ansagen",              _fmt(int(s.hotkey_announce_ping or 0))),
+            ("Braille-Status ansagen",    _fmt(int(getattr(s, "hotkey_announce_status", 0) or 0))),
+            ("Privatantwort",             _fmt(int(s.hotkey_reply_last_sender or 0))),
+            ("Sound-Profil wechseln",     _fmt(int(s.hotkey_cycle_sound_profile or 0))),
+            ("Braille-Verbosität wechseln", _fmt(int(getattr(s, "hotkey_cycle_braille_verbosity", 0) or 0))),
+            ("KI-Zusammenfassung",        _fmt(int(getattr(s, "hotkey_ai_summary", 0) or 0))),
+            ("Lesezeichen 1",             _fmt(int(getattr(s, "hotkey_bookmark_1", 0) or 0))),
+            ("Lesezeichen 2",             _fmt(int(getattr(s, "hotkey_bookmark_2", 0) or 0))),
+            ("Lesezeichen 3",             _fmt(int(getattr(s, "hotkey_bookmark_3", 0) or 0))),
+            ("Aufnahme umschalten",       _fmt(int(getattr(s, "hotkey_record_toggle", 0) or 0))),
+            ("Status-Vorlage 1",          _fmt(int(getattr(s, "hotkey_status_template_1", 0) or 0))),
+            ("Status-Vorlage 2",          _fmt(int(getattr(s, "hotkey_status_template_2", 0) or 0))),
+            ("Status-Vorlage 3",          _fmt(int(getattr(s, "hotkey_status_template_3", 0) or 0))),
+            ("Mikrofon-Boost hoch",       _fmt(int(getattr(s, "hotkey_mic_boost_up", 0) or 0))),
+            ("Mikrofon-Boost runter",     _fmt(int(getattr(s, "hotkey_mic_boost_down", 0) or 0))),
+            ("TTS abbrechen",             _fmt(int(getattr(s, "hotkey_tts_cancel", 0) or 0))),
+        ]
+        col_w = max(len(r[0]) for r in rows) + 2
+        lines = ["App-Hotkeys (nur innerhalb der App)\n" + "=" * 50]
+        for label, key in rows:
+            lines.append(f"  {label:<{col_w}}{key}")
+        if sys.platform == "darwin" and getattr(s, "global_hotkeys_enabled", False):
+            lines.append("\nGlobale Hotkeys (systemweit)\n" + "=" * 50)
+            try:
+                from global_hotkeys import vk_to_name
+                ptt_label = vk_to_name(int(s.global_hotkey_ptt or 0)) if s.global_hotkey_ptt else "(nicht gesetzt)"
+                mute_label = vk_to_name(int(s.global_hotkey_mute or 0)) if s.global_hotkey_mute else "(nicht gesetzt)"
+            except Exception:
+                ptt_label = str(s.global_hotkey_ptt or "(nicht gesetzt)")
+                mute_label = str(s.global_hotkey_mute or "(nicht gesetzt)")
+            lines.append(f"  {'PTT (Sprechtaste)':<{col_w}}{ptt_label}")
+            lines.append(f"  {'Stummschalten umschalten':<{col_w}}{mute_label}")
+
+        text = "\n".join(lines)
+        dlg = wx.Dialog(self, title="Tastenkürzel-Referenz",
+                        style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
+        root = wx.BoxSizer(wx.VERTICAL)
+        txt = wx.TextCtrl(dlg, value=text,
+                          style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+        txt.SetName("Tastenkürzel-Referenz")
+        txt.SetMinSize((560, 460))
+        root.Add(txt, 1, wx.ALL | wx.EXPAND, 10)
+        btns = dlg.CreateButtonSizer(wx.OK)
+        root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+        dlg.SetSizerAndFit(root)
+        dlg.CentreOnParent()
+        dlg.ShowModal()
+        dlg.Destroy()
+
     def on_menu_about(self, _event):
         dlg = wx.Dialog(self, title="Über TeamTalk VoiceOver Client",
                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
@@ -5474,6 +5587,11 @@ class MainFrame(wx.Frame):
                 self.tts.clear_queue()
                 self.set_status("TTS abgebrochen")
                 return
+            # v3.3.0 – Braille-Status ansagen
+            hk_announce_status = int(getattr(settings, "hotkey_announce_status", 0) or 0)
+            if key and key == hk_announce_status:
+                self._announce_braille_status()
+                return
         event.Skip()
 
     def on_key_down(self, event):
@@ -5529,6 +5647,8 @@ class MainFrame(wx.Frame):
                     self.settings_store.settings.hotkey_mic_boost_down = int(key)
                 elif target == "hotkey_tts_cancel":
                     self.settings_store.settings.hotkey_tts_cancel = int(key)
+                elif target == "hotkey_announce_status":
+                    self.settings_store.settings.hotkey_announce_status = int(key)
                 self.settings_store.save()
                 self.shortcuts_tab.set_capture_label(target, False)
                 self._capture_hotkey_target = None
@@ -6095,6 +6215,9 @@ class MainFrame(wx.Frame):
             is_own = bool(from_id and my_id and from_id == my_id)
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and not is_own and from_id:
                 self._last_private_sender_id = from_id
+                # v3.3.0 – VoiceOver-Ankündigung für eingehende Privatnachrichten
+                from ui.a11y import post_voiceover_announcement
+                wx.CallAfter(post_voiceover_announcement, f"Privatnachricht von {from_user}: {content}")
             # Privatnachrichten-Verlauf speichern
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and self.settings_store.settings.save_private_chat_history:
                 server_key = self._get_server_key()

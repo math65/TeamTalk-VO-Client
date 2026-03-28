@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-03-28 (v3.3.0)
+- VoiceOver-Ankündigung für eingehende Privatnachrichten via
+  NSAccessibilityAnnouncementRequested (macOS)
+- Tastenkürzel-Referenz: neuer Menüpunkt Hilfe → Tastenkürzel-Referenz
+  zeigt alle konfigurierten Hotkeys in einem übersichtlichen Textdialog
+- Neuer Hotkey "Braille-Status ansagen": liest konfigurierbaren Status
+  (Kanal, Nutzeranzahl, Ping, Stummschaltstatus, Verbindung) via TTS vor
+- Braille-Status-Felder konfigurierbar in Einstellungen → KI & Integration
+  (Abschnitt Braillezeilen-Ausgabe)
+
 2026-03-28 (v3.2.0)
 - Server .tt-Import: Schaltfläche in Verbindungsliste importiert Server direkt
   aus einer .tt-Datei und fügt ihn der Liste hinzu

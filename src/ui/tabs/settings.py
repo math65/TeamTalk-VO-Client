@@ -672,6 +672,31 @@ class SettingsTab(wx.Panel):
         self._braille_verbosity.SetSelection(_vmap.get(getattr(s, "braille_verbosity", "normal"), 1))
         braille_row.Add(self._braille_verbosity, 0)
         braille_sizer.Add(braille_row, 0, wx.ALL, 8)
+
+        # v3.3.0 – Braille-Status-Felder
+        braille_status_lbl = wx.StaticText(panel, label="Status-Ansage Felder (Hotkey: Braille-Status):")
+        braille_sizer.Add(braille_status_lbl, 0, wx.LEFT | wx.TOP, 8)
+        self._braille_status_channel = wx.CheckBox(panel, label="&Kanal")
+        self._braille_status_channel.SetName("Braille-Status: Kanal")
+        self._braille_status_channel.SetValue(bool(getattr(s, "braille_status_show_channel", True)))
+        braille_sizer.Add(self._braille_status_channel, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
+        self._braille_status_users = wx.CheckBox(panel, label="&Nutzeranzahl im Kanal")
+        self._braille_status_users.SetName("Braille-Status: Nutzeranzahl")
+        self._braille_status_users.SetValue(bool(getattr(s, "braille_status_show_users", True)))
+        braille_sizer.Add(self._braille_status_users, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
+        self._braille_status_ping = wx.CheckBox(panel, label="&Ping")
+        self._braille_status_ping.SetName("Braille-Status: Ping")
+        self._braille_status_ping.SetValue(bool(getattr(s, "braille_status_show_ping", True)))
+        braille_sizer.Add(self._braille_status_ping, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
+        self._braille_status_mute = wx.CheckBox(panel, label="Stummschalt&status")
+        self._braille_status_mute.SetName("Braille-Status: Stummschaltstatus")
+        self._braille_status_mute.SetValue(bool(getattr(s, "braille_status_show_mute", False)))
+        braille_sizer.Add(self._braille_status_mute, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
+        self._braille_status_connection = wx.CheckBox(panel, label="Verbindungs&status")
+        self._braille_status_connection.SetName("Braille-Status: Verbindungsstatus")
+        self._braille_status_connection.SetValue(bool(getattr(s, "braille_status_show_connection", True)))
+        braille_sizer.Add(self._braille_status_connection, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 8)
+
         sizer.Add(braille_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # --- Live-Transkription ---
@@ -1259,6 +1284,12 @@ class SettingsTab(wx.Panel):
         s.transcription_enabled = self._transcription_enabled.GetValue()
         # Transkription starten/stoppen je nach Einstellung
         self._apply_transcription_setting(s.transcription_enabled)
+        # v3.3.0 – Braille-Status-Felder
+        s.braille_status_show_channel = self._braille_status_channel.GetValue()
+        s.braille_status_show_users = self._braille_status_users.GetValue()
+        s.braille_status_show_ping = self._braille_status_ping.GetValue()
+        s.braille_status_show_mute = self._braille_status_mute.GetValue()
+        s.braille_status_show_connection = self._braille_status_connection.GetValue()
         self.frame.settings_store.save()
         self.frame.set_status("KI & Barrierefreiheit gespeichert")
 

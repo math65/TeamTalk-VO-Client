@@ -299,3 +299,23 @@ def patch_button_accessibility() -> None:
 
     except Exception:
         pass
+
+
+def post_voiceover_announcement(text: str) -> None:
+    """Kündigt text über VoiceOver an (macOS, NSAccessibilityAnnouncementRequested)."""
+    if sys.platform != "darwin":
+        return
+    try:
+        import objc  # noqa: F401
+        import AppKit
+        user_info = {
+            AppKit.NSAccessibilityAnnouncementKey: text,
+            AppKit.NSAccessibilityPriorityKey: AppKit.NSAccessibilityPriorityHigh,
+        }
+        AppKit.NSAccessibilityPostNotificationWithUserInfo(
+            AppKit.NSApp().mainWindow(),
+            AppKit.NSAccessibilityAnnouncementRequestedNotification,
+            user_info,
+        )
+    except Exception:
+        pass
