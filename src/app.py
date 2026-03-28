@@ -51,7 +51,7 @@ from webhook_manager import WebhookManager
 from http_api import HttpApiServer
 
 
-APP_VERSION = "2.8.0"
+APP_VERSION = "2.9.0"
 
 def _upd_tok() -> str:
     import base64 as _b
