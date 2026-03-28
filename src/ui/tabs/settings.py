@@ -762,8 +762,7 @@ class SettingsTab(wx.Panel):
         vc_sizer = wx.StaticBoxSizer(vc_box, wx.VERTICAL)
 
         info_vc = wx.StaticText(panel, label=(
-            "Erfordert: pip install openai-whisper pyaudio\n"
-            "Beim Start wird Whisper-Modell 'base' geladen (~150 MB)."
+            "Beim ersten Start wird das Whisper-Modell 'base' heruntergeladen (~150 MB)."
         ))
         info_vc.SetName("Sprachsteuerung Info")
         vc_sizer.Add(info_vc, 0, wx.ALL, 8)
@@ -804,7 +803,6 @@ class SettingsTab(wx.Panel):
         trans_sizer = wx.StaticBoxSizer(trans_box, wx.VERTICAL)
 
         info_trans = wx.StaticText(panel, label=(
-            "Erfordert: pip install openai-whisper numpy\n"
             "Transkribiert Kanal-Sprache und zeigt sie im Kanäle-Tab an."
         ))
         info_trans.SetName("Transkription Info")

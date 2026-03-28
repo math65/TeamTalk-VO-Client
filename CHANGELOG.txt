@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2026-03-28 (v2.0.3)
+- Whisper (openai-whisper) und PyAudio sind jetzt fest eingebundene Abhängigkeiten
+  (requirements.txt). Kein manuelles `pip install` mehr nötig.
+- Einstellungsseite "KI & Barrierefreiheit": Hinweise auf `pip install` entfernt,
+  da die Pakete automatisch mitgeliefert werden.
+- PyInstaller-Spec: Whisper-Assets (mel_filters.npz, tiktoken) und Hidden Imports
+  (whisper, pyaudio, numba, llvmlite) für das App-Bundle korrekt konfiguriert.
+
 2026-03-28 (v2.0.2)
 - KI: Anthropic Python SDK (`anthropic`) integriert – Claude-Zusammenfassungen
   laufen jetzt über das offizielle SDK statt manueller HTTP-Anfragen.

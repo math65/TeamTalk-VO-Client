@@ -5,8 +5,8 @@ a = Analysis(
     ['src/app.py'],
     pathex=['src', 'third_party/teamtalk/tt5sdk_v5.19a_macos_universal/Library/TeamTalkPy'],
     binaries=[],
-    datas=[('src/teamtalk_client', 'teamtalk_client'), ('src/platform_paths.py', '.'), ('src/ui', 'ui'), ('src/chat_history.py', '.'), ('src/global_hotkeys.py', '.'), ('licenses', 'licenses'), ('CHANGELOG.txt', '.'), ('src/manual.html', '.'), ('third_party/teamtalk/tt5sdk_v5.19a_macos_universal/Library/TeamTalkPy', 'TeamTalkPy'), ('third_party/teamtalk/tt5sdk_v5.19a_macos_universal/Library/TeamTalk_DLL', 'TeamTalk_DLL'), ('third_party/yt-dlp', 'yt-dlp'), ('third_party/espeak-ng', 'espeak-ng'), ('src/sounds', 'sounds')],
-    hiddenimports=['teamtalk_client', 'teamtalk_client.tt', 'teamtalk_client.client', 'ui.tabs.system', 'platform_paths', 'sound_manager', 'objc', 'AppKit', 'chat_history', 'global_hotkeys'],
+    datas=[('src/teamtalk_client', 'teamtalk_client'), ('src/platform_paths.py', '.'), ('src/ui', 'ui'), ('src/chat_history.py', '.'), ('src/global_hotkeys.py', '.'), ('licenses', 'licenses'), ('CHANGELOG.txt', '.'), ('src/manual.html', '.'), ('third_party/teamtalk/tt5sdk_v5.19a_macos_universal/Library/TeamTalkPy', 'TeamTalkPy'), ('third_party/teamtalk/tt5sdk_v5.19a_macos_universal/Library/TeamTalk_DLL', 'TeamTalk_DLL'), ('third_party/yt-dlp', 'yt-dlp'), ('third_party/espeak-ng', 'espeak-ng'), ('src/sounds', 'sounds'), ('.venv/lib/python3.9/site-packages/whisper/assets', 'whisper/assets')],
+    hiddenimports=['teamtalk_client', 'teamtalk_client.tt', 'teamtalk_client.client', 'ui.tabs.system', 'platform_paths', 'sound_manager', 'objc', 'AppKit', 'chat_history', 'global_hotkeys', 'whisper', 'whisper.audio', 'whisper.decoding', 'whisper.model', 'whisper.tokenizer', 'whisper.transcribe', 'tiktoken', 'tiktoken_ext', 'tiktoken_ext.openai_public', 'pyaudio', 'numba', 'numba.core', 'llvmlite'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -48,8 +48,8 @@ app = BUNDLE(
     icon=None,
     bundle_identifier=None,
     info_plist={
-        'CFBundleShortVersionString': '1.3.2',
-        'CFBundleVersion': '1.3.2',
+        'CFBundleShortVersionString': '2.0.3',
+        'CFBundleVersion': '2.0.3',
         'NSMicrophoneUsageDescription': 'Der TeamTalk VO Client benötigt Zugriff auf das Mikrofon, um Sprache übertragen zu können.',
     },
 )
