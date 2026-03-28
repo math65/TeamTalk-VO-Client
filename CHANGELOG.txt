@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2026-03-28 (v1.10.6)
+- UI: Kanalbaum und Chat wieder als separate Bereiche getrennt ("Kanäle" / "Chat").
+  Der kombinierte "Kanäle und Chat"-Tab war zu eng – der Kanalbaum wurde durch den
+  Chat-Bereich (min. ~310px Höhe) verdrängt und war nicht mehr auffindbar.
+
 2026-03-28 (v1.10.5)
 - Bugfix: Kanalbaum zeigt jetzt den Servernamen als Root-Kanal-Label (wie der offizielle
   Bearware Qt-Client), statt des leeren szName-Feldes des Root-Kanals.

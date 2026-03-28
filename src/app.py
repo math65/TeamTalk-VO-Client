@@ -23,7 +23,8 @@ from ui.models import (
 from ui.tray import TrayIcon
 from ui.tt_file_parser import parse_teamtalk_file
 from ui.tabs.connection import ConnectionTab
-from ui.tabs.channels_chat import ChannelsChatTab
+from ui.tabs.channels import ChannelsTab
+from ui.tabs.chat import ChatTab
 from ui.tabs.media import MediaTab
 from ui.tabs.files import FilesTab
 from ui.tabs.admin import AdminTab
@@ -39,7 +40,7 @@ from platform_paths import log_dir as _log_dir # Moved this import up
 from chat_history import ChatHistoryManager
 
 
-APP_VERSION = "1.10.5"
+APP_VERSION = "1.10.6"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -415,9 +416,8 @@ class MainFrame(wx.Frame):
 
         self.connection_window = ConnectionWindow(self)
         self.connection_tab = self.connection_window.connection_tab
-        self.channels_chat_tab = ChannelsChatTab(self.content_panel, self)
-        self.channels_tab = self.channels_chat_tab.channels_tab
-        self.chat_tab = self.channels_chat_tab.chat_tab
+        self.channels_tab = ChannelsTab(self.content_panel, self)
+        self.chat_tab = ChatTab(self.content_panel, self)
         self.settings_window = SettingsWindow(self)
         self.settings_tab = self.settings_window.settings_tab
         self.audio_tab = self.settings_tab.audio_tab
@@ -439,14 +439,16 @@ class MainFrame(wx.Frame):
         }
 
         self._tab_info_map = {
-            "Kanäle und Chat": "Kanäle, Nutzerliste, Chat und Privatnachrichten.",
+            "Kanäle": "Kanalbaum mit allen Kanälen und Nutzern.",
+            "Chat": "Kanalnachrichten, Privatnachrichten und Verlauf.",
             "Aufnahme & Medien": "Aufnahmen, Webradio/YouTube/Twitch-Streams.",
             "Desktop": "Desktopfreigabe senden/Status anzeigen.",
             "Dateien": "Kanaldateien hoch-/runterladen und verwalten.",
             "Administration": "Benutzerkonten, Sperren, Servereigenschaften.",
         }
         self._panels: Dict[str, wx.Panel] = {
-            "Kanäle und Chat": self.channels_chat_tab,
+            "Kanäle": self.channels_tab,
+            "Chat": self.chat_tab,
             "Aufnahme & Medien": media_placeholder,
             "Desktop": desktop_placeholder,
             "Dateien": files_placeholder,
@@ -456,7 +458,7 @@ class MainFrame(wx.Frame):
 
         for label, p in self._panels.items():
             self.content_sizer.Add(p, 1, wx.EXPAND)
-            self.content_sizer.Show(p, label == "Kanäle und Chat")
+            self.content_sizer.Show(p, label == "Kanäle")
         self.content_panel.SetSizer(self.content_sizer)
 
         self.tab_choice.SetItems(self._panel_order)
@@ -4490,14 +4492,14 @@ class MainFrame(wx.Frame):
             if self.speak_tab is None:
                 self.speak_tab = SpeakTab(self.content_panel, self)
             if not self._speak_tab_added:
-                # Insert after "Kanäle und Chat" (index 1)
-                self._panel_order.insert(1, "Sprechen")
+                # Insert after "Chat" (index 2)
+                self._panel_order.insert(2, "Sprechen")
                 self._panels["Sprechen"] = self.speak_tab
                 sizer = self.content_panel.GetSizer()
                 sizer.Add(self.speak_tab, 1, wx.EXPAND)
                 sizer.Show(self.speak_tab, False)
                 self.tab_choice.SetItems(self._panel_order)
-                self.tab_choice.SetSelection(self._panel_order.index("Kanäle und Chat"))
+                self.tab_choice.SetSelection(self._panel_order.index("Kanäle"))
                 self._speak_tab_added = True
             self.speak_tab.set_api_key(api_key)
         else:
