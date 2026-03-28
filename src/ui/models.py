@@ -230,6 +230,23 @@ class AppSettings:
     webhook_events: List[str] = field(default_factory=list)
     http_api_enabled: bool = False
     http_api_port: int = 8765
+    # v2.8.0 features
+    user_notes: Dict[str, str] = field(default_factory=dict)
+    ptt_max_seconds: int = 0
+    recent_channels: List[Dict[str, Any]] = field(default_factory=list)
+    alert_keywords: List[str] = field(default_factory=list)
+    alert_keywords_tts: bool = True
+    # v2.9.0 features
+    hotkey_mic_boost_up: int = 0
+    hotkey_mic_boost_down: int = 0
+    vu_alert_enabled: bool = False
+    vu_alert_threshold: int = 90
+    recording_max_size_mb: int = 0
+    recording_max_minutes: int = 0
+    # v3.0.0 features
+    server_groups: Dict[str, List[str]] = field(default_factory=dict)
+    tts_speak_channel_topic_on_join: bool = True
+    disabled_plugins: List[str] = field(default_factory=list)
 
 
 class SettingsStore:
@@ -381,6 +398,28 @@ class SettingsStore:
             self.settings.webhook_events = raw_we if isinstance(raw_we, list) else []
             self.settings.http_api_enabled = bool(data.get("http_api_enabled", False))
             self.settings.http_api_port = int(data.get("http_api_port", 8765) or 8765)
+            # v2.8.0
+            raw_un = data.get("user_notes", {})
+            self.settings.user_notes = raw_un if isinstance(raw_un, dict) else {}
+            self.settings.ptt_max_seconds = int(data.get("ptt_max_seconds", 0) or 0)
+            raw_rc = data.get("recent_channels", [])
+            self.settings.recent_channels = raw_rc if isinstance(raw_rc, list) else []
+            raw_ak = data.get("alert_keywords", [])
+            self.settings.alert_keywords = raw_ak if isinstance(raw_ak, list) else []
+            self.settings.alert_keywords_tts = bool(data.get("alert_keywords_tts", True))
+            # v2.9.0
+            self.settings.hotkey_mic_boost_up = int(data.get("hotkey_mic_boost_up", 0) or 0)
+            self.settings.hotkey_mic_boost_down = int(data.get("hotkey_mic_boost_down", 0) or 0)
+            self.settings.vu_alert_enabled = bool(data.get("vu_alert_enabled", False))
+            self.settings.vu_alert_threshold = int(data.get("vu_alert_threshold", 90) or 90)
+            self.settings.recording_max_size_mb = int(data.get("recording_max_size_mb", 0) or 0)
+            self.settings.recording_max_minutes = int(data.get("recording_max_minutes", 0) or 0)
+            # v3.0.0
+            raw_sg = data.get("server_groups", {})
+            self.settings.server_groups = raw_sg if isinstance(raw_sg, dict) else {}
+            self.settings.tts_speak_channel_topic_on_join = bool(data.get("tts_speak_channel_topic_on_join", True))
+            raw_dp = data.get("disabled_plugins", [])
+            self.settings.disabled_plugins = raw_dp if isinstance(raw_dp, list) else []
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -506,5 +545,22 @@ class SettingsStore:
             "webhook_events": list(self.settings.webhook_events or []),
             "http_api_enabled": bool(self.settings.http_api_enabled),
             "http_api_port": int(self.settings.http_api_port or 8765),
+            # v2.8.0
+            "user_notes": dict(self.settings.user_notes or {}),
+            "ptt_max_seconds": int(self.settings.ptt_max_seconds or 0),
+            "recent_channels": list(self.settings.recent_channels or []),
+            "alert_keywords": list(self.settings.alert_keywords or []),
+            "alert_keywords_tts": bool(self.settings.alert_keywords_tts),
+            # v2.9.0
+            "hotkey_mic_boost_up": int(self.settings.hotkey_mic_boost_up or 0),
+            "hotkey_mic_boost_down": int(self.settings.hotkey_mic_boost_down or 0),
+            "vu_alert_enabled": bool(self.settings.vu_alert_enabled),
+            "vu_alert_threshold": int(self.settings.vu_alert_threshold or 90),
+            "recording_max_size_mb": int(self.settings.recording_max_size_mb or 0),
+            "recording_max_minutes": int(self.settings.recording_max_minutes or 0),
+            # v3.0.0
+            "server_groups": dict(self.settings.server_groups or {}),
+            "tts_speak_channel_topic_on_join": bool(self.settings.tts_speak_channel_topic_on_join),
+            "disabled_plugins": list(self.settings.disabled_plugins or []),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

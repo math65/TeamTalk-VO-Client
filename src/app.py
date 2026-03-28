@@ -51,7 +51,7 @@ from webhook_manager import WebhookManager
 from http_api import HttpApiServer
 
 
-APP_VERSION = "2.7.0"
+APP_VERSION = "2.8.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -383,6 +383,15 @@ class MainFrame(wx.Frame):
         self._webhook = WebhookManager(self)
         self._http_api = HttpApiServer(self)
         self._ping_last_ms: int = 0
+        # v2.8.0 – PTT-Zeitlimit
+        self._ptt_timeout_call: Optional[wx.CallLater] = None
+        # v2.9.0 – VU-Pegel-Alarm, Aufnahme-Segmentierung
+        self._vu_alert_count: int = 0
+        self._recording_seg_start: float = 0.0
+        self._recording_seg_timer: Optional[wx.Timer] = None
+        # v3.0.0 – Wer-spricht-Protokoll
+        self._speaking_log: List[Tuple[str, str, str]] = []
+        self._user_speaking_start: Dict[int, float] = {}
         # v2.0.0 – Braille-Manager (nach TTS-Init)
         self.braille = BrailleOutputManager(self.tts)
         _braille_verbosity = getattr(self.settings_store.settings, "braille_verbosity", "normal")
@@ -632,6 +641,11 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_TIMER, self._on_scheduled_rec_timer, self._scheduled_rec_timer)
         self._scheduled_rec_timer.Start(30_000)
 
+        # v2.9.0 – Aufnahme-Segmentierung: alle 30 Sekunden prüfen
+        self._recording_seg_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_recording_seg_timer, self._recording_seg_timer)
+        self._recording_seg_timer.Start(30_000)
+
         # Start global hotkeys if configured
         wx.CallLater(500, self.apply_global_hotkeys)
         # v2.0.0 – Sprachsteuerung starten wenn konfiguriert
@@ -832,7 +846,19 @@ class MainFrame(wx.Frame):
         try:
             level = self.client.get_sound_input_level()
             if level is not None:
-                self.vu_meter.SetValue(min(100, int(level * 100 / 32768)))
+                pct = min(100, int(level * 100 / 32768))
+                self.vu_meter.SetValue(pct)
+                # v2.9.0 – VU-Alarm
+                s = self.settings_store.settings
+                if getattr(s, "vu_alert_enabled", False):
+                    threshold = int(getattr(s, "vu_alert_threshold", 90) or 90)
+                    if pct >= threshold:
+                        self._vu_alert_count += 1
+                        if self._vu_alert_count >= 3:
+                            self._vu_alert_count = 0
+                            self.tts.speak("Eingangspegel zu hoch", kind="system")
+                    else:
+                        self._vu_alert_count = 0
         except Exception:
             pass
 
@@ -906,6 +932,172 @@ class MainFrame(wx.Frame):
         if self._recording_active:
             self.on_menu_record_stop(None)
             self.set_status(f"Geplante Aufnahme beendet: {label}")
+
+    # v2.9.0 – Aufnahme-Segmentierung
+    def _on_recording_seg_timer(self, _event) -> None:
+        if self._closing or not self._recording_active:
+            return
+        s = self.settings_store.settings
+        max_mb = int(getattr(s, "recording_max_size_mb", 0) or 0)
+        max_min = int(getattr(s, "recording_max_minutes", 0) or 0)
+        if not max_mb and not max_min:
+            return
+        try:
+            if max_mb and self._recording_path:
+                import os as _os
+                size_mb = _os.path.getsize(self._recording_path) / (1024 * 1024)
+                if size_mb >= max_mb:
+                    self.on_menu_record_stop(None)
+                    self.on_menu_record_start(None)
+                    self._recording_seg_start = time.time()
+                    return
+            if max_min and self._recording_seg_start:
+                elapsed_min = (time.time() - self._recording_seg_start) / 60
+                if elapsed_min >= max_min:
+                    self.on_menu_record_stop(None)
+                    self.on_menu_record_start(None)
+                    self._recording_seg_start = time.time()
+        except Exception:
+            pass
+
+    # v2.8.0 – Nutzer-Notizen
+    def _get_user_note(self, username: str) -> str:
+        notes = getattr(self.settings_store.settings, "user_notes", {}) or {}
+        return notes.get(username, "")
+
+    def _set_user_note(self, username: str, note: str) -> None:
+        if not hasattr(self.settings_store.settings, "user_notes") or \
+                not isinstance(self.settings_store.settings.user_notes, dict):
+            self.settings_store.settings.user_notes = {}
+        if note:
+            self.settings_store.settings.user_notes[username] = note
+        else:
+            self.settings_store.settings.user_notes.pop(username, None)
+        self.settings_store.save()
+
+    def on_menu_user_note(self, _event) -> None:
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewählt")
+            return
+        name = self.tt_str(getattr(user, "szNickname", "")) or self.tt_str(getattr(user, "szUsername", "")) or "Benutzer"
+        current_note = self._get_user_note(name)
+        with wx.TextEntryDialog(self, f"Notiz für {name}:", "Nutzer-Notiz", current_note) as dlg:
+            if dlg.ShowModal() == wx.ID_OK:
+                note = dlg.GetValue().strip()
+                self._set_user_note(name, note)
+                self.set_status(f"Notiz für {name} gespeichert")
+
+    # v2.8.0 – Letzte Kanäle
+    def _add_to_recent_channels(self, channel_id: int, channel_name: str) -> None:
+        s = self.settings_store.settings
+        if not hasattr(s, "recent_channels") or not isinstance(s.recent_channels, list):
+            s.recent_channels = []
+        server_key = self._get_server_key() or ""
+        entry = {"id": channel_id, "name": channel_name, "server_key": server_key}
+        # Dedup
+        s.recent_channels = [r for r in s.recent_channels
+                             if not (r.get("id") == channel_id and r.get("server_key") == server_key)]
+        s.recent_channels.insert(0, entry)
+        s.recent_channels = s.recent_channels[:8]
+        self.settings_store.save()
+        self._refresh_recent_channels_menu()
+
+    def _refresh_recent_channels_menu(self) -> None:
+        try:
+            menu = self._recent_channels_menu
+            for item in menu.GetMenuItems():
+                menu.Delete(item)
+            s = self.settings_store.settings
+            channels = getattr(s, "recent_channels", []) or []
+            if not channels:
+                menu.Append(wx.ID_ANY, "(Keine letzten Kanäle)").Enable(False)
+                return
+            for ch in channels:
+                ch_id = int(ch.get("id", 0))
+                ch_name = str(ch.get("name", "?"))
+                ch_key = str(ch.get("server_key", ""))
+                item = menu.Append(wx.ID_ANY, f"{ch_name}")
+                self.Bind(wx.EVT_MENU,
+                          lambda _e, cid=ch_id, ckey=ch_key: self.on_menu_recent_channels_submenu(cid, ckey),
+                          item)
+        except Exception:
+            pass
+
+    def on_menu_recent_channels_submenu(self, channel_id: int, server_key: str) -> None:
+        s_key = self._get_server_key() or ""
+        if s_key and s_key != server_key:
+            self.set_status("Falscher Server für diesen Kanal")
+            return
+        self.join_channel(channel_id)
+
+    # v2.8.0 – Stichwort-Alarm
+    def _check_keyword_alert(self, text: str, from_user: str) -> None:
+        s = self.settings_store.settings
+        keywords = getattr(s, "alert_keywords", []) or []
+        if not keywords:
+            return
+        text_lower = text.lower()
+        for kw in keywords:
+            if kw.lower() in text_lower:
+                self.sound_manager.play("msg_private_rx", s.sound_events.get("msg_private_rx"))
+                if getattr(s, "alert_keywords_tts", True):
+                    self.tts.speak(f"Stichwort: {kw}", kind="system")
+                return
+
+    # v3.0.0 – Wer-spricht-Protokoll
+    def _track_speaking_log(self, user_id: int, username: str, is_talking: bool) -> None:
+        if is_talking:
+            if user_id not in self._user_speaking_start:
+                self._user_speaking_start[user_id] = time.time()
+        else:
+            start = self._user_speaking_start.pop(user_id, None)
+            if start is not None:
+                duration_s = time.time() - start
+                ts = time.strftime("%H:%M:%S")
+                dur_str = f"{duration_s:.1f}s"
+                self._speaking_log.append((ts, username, dur_str))
+                if len(self._speaking_log) > 100:
+                    self._speaking_log = self._speaking_log[-100:]
+
+    def on_menu_speaking_log(self, _event) -> None:
+        dlg = wx.Dialog(self, title="Wer-spricht-Protokoll", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetMinSize((500, 400))
+        panel = wx.Panel(dlg)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        lb = wx.ListBox(panel, style=wx.LB_SINGLE)
+        lb.SetName("Wer-spricht-Protokoll")
+        for ts, username, duration in self._speaking_log:
+            lb.Append(f"{ts}, {username}, {duration}")
+        sizer.Add(lb, 1, wx.ALL | wx.EXPAND, 8)
+        btn_sizer = wx.StdDialogButtonSizer()
+        ok_btn = wx.Button(panel, wx.ID_OK)
+        btn_sizer.AddButton(ok_btn)
+        btn_sizer.Realize()
+        sizer.Add(btn_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
+        panel.SetSizer(sizer)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    # v2.9.0 – Audio-Datei streamen
+    def on_menu_stream_audio_file(self, _event) -> None:
+        if not self._require_connected("Audio-Datei streamen"):
+            return
+        with wx.FileDialog(self, "Audio-Datei auswählen",
+                           wildcard="Audio-Dateien (*.wav;*.mp3)|*.wav;*.mp3|Alle Dateien|*.*",
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        try:
+            fn = getattr(self.client, "start_media_file_stream", None)
+            if fn:
+                fn(path)
+                self.set_status(f"Streaming: {path}")
+            else:
+                self.set_status("Audio-Streaming nicht verfügbar (SDK)")
+        except Exception as exc:
+            self.set_status(f"Stream-Fehler: {exc}")
 
     def on_menu_scheduled_recordings(self, _event) -> None:
         """Öffnet den Dialog für geplante Aufnahmen."""
@@ -1157,6 +1349,10 @@ class MainFrame(wx.Frame):
         chan_stream_podcast = chan_stream_menu.Append(wx.ID_ANY, "Podcast streamen...")
         chan_stream_playlist = chan_stream_menu.Append(wx.ID_ANY, "Playlist streamen...")
         chan_menu.AppendSubMenu(chan_stream_menu, "Streaming")
+        chan_menu.AppendSeparator()
+        self._recent_channels_menu = wx.Menu()
+        chan_menu.AppendSubMenu(self._recent_channels_menu, "Letzte Kanäle")
+        chan_stream_audio = chan_menu.Append(wx.ID_ANY, "Audio-Datei in Kanal streamen...")
         menubar.Append(chan_menu, "Kanal")
 
         # Benutzer
@@ -1169,6 +1365,7 @@ class MainFrame(wx.Frame):
         user_mute_media = user_mute_menu.Append(wx.ID_ANY, "Mediendatei stummschalten")
         user_menu.AppendSubMenu(user_mute_menu, "Stummschalten")
         user_volume = user_menu.Append(wx.ID_ANY, "Benutzerlautstärke...")
+        user_note = user_menu.Append(wx.ID_ANY, "Notiz &bearbeiten...")
         user_adv = wx.Menu()
         user_vol_up = user_adv.Append(wx.ID_ANY, "Lauter\tCtrl+Right")
         user_vol_down = user_adv.Append(wx.ID_ANY, "Leiser\tCtrl+Left")
@@ -1225,6 +1422,8 @@ class MainFrame(wx.Frame):
         server_admin = server_menu.Append(wx.ID_ANY, "Administration öffnen")
         server_props = server_menu.Append(wx.ID_ANY, "Servereigenschaften...")
         server_save_config = server_menu.Append(wx.ID_ANY, "Konfiguration speichern")
+        server_menu.AppendSeparator()
+        server_speaking_log = server_menu.Append(wx.ID_ANY, "Wer-spricht-Protokoll...")
         menubar.Append(server_menu, "Server")
 
         # Profil
@@ -1345,6 +1544,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(8, e), chan_stream_podcast)
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(9, e), chan_stream_playlist)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_view_messages, chan_view_msgs)
+        self.Bind(wx.EVT_MENU, self.on_menu_stream_audio_file, chan_stream_audio)
 
         self.Bind(wx.EVT_MENU, self.on_menu_user_info, user_info)
         self.Bind(wx.EVT_MENU, self.on_menu_user_info_speak, user_info_speak)
@@ -1352,6 +1552,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_user_mute_voice, user_mute_voice)
         self.Bind(wx.EVT_MENU, self.on_menu_user_mute_media, user_mute_media)
         self.Bind(wx.EVT_MENU, self.on_menu_user_volume, user_volume)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_note, user_note)
         self.Bind(wx.EVT_MENU, self.on_menu_user_volume_up, user_vol_up)
         self.Bind(wx.EVT_MENU, self.on_menu_user_volume_down, user_vol_down)
         self.Bind(wx.EVT_MENU, self.on_menu_user_relay_voice, user_relay_voice)
@@ -1392,6 +1593,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_open_admin, server_admin)
         self.Bind(wx.EVT_MENU, self.on_menu_server_properties, server_props)
         self.Bind(wx.EVT_MENU, self.on_menu_server_save_config, server_save_config)
+        self.Bind(wx.EVT_MENU, self.on_menu_speaking_log, server_speaking_log)
 
         self.Bind(wx.EVT_MENU, self.on_menu_change_nickname, profile_nick)
         self.Bind(wx.EVT_MENU, self.on_menu_change_status, profile_status)
@@ -3518,6 +3720,7 @@ class MainFrame(wx.Frame):
         if ok:
             self._recording_active = True
             self._recording_path = path
+            self._recording_seg_start = time.time()
             self.set_status(f"Aufnahme gestartet ({label})")
         else:
             self.set_status("Aufnahme konnte nicht gestartet werden")
@@ -4839,6 +5042,18 @@ class MainFrame(wx.Frame):
                     self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
                     self.bus.emit("channel_joined", channel_id=channel_id)
+                    # v2.8.0 – Letzte Kanäle
+                    try:
+                        ch = self.client.get_channel(channel_id)
+                        ch_name = self.tt_str(getattr(ch, "szName", "")) if ch else str(channel_id)
+                        wx.CallAfter(self._add_to_recent_channels, channel_id, ch_name or str(channel_id))
+                        # v3.0.0 – Kanal-Thema beim Betreten vorlesen
+                        if getattr(self.settings_store.settings, "tts_speak_channel_topic_on_join", True):
+                            topic = self.tt_str(getattr(ch, "szTopic", "") or "") if ch else ""
+                            if topic:
+                                wx.CallAfter(self.tts.speak, f"Kanal-Thema: {topic}", kind="channel_topic")
+                    except Exception:
+                        pass
                     if self.files_tab is not None:
                         wx.CallAfter(self.files_tab.refresh_file_list)
                     # Keychain: Passwort nach erfolgreichem Beitritt speichern
@@ -5243,6 +5458,15 @@ class MainFrame(wx.Frame):
                 if key and key == _hk:
                     self._apply_status_template(_idx)
                     return
+            # v2.9.0 – Mikrofon-Boost
+            hk_boost_up = int(getattr(settings, "hotkey_mic_boost_up", 0) or 0)
+            hk_boost_down = int(getattr(settings, "hotkey_mic_boost_down", 0) or 0)
+            if key and key == hk_boost_up:
+                self._mic_boost_change(+1000)
+                return
+            if key and key == hk_boost_down:
+                self._mic_boost_change(-1000)
+                return
         event.Skip()
 
     def on_key_down(self, event):
@@ -5292,6 +5516,10 @@ class MainFrame(wx.Frame):
                     self.settings_store.settings.hotkey_status_template_2 = int(key)
                 elif target == "hotkey_status_template_3":
                     self.settings_store.settings.hotkey_status_template_3 = int(key)
+                elif target == "hotkey_mic_boost_up":
+                    self.settings_store.settings.hotkey_mic_boost_up = int(key)
+                elif target == "hotkey_mic_boost_down":
+                    self.settings_store.settings.hotkey_mic_boost_down = int(key)
                 self.settings_store.save()
                 self.shortcuts_tab.set_capture_label(target, False)
                 self._capture_hotkey_target = None
@@ -5313,8 +5541,42 @@ class MainFrame(wx.Frame):
                 self._ptt_active = True
                 self.client.enable_voice_transmission(True)
                 self.set_status("Sprechen aktiv")
+                # v2.8.0 – PTT-Zeitlimit
+                ptt_max = int(getattr(self.settings_store.settings, "ptt_max_seconds", 0) or 0)
+                if ptt_max > 0:
+                    if self._ptt_timeout_call is not None:
+                        try:
+                            self._ptt_timeout_call.Stop()
+                        except Exception:
+                            pass
+                    self._ptt_timeout_call = wx.CallLater(ptt_max * 1000, self._ptt_timeout_triggered)
             return
         event.Skip()
+
+    def _mic_boost_change(self, delta: int) -> None:
+        """v2.9.0 – Mikrofon-Gain um delta verändern und via TTS ansagen."""
+        try:
+            current = int(self.mic_gain_slider.GetValue())
+            new_val = max(0, min(200, current + delta))
+            self.mic_gain_slider.SetValue(new_val)
+            # Apply to SDK (gain level is 0–32000; slider 0–200 maps roughly)
+            sdk_val = new_val * 160  # 200 * 160 = 32000
+            try:
+                fn = getattr(self.client, "set_sound_input_gain_level", None)
+                if fn:
+                    fn(sdk_val)
+            except Exception:
+                pass
+            self.tts.speak(f"Mikrofon {new_val}", kind="system")
+        except Exception:
+            pass
+
+    def _ptt_timeout_triggered(self) -> None:
+        if self._ptt_active:
+            self._ptt_active = False
+            self.client.enable_voice_transmission(False)
+            self.set_status("PTT-Zeitlimit erreicht")
+            self.tts.speak("PTT-Zeitlimit erreicht", kind="system")
 
     def on_key_up(self, event):
         if self._ptt_enabled and event.GetKeyCode() == self._ptt_hotkey:
@@ -5322,6 +5584,13 @@ class MainFrame(wx.Frame):
                 self._ptt_active = False
                 self.client.enable_voice_transmission(False)
                 self.set_status("Sprechen aus")
+                # v2.8.0 – PTT-Zeitlimit abbrechen
+                if self._ptt_timeout_call is not None:
+                    try:
+                        self._ptt_timeout_call.Stop()
+                    except Exception:
+                        pass
+                    self._ptt_timeout_call = None
             return
         event.Skip()
 
@@ -5550,6 +5819,12 @@ class MainFrame(wx.Frame):
                 wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
             wx.CallAfter(self._emit_user_presence_event, msg, tt)
             wx.CallAfter(self._play_user_event_sound, _ev, _user_id, _user_ch, _source, tt)
+            # v3.0.0 – Wer-spricht-Protokoll
+            if _ev == tt.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE and _user and _user_id:
+                _speaking_flags = int(getattr(_user, "uUserState", 0) or 0)
+                _is_talking = bool(_speaking_flags & 2)  # USERSTATE_TALKING = 2
+                _uname = self.tt_str(getattr(_user, "szNickname", "")) or self.tt_str(getattr(_user, "szUsername", "")) or f"id{_user_id}"
+                wx.CallAfter(self._track_speaking_log, _user_id, _uname, _is_talking)
             if self._user_recording_enabled:
                 self._handle_user_recording_event(msg, tt)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN:
@@ -5640,6 +5915,10 @@ class MainFrame(wx.Frame):
             tts_kind = "system"
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED:
             text = f"* {name} hat Kanal {channel_name or channel_id} betreten"
+            # v2.8.0 – Nutzer-Notiz anhängen
+            _note = self._get_user_note(name)
+            if _note:
+                text += f" (Notiz: {_note})"
             tts_kind = "user_join"
             user_id = int(getattr(user, "nUserID", 0) or 0)
             self.bus.emit("user_joined", user=name, user_id=user_id, channel_id=channel_id, channel_name=channel_name)
@@ -5798,6 +6077,9 @@ class MainFrame(wx.Frame):
                     self._channel_message_log = self._channel_message_log[-200:]
             wx.CallAfter(self.chat_tab.append_chat, f"{from_user}: {content}", kind, speak)
             self._message_buffers.pop(key, None)
+            # v2.8.0 – Stichwort-Alarm (nur Kanalnachrichten von anderen)
+            if msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL) and not (from_id and my_id and from_id == my_id):
+                wx.CallAfter(self._check_keyword_alert, content, from_user)
             # Bus-Event für Plugins
             self.bus.emit("chat_message", text=content, kind=kind, from_user=from_user, from_id=from_id)
             # Letzten privaten Absender merken (für Antwort-Hotkey)

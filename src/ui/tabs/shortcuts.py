@@ -41,6 +41,9 @@ class ShortcutsTab(wx.Panel):
         self._rows.append(self._make_row(inapp_box, "Status-Vorlage 1", "hotkey_status_template_1", global_key=False))
         self._rows.append(self._make_row(inapp_box, "Status-Vorlage 2", "hotkey_status_template_2", global_key=False))
         self._rows.append(self._make_row(inapp_box, "Status-Vorlage 3", "hotkey_status_template_3", global_key=False))
+        # v2.9.0
+        self._rows.append(self._make_row(inapp_box, "Mikrofon-Boost hoch", "hotkey_mic_boost_up", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Mikrofon-Boost runter", "hotkey_mic_boost_down", global_key=False))
 
         for row in self._rows:
             inapp_sizer.Add(row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
@@ -128,6 +131,9 @@ class ShortcutsTab(wx.Panel):
             "hotkey_status_template_1": int(getattr(settings, "hotkey_status_template_1", 0) or 0),
             "hotkey_status_template_2": int(getattr(settings, "hotkey_status_template_2", 0) or 0),
             "hotkey_status_template_3": int(getattr(settings, "hotkey_status_template_3", 0) or 0),
+            # v2.9.0
+            "hotkey_mic_boost_up": int(getattr(settings, "hotkey_mic_boost_up", 0) or 0),
+            "hotkey_mic_boost_down": int(getattr(settings, "hotkey_mic_boost_down", 0) or 0),
         }
         global_map = {
             "global_hotkey_ptt": int(settings.global_hotkey_ptt or 0),

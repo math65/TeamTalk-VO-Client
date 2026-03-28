@@ -1,6 +1,35 @@
 Changelog
 =========
 
+2026-03-28 (v3.0.0)
+- Server-Gruppen: Server in der Verbindungsansicht nach Gruppen filtern
+  (Gruppe verwalten-Button; Gruppen werden in Einstellungen gespeichert)
+- Kanal-Thema beim Betreten vorlesen: optionale TTS-Ansage des Kanalthemas
+  nach erfolgreichem Kanalwechsel (Einstellungen → Automation oder direkt beim Join)
+- Erweiterte Plugin-Verwaltung: neuer Bereich "Plugins" in den Einstellungen
+  mit Aktivieren/Deaktivieren und Neu-laden Funktion
+- Wer-spricht-Protokoll: verfolgt Sprach-Ereignisse mit Zeitstempel und Dauer;
+  Anzeige über Server → Wer-spricht-Protokoll
+
+2026-03-28 (v2.9.0)
+- Mikrofon-Boost-Hotkeys: Mikrofon-Gain per konfigurierbarem Hotkey erhöhen/senken
+  (Tastenkürzel: Mikrofon-Boost hoch / runter)
+- VU-Pegel-Alarm: TTS-Ansage "Eingangspegel zu hoch" bei 3 aufeinanderfolgenden
+  Messwerten über dem konfigurierten Schwellenwert (Einstellungen → PTT & Erweitert)
+- Aufnahme-Segmentierung: Aufnahme automatisch neu starten wenn max. Dateigröße (MB)
+  oder max. Aufnahmedauer (Minuten) überschritten wird (Einstellungen → PTT & Erweitert)
+- Audio-Datei streamen: Kanal-Menü → Audio-Datei in Kanal streamen
+
+2026-03-28 (v2.8.0)
+- Nutzer-Notizen: Notizen zu einzelnen Nutzern speichern (Benutzer-Menü → Notiz bearbeiten);
+  Notiz wird beim Kanalbetreten des Nutzers via TTS angesagt
+  (Verwaltung: Einstellungen → Nutzer-Notizen)
+- PTT-Zeitlimit: automatische PTT-Deaktivierung nach konfigurierbarer Zeit
+  (Einstellungen → PTT & Erweitert, Sekunden, 0=deaktiviert)
+- Letzte Kanäle: bis zu 8 zuletzt besuchte Kanäle unter Kanal → Letzte Kanäle
+- Stichwort-Alarm: bei konfigurierten Stichwörtern in Kanalnachrichten wird ein Sound
+  gespielt und optional via TTS angesagt (Einstellungen → Stichwort-Alarm)
+
 2026-03-28 (v2.7.0)
 - Webhook-Integration: ausgehende HTTP-POST-Ereignisse an konfigurierte URL
   (Ereignisse: Privatnachricht, Kanalnachricht, Nutzer beigetreten/verlassen, Verbindung)

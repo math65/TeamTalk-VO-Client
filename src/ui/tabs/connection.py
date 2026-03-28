@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import threading
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING, Dict
 
 import wx
 
@@ -30,6 +30,23 @@ class ConnectionTab(wx.Panel):
 
         self._all_server_names: List[str] = [p.name for p in frame.store.items()]
         self._filtered_indices: List[int] = list(range(len(self._all_server_names)))
+
+        # v3.0.0 – Gruppen-Filter
+        group_row = wx.BoxSizer(wx.HORIZONTAL)
+        group_lbl = wx.StaticText(self, label="Gruppe:")
+        self._group_choices: List[str] = ["(Alle)"]
+        self.server_group_choice = wx.Choice(self, choices=self._group_choices)
+        self.server_group_choice.SetName("Server-Gruppe")
+        self.server_group_choice.SetSelection(0)
+        self.server_group_choice.Bind(wx.EVT_CHOICE, self._on_group_filter_changed)
+        manage_groups_btn = wx.Button(self, label="Gruppe &verwalten...")
+        manage_groups_btn.SetName("Server-Gruppen verwalten")
+        manage_groups_btn.Bind(wx.EVT_BUTTON, self._on_manage_groups)
+        group_row.Add(group_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
+        group_row.Add(self.server_group_choice, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        group_row.Add(manage_groups_btn, 0)
+        server_sizer.Add(group_row, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
+        self._refresh_group_choices()
 
         # Filter row
         filter_row = wx.BoxSizer(wx.HORIZONTAL)
@@ -431,14 +448,49 @@ class ConnectionTab(wx.Panel):
 
     # --- Filter ---
 
-    def _on_filter_changed(self, _event):
+    def _refresh_group_choices(self) -> None:
+        try:
+            groups = getattr(self.frame.settings_store.settings, "server_groups", {}) or {}
+            choices = ["(Alle)"] + sorted(groups.keys())
+            self.server_group_choice.Set(choices)
+            self.server_group_choice.SetSelection(0)
+            self._group_choices = choices
+        except Exception:
+            pass
+
+    def _on_group_filter_changed(self, _event) -> None:
+        self._apply_combined_filter()
+
+    def _apply_combined_filter(self) -> None:
         filt = self.server_filter.GetValue().strip().lower()
         all_names = self._all_server_names
-        if filt:
-            self._filtered_indices = [i for i, n in enumerate(all_names) if filt in n.lower()]
+        sel = self.server_group_choice.GetSelection()
+        group_name = self._group_choices[sel] if sel >= 0 else "(Alle)"
+        # Group filter
+        if group_name != "(Alle)":
+            try:
+                groups = getattr(self.frame.settings_store.settings, "server_groups", {}) or {}
+                group_ids = set(groups.get(group_name, []))
+                servers = self.frame.store.items()
+                allowed = {i for i, s in enumerate(servers) if s.name in group_ids or str(i) in group_ids}
+            except Exception:
+                allowed = set(range(len(all_names)))
         else:
-            self._filtered_indices = list(range(len(all_names)))
+            allowed = set(range(len(all_names)))
+        if filt:
+            self._filtered_indices = [i for i, n in enumerate(all_names) if filt in n.lower() and i in allowed]
+        else:
+            self._filtered_indices = [i for i in range(len(all_names)) if i in allowed]
         self.server_list.Set([all_names[i] for i in self._filtered_indices])
+
+    def _on_manage_groups(self, _event) -> None:
+        dlg = _ServerGroupsDialog(self, self.frame)
+        dlg.ShowModal()
+        dlg.Destroy()
+        self._refresh_group_choices()
+
+    def _on_filter_changed(self, _event):
+        self._apply_combined_filter()
 
     # --- Context menu and keyboard ---
 
@@ -580,3 +632,133 @@ class ConnectionTab(wx.Panel):
         dlg = ServerBrowserDialog(self, self.frame)
         dlg.ShowModal()
         dlg.Destroy()
+
+
+# v3.0.0 – Server-Gruppen-Dialog
+
+class _ServerGroupsDialog(wx.Dialog):
+    """Einfacher Dialog zum Verwalten von Server-Gruppen."""
+
+    def __init__(self, parent: wx.Window, frame) -> None:
+        super().__init__(parent, title="Server-Gruppen verwalten", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self.frame = frame
+        self.SetMinSize((600, 450))
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Group list
+        top_row = wx.BoxSizer(wx.HORIZONTAL)
+        grp_box = wx.StaticBox(panel, label="Gruppen")
+        grp_sizer = wx.StaticBoxSizer(grp_box, wx.VERTICAL)
+        self._grp_list = wx.ListBox(panel, style=wx.LB_SINGLE)
+        self._grp_list.SetName("Gruppen-Liste")
+        self._grp_list.Bind(wx.EVT_LISTBOX, self._on_group_selected)
+        grp_sizer.Add(self._grp_list, 1, wx.ALL | wx.EXPAND, 4)
+        grp_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        add_grp_btn = wx.Button(panel, label="&Neu")
+        add_grp_btn.Bind(wx.EVT_BUTTON, self._on_add_group)
+        del_grp_btn = wx.Button(panel, label="&Löschen")
+        del_grp_btn.Bind(wx.EVT_BUTTON, self._on_del_group)
+        grp_btn_row.Add(add_grp_btn, 0, wx.RIGHT, 4)
+        grp_btn_row.Add(del_grp_btn, 0)
+        grp_sizer.Add(grp_btn_row, 0, wx.ALL, 4)
+        top_row.Add(grp_sizer, 1, wx.ALL | wx.EXPAND, 4)
+
+        # Server assignment
+        srv_box = wx.StaticBox(panel, label="Server in Gruppe")
+        srv_sizer = wx.StaticBoxSizer(srv_box, wx.VERTICAL)
+        self._srv_list = wx.ListBox(panel, style=wx.LB_SINGLE)
+        self._srv_list.SetName("Server in Gruppe")
+        srv_sizer.Add(self._srv_list, 1, wx.ALL | wx.EXPAND, 4)
+        srv_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        add_srv_btn = wx.Button(panel, label="Server &hinzufügen")
+        add_srv_btn.Bind(wx.EVT_BUTTON, self._on_add_server)
+        rem_srv_btn = wx.Button(panel, label="Server &entfernen")
+        rem_srv_btn.Bind(wx.EVT_BUTTON, self._on_rem_server)
+        srv_btn_row.Add(add_srv_btn, 0, wx.RIGHT, 4)
+        srv_btn_row.Add(rem_srv_btn, 0)
+        srv_sizer.Add(srv_btn_row, 0, wx.ALL, 4)
+        top_row.Add(srv_sizer, 1, wx.ALL | wx.EXPAND, 4)
+
+        sizer.Add(top_row, 1, wx.ALL | wx.EXPAND, 4)
+
+        btn_sizer = wx.StdDialogButtonSizer()
+        close_btn = wx.Button(panel, wx.ID_OK, label="Schließen")
+        btn_sizer.AddButton(close_btn)
+        btn_sizer.Realize()
+        sizer.Add(btn_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
+        panel.SetSizer(sizer)
+
+        self._groups: dict = dict(getattr(frame.settings_store.settings, "server_groups", {}) or {})
+        self._refresh_groups()
+        self.CentreOnParent()
+
+    def _refresh_groups(self) -> None:
+        self._grp_list.Set(sorted(self._groups.keys()))
+        self._srv_list.Clear()
+
+    def _current_group(self) -> Optional[str]:
+        idx = self._grp_list.GetSelection()
+        if idx == wx.NOT_FOUND:
+            return None
+        return self._grp_list.GetString(idx)
+
+    def _on_group_selected(self, _event) -> None:
+        grp = self._current_group()
+        if grp is None:
+            return
+        members = self._groups.get(grp, [])
+        self._srv_list.Set(list(members))
+
+    def _on_add_group(self, _event) -> None:
+        with wx.TextEntryDialog(self, "Name der neuen Gruppe:", "Gruppe erstellen") as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            name = dlg.GetValue().strip()
+        if not name or name in self._groups:
+            return
+        self._groups[name] = []
+        self._save()
+        self._refresh_groups()
+
+    def _on_del_group(self, _event) -> None:
+        grp = self._current_group()
+        if grp is None:
+            return
+        self._groups.pop(grp, None)
+        self._save()
+        self._refresh_groups()
+
+    def _on_add_server(self, _event) -> None:
+        grp = self._current_group()
+        if grp is None:
+            wx.MessageBox("Erst eine Gruppe auswählen.", "Hinweis")
+            return
+        servers = [p.name for p in self.frame.store.items()]
+        with wx.SingleChoiceDialog(self, "Server auswählen:", "Server hinzufügen", servers) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            srv = dlg.GetStringSelection()
+        if srv and srv not in self._groups[grp]:
+            self._groups[grp].append(srv)
+            self._save()
+            self._on_group_selected(None)
+
+    def _on_rem_server(self, _event) -> None:
+        grp = self._current_group()
+        if grp is None:
+            return
+        idx = self._srv_list.GetSelection()
+        if idx == wx.NOT_FOUND:
+            return
+        srv = self._srv_list.GetString(idx)
+        members = self._groups.get(grp, [])
+        if srv in members:
+            members.remove(srv)
+            self._groups[grp] = members
+            self._save()
+            self._on_group_selected(None)
+
+    def _save(self) -> None:
+        self.frame.settings_store.settings.server_groups = dict(self._groups)
+        self.frame.settings_store.save()

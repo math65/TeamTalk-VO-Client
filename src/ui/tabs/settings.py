@@ -69,6 +69,8 @@ class SettingsTab(wx.Panel):
             "Lesezeichen", "Automation",
             "Aufnahme & Audio-Extras", "Chat & Status",
             "Verbindung & Anzeige", "Integration & API",
+            "Nutzer-Notizen", "PTT & Erweitert", "Stichwort-Alarm",
+            "Plugins",
         ])
         self.section_choice.SetName("Einstellungsbereich")
         self.section_choice.SetSelection(0)
@@ -105,6 +107,10 @@ class SettingsTab(wx.Panel):
         self.chat_status_tab = self._build_chat_status_tab()
         self.extra_connection_tab = self._build_extra_connection_tab()
         self.integration_tab = self._build_integration_tab()
+        self.user_notes_tab = self._build_user_notes_tab()
+        self.ptt_advanced_tab = self._build_ptt_advanced_tab()
+        self.keyword_alert_tab = self._build_keyword_alert_tab()
+        self.plugins_tab = self._build_plugins_tab()
 
         self._sections = {
             "Allgemein": self.general_tab,
@@ -124,6 +130,10 @@ class SettingsTab(wx.Panel):
             "Chat & Status": self.chat_status_tab,
             "Verbindung & Anzeige": self.extra_connection_tab,
             "Integration & API": self.integration_tab,
+            "Nutzer-Notizen": self.user_notes_tab,
+            "PTT & Erweitert": self.ptt_advanced_tab,
+            "Stichwort-Alarm": self.keyword_alert_tab,
+            "Plugins": self.plugins_tab,
         }
 
         for panel in self._sections.values():
@@ -1470,6 +1480,284 @@ class SettingsTab(wx.Panel):
             pass
         self.frame.settings_store.save()
         self.frame.set_status("Integration & API gespeichert")
+
+    # ------------------------------------------------------------------
+    # v2.8.0 – Nutzer-Notizen
+    # ------------------------------------------------------------------
+
+    def _build_user_notes_tab(self) -> wx.ScrolledWindow:
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        info = wx.StaticText(panel, label=(
+            "Gespeicherte Notizen zu Nutzern. Notizen werden beim Betreten des Kanals\n"
+            "via TTS angesagt (Notiz: ...). Bearbeiten: Benutzer-Menü → Notiz bearbeiten."
+        ))
+        sizer.Add(info, 0, wx.ALL, 8)
+
+        notes_box = wx.StaticBox(panel, label="Gespeicherte Nutzer-Notizen")
+        notes_sizer = wx.StaticBoxSizer(notes_box, wx.VERTICAL)
+        self._notes_list = wx.ListBox(panel, style=wx.LB_SINGLE)
+        self._notes_list.SetName("Nutzer-Notizen Liste")
+        notes_sizer.Add(self._notes_list, 1, wx.ALL | wx.EXPAND, 8)
+
+        notes_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        del_note_btn = wx.Button(panel, label="Notiz &löschen")
+        del_note_btn.SetName("Nutzer-Notiz löschen")
+        del_note_btn.Bind(wx.EVT_BUTTON, self._on_delete_note)
+        notes_btn_row.Add(del_note_btn, 0)
+        notes_sizer.Add(notes_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(notes_sizer, 1, wx.ALL | wx.EXPAND, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        self._refresh_notes_list()
+        return panel
+
+    def _refresh_notes_list(self) -> None:
+        try:
+            notes = getattr(self.frame.settings_store.settings, "user_notes", {}) or {}
+            self._notes_list.Clear()
+            self._notes_usernames: list = []
+            for username, note in sorted(notes.items()):
+                self._notes_list.Append(f"{username}: {note}")
+                self._notes_usernames.append(username)
+        except Exception:
+            pass
+
+    def _on_delete_note(self, _event) -> None:
+        idx = self._notes_list.GetSelection()
+        if idx == wx.NOT_FOUND:
+            return
+        try:
+            username = self._notes_usernames[idx]
+            notes = getattr(self.frame.settings_store.settings, "user_notes", {}) or {}
+            notes.pop(username, None)
+            self.frame.settings_store.settings.user_notes = notes
+            self.frame.settings_store.save()
+            self._refresh_notes_list()
+            self.frame.set_status(f"Notiz für {username} gelöscht")
+        except Exception as exc:
+            self.frame.set_status(f"Fehler: {exc}")
+
+    # ------------------------------------------------------------------
+    # v2.8.0 – PTT & Erweitert (PTT-Zeitlimit, v2.9.0 VU-Alarm, Aufnahme-Segmentierung)
+    # ------------------------------------------------------------------
+
+    def _build_ptt_advanced_tab(self) -> wx.ScrolledWindow:
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        s = self.frame.settings_store.settings
+
+        # PTT-Zeitlimit
+        ptt_box = wx.StaticBox(panel, label="PTT-Zeitlimit")
+        ptt_sizer = wx.StaticBoxSizer(ptt_box, wx.VERTICAL)
+        ptt_row = wx.BoxSizer(wx.HORIZONTAL)
+        ptt_row.Add(wx.StaticText(panel, label="PTT-Zeitlimit (Sekunden, 0=aus):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._ptt_max_seconds = wx.SpinCtrl(panel, min=0, max=600, initial=int(getattr(s, "ptt_max_seconds", 0) or 0))
+        self._ptt_max_seconds.SetName("PTT-Zeitlimit Sekunden")
+        ptt_row.Add(self._ptt_max_seconds, 0)
+        ptt_sizer.Add(ptt_row, 0, wx.ALL, 8)
+        sizer.Add(ptt_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        # VU-Pegel-Alarm (v2.9.0)
+        vu_box = wx.StaticBox(panel, label="VU-Pegel-Alarm")
+        vu_sizer = wx.StaticBoxSizer(vu_box, wx.VERTICAL)
+        self._vu_alert_enabled = wx.CheckBox(panel, label="&VU-Alarm aktivieren (bei zu hohem Eingangspegel)")
+        self._vu_alert_enabled.SetName("VU-Alarm aktivieren")
+        self._vu_alert_enabled.SetValue(bool(getattr(s, "vu_alert_enabled", False)))
+        vu_sizer.Add(self._vu_alert_enabled, 0, wx.ALL, 8)
+        vu_thresh_row = wx.BoxSizer(wx.HORIZONTAL)
+        vu_thresh_row.Add(wx.StaticText(panel, label="Schwellenwert % (0-100):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._vu_alert_threshold = wx.SpinCtrl(panel, min=0, max=100, initial=int(getattr(s, "vu_alert_threshold", 90) or 90))
+        self._vu_alert_threshold.SetName("VU-Alarm Schwellenwert")
+        vu_thresh_row.Add(self._vu_alert_threshold, 0)
+        vu_sizer.Add(vu_thresh_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(vu_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # Aufnahme-Segmentierung (v2.9.0)
+        seg_box = wx.StaticBox(panel, label="Aufnahme-Segmentierung (0 = deaktiviert)")
+        seg_sizer = wx.StaticBoxSizer(seg_box, wx.VERTICAL)
+        seg_grid = wx.FlexGridSizer(2, 2, 8, 8)
+        seg_grid.AddGrowableCol(1)
+        seg_grid.Add(wx.StaticText(panel, label="Max. Dateigröße (MB, 0=aus):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._rec_max_size = wx.SpinCtrl(panel, min=0, max=10000, initial=int(getattr(s, "recording_max_size_mb", 0) or 0))
+        self._rec_max_size.SetName("Max. Aufnahmegröße MB")
+        seg_grid.Add(self._rec_max_size, 0)
+        seg_grid.Add(wx.StaticText(panel, label="Max. Dauer (Minuten, 0=aus):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._rec_max_minutes = wx.SpinCtrl(panel, min=0, max=600, initial=int(getattr(s, "recording_max_minutes", 0) or 0))
+        self._rec_max_minutes.SetName("Max. Aufnahmedauer Minuten")
+        seg_grid.Add(self._rec_max_minutes, 0)
+        seg_sizer.Add(seg_grid, 0, wx.ALL, 8)
+        sizer.Add(seg_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        save_btn = wx.Button(panel, label="&Speichern")
+        save_btn.SetName("PTT & Erweitert speichern")
+        save_btn.Bind(wx.EVT_BUTTON, self._on_save_ptt_advanced)
+        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        return panel
+
+    def _on_save_ptt_advanced(self, _event) -> None:
+        s = self.frame.settings_store.settings
+        s.ptt_max_seconds = int(self._ptt_max_seconds.GetValue())
+        s.vu_alert_enabled = self._vu_alert_enabled.GetValue()
+        s.vu_alert_threshold = int(self._vu_alert_threshold.GetValue())
+        s.recording_max_size_mb = int(self._rec_max_size.GetValue())
+        s.recording_max_minutes = int(self._rec_max_minutes.GetValue())
+        self.frame.settings_store.save()
+        self.frame.set_status("PTT & Erweitert gespeichert")
+
+    # ------------------------------------------------------------------
+    # v2.8.0 – Stichwort-Alarm
+    # ------------------------------------------------------------------
+
+    def _build_keyword_alert_tab(self) -> wx.ScrolledWindow:
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        s = self.frame.settings_store.settings
+
+        kw_box = wx.StaticBox(panel, label="Stichwort-Alarm")
+        kw_sizer = wx.StaticBoxSizer(kw_box, wx.VERTICAL)
+        kw_sizer.Add(wx.StaticText(panel, label="Ein Stichwort je Zeile (Groß/Kleinschreibung egal):"), 0, wx.ALL, 8)
+        kws = list(getattr(s, "alert_keywords", []) or [])
+        self._kw_text = wx.TextCtrl(panel, value="\n".join(kws), style=wx.TE_MULTILINE, size=(-1, 120))
+        self._kw_text.SetName("Stichwörter")
+        kw_sizer.Add(self._kw_text, 1, wx.ALL | wx.EXPAND, 8)
+
+        self._kw_tts = wx.CheckBox(panel, label="&Stichwort via TTS ansagen")
+        self._kw_tts.SetName("Stichwort TTS ansagen")
+        self._kw_tts.SetValue(bool(getattr(s, "alert_keywords_tts", True)))
+        kw_sizer.Add(self._kw_tts, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(kw_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        save_btn = wx.Button(panel, label="&Speichern")
+        save_btn.SetName("Stichwort-Alarm speichern")
+        save_btn.Bind(wx.EVT_BUTTON, self._on_save_keyword_alert)
+        sizer.Add(save_btn, 0, wx.ALL, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        return panel
+
+    def _on_save_keyword_alert(self, _event) -> None:
+        s = self.frame.settings_store.settings
+        kws = [line.strip() for line in self._kw_text.GetValue().splitlines() if line.strip()]
+        s.alert_keywords = kws
+        s.alert_keywords_tts = self._kw_tts.GetValue()
+        self.frame.settings_store.save()
+        self.frame.set_status("Stichwort-Alarm gespeichert")
+
+    # ------------------------------------------------------------------
+    # v3.0.0 – Plugins
+    # ------------------------------------------------------------------
+
+    def _build_plugins_tab(self) -> wx.ScrolledWindow:
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        pl_box = wx.StaticBox(panel, label="Geladene Plugins")
+        pl_sizer = wx.StaticBoxSizer(pl_box, wx.VERTICAL)
+
+        self._plugins_list = wx.ListBox(panel, style=wx.LB_SINGLE)
+        self._plugins_list.SetName("Plugin-Liste")
+        self._plugins_list.Bind(wx.EVT_LISTBOX, self._on_plugin_selected)
+        pl_sizer.Add(self._plugins_list, 0, wx.ALL | wx.EXPAND, 8)
+
+        self._plugin_info = wx.StaticText(panel, label="")
+        self._plugin_info.SetName("Plugin-Info")
+        pl_sizer.Add(self._plugin_info, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        pl_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._plugin_enable_btn = wx.Button(panel, label="&Aktivieren")
+        self._plugin_enable_btn.SetName("Plugin aktivieren")
+        self._plugin_enable_btn.Bind(wx.EVT_BUTTON, self._on_plugin_enable)
+        self._plugin_disable_btn = wx.Button(panel, label="&Deaktivieren")
+        self._plugin_disable_btn.SetName("Plugin deaktivieren")
+        self._plugin_disable_btn.Bind(wx.EVT_BUTTON, self._on_plugin_disable)
+        reload_btn = wx.Button(panel, label="Neu &laden")
+        reload_btn.SetName("Plugins neu laden")
+        reload_btn.Bind(wx.EVT_BUTTON, self._on_plugin_reload)
+        pl_btn_row.Add(self._plugin_enable_btn, 0, wx.RIGHT, 8)
+        pl_btn_row.Add(self._plugin_disable_btn, 0, wx.RIGHT, 8)
+        pl_btn_row.Add(reload_btn, 0)
+        pl_sizer.Add(pl_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(pl_sizer, 1, wx.ALL | wx.EXPAND, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        self._refresh_plugin_list()
+        return panel
+
+    def _refresh_plugin_list(self) -> None:
+        try:
+            from pathlib import Path as _Path
+            plugins_dir = _Path(__file__).resolve().parent.parent.parent.parent / "plugins"
+            self._plugins_list.Clear()
+            self._plugin_file_names: list = []
+            if plugins_dir.exists():
+                for f in sorted(plugins_dir.glob("*.py")):
+                    if f.name.startswith("_"):
+                        continue
+                    self._plugins_list.Append(f.stem)
+                    self._plugin_file_names.append(f.stem)
+        except Exception:
+            pass
+
+    def _on_plugin_selected(self, _event) -> None:
+        idx = self._plugins_list.GetSelection()
+        if idx == wx.NOT_FOUND:
+            self._plugin_info.SetLabel("")
+            return
+        try:
+            name = self._plugin_file_names[idx]
+            disabled = list(getattr(self.frame.settings_store.settings, "disabled_plugins", []) or [])
+            status = "deaktiviert" if name in disabled else "aktiv"
+            self._plugin_info.SetLabel(f"Plugin: {name}, Status: {status}")
+        except Exception:
+            pass
+
+    def _on_plugin_enable(self, _event) -> None:
+        idx = self._plugins_list.GetSelection()
+        if idx == wx.NOT_FOUND:
+            return
+        name = self._plugin_file_names[idx]
+        s = self.frame.settings_store.settings
+        disabled = list(getattr(s, "disabled_plugins", []) or [])
+        if name in disabled:
+            disabled.remove(name)
+        s.disabled_plugins = disabled
+        self.frame.settings_store.save()
+        self._on_plugin_selected(None)
+        self.frame.set_status(f"Plugin {name} aktiviert")
+
+    def _on_plugin_disable(self, _event) -> None:
+        idx = self._plugins_list.GetSelection()
+        if idx == wx.NOT_FOUND:
+            return
+        name = self._plugin_file_names[idx]
+        s = self.frame.settings_store.settings
+        disabled = list(getattr(s, "disabled_plugins", []) or [])
+        if name not in disabled:
+            disabled.append(name)
+        s.disabled_plugins = disabled
+        self.frame.settings_store.save()
+        self._on_plugin_selected(None)
+        self.frame.set_status(f"Plugin {name} deaktiviert")
+
+    def _on_plugin_reload(self, _event) -> None:
+        try:
+            n = self.frame._plugin_loader.load_all()
+            self._refresh_plugin_list()
+            self.frame.set_status(f"Plugins neu geladen: {n}")
+        except Exception as exc:
+            self.frame.set_status(f"Plugin-Reload: {exc}")
 
     # ------------------------------------------------------------------
     # Section navigation
