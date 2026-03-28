@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2026-03-28 (v1.10.5)
+- Bugfix: Kanalbaum zeigt jetzt den Servernamen als Root-Kanal-Label (wie der offizielle
+  Bearware Qt-Client), statt des leeren szName-Feldes des Root-Kanals.
+- Bugfix: Kanäle und Nutzer werden jetzt alphabetisch sortiert eingebaut (Bearware-konform).
+
 2026-03-27 (v1.10.4)
 - UI: SplitterWindow in ChannelsChatTab durch festes BoxSizer-Layout ersetzt.
   Kanalbaum (60 %) und Chat (40 %) sind jetzt immer sichtbar ohne interaktiven Teiler.

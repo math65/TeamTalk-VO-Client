@@ -127,7 +127,13 @@ class ChannelsTab(wx.Panel):
                 root_id = min(parent_ids)
 
         root_channel = next((c for c in channels if c.nChannelID == root_id), None)
-        root_name = tt_str(root_channel.szName) if root_channel else "Root"
+        # Bearware Qt reference: root channel displays server name, not szName (which is empty)
+        try:
+            server_props = client.get_server_properties()
+            server_name = tt_str(server_props.szServerName)
+        except Exception:
+            server_name = ""
+        root_name = server_name or (tt_str(root_channel.szName) if root_channel else "") or "Server"
         root_label = self._make_channel_label(root_name, root_channel, users_by_channel.get(root_id, []))
         root_item = self.channel_tree.AddRoot(root_label)
         try:
@@ -137,11 +143,12 @@ class ChannelsTab(wx.Panel):
         self._channel_items[root_id] = root_item
         self._add_user_nodes(root_item, users_by_channel.get(root_id, []))
 
-        # Unterkanäle iterativ einbauen
+        # Unterkanäle iterativ einbauen – alphabetisch sortiert (wie Bearware Qt-Client)
         pending = {c.nChannelID: c for c in channels if c.nChannelID != root_id}
         while pending:
             progressed = False
-            for chan_id in list(pending.keys()):
+            # Sort pending channels by name for alphabetical insertion (Bearware behaviour)
+            for chan_id in sorted(pending.keys(), key=lambda cid: tt_str(pending[cid].szName).lower()):
                 chan = pending[chan_id]
                 parent_item = self._channel_items.get(chan.nParentID)
                 if parent_item is None:
@@ -214,7 +221,8 @@ class ChannelsTab(wx.Panel):
         return ", ".join(parts)
 
     def _add_user_nodes(self, parent_item: wx.TreeItemId, users: List) -> None:
-        for user in users:
+        # Sort alphabetically by nickname, like Bearware Qt client (wcscmp on szNickname)
+        for user in sorted(users, key=lambda u: (self.frame.tt_str(u.szNickname) or "").lower()):
             try:
                 label = self._format_user_label(user)
                 item = self.channel_tree.AppendItem(parent_item, label)
