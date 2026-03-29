@@ -68,9 +68,10 @@ from file_manager import FileManager
 from video_manager import VideoStatsCollector, VideoRecorder
 from analytics import UsageAnalytics
 from health_check import HealthChecker, check_disk_space, check_event_bus
+from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "5.9.0"
+APP_VERSION = "6.0.0"
 
 def _upd_tok() -> str:
     import base64 as _b

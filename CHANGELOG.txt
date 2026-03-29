@@ -1,6 +1,23 @@
 Changelog
 =========
 
+2026-03-29 (v6.0.0) "Libero"
+- MAJOR RELEASE: Vollständige Integration aller Features seit v4.0.0
+- PlatformInfo-Modul (platform_info.py): platform_info(), capabilities(),
+  feature_summary() – konsistente Versionsinformationen und Feature-Flags
+- Codename "Libero" für v6.0.0
+- capabilities() zeigt Verfügbarkeit aller optionalen Features zur Laufzeit
+  (VoiceOver, Keychain, KI-Backends, Companion, Plugin-Marktplatz, Analytics)
+- version_tuple() und is_newer_than() für Update-Erkennung
+- feature_summary() gibt lesbaren Feature-Status für Über-Dialog aus
+- Alle v4.x–v5.x Features produktionsreif:
+  4.0.0 AsyncBusBridge | 4.1.0 Tests | 4.2.0 Plugin-System | 4.3.0 HTTP-API
+  4.4.0 Braillezeilen | 4.5.0 Chat | 4.6.0 Performance | 4.7.0 Audio/EQ
+  4.8.0 Mehrsprachigkeit | 4.9.0 Sicherheit | 4.10.0 Plugin-Marktplatz
+  5.0.0 Multi-Server | 5.1.0 Companion | 5.2.0 KI-Integration | 5.3.0 macOS
+  5.4.0 Barrierefreiheit | 5.5.0 Dateiverwaltung | 5.6.0 Video | 5.7.0 Analytics
+  5.8.0 Wartbarkeit | 5.9.0 Internationalisierung (DE/EN/FR/ES)
+
 2026-03-29 (v5.9.0)
 - Spanische Übersetzung: _TRANSLATIONS_ES mit ~90 Einträgen (alle Kern-UI-Texte)
 - set_language() akzeptiert jetzt auch 'es' (Spanisch)
