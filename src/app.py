@@ -62,9 +62,10 @@ from audit_log import AuditLog, A_SERVER_CONNECT, A_SERVER_DISCONNECT, A_API_KEY
 from tls_verify import CertPinStore
 from plugin_package import PluginPackage, read_package, install_package, PluginManifestError
 from plugin_marketplace import PluginMarketplace
+from companion_server import CompanionServer
 
 
-APP_VERSION = "5.0.0"
+APP_VERSION = "5.1.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -385,6 +386,13 @@ class MainFrame(wx.Frame):
         self._cert_pins = CertPinStore(app_dir)
         # v4.10.0 – Plugin-Marktplatz
         self._marketplace = PluginMarketplace(plugins_dir=app_dir / "plugins")
+        # v5.1.0 – Companion-Server (Mobil-Companion)
+        self._companion = CompanionServer(
+            get_status_fn=self._companion_status,
+            get_channels_fn=self._companion_channels,
+            get_users_fn=self._companion_users,
+            send_message_fn=self._companion_send,
+        )
         _expired = self._saved_messages.expire()
         if _expired > 0:
             self._audit_log.log(A_SAVED_MSG_EXPIRED, detail=str(_expired))
@@ -1375,6 +1383,43 @@ class MainFrame(wx.Frame):
         except Exception:
             pass
         return self._current_server_key
+
+    # ------------------------------------------------------------------
+    # v5.1.0 – Companion-Server Callbacks
+    # ------------------------------------------------------------------
+
+    def _companion_status(self) -> dict:
+        active = self.server_manager.get_active() if hasattr(self, "server_manager") else None
+        return {
+            "app_version": APP_VERSION,
+            "connected": self.client.is_connected() if hasattr(self, "client") else False,
+            "server": active.profile.name if active else "",
+            "session_count": self.server_manager.session_count() if hasattr(self, "server_manager") else 0,
+        }
+
+    def _companion_channels(self) -> list:
+        try:
+            return [
+                {"id": ch.channelid, "name": ch.name, "users": ch.nusers}
+                for ch in (self.client.get_channels() or [])
+            ]
+        except Exception:
+            return []
+
+    def _companion_users(self) -> list:
+        try:
+            return [
+                {"id": u.userid, "name": u.nickname}
+                for u in (self.client.get_users() or [])
+            ]
+        except Exception:
+            return []
+
+    def _companion_send(self, text: str, channel_id: int) -> bool:
+        try:
+            return self.client.send_channel_message(text, channel_id)
+        except Exception:
+            return False
 
     def save_chat_message(self, text: str, kind: str) -> None:
         key = self._get_server_key()

@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2026-03-29 (v5.1.0)
+- Mobil-Companion-Server: CompanionServer (companion_server.py) startet auf
+  localhost:19880; Endpunkte: GET /status, /channels, /users, GET /events (SSE),
+  POST /say, POST /push_token; läuft als Daemon-Thread neben dem Haupt-Loop
+- Authentifizierung via X-Companion-Token Header (optional, wie HttpApiServer)
+- SSE-Event-Queue (max 200 Events) mit keepalive-Heartbeat alle 15 Sekunden
+- Push-Token-Registrierung (iOS/Android) via POST /push_token gespeichert
+- frame._companion als App-Schnittstelle; Callbacks: status, channels, users, send
+
 2026-03-29 (v5.0.0)
 - Multi-Server Vollausbau: ServerManager unterstützt jetzt bis zu 8 simultane
   Sessions (MAX_SESSIONS); add_session() wirft ValueError wenn Limit erreicht
