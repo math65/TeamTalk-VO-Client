@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import html
+import re
+import time
 from typing import TYPE_CHECKING, List
 
 import wx
@@ -8,6 +11,38 @@ from ui.a11y import setup_list_accessible
 
 if TYPE_CHECKING:
     from app import MainFrame
+
+# Markdown-Muster die für VoiceOver bereinigt werden (nur Marker entfernen)
+_MD_PATTERNS = [
+    (re.compile(r'\*\*(.+?)\*\*'), r'\1'),   # **fett**
+    (re.compile(r'\*(.+?)\*'),     r'\1'),   # *kursiv*
+    (re.compile(r'`(.+?)`'),       r'\1'),   # `code`
+]
+
+# v4.5.0 – Emoji-Shortcode-Tabelle
+_EMOJI_SHORTCODES = {
+    ":+1:": "👍", ":-1:": "👎", ":smile:": "😊", ":laughing:": "😂",
+    ":wink:": "😉", ":heart:": "❤️", ":fire:": "🔥", ":wave:": "👋",
+    ":ok:": "✅", ":x:": "❌", ":warning:": "⚠️", ":info:": "ℹ️",
+    ":mic:": "🎤", ":headphones:": "🎧", ":speaker:": "🔊",
+    ":mute:": "🔇", ":clap:": "👏", ":star:": "⭐", ":check:": "✔️",
+    ":question:": "❓", ":exclamation:": "❗", ":thumbsup:": "👍",
+    ":thumbsdown:": "👎", ":tada:": "🎉", ":eyes:": "👀",
+}
+
+
+def _strip_markdown(text: str) -> str:
+    """Entfernt einfache Markdown-Marker (**, *, `) aus dem Text."""
+    for pattern, repl in _MD_PATTERNS:
+        text = pattern.sub(repl, text)
+    return text
+
+
+def expand_emoji_shortcodes(text: str) -> str:
+    """v4.5.0 – Ersetzt :shortcode: durch Unicode-Emojis."""
+    for code, emoji in _EMOJI_SHORTCODES.items():
+        text = text.replace(code, emoji)
+    return text
 
 
 class ChatTab(wx.Panel):
@@ -52,11 +87,23 @@ class ChatTab(wx.Panel):
         self.export_btn = wx.Button(self, label="Verlauf &exportieren")
         self.export_btn.SetName("Verlauf exportieren")
         self.export_btn.Bind(wx.EVT_BUTTON, self._on_export_history)
+        self.export_html_btn = wx.Button(self, label="Als &HTML")
+        self.export_html_btn.SetName("Verlauf als HTML exportieren")
+        self.export_html_btn.Bind(wx.EVT_BUTTON, self._on_export_html)
         self.clear_btn = wx.Button(self, label="Verlauf &leeren")
         self.clear_btn.SetName("Verlauf leeren")
         self.clear_btn.Bind(wx.EVT_BUTTON, self._on_clear_history)
+        self.quote_btn = wx.Button(self, label="&Zitieren")
+        self.quote_btn.SetName("Ausgewählten Text zitieren")
+        self.quote_btn.Bind(wx.EVT_BUTTON, self._on_quote)
+        self.save_msg_btn = wx.Button(self, label="&Speichern")
+        self.save_msg_btn.SetName("Nachricht speichern")
+        self.save_msg_btn.Bind(wx.EVT_BUTTON, self._on_save_message)
         history_row.Add(self.export_btn, 0, wx.RIGHT, 8)
-        history_row.Add(self.clear_btn, 0)
+        history_row.Add(self.export_html_btn, 0, wx.RIGHT, 8)
+        history_row.Add(self.clear_btn, 0, wx.RIGHT, 8)
+        history_row.Add(self.quote_btn, 0, wx.RIGHT, 8)
+        history_row.Add(self.save_msg_btn, 0)
         sizer.Add(history_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         # Search box
@@ -98,6 +145,9 @@ class ChatTab(wx.Panel):
 
         self.SetSizer(sizer)
 
+        # Drag & Drop: Datei auf Chat-Tab ziehen startet Upload
+        self.SetDropTarget(_ChatFileDropTarget(self))
+
     def _is_muted_sender(self, text: str) -> bool:
         """Gibt True zurück, wenn der Absender in der Stummschalten-Liste ist."""
         s = self.frame.settings_store.settings
@@ -130,6 +180,8 @@ class ChatTab(wx.Panel):
         # Muted users filter (system/own messages are never filtered)
         if kind not in ("system", "own") and self._is_muted_sender(text):
             return
+        # v3.7.0: Markdown-Marker für VoiceOver bereinigen
+        text = _strip_markdown(text)
         # Keyword highlight marker
         if kind not in ("system", "own") and self._has_highlight_keyword(text):
             text = "[!] " + text
@@ -160,7 +212,6 @@ class ChatTab(wx.Panel):
         if not content.strip():
             self.frame.set_status("Kein Chat-Verlauf zum Exportieren")
             return
-        import time
         default_name = f"chatverlauf_{time.strftime('%Y%m%d_%H%M%S')}.txt"
         with wx.FileDialog(
             self,
@@ -178,6 +229,66 @@ class ChatTab(wx.Panel):
             self.frame.set_status(f"Chat-Verlauf exportiert: {path}")
         except Exception as exc:
             self.frame.set_status(f"Export fehlgeschlagen: {exc}")
+
+    def _on_export_html(self, _event) -> None:
+        """v4.5.0 – Exportiert den Chat-Verlauf als HTML-Datei."""
+        content = self.chat_log.GetValue()
+        if not content.strip():
+            self.frame.set_status("Kein Chat-Verlauf zum Exportieren")
+            return
+        server_name = getattr(self.frame, "_current_server_key", "TeamTalk")
+        default_name = f"chatverlauf_{time.strftime('%Y%m%d_%H%M%S')}.html"
+        with wx.FileDialog(
+            self,
+            "Chat-Verlauf als HTML exportieren",
+            wildcard="HTML-Dateien (*.html)|*.html|Alle Dateien|*.*",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+            defaultFile=default_name,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        try:
+            lines = content.splitlines()
+            rows = []
+            for line in lines:
+                if not line.strip():
+                    continue
+                escaped = html.escape(line)
+                # Einfache Farb-Klassifizierung
+                if line.startswith("Ich:") or line.startswith("An "):
+                    css_class = "own"
+                elif line.startswith("[P]") or "Privat" in line[:20]:
+                    css_class = "private"
+                elif line.startswith("*") or line.startswith("["):
+                    css_class = "system"
+                else:
+                    css_class = "chat"
+                rows.append(f'<div class="{css_class}">{escaped}</div>')
+
+            html_content = f"""<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Chat-Verlauf – {html.escape(server_name)}</title>
+<style>
+body{{font-family:monospace;max-width:900px;margin:1em auto;background:#fafafa;padding:0 1em}}
+.chat{{color:#222;margin:.15em 0}}.own{{color:#27ae60}}.private{{color:#2980b9}}
+.system{{color:#888;font-style:italic}}.ts{{color:#aaa;font-size:.8em;margin-right:.5em}}
+h1{{font-size:1.1em;color:#555}}
+</style>
+</head>
+<body>
+<h1>Chat-Verlauf – {html.escape(server_name)} –
+Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
+{''.join(rows)}
+</body>
+</html>"""
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(html_content)
+            self.frame.set_status(f"HTML-Export: {path}")
+        except Exception as exc:
+            self.frame.set_status(f"HTML-Export fehlgeschlagen: {exc}")
 
     def _on_clear_history(self, _event) -> None:
         dlg = wx.MessageDialog(
@@ -201,10 +312,46 @@ class ChatTab(wx.Panel):
                 pass
         self.frame.set_status("Chat-Verlauf geleert")
 
+    def _on_quote(self, _event) -> None:
+        """Zitiert den markierten Text (oder die letzte Zeile) im Eingabefeld."""
+        selected = self.chat_log.GetStringSelection().strip()
+        if not selected:
+            # Letzte nicht-leere Zeile als Fallback
+            full = self.chat_log.GetValue()
+            lines = [l for l in full.splitlines() if l.strip()]
+            selected = lines[-1] if lines else ""
+        if not selected:
+            self.frame.set_status("Kein Text zum Zitieren")
+            return
+        quoted = "\n".join(f"> {line}" for line in selected.splitlines())
+        current = self.chat_input.GetValue()
+        if current:
+            self.chat_input.SetValue(quoted + "\n" + current)
+        else:
+            self.chat_input.SetValue(quoted + "\n")
+        self.chat_input.SetInsertionPointEnd()
+        self.chat_input.SetFocus()
+
+    def _on_save_message(self, _event) -> None:
+        """Speichert den markierten Text (oder die letzte Zeile) dauerhaft."""
+        selected = self.chat_log.GetStringSelection().strip()
+        if not selected:
+            full = self.chat_log.GetValue()
+            lines = [l for l in full.splitlines() if l.strip()]
+            selected = lines[-1] if lines else ""
+        if not selected:
+            self.frame.set_status("Kein Text zum Speichern")
+            return
+        server = getattr(self.frame, "_current_server_key", "")
+        self.frame._saved_messages.add(selected, server=server)
+        self.frame.set_status(f"Nachricht gespeichert ({len(selected)} Zeichen)")
+
     def on_chat_send(self, _event):
         msg = self.chat_input.GetValue().strip()
         if not msg:
             return
+        # v4.5.0 – Emoji-Shortcodes expandieren
+        msg = expand_emoji_shortcodes(msg)
 
         client = self.frame.client
         if not client.is_connected():
@@ -333,3 +480,33 @@ class ChatTab(wx.Panel):
         if items:
             self.private_user.SetSelection(0)
         self.update_chat_target()
+
+
+class _ChatFileDropTarget(wx.FileDropTarget):
+    """Datei-Drag & Drop auf den Chat-Tab → Upload in aktuellen Kanal."""
+
+    def __init__(self, chat_tab: ChatTab) -> None:
+        super().__init__()
+        self._chat = chat_tab
+
+    def OnDropFiles(self, x: int, y: int, filenames: list) -> bool:
+        frame = self._chat.frame
+        client = frame.client
+        if not client.is_connected():
+            frame.set_status("Nicht verbunden – kein Upload möglich")
+            return False
+        ch_id = client.get_my_channel_id()
+        if not ch_id:
+            frame.set_status("Kein Kanal beigetreten – kein Upload möglich")
+            return False
+        started = 0
+        for path in filenames:
+            tid = client.send_file(int(ch_id), path)
+            if tid > 0:
+                started += 1
+                frame.set_status(f"Upload gestartet: {path}")
+            else:
+                frame.set_status(f"Upload fehlgeschlagen: {path}")
+        if started > 1:
+            frame.set_status(f"{started} Uploads gestartet")
+        return True

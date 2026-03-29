@@ -55,9 +55,10 @@ from channel_notes import ChannelNotesManager
 from chat_translator import ChatTranslatorManager
 from ai_reply import AiReplyManager
 from async_bridge import AsyncBusBridge
+from offline_queue import OfflineMessageQueue
 
 
-APP_VERSION = "4.4.0"
+APP_VERSION = "4.5.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -357,6 +358,8 @@ class MainFrame(wx.Frame):
         self._translator = ChatTranslatorManager(self.settings_store)
         self._ai_reply = AiReplyManager(self.settings_store)
         self._last_private_message_text: str = ""
+        # v4.5.0 – Offline-Nachrichten-Warteschlange
+        self._offline_queue = OfflineMessageQueue(app_dir)
         # v1.10.0 – Event-Bus + Plugin-Loader
         from event_bus import EventBus
         self.bus = EventBus()
