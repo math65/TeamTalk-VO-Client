@@ -403,7 +403,6 @@ class SettingsTab(wx.Panel):
         self._server_info_titlebar.SetValue(bool(getattr(s, "server_info_in_titlebar", False)))
         cq_sizer.Add(self._server_info_titlebar, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        sizer.Add(cq_box, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
         sizer.Add(cq_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # Single save button

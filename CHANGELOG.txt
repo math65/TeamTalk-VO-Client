@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2026-03-30 (v6.1.1)
+- Bugfix Startup-Crash: settings.py – cq_box wurde zweimal zu einem Sizer
+  hinzugefügt (einmal direkt, einmal via StaticBoxSizer); zweiter Add entfernt
+  (wxAssertionError: Adding a window already in a sizer, detach it first!)
+
 2026-03-30 (v6.1.0)
 - Update-Download direkt in der App: kein Browser mehr nötig; DMG wird via
   Gitea-API mit Token heruntergeladen (privates Repo kein Problem)
