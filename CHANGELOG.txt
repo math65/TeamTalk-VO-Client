@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-03-29 (v4.7.0)
+- EQ-Preset Import/Export: EqPresetsManager (eq_presets.py) verwaltet
+  builtin- und benutzerdefinierte Presets; JSON-Export/Import;
+  EQ-Dialog um "Speichern als…", "Importieren…", "Exportieren…"-Buttons erweitert
+- EQ-Presets in app_dir persistent (eq_presets.json)
+- Stille-Erkennung: SilenceDetector (silence_detector.py) analysiert WAV-Dateien
+  und gibt stille Abschnitte als (start_s, end_s)-Liste zurück;
+  audio_waveform_text() erzeugt ASCII-Waveform für VoiceOver-Nutzer
+- frame._eq_presets als öffentliche Schnittstelle verfügbar
+
 2026-03-29 (v4.6.0)
 - StartupProfiler (startup_profiler.py): misst alle Initialisierungsphasen,
   schreibt JSONL-Eintrag in startup.jsonl, gibt Zusammenfassung in stdout aus;

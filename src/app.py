@@ -57,9 +57,10 @@ from ai_reply import AiReplyManager
 from async_bridge import AsyncBusBridge
 from offline_queue import OfflineMessageQueue
 from startup_profiler import StartupProfiler
+from eq_presets import EqPresetsManager
 
 
-APP_VERSION = "4.6.0"
+APP_VERSION = "4.7.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -373,6 +374,8 @@ class MainFrame(wx.Frame):
         self._last_private_message_text: str = ""
         # v4.5.0 – Offline-Nachrichten-Warteschlange
         self._offline_queue = OfflineMessageQueue(app_dir)
+        # v4.7.0 – EQ-Preset-Manager
+        self._eq_presets = EqPresetsManager(app_dir)
         # v1.10.0 – Event-Bus + Plugin-Loader
         from event_bus import EventBus
         self.bus = EventBus()
@@ -4073,30 +4076,22 @@ class MainFrame(wx.Frame):
         self.set_status("Ausgabe stummgeschaltet" if enabled else "Ausgabe aktiv")
 
     def on_menu_eq_presets(self, _event):
-        """v3.4.0 – Equalizer-Voreinstellungen: Mikrofon- und Ausgabelautstärke Presets."""
-        # Presets: (name, mic_gain_pct, out_volume_pct)
-        _PRESETS = [
-            ("Standard",      50, 100),
-            ("Sprache (klar)", 65, 90),
-            ("Musik",          45, 110),
-            ("Laut",           70, 120),
-            ("Leise",          35, 70),
-            ("Stille",         0,  0),
-        ]
+        """v4.7.0 – Equalizer-Voreinstellungen mit Import/Export/Speichern."""
         s = self.settings_store.settings
         current_preset = getattr(s, "eq_active_preset", "Standard")
+        eq_mgr = self._eq_presets
+        all_presets = eq_mgr.all_presets
 
         dlg = wx.Dialog(self, title="Equalizer-Voreinstellungen",
                         style=wx.DEFAULT_DIALOG_STYLE)
         root = wx.BoxSizer(wx.VERTICAL)
 
         root.Add(wx.StaticText(dlg, label="Voreinstellung wählen:"), 0, wx.ALL, 8)
-        preset_choice = wx.Choice(dlg, choices=[p[0] for p in _PRESETS])
+        preset_names = [p["name"] for p in all_presets]
+        preset_choice = wx.Choice(dlg, choices=preset_names)
         preset_choice.SetName("Equalizer-Voreinstellung")
-        # select current preset
-        names = [p[0] for p in _PRESETS]
-        if current_preset in names:
-            preset_choice.SetSelection(names.index(current_preset))
+        if current_preset in preset_names:
+            preset_choice.SetSelection(preset_names.index(current_preset))
         else:
             preset_choice.SetSelection(0)
         root.Add(preset_choice, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
@@ -4122,12 +4117,71 @@ class MainFrame(wx.Frame):
 
         def _on_preset_changed(_evt):
             idx = preset_choice.GetSelection()
-            if 0 <= idx < len(_PRESETS):
-                _, mic, out = _PRESETS[idx]
-                mic_spin.SetValue(mic)
-                out_spin.SetValue(out)
-
+            if 0 <= idx < len(all_presets):
+                p = all_presets[idx]
+                mic_spin.SetValue(p["mic_gain_pct"])
+                out_spin.SetValue(p["out_volume_pct"])
         preset_choice.Bind(wx.EVT_CHOICE, _on_preset_changed)
+
+        # v4.7.0 – Import/Export/Speichern-Buttons
+        io_row = wx.BoxSizer(wx.HORIZONTAL)
+        save_btn = wx.Button(dlg, label="&Speichern als…")
+        save_btn.SetName("Preset speichern")
+        import_btn = wx.Button(dlg, label="&Importieren…")
+        import_btn.SetName("Presets importieren")
+        export_btn = wx.Button(dlg, label="&Exportieren…")
+        export_btn.SetName("Presets exportieren")
+        io_row.Add(save_btn, 0, wx.RIGHT, 8)
+        io_row.Add(import_btn, 0, wx.RIGHT, 8)
+        io_row.Add(export_btn, 0)
+        root.Add(io_row, 0, wx.LEFT | wx.BOTTOM, 8)
+
+        def _save_preset(_evt):
+            name = wx.GetTextFromUser("Preset-Name:", "Preset speichern", "Mein Preset", dlg)
+            if name.strip():
+                eq_mgr.add_or_update(name.strip(), mic_spin.GetValue(), out_spin.GetValue())
+                self.set_status(f"EQ-Preset '{name}' gespeichert")
+                # Auswahl aktualisieren
+                new_presets = eq_mgr.all_presets
+                preset_choice.Set([p["name"] for p in new_presets])
+                all_presets.clear()
+                all_presets.extend(new_presets)
+                names2 = [p["name"] for p in new_presets]
+                if name.strip() in names2:
+                    preset_choice.SetSelection(names2.index(name.strip()))
+
+        def _import_presets(_evt):
+            with wx.FileDialog(dlg, "EQ-Presets importieren",
+                               wildcard="JSON (*.json)|*.json|Alle|*.*",
+                               style=wx.FD_OPEN) as fd:
+                if fd.ShowModal() != wx.ID_OK:
+                    return
+                try:
+                    count = eq_mgr.import_from_file(Path(fd.GetPath()))
+                    self.set_status(f"{count} EQ-Preset(s) importiert")
+                    new_presets = eq_mgr.all_presets
+                    preset_choice.Set([p["name"] for p in new_presets])
+                    all_presets.clear()
+                    all_presets.extend(new_presets)
+                except Exception as exc:
+                    wx.MessageBox(f"Import fehlgeschlagen: {exc}", "Fehler", wx.OK | wx.ICON_ERROR, dlg)
+
+        def _export_presets(_evt):
+            with wx.FileDialog(dlg, "EQ-Presets exportieren",
+                               wildcard="JSON (*.json)|*.json|Alle|*.*",
+                               style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+                               defaultFile="eq_presets.json") as fd:
+                if fd.ShowModal() != wx.ID_OK:
+                    return
+                try:
+                    eq_mgr.export_to_file(Path(fd.GetPath()))
+                    self.set_status("EQ-Presets exportiert")
+                except Exception as exc:
+                    wx.MessageBox(f"Export fehlgeschlagen: {exc}", "Fehler", wx.OK | wx.ICON_ERROR, dlg)
+
+        save_btn.Bind(wx.EVT_BUTTON, _save_preset)
+        import_btn.Bind(wx.EVT_BUTTON, _import_presets)
+        export_btn.Bind(wx.EVT_BUTTON, _export_presets)
 
         btns = dlg.CreateButtonSizer(wx.OK | wx.CANCEL)
         root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
@@ -4138,18 +4192,15 @@ class MainFrame(wx.Frame):
             mic_pct = mic_spin.GetValue()
             out_pct = out_spin.GetValue()
             preset_name = preset_choice.GetString(preset_choice.GetSelection())
-            # Save to settings
             s.eq_active_preset = preset_name
             s.eq_mic_gain_pct = mic_pct
             s.eq_out_volume_pct = out_pct
             self.settings_store.save()
-            # Apply: mic gain (0-32768 SDK range, 50% = 8192 mid)
             try:
                 sdk_mic = min(32768, int(mic_pct * 32768 / 100))
                 self.client.set_sound_input_gain(sdk_mic)
             except Exception:
                 pass
-            # Apply: output volume (0-32768, 100% = full)
             try:
                 sdk_out = min(32768, int(out_pct * 32768 / 100))
                 self.client.set_sound_output_volume(sdk_out)
