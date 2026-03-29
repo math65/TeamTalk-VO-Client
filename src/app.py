@@ -56,9 +56,10 @@ from chat_translator import ChatTranslatorManager
 from ai_reply import AiReplyManager
 from async_bridge import AsyncBusBridge
 from offline_queue import OfflineMessageQueue
+from startup_profiler import StartupProfiler
 
 
-APP_VERSION = "4.5.0"
+APP_VERSION = "4.6.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -116,6 +117,18 @@ def _init_startup_logging() -> None:
 
 
 _init_startup_logging()
+
+# v4.6.0 – Startup-Profiler (globale Instanz, wird in MainFrame verwendet)
+_startup_profiler: "StartupProfiler | None" = None
+
+
+def _get_startup_profiler() -> "StartupProfiler":
+    global _startup_profiler
+    if _startup_profiler is None:
+        from startup_profiler import StartupProfiler as _SP
+        _startup_profiler = _SP()
+    return _startup_profiler
+
 
 # Ensure third_party is on sys.path for fvhai
 _third_party = Path(__file__).resolve().parent.parent / "third_party"

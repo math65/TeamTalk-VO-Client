@@ -1,6 +1,18 @@
 Changelog
 =========
 
+2026-03-29 (v4.6.0)
+- StartupProfiler (startup_profiler.py): misst alle Initialisierungsphasen,
+  schreibt JSONL-Eintrag in startup.jsonl, gibt Zusammenfassung in stdout aus;
+  slowest(n) gibt die n langsamsten Phasen zurück
+- Channel-Tree diff-Update: _diff_update_listbox() ersetzt nur geänderte
+  Labels statt vollständigem Clear+InsertItems; weniger UI-Flackern und
+  VoiceOver-Unterbrechungen bei Nutzerlisten-Updates
+- _displayed_labels-Cache in ChannelsTab: merkt sich zuletzt angezeigte Labels
+  für den Diff-Vergleich
+- OfflineMessageQueue in app.py integriert (frame._offline_queue)
+- StartupProfiler als globale Instanz verfügbar (_get_startup_profiler())
+
 2026-03-29 (v4.5.0)
 - Chat HTML-Export: neuer "Als HTML"-Button exportiert den Chat-Verlauf als
   farbkodierte HTML-Seite (eigene Nachrichten grün, privat blau, System grau)

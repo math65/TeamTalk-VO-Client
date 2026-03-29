@@ -39,6 +39,8 @@ class ChannelsTab(wx.Panel):
         # v2.4.0 – Schnellsuche: alle Labels/Items vor Filterung
         self._all_labels: List[str] = []
         self._all_items: List[Tuple[str, int]] = []
+        # v4.6.0 – Diff-Cache: zuletzt angezeigte Labels für diff-basiertes Update
+        self._displayed_labels: List[str] = []
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -148,14 +150,17 @@ class ChannelsTab(wx.Panel):
         self._all_items = list(items)
 
         self._items = items
-        self.channel_list.Clear()
-        # v2.4.0 – Filter anwenden (falls Suche aktiv)
+        # v4.6.0 – Diff-basiertes Update: nur geänderte Labels ersetzen
         search = self._channel_search.GetValue().strip().lower() if hasattr(self, "_channel_search") else ""
         if search:
             filtered_labels, filtered_items = self._filter_by_search(labels, items, search)
+            # Bei aktivem Filter immer vollständig neu aufbauen
+            self.channel_list.Clear()
             if filtered_labels:
                 self.channel_list.InsertItems(filtered_labels, 0)
             self._items = filtered_items
+        elif self._diff_update_listbox(labels):
+            pass  # Diff-Update angewendet
         elif labels:
             self.channel_list.InsertItems(labels, 0)
 
@@ -277,6 +282,29 @@ class ChannelsTab(wx.Panel):
             if t == node_type and n == node_id:
                 return i
         return -1
+
+    def _diff_update_listbox(self, new_labels: List[str]) -> bool:
+        """v4.6.0 – Diff-basiertes Update: ersetzt nur geänderte Labels.
+
+        Gibt True zurück wenn ein Diff-Update angewendet wurde (keine Full-Clear nötig).
+        Fällt auf False zurück wenn Listen-Länge unterschiedlich ist.
+        """
+        old = self._displayed_labels
+        if len(old) != len(new_labels):
+            # Größenänderung → vollständiger Rebuild notwendig
+            self.channel_list.Clear()
+            if new_labels:
+                self.channel_list.InsertItems(new_labels, 0)
+            self._displayed_labels = list(new_labels)
+            return True
+        # Selektive Updates: nur geänderte Labels ersetzen
+        changed = False
+        for i, (old_lbl, new_lbl) in enumerate(zip(old, new_labels)):
+            if old_lbl != new_lbl:
+                self.channel_list.SetString(i, new_lbl)
+                changed = True
+        self._displayed_labels = list(new_labels)
+        return True  # immer True wenn gleiche Länge
 
     def _filter_by_search(
         self,
@@ -506,9 +534,39 @@ class ChannelsTab(wx.Panel):
                     except Exception:
                         pass
                     self._show_user_context_menu_for(node_id)
+                elif node_type == _NODE_CHANNEL:
+                    self._selected_channel_id = node_id
+                    self._show_channel_context_menu_for(node_id)
         except Exception:
             pass
         event.Skip()
+
+    def _show_channel_context_menu_for(self, channel_id: int) -> None:
+        """Kontextmenü für einen Kanal-Eintrag."""
+        menu = wx.Menu()
+        join_item = menu.Append(wx.ID_ANY, "Kanal &beitreten")
+        menu.AppendSeparator()
+
+        # Kanal-Notiz: zeige ob eine Notiz existiert
+        server_key = getattr(self.frame, "_current_server_key", "")
+        has_note = False
+        try:
+            has_note = self.frame._channel_notes.has_note(server_key, channel_id)
+        except Exception:
+            pass
+        note_label = "Notiz bearbeiten... [✓]" if has_note else "Notiz bearbeiten..."
+        note_item = menu.Append(wx.ID_ANY, note_label)
+
+        def _join(_e):
+            self.frame.join_channel(channel_id)
+
+        def _note(_e):
+            self.frame.on_menu_channel_note(None)
+
+        menu.Bind(wx.EVT_MENU, _join, join_item)
+        menu.Bind(wx.EVT_MENU, _note, note_item)
+        self.PopupMenu(menu)
+        menu.Destroy()
 
     # ------------------------------------------------------------------
     # Nutzer-Kontextmenü
