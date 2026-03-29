@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2026-03-30 (v6.1.0)
+- Update-Download direkt in der App: kein Browser mehr nötig; DMG wird via
+  Gitea-API mit Token heruntergeladen (privates Repo kein Problem)
+- Speicherort-Dialog: Nutzer wählt selbst wo das DMG gespeichert wird
+- Erfolgsmeldung nach Download: MessageBox + TTS-Ansage + Statuszeile
+- Asset-URL nutzt jetzt /releases/assets/<id> API-Endpunkt statt
+  browser_download_url (die bei privaten Repos ohne Browser nicht zugänglich ist)
+- Download läuft im Hintergrund-Thread, UI bleibt responsiv
+
 2026-03-29 (v6.0.0) "Libero"
 - MAJOR RELEASE: Vollständige Integration aller Features seit v4.0.0
 - PlatformInfo-Modul (platform_info.py): platform_info(), capabilities(),

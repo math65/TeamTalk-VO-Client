@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.0.0"
+APP_VERSION = "6.1.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -7816,23 +7816,28 @@ class MainFrame(wx.Frame):
                 tag = str(data.get("tag_name", "") or "").lstrip("v")
                 if tag and tag != APP_VERSION:
                     assets = data.get("assets", [])
-                    dl_url = ""
+                    # v6.1.0 – API-URL statt browser_download_url (Repo ist privat)
+                    api_asset_url = ""
                     if assets:
-                        dl_url = str(assets[0].get("browser_download_url", "") or "")
-                    if not dl_url:
-                        dl_url = str(data.get("html_url", "") or "")
+                        asset_id = assets[0].get("id")
+                        if asset_id:
+                            api_asset_url = (
+                                f"https://git.garogaming.xyz/api/v1/repos/"
+                                f"flarion/TeamTalk-VO-Client/releases/assets/{asset_id}"
+                            )
                     wx.CallAfter(
                         self.set_status,
                         f"Update verfügbar: v{tag} (aktuell: v{APP_VERSION})",
                     )
                     wx.CallAfter(self.tts.speak, f"Update verfügbar, Version {tag}", kind="system")
-                    if dl_url:
-                        wx.CallAfter(self._show_update_dialog, tag, dl_url)
+                    if api_asset_url:
+                        wx.CallAfter(self._show_update_dialog, tag, api_asset_url)
             except Exception:
                 pass
         threading.Thread(target=_worker, daemon=True).start()
 
-    def _show_update_dialog(self, tag: str, url: str) -> None:
+    def _show_update_dialog(self, tag: str, api_asset_url: str) -> None:
+        """v6.1.0 – Lädt das Update direkt via API herunter (kein Browser nötig)."""
         dlg = wx.MessageDialog(
             self,
             f"Version {tag} ist verfügbar (aktuell: {APP_VERSION}).\n\nJetzt herunterladen?",
@@ -7840,9 +7845,66 @@ class MainFrame(wx.Frame):
             wx.YES_NO | wx.YES_DEFAULT | wx.ICON_INFORMATION,
         )
         dlg.SetYesNoLabels("Jetzt herunterladen", "Später")
-        if dlg.ShowModal() == wx.ID_YES:
-            wx.LaunchDefaultBrowser(url)
+        if dlg.ShowModal() != wx.ID_YES:
+            dlg.Destroy()
+            return
         dlg.Destroy()
+
+        # Speicherort erfragen
+        default_name = f"TeamTalk VO Client {tag}.dmg"
+        save_dlg = wx.FileDialog(
+            self,
+            message="Update speichern unter…",
+            defaultFile=default_name,
+            wildcard="DMG-Dateien (*.dmg)|*.dmg|Alle Dateien (*.*)|*.*",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+        )
+        if save_dlg.ShowModal() != wx.ID_OK:
+            save_dlg.Destroy()
+            return
+        dest_path = save_dlg.GetPath()
+        save_dlg.Destroy()
+
+        self.set_status(f"Lade Update v{tag} herunter…")
+        self.tts.speak(f"Update wird heruntergeladen, Version {tag}", kind="system")
+
+        def _download():
+            import urllib.request
+            import urllib.error
+            try:
+                req = urllib.request.Request(
+                    api_asset_url,
+                    headers={"Authorization": f"token {_upd_tok()}"},
+                )
+                with urllib.request.urlopen(req, timeout=120) as resp:  # noqa: S310
+                    data = resp.read()
+                with open(dest_path, "wb") as fh:
+                    fh.write(data)
+                wx.CallAfter(self._on_update_downloaded, tag, dest_path)
+            except Exception as exc:
+                wx.CallAfter(
+                    self.set_status,
+                    f"Download fehlgeschlagen: {exc}",
+                )
+                wx.CallAfter(
+                    self.tts.speak,
+                    "Update-Download fehlgeschlagen",
+                    kind="system",
+                )
+
+        threading.Thread(target=_download, daemon=True).start()
+
+    def _on_update_downloaded(self, tag: str, path: str) -> None:
+        """v6.1.0 – Erfolgsmeldung nach abgeschlossenem Update-Download."""
+        self.set_status(f"Update v{tag} heruntergeladen: {path}")
+        self.tts.speak(f"Update Version {tag} erfolgreich gespeichert", kind="system")
+        wx.MessageBox(
+            f"Update v{tag} wurde erfolgreich gespeichert:\n{path}\n\n"
+            "Bitte die App beenden, das DMG öffnen und neu installieren.",
+            "Update heruntergeladen",
+            wx.OK | wx.ICON_INFORMATION,
+            self,
+        )
 
     def scan_saved_servers_presence(self):
         servers = list(self.store.items())
