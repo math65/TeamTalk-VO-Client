@@ -1,4 +1,4 @@
-"""i18n – Internationalisierung für TeamTalk VoiceOver Client (v3.6.1).
+"""i18n – Internationalisierung für TeamTalk VoiceOver Client (v5.9.0).
 
 Verwendung:
     from i18n import _, set_language, current_language
@@ -567,6 +567,14 @@ _TRANSLATIONS: dict[str, str] = {
     "Übersetzungs-Statistik": "Translation statistics",
     "Übersetzt": "Translated",
     "Nicht übersetzt": "Not translated",
+    # v5.9.0 – Spanisch + Pluralisierung
+    "Spanisch": "Spanish",
+    "{n} Nachricht": "{n} message",
+    "{n} Nachrichten": "{n} messages",
+    "{n} Benutzer": "{n} user",
+    "{n} Benutzer (Plural)": "{n} users",
+    "{n} Datei": "{n} file",
+    "{n} Dateien": "{n} files",
 }
 
 # ---------------------------------------------------------------------------
@@ -647,13 +655,209 @@ _TRANSLATIONS_FR: dict[str, str] = {
     "Benutzername": "Nom d'utilisateur",
     "Passwort": "Mot de passe",
     "Nickname": "Surnom",
+    # v5.9.0 – Ergänzte FR-Einträge
+    "Neu": "Nouveau",
+    "Abspielen": "Lire",
+    "Pause": "Pause",
+    "Stopp": "Arrêter",
+    "Fortsetzen": "Reprendre",
+    "Durchsuchen...": "Parcourir...",
+    "Duplizieren": "Dupliquer",
+    "Aufnehmen": "Enregistrer",
+    "Wiederverbinden": "Reconnecter",
+    "Verbindungsstatus": "État de la connexion",
+    "Kanalpasswort": "Mot de passe du canal",
+    "Serverpasswort": "Mot de passe du serveur",
+    "Aktionen": "Actions",
+    "Benutzer im Kanal": "Utilisateurs dans le canal",
+    "Chat-Ziel": "Cible du chat",
+    "Privat": "Privé",
+    "Privat an": "Privé à",
+    "Eingabegerät": "Périphérique d'entrée",
+    "Ausgabegerät": "Périphérique de sortie",
+    "Mikrofonverstärkung": "Gain du microphone",
+    "Ausgabe-Lautstärke": "Volume de sortie",
+    "Dateiliste": "Liste de fichiers",
+    "Hochladen": "Envoyer",
+    "Herunterladen": "Télécharger",
+    "Plugin-Manager": "Gestionnaire de plugins",
+    "Installierte Plugins": "Plugins installés",
+    "Aktiv": "Actif",
+    "Deaktiviert (beim nächsten Start)": "Désactivé (au prochain démarrage)",
+    "Hotkey aufnehmen": "Enregistrer le raccourci",
+    "Version": "Version",
+    "Entwickler": "Développeur",
+    "Über": "À propos",
+    "Neustart erforderlich": "Redémarrage requis",
+    "Ja": "Oui",
+    "Nein": "Non",
+    "Bestätigen": "Confirmer",
+    "Wirklich löschen?": "Vraiment supprimer ?",
+    "Gespeichert": "Enregistré",
+    "Gelöscht": "Supprimé",
+    "Keine Auswahl": "Aucune sélection",
+    "Kein Server ausgewählt": "Aucun serveur sélectionné",
+    "Kein Kanal ausgewählt": "Aucun canal sélectionné",
+    "Kein Benutzer ausgewählt": "Aucun utilisateur sélectionné",
+    "Statistiken": "Statistiques",
+    "Datei": "Fichier",
+    "Hilfe": "Aide",
+    "Handbuch": "Manuel",
+    "Changelog": "Journal des modifications",
+    "TTS aktivieren": "Activer TTS",
+    "Chat vorlesen": "Lire le chat",
+    "Sprache (ISO-Code)": "Langue (code ISO)",
+    "Stimme": "Voix",
+    "Geschwindigkeit": "Vitesse",
+    "Lautstärke": "Volume",
+    "Allgemein": "Général",
+    "Anzeige": "Affichage",
+    "Verbindung...": "Connexion...",
+    "Kein letzter Absender": "Aucun dernier expéditeur",
+}
+
+# ---------------------------------------------------------------------------
+# v5.9.0 – Spanische Übersetzungstabelle (DE → ES)
+# ---------------------------------------------------------------------------
+_TRANSLATIONS_ES: dict[str, str] = {
+    # Navigation / Allgemein
+    "Verbinden": "Conectar",
+    "Trennen": "Desconectar",
+    "Beenden": "Salir",
+    "Einstellungen": "Configuración",
+    "Speichern": "Guardar",
+    "Abbrechen": "Cancelar",
+    "Schließen": "Cerrar",
+    "Hinzufügen": "Agregar",
+    "Entfernen": "Quitar",
+    "Löschen": "Eliminar",
+    "Bearbeiten": "Editar",
+    "Suchen": "Buscar",
+    "Aktualisieren": "Actualizar",
+    "Übernehmen": "Aplicar",
+    "Senden": "Enviar",
+    "Laden": "Cargar",
+    "Importieren": "Importar",
+    "Exportieren": "Exportar",
+    "OK": "OK",
+    "Ja": "Sí",
+    "Nein": "No",
+    "Fehler": "Error",
+    "Warnung": "Advertencia",
+    "Information": "Información",
+    "Erfolg": "Éxito",
+    "Neu": "Nuevo",
+    "Abspielen": "Reproducir",
+    "Pause": "Pausa",
+    "Stopp": "Detener",
+    "Fortsetzen": "Reanudar",
+    "Duplizieren": "Duplicar",
+    "Aufnehmen": "Grabar",
+    "Wiederverbinden": "Reconectar",
+    # Status
+    "Verbunden": "Conectado",
+    "Getrennt": "Desconectado",
+    "Verbindung wird hergestellt...": "Conectando...",
+    "Nicht verbunden": "No conectado",
+    "Wird geladen...": "Cargando...",
+    "Gespeichert": "Guardado",
+    "Gelöscht": "Eliminado",
+    # Tabs
+    "Verbindung": "Conexión",
+    "Kanäle und Chat": "Canales y chat",
+    "Chat": "Chat",
+    "Einstellungen": "Configuración",
+    "Audio": "Audio",
+    "Medien": "Medios",
+    "Dateien": "Archivos",
+    "Administration": "Administración",
+    "System-Log": "Registro del sistema",
+    "Video": "Video",
+    "Tastenkürzel": "Atajos de teclado",
+    # Chat
+    "Chatverlauf": "Historial de chat",
+    "Nachricht eingeben": "Escribir mensaje",
+    "Verlauf exportieren": "Exportar historial",
+    "Verlauf leeren": "Limpiar historial",
+    "Zitieren": "Citar",
+    "Nachricht speichern": "Guardar mensaje",
+    "Gespeicherte Nachrichten": "Mensajes guardados",
+    "Privat": "Privado",
+    "Privat an": "Privado a",
+    "Chat-Ziel": "Destino del chat",
+    # Audio
+    "Push-to-Talk": "Push-to-Talk",
+    "Stummschalten": "Silenciar",
+    "Stummschaltung aufheben": "Activar sonido",
+    "Aufnahme starten...": "Iniciar grabación...",
+    "Aufnahme stoppen": "Detener grabación",
+    "Mikrofonverstärkung": "Ganancia de micrófono",
+    "Ausgabe-Lautstärke": "Volumen de salida",
+    "Eingabegerät": "Dispositivo de entrada",
+    "Ausgabegerät": "Dispositivo de salida",
+    # Kanal
+    "Kanal beitreten": "Unirse al canal",
+    "Kanal verlassen": "Abandonar canal",
+    "Kanal erstellen...": "Crear canal...",
+    "Kanalliste": "Lista de canales",
+    "Kanal": "Canal",
+    "Benutzer im Kanal": "Usuarios en el canal",
+    # Benutzer
+    "Benutzer": "Usuario",
+    "Privatnachricht senden...": "Enviar mensaje privado...",
+    "Benutzer kicken": "Expulsar usuario",
+    "Benutzer bannen": "Prohibir usuario",
+    # Server
+    "Server": "Servidor",
+    "Servername": "Nombre del servidor",
+    "Server-Host": "Host del servidor",
+    "Benutzername": "Nombre de usuario",
+    "Passwort": "Contraseña",
+    "Nickname": "Apodo",
+    "Kanalpasswort": "Contraseña del canal",
+    "Serverpasswort": "Contraseña del servidor",
+    "Verbindungsstatus": "Estado de conexión",
+    # Menü
+    "Datei": "Archivo",
+    "Hilfe": "Ayuda",
+    "Handbuch": "Manual",
+    "Über": "Acerca de",
+    "Statistiken": "Estadísticas",
+    "Changelog": "Registro de cambios",
+    # Plugin
+    "Plugin-Manager": "Gestor de plugins",
+    "Installierte Plugins": "Plugins instalados",
+    "Aktiv": "Activo",
+    # Allgemein
+    "Version": "Versión",
+    "Entwickler": "Desarrollador",
+    "Neustart erforderlich": "Reinicio necesario",
+    "Ja": "Sí",
+    "Nein": "No",
+    "Bestätigen": "Confirmar",
+    "Wirklich löschen?": "¿Eliminar realmente?",
+    "Keine Auswahl": "Sin selección",
+    "Kein Server ausgewählt": "Ningún servidor seleccionado",
+    "Kein Kanal ausgewählt": "Ningún canal seleccionado",
+    "Kein Benutzer ausgewählt": "Ningún usuario seleccionado",
+    "Allgemein": "General",
+    "Anzeige": "Pantalla",
+    "Lautstärke": "Volumen",
+    "Sprache": "Idioma",
+    "Deutsch": "Alemán",
+    "Englisch": "Inglés",
+    "Französisch": "Francés",
+    "Spanisch": "Español",
 }
 
 
+_SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
+
+
 def set_language(lang: str) -> None:
-    """Setzt die aktive Sprache ('de', 'en' oder 'fr')."""
+    """Setzt die aktive Sprache ('de', 'en', 'fr' oder 'es')."""
     global _LANG
-    _LANG = lang if lang in ("de", "en", "fr") else "de"
+    _LANG = lang if lang in _SUPPORTED_LANGUAGES else "de"
 
 
 def current_language() -> str:
@@ -667,15 +871,51 @@ def _(text: str, lang: str | None = None) -> str:
         return text
     if effective == "fr":
         return _TRANSLATIONS_FR.get(text, text)
+    if effective == "es":
+        return _TRANSLATIONS_ES.get(text, text)
     return _TRANSLATIONS.get(text, text)
 
 
+def ngettext(singular: str, plural: str, n: int, lang: str | None = None) -> str:
+    """Pluralisierungs-Helfer (v5.9.0).
+
+    Gibt ``singular`` zurück wenn n == 1, sonst ``plural``.
+    Beide Varianten werden über ``_()`` übersetzt.
+
+    Beispiel::
+        ngettext("{n} Nachricht", "{n} Nachrichten", count).format(n=count)
+    """
+    template = singular if n == 1 else plural
+    return _(template, lang)
+
+
+def format_date(ts: float, lang: str | None = None) -> str:
+    """Gibt einen lokalisierten Datums-String für einen Unix-Timestamp zurück.
+
+    v5.9.0 – Locale-aware Datumsformatierung.
+
+    DE/FR/ES: DD.MM.YYYY HH:MM  →  z. B. "29.03.2026 14:30"
+    EN:       MM/DD/YYYY HH:MM  →  z. B. "03/29/2026 14:30"
+    """
+    from datetime import datetime
+    dt = datetime.fromtimestamp(ts)
+    effective = (lang if lang is not None else _LANG)
+    if effective == "en":
+        return dt.strftime("%m/%d/%Y %H:%M")
+    return dt.strftime("%d.%m.%Y %H:%M")
+
+
 def translation_stats(lang: str = "en") -> dict:
-    """v4.8.0 – Gibt Übersetzungsstatistiken zurück."""
-    table = _TRANSLATIONS if lang == "en" else _TRANSLATIONS_FR
-    total = len(table)
+    """v5.9.0 – Gibt Übersetzungsstatistiken mit Coverage-Prozent zurück."""
+    tables = {"en": _TRANSLATIONS, "fr": _TRANSLATIONS_FR, "es": _TRANSLATIONS_ES}
+    table = tables.get(lang, _TRANSLATIONS)
+    total_de = len(_TRANSLATIONS)
+    translated = len(table)
+    coverage = round(translated / max(total_de, 1) * 100, 1)
     return {
         "language": lang,
-        "translated": total,
-        "coverage": f"{total} Einträge",
+        "translated": translated,
+        "total_de": total_de,
+        "coverage_pct": coverage,
+        "coverage": f"{translated}/{total_de} ({coverage}%)",
     }

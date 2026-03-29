@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2026-03-29 (v5.9.0)
+- Spanische Übersetzung: _TRANSLATIONS_ES mit ~90 Einträgen (alle Kern-UI-Texte)
+- set_language() akzeptiert jetzt auch 'es' (Spanisch)
+- Französische Übersetzung erweitert: ~30 neue Einträge; Coverage jetzt ~70%
+- Pluralisierung: ngettext(singular, plural, n) – Hilfsfunktion mit _()-Übersetzung
+- Locale-aware Datumsformatierung: format_date(ts) – EN: MM/DD/YYYY, DE/FR/ES: DD.MM.YYYY
+- translation_stats(): liefert jetzt coverage_pct (Prozent) + coverage (lesbarer String)
+- _SUPPORTED_LANGUAGES Konstante exportiert
+
 2026-03-29 (v5.8.0)
 - EventBus Metriken: metrics() gibt total_emitted, handler_errors, active_events,
   top_events(10) zurück; handler_count(event="") für Gesamt- oder Event-Count
