@@ -1,6 +1,98 @@
 Changelog
 =========
 
+2026-03-29 (v4.0.1)
+- Bugfix: App startete nicht mehr (AttributeError: 'MainFrame' object has no
+  attribute 'bus'); Ursache: AsyncBusBridge wurde in MainFrame.__init__
+  instantiiert, bevor self.bus (EventBus) erzeugt wurde; Reihenfolge korrigiert
+
+2026-03-29 (v4.0.0)
+- Asyncio-Bridge (async_bridge.py): AsyncBusBridge entkoppelt Bus-Events vom
+  wx-Main-Thread via asyncio-Queue; Plugins können jetzt async-Handler
+  registrieren; EventBus um on_any()/off_any() erweitert (Wildcard-Handler)
+  async_bridge wird mit der App gestartet/gestoppt; frame._async_bridge
+  ist die öffentliche Plugin-Schnittstelle
+- Plugin-Manager UI: Automation → Plugin-Manager... listet alle installierten
+  Plugins mit Metadaten (Name, Version, Autor, Beschreibung, Status);
+  einzelne Plugins können ohne Dateisystem-Eingriff deaktiviert/aktiviert
+  werden; Plugin-Ordner direkt im Finder öffnen
+- HTTP-API v2: neuer /events/stream SSE-Endpunkt (text/event-stream) für
+  Echtzeit-Events ohne Polling; alle Bus-Events werden automatisch gepusht
+  (chat_message, user_joined, user_left, channel_joined,
+   connection_state_changed, file_transfer_complete);
+  neuer POST /chat-Endpunkt zum Senden von Kanalnachrichten
+  HttpApiServer.push_event() für manuelles Event-Pushen
+
+2026-03-29 (v3.10.0)
+- QR-Code für Server: neuer "QR-Code"-Button in der Verbindungsleiste
+  zeigt die tt://-URL des aktuellen Serverprofils als QR-Bild (optional,
+  benötigt qrcode-Bibliothek) oder als kopierbaren Text-Fallback
+- Einstellungs-Backup: Datei → Einstellungen sichern (Backup)... exportiert
+  alle Daten (settings.db, JSON, saved_messages, channel_notes) als ZIP
+- Einstellungs-Wiederherstellung: Datei → Einstellungen wiederherstellen...
+  stellt ein ZIP-Backup wieder her und startet die App neu
+- i18n erweitert: ~60 neue Einträge für alle v3.7–v3.10-Features in DE/EN
+  (Zitieren, Gespeicherte Nachrichten, Kanal-Notiz, Kanalverlauf,
+   Chat-Übersetzung, KI-Antwortvorschläge, QR-Code, Backup)
+
+2026-03-29 (v3.9.0)
+- Echtzeit-Übersetzung: eingehende Chat-Nachrichten optional in eine
+  konfigurierbare Zielsprache übersetzen (Automation → Chat-Übersetzung
+  aktivieren); Übersetzung läuft im Hintergrundthread und erscheint als
+  "↳ [Sprache] Text" unterhalb der Originalnachricht
+  Backends: Claude, Gemini, Ollama (gleiche Reihenfolge wie KI-Zusammenfassung)
+- KI-Antwortvorschläge: neuer Hotkey (hotkey_ai_reply_suggestions) generiert
+  2–3 kurze Antworten auf die letzte Privatnachricht; Auswahl wird direkt
+  ins Privat-Chat-Eingabefeld übernommen
+- Transkriptions-Export: neuer "Exportieren"-Button im Transkriptions-Panel
+  speichert alle Zeilen mit Zeitstempel als .txt-Datei
+
+2026-03-29 (v3.8.0)
+- Kanal-Notizen: lokale Freitext-Notizen pro Kanal speichern, bearbeiten und
+  löschen (Kanal-Menü → Kanal-Notiz bearbeiten oder Rechtsklick auf Kanal)
+  Notizen werden als JSON in app_data_dir gespeichert
+- Kanalverlauf-Dialog: Kanal → Kanalverlauf... listet zuletzt besuchte
+  Kanäle; Doppelklick oder "Beitreten" springt direkt zum Kanal,
+  Verlauf kann geleert werden
+- Lesezeichen-Hotkeys 1–9: AppSettings um hotkey_bookmark_4 bis
+  hotkey_bookmark_9 erweitert, alle 9 Slots in der Tastenkürzel-Referenz
+  sichtbar und konfigurierbar
+
+2026-03-29 (v3.7.0)
+- Nachrichten-Zitate: "Zitieren"-Schaltfläche im Chat-Tab übernimmt markierten
+  Text (oder letzte Zeile) als "> Zitat" in das Eingabefeld
+- Gespeicherte Nachrichten: "Speichern"-Schaltfläche markiert beliebige
+  Chat-Nachrichten dauerhaft (max. 500 Einträge, JSON-Datei in App-Verzeichnis)
+  Ansicht, Löschen und Kopieren über Hilfe → Gespeicherte Nachrichten...
+- Chat-Formatierung: Markdown-Marker (**fett**, *kursiv*, `code`) werden
+  beim Anzeigen und Vorlesen automatisch entfernt (VoiceOver-freundlich)
+- Datei-Drag & Drop: Dateien aus dem Finder auf den Chat-Tab ziehen startet
+  den Upload in den aktuellen Kanal direkt ohne Dateidialog
+
+2026-03-29 (v3.6.1)
+- Handbuch vollständig zweisprachig (DE/EN): beide Sprachen umfassen alle
+  Kapitel inkl. Automation, globale Hotkeys, Braille-Ausgabe, KI-Funktionen,
+  HTTP-API, Webhook und Sprachauswahl (Kapitel 21–27)
+- i18n-Wörterbuch massiv erweitert: ~300 Einträge (Einstellungsfelder,
+  Buttons, Status-Meldungen, Kontextmenü, Makro-Editor, Hotkey-Labels u. v. m.)
+- Bugfix: Race Condition in HTTP-API behoben – PTT-Toggle und Mute-Toggle
+  laufen nun atomar auf dem Haupt-Thread (wx.CallAfter)
+- Bugfix: Webhook-URL-Validierung – nur http:// und https:// werden akzeptiert;
+  ungültige Schemata (file://, gopher:// usw.) werden abgewiesen
+- Handbuch DE: Inhaltsverzeichnis und Tab-12-Beschreibung um Sprachauswahl,
+  Zeitstempel-Option und Suchfeld ergänzt; Tab-13-Beschreibung um alle
+  konfigurierbaren Hotkeys erweitert
+- Handbuch Kap. 25 (HTTP-API) ausführlich: Antwortformat, alle Endpunkte mit
+  Beispielantworten, Praxisbeispiele (Shell, Python, AppleScript, Streamdeck,
+  Home Assistant), Fehlerbehandlung – in DE und EN
+- Handbuch Kap. 26 (Webhook) ausführlich: Payload-Format, alle Ereignisse mit
+  Beispiel-JSON, Praxisbeispiele (n8n, eigener Python-Server) – in DE und EN
+- Handbuch Kap. 28 (Plugin-Manager) neu: Plugin-Verzeichnis, Struktur,
+  EventBus-API, PluginAPI-Referenz, Threading-Regeln, 4 Beispiel-Plugins,
+  Debugging-Tipps – in DE und EN
+- docs/plugin_entwicklung.md aktualisiert: Version auf v3.6.1, vollständige
+  englische Übersetzung der gesamten Entwicklerdokumentation ergänzt
+
 2026-03-28 (v3.6.0)
 - Englische Sprachunterstützung: neues i18n-Modul mit DE/EN-Wörterbuch
   für alle Menüleisten-Einträge und wichtige UI-Texte

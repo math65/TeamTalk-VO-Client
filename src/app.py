@@ -50,9 +50,14 @@ from auto_reply import AutoReplyManager
 from webhook_manager import WebhookManager
 from http_api import HttpApiServer
 from i18n import _, set_language, current_language
+from saved_messages import SavedMessageManager
+from channel_notes import ChannelNotesManager
+from chat_translator import ChatTranslatorManager
+from ai_reply import AiReplyManager
+from async_bridge import AsyncBusBridge
 
 
-APP_VERSION = "3.6.0"
+APP_VERSION = "4.0.1"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -326,11 +331,22 @@ class MainFrame(wx.Frame):
 
         self.logger = FileLogger(app_dir / "client.log")
         self._chat_history = ChatHistoryManager(app_dir)
-        from scheduled_recordings import ScheduledRecordingManager
-        self._scheduled_rec_manager = ScheduledRecordingManager(app_dir)
+        # v3.7.0 – Gespeicherte Nachrichten
+        self._saved_messages = SavedMessageManager(app_dir)
+        # v3.8.0 – Kanal-Notizen
+        self._channel_notes = ChannelNotesManager(app_dir)
+        # v3.9.0 – Übersetzer + Antwortvorschläge
+        self._translator = ChatTranslatorManager(self.settings_store)
+        self._ai_reply = AiReplyManager(self.settings_store)
+        self._last_private_message_text: str = ""
         # v1.10.0 – Event-Bus + Plugin-Loader
         from event_bus import EventBus
         self.bus = EventBus()
+        # v4.0.0 – Asyncio-Bridge (Bus-basiert, läuft dauerhaft)
+        self._async_bridge = AsyncBusBridge(self.bus)
+        self._async_bridge.start()
+        from scheduled_recordings import ScheduledRecordingManager
+        self._scheduled_rec_manager = ScheduledRecordingManager(app_dir)
         from plugin_api import PluginAPI
         from plugin_loader import PluginLoader
         self._plugin_api = PluginAPI(self)
@@ -845,6 +861,70 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     # v2.0.0 – KI-Zusammenfassung
     # ------------------------------------------------------------------
+
+    def _show_ai_reply_suggestions(self) -> None:
+        """Zeigt KI-generierte Antwortvorschläge auf die letzte Privatnachricht."""
+        msg = getattr(self, "_last_private_message_text", "").strip()
+        if not msg:
+            self.tts.speak("Keine Privatnachricht zum Beantworten", kind="system")
+            return
+        self.set_status("KI-Antwortvorschläge werden generiert…")
+
+        def _work():
+            suggestions = self._ai_reply.suggest_replies(msg)
+            wx.CallAfter(self._show_reply_dialog, suggestions, msg)
+
+        threading.Thread(target=_work, daemon=True).start()
+
+    def _show_reply_dialog(self, suggestions: list, original: str) -> None:
+        if not suggestions:
+            self.set_status("Keine Antwortvorschläge generiert")
+            return
+        dlg = wx.Dialog(self, title="KI-Antwortvorschläge", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetMinSize((540, 300))
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
+
+        root = wx.BoxSizer(wx.VERTICAL)
+        orig_trunc = original[:80] + "…" if len(original) > 80 else original
+        lbl = wx.StaticText(dlg, label=f"Nachricht: {orig_trunc}")
+        root.Add(lbl, 0, wx.ALL, 8)
+
+        lb = wx.ListBox(dlg)
+        lb.SetName("Antwortvorschläge")
+        from ui.a11y import setup_list_accessible
+        setup_list_accessible(lb)
+        for s in suggestions:
+            lb.Append(s)
+        if suggestions:
+            lb.SetSelection(0)
+        lb.SetMinSize((-1, 120))
+        root.Add(lb, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
+
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        use_btn = wx.Button(dlg, wx.ID_OK, "&Verwenden")
+        use_btn.SetName("Antwort verwenden")
+        cancel_btn = wx.Button(dlg, wx.ID_CANCEL, "Abbrechen")
+        btn_row.Add(use_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(cancel_btn, 0)
+        root.Add(btn_row, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
+
+        dlg.SetSizer(root)
+        dlg.CentreOnParent()
+        if dlg.ShowModal() == wx.ID_OK:
+            idx = lb.GetSelection()
+            if idx != wx.NOT_FOUND and idx < len(suggestions):
+                text = suggestions[idx]
+                # In Privat-Eingabefeld übernehmen
+                try:
+                    self.chat_tab.private_chat.SetValue(True)
+                    self.chat_tab.update_chat_target()
+                    self.chat_tab.chat_input.SetValue(text)
+                    self.chat_tab.chat_input.SetFocus()
+                except Exception:
+                    pass
+        dlg.Destroy()
 
     def _trigger_ai_summary(self) -> None:
         """Fasst verpasste Nachrichten zusammen und spricht sie via TTS an."""
@@ -1398,6 +1478,9 @@ class MainFrame(wx.Frame):
         import_servers = file_menu.Append(wx.ID_ANY, "Serverliste importieren...")
         export_servers = file_menu.Append(wx.ID_ANY, "Serverliste exportieren...")
         file_menu.AppendSeparator()
+        settings_backup = file_menu.Append(wx.ID_ANY, "Einstellungen sichern (Backup)...")
+        settings_restore = file_menu.Append(wx.ID_ANY, "Einstellungen wiederherstellen...")
+        file_menu.AppendSeparator()
         quit_item = file_menu.Append(wx.ID_EXIT, _("Beenden") + "\tCtrl+Q")
 
         menubar.Append(file_menu, _("Datei"))
@@ -1419,6 +1502,7 @@ class MainFrame(wx.Frame):
         chan_state_speak = chan_menu.Append(wx.ID_ANY, "Kanalzustand vorlesen")
         chan_tt_url = chan_menu.Append(wx.ID_ANY, "TT-URL für Kanal kopieren")
         chan_bans = chan_menu.Append(wx.ID_ANY, "Sperren im Kanal anzeigen...")
+        chan_note = chan_menu.Append(wx.ID_ANY, "Kanal-Notiz bearbeiten...")
         chan_msg = chan_menu.Append(wx.ID_ANY, "Kanalnachricht senden...")
         chan_view_msgs = chan_menu.Append(wx.ID_ANY, "Kanalnachrichten anzeigen...")
         chan_menu.AppendSeparator()
@@ -1443,6 +1527,7 @@ class MainFrame(wx.Frame):
         chan_menu.AppendSeparator()
         self._recent_channels_menu = wx.Menu()
         chan_menu.AppendSubMenu(self._recent_channels_menu, "Letzte Kanäle")
+        chan_recent_dialog = chan_menu.Append(wx.ID_ANY, "Kanalverlauf...")
         chan_stream_audio = chan_menu.Append(wx.ID_ANY, "Audio-Datei in Kanal streamen...")
         menubar.Append(chan_menu, _("Kanal"))
 
@@ -1581,6 +1666,10 @@ class MainFrame(wx.Frame):
         auto_scheduled_macros = auto_menu.Append(wx.ID_ANY, "Geplante Makros...")
         auto_menu.AppendSeparator()
         auto_trigger_editor = auto_menu.Append(wx.ID_ANY, _("Trigger-Regeln..."))
+        auto_menu.AppendSeparator()
+        auto_translate = auto_menu.AppendCheckItem(wx.ID_ANY, "Chat-Übersetzung aktivieren")
+        auto_menu.AppendSeparator()
+        auto_plugin_manager = auto_menu.Append(wx.ID_ANY, "Plugin-Manager...")
         menubar.Append(auto_menu, _("Automation"))
 
         # Hilfe
@@ -1589,6 +1678,8 @@ class MainFrame(wx.Frame):
         help_logs = help_menu.Append(wx.ID_ANY, "Logs exportieren...")
         help_stats = help_menu.Append(wx.ID_ANY, "Verbindungsstatistiken...")
         help_stats_speak = help_menu.Append(wx.ID_ANY, "Statistiken vorlesen")
+        help_menu.AppendSeparator()
+        help_saved_msgs = help_menu.Append(wx.ID_ANY, "Gespeicherte Nachrichten...")
         help_menu.AppendSeparator()
         help_manual = help_menu.Append(wx.ID_ANY, "Handbuch")
         help_hotkeys = help_menu.Append(wx.ID_ANY, "Tastenkürzel-Referenz...")
@@ -1610,6 +1701,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU_OPEN, self.on_sound_menu_open)
         self.Bind(wx.EVT_MENU, self.on_import_servers, import_servers)
         self.Bind(wx.EVT_MENU, self.on_export_servers, export_servers)
+        self.Bind(wx.EVT_MENU, self.on_menu_settings_backup, settings_backup)
+        self.Bind(wx.EVT_MENU, self.on_menu_settings_restore, settings_restore)
         self.Bind(wx.EVT_MENU, self.on_menu_quit, quit_item)
 
         self.Bind(wx.EVT_MENU, self.on_menu_connect, con_connect)
@@ -1631,6 +1724,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_channel_state_speak, chan_state_speak)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_tt_url, chan_tt_url)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_bans, chan_bans)
+        self.Bind(wx.EVT_MENU, self.on_menu_channel_note, chan_note)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_message, chan_msg)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_file_upload, chan_file_upload)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_file_download, chan_file_download)
@@ -1647,6 +1741,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(8, e), chan_stream_podcast)
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(9, e), chan_stream_playlist)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_view_messages, chan_view_msgs)
+        self.Bind(wx.EVT_MENU, self.on_menu_channel_recent_dialog, chan_recent_dialog)
         self.Bind(wx.EVT_MENU, self.on_menu_stream_audio_file, chan_stream_audio)
 
         self.Bind(wx.EVT_MENU, self.on_menu_user_info, user_info)
@@ -1734,11 +1829,16 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_macro_editor, auto_macro_editor)
         self.Bind(wx.EVT_MENU, self.on_menu_scheduled_macros, auto_scheduled_macros)
         self.Bind(wx.EVT_MENU, self.on_menu_trigger_editor, auto_trigger_editor)
+        self._auto_translate_menu_item = auto_translate
+        auto_translate.Check(bool(getattr(self.settings_store.settings, "translate_chat_enabled", False)))
+        self.Bind(wx.EVT_MENU, self._on_menu_toggle_translation, auto_translate)
+        self.Bind(wx.EVT_MENU, self.on_menu_plugin_manager, auto_plugin_manager)
 
         self.Bind(wx.EVT_MENU, self.on_menu_settings, help_settings)
         self.Bind(wx.EVT_MENU, self.on_menu_export_logs, help_logs)
         self.Bind(wx.EVT_MENU, self.on_menu_client_stats, help_stats)
         self.Bind(wx.EVT_MENU, self.on_menu_client_stats_speak, help_stats_speak)
+        self.Bind(wx.EVT_MENU, self.on_menu_saved_messages, help_saved_msgs)
         self.Bind(wx.EVT_MENU, self.on_menu_manual, help_manual)
         self.Bind(wx.EVT_MENU, self.on_menu_hotkey_reference, help_hotkeys)
         self.Bind(wx.EVT_MENU, self.on_menu_changelog, help_changelog)
@@ -1936,6 +2036,17 @@ class MainFrame(wx.Frame):
             self.tts.speak(f"Status: {text}", kind="system")
         except Exception as exc:
             self.tts.speak(f"Status-Vorlage Fehler: {exc}", kind="system")
+
+    def _http_api_toggle_ptt(self) -> None:
+        """Atomically toggles PTT state on the main thread (called via wx.CallAfter)."""
+        new = not self._ptt_active
+        self.client.enable_voice_transmission(new)
+
+    def _http_api_toggle_mute(self) -> None:
+        """Atomically toggles mute state on the main thread (called via wx.CallAfter)."""
+        new = not self._mute_all
+        self._mute_all = new
+        self.client.set_sound_output_mute(new)
 
     def _http_api_join_channel(self, name: str) -> None:
         """v2.7.0 – Finds a channel by name and joins it (for HTTP API use)."""
@@ -2909,6 +3020,53 @@ class MainFrame(wx.Frame):
         else:
             self.set_status("Zwischenablage konnte nicht geöffnet werden")
 
+    def on_menu_channel_note(self, _event) -> None:
+        """Öffnet einen Dialog zum Bearbeiten der lokalen Notiz für den aktuellen Kanal."""
+        channel_id = self._get_selected_channel_id()
+        if not channel_id:
+            self.set_status("Kein Kanal ausgewählt")
+            return
+        server_key = self._current_server_key or ""
+        # Kanalname für Titel
+        ch_name = ""
+        try:
+            ch = self.client.get_channel(int(channel_id))
+            if ch:
+                ch_name = self.tt_str(ch.szName)
+        except Exception:
+            pass
+        title = f"Notiz: {ch_name}" if ch_name else "Kanal-Notiz"
+        current_note = self._channel_notes.get(server_key, int(channel_id))
+
+        dlg = wx.Dialog(self, title=title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetMinSize((520, 320))
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
+
+        root = wx.BoxSizer(wx.VERTICAL)
+        lbl = wx.StaticText(dlg, label="Notiz (lokal, nur auf diesem Gerät gespeichert):")
+        root.Add(lbl, 0, wx.ALL, 8)
+        text_ctrl = wx.TextCtrl(dlg, value=current_note, style=wx.TE_MULTILINE)
+        text_ctrl.SetName("Kanal-Notiz")
+        text_ctrl.SetMinSize((-1, 160))
+        root.Add(text_ctrl, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
+
+        btn_sizer = wx.StdDialogButtonSizer()
+        ok_btn = wx.Button(dlg, wx.ID_OK, "Speichern")
+        cancel_btn = wx.Button(dlg, wx.ID_CANCEL, "Abbrechen")
+        btn_sizer.AddButton(ok_btn)
+        btn_sizer.AddButton(cancel_btn)
+        btn_sizer.Realize()
+        root.Add(btn_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
+
+        dlg.SetSizer(root)
+        dlg.CentreOnParent()
+        if dlg.ShowModal() == wx.ID_OK:
+            self._channel_notes.set(server_key, int(channel_id), text_ctrl.GetValue())
+            self.set_status("Kanal-Notiz gespeichert")
+        dlg.Destroy()
+
     def on_menu_channel_bans(self, _event):
         if not self._require_connected("Sperren im Kanal anzeigen"):
             return
@@ -2945,6 +3103,82 @@ class MainFrame(wx.Frame):
             self.chat_tab.append_chat(f"Ich: {msg}", kind="own")
         else:
             self.set_status("Senden fehlgeschlagen")
+
+    def on_menu_channel_recent_dialog(self, _event) -> None:
+        """Zeigt den Kanalverlauf (zuletzt besuchte Kanäle) als Dialog."""
+        s = self.settings_store.settings
+        channels = list(getattr(s, "recent_channels", []) or [])
+        dlg = wx.Dialog(self, title="Kanalverlauf", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetMinSize((560, 380))
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
+
+        root = wx.BoxSizer(wx.VERTICAL)
+        if not channels:
+            root.Add(wx.StaticText(dlg, label="Noch keine Kanäle besucht."), 0, wx.ALL, 16)
+        else:
+            lbl = wx.StaticText(dlg, label=f"{len(channels)} zuletzt besuchte Kanal/Kanäle:")
+            root.Add(lbl, 0, wx.ALL, 8)
+            lb = wx.ListBox(dlg)
+            lb.SetName("Kanalverlauf Liste")
+            from ui.a11y import setup_list_accessible
+            setup_list_accessible(lb)
+            for entry in channels:
+                name = entry.get("name", "") or str(entry.get("channel_id", "?"))
+                server = entry.get("server_key", "")
+                label = f"{name}  [{server}]" if server else name
+                lb.Append(label)
+            lb.SetMinSize((-1, 240))
+            root.Add(lb, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
+
+            btn_row = wx.BoxSizer(wx.HORIZONTAL)
+            join_btn = wx.Button(dlg, label="&Beitreten")
+            join_btn.SetName("Kanal aus Verlauf beitreten")
+            clear_btn = wx.Button(dlg, label="&Verlauf leeren")
+            clear_btn.SetName("Kanalverlauf leeren")
+            btn_row.Add(join_btn, 0, wx.RIGHT, 8)
+            btn_row.Add(clear_btn, 0)
+            root.Add(btn_row, 0, wx.ALL, 8)
+
+            def _on_join(_e):
+                idx = lb.GetSelection()
+                if idx == wx.NOT_FOUND or idx >= len(channels):
+                    return
+                entry = channels[idx]
+                ch_id = entry.get("channel_id")
+                if ch_id and self.client.is_connected():
+                    dlg.EndModal(wx.ID_OK)
+                    self.join_channel(int(ch_id))
+                else:
+                    self.set_status("Nicht verbunden oder keine Kanal-ID")
+
+            def _on_clear(_e):
+                confirm = wx.MessageDialog(
+                    dlg, "Kanalverlauf wirklich leeren?",
+                    "Verlauf leeren", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+                )
+                if confirm.ShowModal() == wx.ID_YES:
+                    self.settings_store.settings.recent_channels = []
+                    self.settings_store.save()
+                    lb.Clear()
+                    channels.clear()
+                confirm.Destroy()
+
+            join_btn.Bind(wx.EVT_BUTTON, _on_join)
+            clear_btn.Bind(wx.EVT_BUTTON, _on_clear)
+            lb.Bind(wx.EVT_LISTBOX_DCLICK, _on_join)
+
+        btn_sizer = wx.StdDialogButtonSizer()
+        ok_btn = wx.Button(dlg, wx.ID_OK)
+        btn_sizer.AddButton(ok_btn)
+        btn_sizer.Realize()
+        root.Add(btn_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
+
+        dlg.SetSizer(root)
+        dlg.CentreOnParent()
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def on_menu_channel_view_messages(self, _event):
         if not self._channel_message_log:
@@ -4104,6 +4338,24 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
+    def on_menu_plugin_manager(self, _event) -> None:
+        """v4.0.0 – Plugin-Manager Dialog."""
+        from ui.plugin_manager import PluginManagerDialog
+        dlg = PluginManagerDialog(self)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def _on_menu_toggle_translation(self, _event) -> None:
+        """Aktiviert/deaktiviert die Echtzeit-Chat-Übersetzung."""
+        enabled = self._auto_translate_menu_item.IsChecked()
+        self.settings_store.settings.translate_chat_enabled = enabled
+        self.settings_store.save()
+        self._translator = __import__("chat_translator").ChatTranslatorManager(self.settings_store)
+        status = "aktiviert" if enabled else "deaktiviert"
+        self.set_status(f"Chat-Übersetzung {status}")
+        if enabled:
+            self.tts.speak(f"Chat-Übersetzung aktiviert, Zielsprache: {self._translator.target_language()}", kind="system")
+
     def on_menu_trigger_editor(self, _event):
         """v3.5.0 – Trigger-Regeln: Makros automatisch bei Ereignissen ausführen."""
         s = self.settings_store.settings
@@ -4365,9 +4617,9 @@ class MainFrame(wx.Frame):
         self.settings_window.Raise()
         wx.CallAfter(self.settings_window.settings_tab.section_choice.SetFocus)
 
-    def on_menu_manual(self, _event):
-        """Öffnet das Handbuch in einem eigenen Dialogfenster."""
-        manual_text = (
+    def _get_manual_text_de(self) -> str:
+        """Deutsches Benutzerhandbuch."""
+        return (
             f"TeamTalk VoiceOver Client – Benutzerhandbuch  (Version {APP_VERSION})\n"
             "=======================================================================\n"
             "\n"
@@ -4397,6 +4649,14 @@ class MainFrame(wx.Frame):
             "18. Push-to-Talk und Sprachaktivierung\n"
             "19. Text-to-Speech (espeak-ng)\n"
             "20. Plattformunterschiede (macOS / Windows / Linux)\n"
+            "21. Automation (Makros und Trigger)\n"
+            "22. Globale Hotkeys (macOS)\n"
+            "23. Braillezeilen-Ausgabe\n"
+            "24. KI-Funktionen (Claude / Gemini)\n"
+            "25. HTTP-Steuer-API\n"
+            "26. Webhook-Integration\n"
+            "27. Sprache der Benutzeroberfläche\n"
+            "28. Plugin-Manager\n"
             "\n"
             "\n"
             "1. Überblick\n"
@@ -4743,12 +5003,16 @@ class MainFrame(wx.Frame):
             "12. Tab Einstellungen\n"
             "=====================\n"
             "\n"
+            "Suchfeld: Bereichsnamen tippen, um direkt dorthin zu springen.\n"
+            "\n"
             "Bereich 'Allgemein'\n"
+            "  Sprache:             Oberflächensprache (Deutsch / Englisch). Neustart erforderlich.\n"
             "  Geschlecht:          Wird dem Server gemeldet (Männlich/Weiblich/Neutral).\n"
             "  Abwesenheits-Timer:  Nach X Minuten Inaktivität automatisch 'Abwesend' setzen.\n"
             "  BearWare-Konto:      BearWare-ID und Token für registrierte Nutzer.\n"
             "  Chat-Verlauf speichern: Verlauf pro Server sichern und beim nächsten Verbinden laden.\n"
             "  Letzten Kanal automatisch beitreten: Nach dem Verbinden automatisch in den letzten Kanal.\n"
+            "  Zeitstempel im Chat: [HH:MM:SS]-Prefix vor Chatnachrichten anzeigen.\n"
             "\n"
             "Bereich 'Anzeige'\n"
             "  Tray-Icon:          Programm im System-Tray minimieren.\n"
@@ -4796,14 +5060,29 @@ class MainFrame(wx.Frame):
             "\n"
             "13. Tab Tastenkürzel\n"
             "====================\n"
-            "Globale Hotkeys innerhalb der App (nur bei aktivem Programmfenster):\n"
+            "App-interne Hotkeys (nur bei aktivem Programmfenster):\n"
             "  Alles stummschalten:          Alle Benutzer stummschalten/reaktivieren.\n"
             "  Sprachaktivierung umschalten: VA ein-/ausschalten.\n"
             "  Video senden umschalten:      Video-Übertragung starten/stoppen.\n"
+            "  Eingangspegel ansagen:        Aktuellen Mikrofonpegel per TTS vorlesen.\n"
+            "  Nutzerinfo ansagen:           Info über ausgewählten Benutzer per TTS.\n"
+            "  Ping ansagen:                 Aktuellen Ping per TTS vorlesen.\n"
+            "  Braille-Status ansagen:       Konfigurierte Statusfelder vorlesen.\n"
+            "  Privatantwort:                Antwort auf die letzte Privatnachricht.\n"
+            "  Sound-Profil wechseln:        Zwischen Sound-Profilen wechseln.\n"
+            "  Braille-Verbosität wechseln:  Braille-Ausführlichkeitsstufe umschalten.\n"
+            "  KI-Zusammenfassung:           Letzte Chat-Nachrichten per KI zusammenfassen.\n"
+            "  Lesezeichen 1/2/3:            Gespeicherte Lesezeichen-Kanäle beitreten.\n"
+            "  Aufnahme umschalten:          Aufnahme starten/stoppen.\n"
+            "  Status-Vorlage 1/2/3:         Vordefinierte Statusnachrichten setzen.\n"
+            "  Mikrofon-Boost hoch/runter:   Mikrofonverstärkung erhöhen/verringern.\n"
+            "  TTS abbrechen:                Laufende TTS-Ausgabe stoppen + Warteschlange leeren.\n"
             "\n"
             "Globale Hotkeys (macOS, systemweit):\n"
             "  PTT und Stummschalten funktionieren auch im Hintergrund.\n"
-            "  Aktivieren und dann Tasten aufnehmen.\n"
+            "  'Globale Hotkeys aktivieren' → Taste aufnehmen.\n"
+            "  Hinweis: Berechtigungen in Systemeinstellungen → Datenschutz &\n"
+            "  Sicherheit → Bedienungshilfen erteilen.\n"
             "\n"
             "Hotkey aufnehmen: Schaltfläche drücken, dann gewünschte Taste betätigen.\n"
             "ESC = Aufnahme abbrechen.\n"
@@ -4984,9 +5263,1704 @@ class MainFrame(wx.Frame):
             "  Grundlegende Unterstützung vorhanden.\n"
             "  Audioausgabe über espeak-ng direkt (kein afplay/winsound).\n"
             "  Screenreader-Unterstützung von wxGTK abhängig.\n"
+            "\n"
+            "\n"
+            "21. Automation (Makros und Trigger)\n"
+            "====================================\n"
+            "Über Menü 'Automation' stehen drei Werkzeuge zur Verfügung:\n"
+            "\n"
+            "Makro-Editor (Automation → Makro-Editor...)\n"
+            "  Erstellen, bearbeiten und löschen von Makros.\n"
+            "  Jedes Makro hat einen Namen und eine Aktionsliste.\n"
+            "  Aktionstypen:\n"
+            "    speak  – Text per TTS vorlesen.\n"
+            "    channel – Kanal nach Name wechseln.\n"
+            "    status  – Statusnachricht setzen.\n"
+            "    ptt     – PTT-Schaltung (on/off/toggle).\n"
+            "    wait    – Pause in Millisekunden.\n"
+            "  Makros können manuell ausgeführt oder durch Zeitplan/Trigger gestartet werden.\n"
+            "\n"
+            "Geplante Makros (Automation → Geplante Makros...)\n"
+            "  Makro täglich zu einer konfigurierten Uhrzeit (HH:MM) automatisch ausführen.\n"
+            "  Mehrere Zeitpläne möglich.\n"
+            "\n"
+            "Trigger-Regeln (Automation → Trigger-Regeln...)\n"
+            "  Makros automatisch bei Ereignissen ausführen.\n"
+            "  Unterstützte Ereignisse:\n"
+            "    user_join      – Benutzer betritt einen Kanal.\n"
+            "    user_leave     – Benutzer verlässt einen Kanal.\n"
+            "    chat_message   – Kanalnachricht empfangen.\n"
+            "    private_msg    – Privatnachricht empfangen.\n"
+            "    channel_join   – Ich trete einem Kanal bei.\n"
+            "  Optionaler Namensfilter: Nur auslösen, wenn der Benutzername den\n"
+            "  eingegebenen Text enthält.\n"
+            "\n"
+            "\n"
+            "22. Globale Hotkeys (macOS)\n"
+            "===========================\n"
+            "Auf macOS können PTT und Stummschalten systemweit funktionieren,\n"
+            "also auch wenn das Programmfenster im Hintergrund ist.\n"
+            "\n"
+            "Aktivieren: Tab Tastenkürzel → 'Globale Hotkeys aktivieren' (Checkbox).\n"
+            "Hinweis: macOS fragt nach Berechtigungen für Tastaturzugriff –\n"
+            "diese müssen einmalig in Systemeinstellungen → Datenschutz &\n"
+            "Sicherheit → Bedienungshilfen erteilt werden.\n"
+            "\n"
+            "Konfigurierbare globale Hotkeys:\n"
+            "  PTT (Sprechtaste): Mikrofon bei Gedrückthalten aktivieren.\n"
+            "  Alles stummschalten: Gesamtausgabe stummschalten/reaktivieren.\n"
+            "\n"
+            "Hinweis: App-interne Hotkeys (Tab 13) funktionieren nur wenn das\n"
+            "Programmfenster den Fokus hat.\n"
+            "\n"
+            "\n"
+            "23. Braillezeilen-Ausgabe\n"
+            "=========================\n"
+            "Der Client kann strukturierte Statusinformationen über eine konfigurierbare\n"
+            "Braille-Ausgabe bereitstellen.\n"
+            "\n"
+            "Konfiguration: Einstellungen → KI & Integration → Braillezeilen-Ausgabe.\n"
+            "Felder: Kanal, Nutzeranzahl, Ping, Stummschaltstatus, Verbindungsstatus.\n"
+            "\n"
+            "Hotkey 'Braille-Status ansagen': Liest den aktuellen Status per TTS vor.\n"
+            "Konfigurierbar in Tab Tastenkürzel.\n"
+            "\n"
+            "\n"
+            "24. KI-Funktionen (Claude / Gemini)\n"
+            "=====================================\n"
+            "Der Client unterstützt KI-gestützte Chat-Zusammenfassungen.\n"
+            "\n"
+            "Voraussetzung: API-Schlüssel in Einstellungen → KI & Integration.\n"
+            "  Claude API-Schlüssel: Für Anthropic Claude.\n"
+            "  Gemini API-Schlüssel: Für Google Gemini.\n"
+            "  KI-Anbieter: Auswahl welcher Dienst verwendet wird.\n"
+            "\n"
+            "Hotkey 'KI-Zusammenfassung': Fasst die letzten Chat-Nachrichten zusammen.\n"
+            "Ergebnis wird per TTS vorgelesen.\n"
+            "\n"
+            "\n"
+            "25. HTTP-Steuer-API\n"
+            "====================\n"
+            "Die eingebaute HTTP-API erlaubt die Fernsteuerung des Clients von jedem\n"
+            "Programm aus, das HTTP-Anfragen senden kann – z. B. Streamdeck,\n"
+            "Home Assistant, Shell-Skripte, Automator (macOS), n8n, Node-RED u. v. m.\n"
+            "\n"
+            "Aktivieren\n"
+            "----------\n"
+            "Einstellungen → KI & Integration → 'HTTP-API aktivieren' (Checkbox).\n"
+            "Standard-Port: 8765. Änderbar im Feld 'HTTP-API Port'.\n"
+            "Tritt sofort in Kraft; kein Neustart erforderlich.\n"
+            "\n"
+            "Sicherheitshinweis\n"
+            "------------------\n"
+            "Der Server hört ausschließlich auf 127.0.0.1 (localhost) – kein Zugriff\n"
+            "aus dem Netzwerk. Keine Authentifizierung: Jeder lokale Prozess desselben\n"
+            "Nutzers kann die API aufrufen.\n"
+            "\n"
+            "Antwortformat\n"
+            "-------------\n"
+            "Alle Endpunkte antworten mit JSON:\n"
+            "\n"
+            "  Erfolg:  {\"ok\": true,  \"result\": <Wert oder Text>}\n"
+            "  Fehler:  {\"ok\": false, \"error\": \"Fehlerbeschreibung\"}\n"
+            "\n"
+            "HTTP-Statuscode: 200 bei Erfolg, 500 bei Fehler.\n"
+            "\n"
+            "Endpunkte\n"
+            "---------\n"
+            "Alle Anfragen sind HTTP GET.\n"
+            "\n"
+            "PTT-Steuerung:\n"
+            "  GET /ptt/on\n"
+            "    Aktiviert Push-to-Talk (Mikrofon einschalten).\n"
+            "    Antwort: {\"ok\": true, \"result\": \"PTT on\"}\n"
+            "\n"
+            "  GET /ptt/off\n"
+            "    Deaktiviert Push-to-Talk.\n"
+            "    Antwort: {\"ok\": true, \"result\": \"PTT off\"}\n"
+            "\n"
+            "  GET /ptt/toggle\n"
+            "    Schaltet PTT um (an → aus → an …).\n"
+            "    Antwort: {\"ok\": true, \"result\": \"PTT toggled\"}\n"
+            "\n"
+            "Stummschaltung:\n"
+            "  GET /mute/on\n"
+            "    Schaltet die gesamte Audioausgabe stumm.\n"
+            "    Antwort: {\"ok\": true, \"result\": \"muted\"}\n"
+            "\n"
+            "  GET /mute/off\n"
+            "    Hebt die Stummschaltung auf.\n"
+            "    Antwort: {\"ok\": true, \"result\": \"unmuted\"}\n"
+            "\n"
+            "  GET /mute/toggle\n"
+            "    Schaltet Stummschaltung um.\n"
+            "    Antwort: {\"ok\": true, \"result\": \"mute toggled\"}\n"
+            "\n"
+            "Kanal:\n"
+            "  GET /channel/<name>\n"
+            "    Wechselt in den Kanal dessen Name <name> enthält (Teilstring).\n"
+            "    Beispiel: /channel/Lobby\n"
+            "    Antwort: {\"ok\": true, \"result\": \"joining Lobby\"}\n"
+            "    Hinweis: Kanaltrennung erfolgt asynchron.\n"
+            "\n"
+            "Status:\n"
+            "  GET /status/<text>\n"
+            "    Setzt die Statusnachricht des eigenen Nutzers.\n"
+            "    Leerzeichen als %20 oder + kodieren.\n"
+            "    Beispiel: /status/Im%20Meeting\n"
+            "    Antwort: {\"ok\": true, \"result\": \"status set: Im Meeting\"}\n"
+            "\n"
+            "TTS:\n"
+            "  GET /speak/<text>\n"
+            "    Liest <text> per TTS vor (URL-kodiert).\n"
+            "    Beispiel: /speak/Hallo%20Welt\n"
+            "    Antwort: {\"ok\": true, \"result\": \"speaking: Hallo Welt\"}\n"
+            "\n"
+            "Statusabfrage:\n"
+            "  GET /info\n"
+            "    Gibt den aktuellen App-Status als JSON zurück.\n"
+            "    Antwort:\n"
+            "      {\n"
+            "        \"ok\": true,\n"
+            "        \"result\": {\n"
+            "          \"connected\": true,\n"
+            "          \"channel\": \"Serverprofil-Schlüssel\"\n"
+            "        }\n"
+            "      }\n"
+            "\n"
+            "Praxisbeispiele\n"
+            "---------------\n"
+            "\n"
+            "Shell / Terminal:\n"
+            "  curl http://127.0.0.1:8765/ptt/on\n"
+            "  curl http://127.0.0.1:8765/mute/toggle\n"
+            "  curl http://127.0.0.1:8765/speak/Hallo%20Welt\n"
+            "  curl http://127.0.0.1:8765/info\n"
+            "\n"
+            "Python:\n"
+            "  import urllib.request\n"
+            "  urllib.request.urlopen('http://127.0.0.1:8765/ptt/on')\n"
+            "\n"
+            "AppleScript (macOS):\n"
+            "  do shell script \"curl -s http://127.0.0.1:8765/mute/toggle\"\n"
+            "\n"
+            "Streamdeck-Plugin (HTTP-Request-Aktion):\n"
+            "  URL: http://127.0.0.1:8765/ptt/toggle\n"
+            "  Methode: GET\n"
+            "\n"
+            "Home Assistant:\n"
+            "  service: rest_command.teamtalk_ptt_toggle\n"
+            "  Konfiguration in configuration.yaml:\n"
+            "    rest_command:\n"
+            "      teamtalk_ptt_toggle:\n"
+            "        url: 'http://127.0.0.1:8765/ptt/toggle'\n"
+            "\n"
+            "Fehlerbehandlung\n"
+            "----------------\n"
+            "  Unbekannter Pfad:  HTTP 500, {\"ok\": false, \"error\": \"Unknown path: /xyz\"}\n"
+            "  App nicht bereit:  HTTP 500, {\"ok\": false, \"error\": \"App not ready\"}\n"
+            "\n"
+            "\n"
+            "26. Webhook-Integration\n"
+            "========================\n"
+            "Der Client sendet automatisch JSON-Payloads (HTTP POST) an eine konfigurierte\n"
+            "URL, wenn bestimmte Ereignisse eintreten. So können externe Dienste wie\n"
+            "n8n, Zapier, Home Assistant oder eigene Server auf App-Ereignisse reagieren.\n"
+            "\n"
+            "Konfiguration\n"
+            "-------------\n"
+            "Einstellungen → KI & Integration:\n"
+            "  Webhook-URL:       Ziel-URL (muss mit http:// oder https:// beginnen).\n"
+            "  Webhook-Ereignisse: Kommagetrennte Liste von Ereignissen, auf die\n"
+            "                      reagiert werden soll. Leer = alle Ereignisse.\n"
+            "\n"
+            "Erlaubte URL-Schemata: http:// und https:// (andere werden abgewiesen).\n"
+            "\n"
+            "Payload-Format\n"
+            "--------------\n"
+            "Jeder POST enthält einen JSON-Body:\n"
+            "\n"
+            "  {\n"
+            "    \"event\":   \"<Ereignisname>\",\n"
+            "    \"ts\":      \"2026-03-29T14:23:01\",\n"
+            "    \"app\":     \"TeamTalk VO Client\",\n"
+            "    <ereignisspezifische Felder>\n"
+            "  }\n"
+            "\n"
+            "HTTP-Header:\n"
+            "  Content-Type: application/json\n"
+            "  User-Agent: TeamTalkVOClient/2.7\n"
+            "\n"
+            "Timeout: 5 Sekunden. Fehlgeschlagene Anfragen werden im System-Log\n"
+            "protokolliert, aber nicht erneut versucht.\n"
+            "\n"
+            "Unterstützte Ereignisse\n"
+            "-----------------------\n"
+            "\n"
+            "private_msg – Privatnachricht empfangen\n"
+            "  Felder: from_user (str), text (str)\n"
+            "  Beispiel:\n"
+            "  {\n"
+            "    \"event\": \"private_msg\",\n"
+            "    \"ts\": \"2026-03-29T14:23:01\",\n"
+            "    \"app\": \"TeamTalk VO Client\",\n"
+            "    \"from_user\": \"Alice\",\n"
+            "    \"text\": \"Bist du da?\"\n"
+            "  }\n"
+            "\n"
+            "channel_msg – Kanalnachricht empfangen\n"
+            "  Felder: from_user (str), text (str)\n"
+            "\n"
+            "user_join – Benutzer hat Kanal betreten\n"
+            "  Felder: user (str), channel (str)\n"
+            "\n"
+            "user_leave – Benutzer hat Kanal verlassen\n"
+            "  Felder: user (str), channel (str)\n"
+            "\n"
+            "connect – Mit Server verbunden\n"
+            "  Felder: server (str)\n"
+            "\n"
+            "disconnect – Verbindung getrennt\n"
+            "  Felder: server (str)\n"
+            "\n"
+            "recording_start – Aufnahme gestartet\n"
+            "  Felder: path (str)\n"
+            "\n"
+            "Praxisbeispiele\n"
+            "---------------\n"
+            "\n"
+            "n8n-Webhook:\n"
+            "  1. Neuer Workflow → Trigger: 'Webhook'\n"
+            "  2. URL aus n8n kopieren und in den Client-Einstellungen eintragen.\n"
+            "  3. Ereignisse filtern, z. B. nur private_msg.\n"
+            "\n"
+            "Eigener Python-Server:\n"
+            "  from http.server import HTTPServer, BaseHTTPRequestHandler\n"
+            "  import json\n"
+            "  class Handler(BaseHTTPRequestHandler):\n"
+            "      def do_POST(self):\n"
+            "          length = int(self.headers['Content-Length'])\n"
+            "          data = json.loads(self.rfile.read(length))\n"
+            "          print('Ereignis:', data['event'])\n"
+            "          self.send_response(200); self.end_headers()\n"
+            "  HTTPServer(('', 9999), Handler).serve_forever()\n"
+            "\n"
+            "\n"
+            "27. Sprache der Benutzeroberfläche\n"
+            "====================================\n"
+            "Der Client unterstützt Deutsch und Englisch.\n"
+            "\n"
+            "Umschalten: Einstellungen → Allgemein → Sprache.\n"
+            "Hinweis: Ein Neustart ist erforderlich, damit die Sprache vollständig\n"
+            "übernommen wird. Menüs, Dialoge und das Handbuch erscheinen dann\n"
+            "in der gewählten Sprache.\n"
+            "\n"
+            "\n"
+            "28. Plugin-Manager\n"
+            "==================\n"
+            "Plugins sind Python-Skripte, die den Client erweitern oder automatisieren\n"
+            "ohne den Quellcode zu verändern. Sie reagieren auf App-Ereignisse und\n"
+            "können aktiv in die App eingreifen (TTS, Nachrichten senden, Kanal wechseln).\n"
+            "\n"
+            "Plugin-Verzeichnis\n"
+            "------------------\n"
+            "Im App-Bundle:\n"
+            "  TeamTalk VO Client.app/Contents/Resources/plugins/\n"
+            "\n"
+            "Im Entwicklungsmodus (Quellcode):\n"
+            "  TeamTalk-VO-Client-macOS/plugins/\n"
+            "\n"
+            "Das Verzeichnis muss ggf. manuell angelegt werden.\n"
+            "Alle *.py-Dateien darin werden beim App-Start automatisch geladen.\n"
+            "Dateien die mit _ beginnen werden übersprungen.\n"
+            "\n"
+            "Plugin-Struktur\n"
+            "---------------\n"
+            "Ein Plugin ist eine einzelne Python-Datei:\n"
+            "\n"
+            "  # plugins/mein_plugin.py\n"
+            "\n"
+            "  metadata = {\n"
+            "      \"name\":        \"Mein Plugin\",\n"
+            "      \"version\":     \"1.0\",\n"
+            "      \"description\": \"Tut etwas Nützliches\",\n"
+            "      \"author\":      \"Dein Name\",\n"
+            "  }\n"
+            "\n"
+            "  def register(bus, api):\n"
+            "      \"\"\"Wird einmalig beim App-Start aufgerufen.\"\"\"\n"
+            "      bus.on(\"connection_state_changed\", on_verbindung)\n"
+            "\n"
+            "  def on_verbindung(connected, reason):\n"
+            "      if connected:\n"
+            "          api.speak(\"Verbunden!\")\n"
+            "\n"
+            "Pflichtbestandteile:\n"
+            "  register(bus, api)  – Einstiegspunkt; wird einmalig aufgerufen.\n"
+            "\n"
+            "Optional:\n"
+            "  metadata            – Dict mit name, version, description, author.\n"
+            "                        Wird im Einstellungs-Tab 'Plugins' angezeigt.\n"
+            "\n"
+            "EventBus (bus)\n"
+            "--------------\n"
+            "Der EventBus verbindet Plugins mit App-Ereignissen.\n"
+            "\n"
+            "  bus.on(event, handler)   – Handler für ein Ereignis registrieren.\n"
+            "  bus.off(event, handler)  – Handler wieder entfernen.\n"
+            "  bus.emit(event, **kw)    – Eigenes Ereignis auslösen.\n"
+            "\n"
+            "Verfügbare Ereignisse:\n"
+            "\n"
+            "  app_startup\n"
+            "    Ausgelöst ca. 2 Sekunden nach vollständiger App-Initialisierung.\n"
+            "    Parameter: (keine)\n"
+            "\n"
+            "  connection_state_changed\n"
+            "    Verbindung hergestellt oder getrennt.\n"
+            "    Parameter: connected (bool), reason (str)\n"
+            "    reason: 'login' | 'failed' | 'lost'\n"
+            "\n"
+            "  user_joined\n"
+            "    Benutzer hat einen Kanal betreten.\n"
+            "    Parameter: user (str), user_id (int), channel_id (int), channel_name (str)\n"
+            "\n"
+            "  user_left\n"
+            "    Benutzer hat einen Kanal verlassen.\n"
+            "    Parameter: user (str), user_id (int), channel_id (int), channel_name (str)\n"
+            "\n"
+            "  chat_message\n"
+            "    Nachricht empfangen oder gesendet.\n"
+            "    Parameter: text (str), kind (str), from_user (str), from_id (int)\n"
+            "    kind: 'chat' | 'private' | 'broadcast'\n"
+            "\n"
+            "  channel_joined\n"
+            "    Ich bin einem Kanal beigetreten.\n"
+            "    Parameter: channel_id (int)\n"
+            "\n"
+            "  file_transfer_complete\n"
+            "    Dateiübertragung abgeschlossen.\n"
+            "    Parameter: filename (str)\n"
+            "\n"
+            "PluginAPI (api)\n"
+            "---------------\n"
+            "Ermöglicht aktive Steuerung der App aus dem Plugin.\n"
+            "\n"
+            "TTS:\n"
+            "  api.speak(text, kind='system')\n"
+            "    Text per TTS vorlesen. Sicher aus jedem Thread aufrufbar.\n"
+            "    kind: 'system' | 'chat' | 'private'\n"
+            "\n"
+            "Verbindungsstatus:\n"
+            "  api.is_connected() → bool\n"
+            "    True wenn mit Server verbunden.\n"
+            "  api.get_server_name() → str\n"
+            "    Konfigurierter Server-Name (leer = nicht verbunden).\n"
+            "\n"
+            "Nutzer & Kanal:\n"
+            "  api.get_my_user_id() → int\n"
+            "    Eigene User-ID (0 = nicht verbunden).\n"
+            "  api.get_my_channel_id() → int\n"
+            "    ID des eigenen Kanals (0 = kein Kanal).\n"
+            "  api.get_channel_users(channel_id) → list\n"
+            "    Nutzer im Kanal als Liste von dicts:\n"
+            "    [{\"id\": 42, \"name\": \"Alice\", \"is_admin\": False}, ...]\n"
+            "\n"
+            "Nachrichten senden (immer aus Hintergrundthread aufrufen!):\n"
+            "  api.send_channel_message(text, channel_id=0) → bool\n"
+            "    Nachricht in eigenen Kanal (oder channel_id) senden.\n"
+            "  api.send_private_message(user_id, text) → bool\n"
+            "    Privatnachricht an Nutzer senden.\n"
+            "\n"
+            "Kanal:\n"
+            "  api.join_channel(channel_id, password='')\n"
+            "    In einen Kanal wechseln (asynchron via wx.CallAfter).\n"
+            "\n"
+            "Plugin-Konfiguration:\n"
+            "  api.get_config(plugin_name) → PluginConfig\n"
+            "    Persistenter Key-Value-Store pro Plugin.\n"
+            "    Gespeichert in:\n"
+            "    ~/Library/Application Support/TeamTalkVOClient/plugin_configs/\n"
+            "\n"
+            "    cfg = api.get_config('mein_plugin')\n"
+            "    cfg.set('schluessel', 'wert')   # sofort gespeichert\n"
+            "    cfg.get('schluessel', 'default') # lesen\n"
+            "    cfg.delete('schluessel')          # löschen\n"
+            "    cfg.all()                         # alle Einträge\n"
+            "\n"
+            "Threading-Regeln\n"
+            "----------------\n"
+            "Handler werden im GUI-Thread aufgerufen (EventBus ist synchron).\n"
+            "\n"
+            "  RICHTIG – blockierende Ops im Hintergrundthread:\n"
+            "    import threading\n"
+            "    def on_event(**kw):\n"
+            "        threading.Thread(target=_mach_was, daemon=True).start()\n"
+            "\n"
+            "  FALSCH – blockiert den GUI-Thread:\n"
+            "    def on_event(**kw):\n"
+            "        time.sleep(5)  # friert die App ein!\n"
+            "\n"
+            "  api.speak() ist immer sicher (intern wx.CallAfter).\n"
+            "  api.send_channel_message() muss aus Hintergrundthread aufgerufen werden.\n"
+            "\n"
+            "Beispiel-Plugins\n"
+            "----------------\n"
+            "\n"
+            "1. Begrüßung bei Kanalzutritt:\n"
+            "\n"
+            "  metadata = {\"name\": \"Begrüßung\", \"version\": \"1.0\"}\n"
+            "\n"
+            "  def register(bus, api):\n"
+            "      def on_join(user, channel_id, **kw):\n"
+            "          if channel_id == api.get_my_channel_id():\n"
+            "              api.speak(f\"Willkommen, {user}!\")\n"
+            "      bus.on(\"user_joined\", on_join)\n"
+            "\n"
+            "2. Chat-Befehle (!ping, !nutzer):\n"
+            "\n"
+            "  import threading\n"
+            "  metadata = {\"name\": \"Chat-Befehle\", \"version\": \"1.0\"}\n"
+            "\n"
+            "  def register(bus, api):\n"
+            "      def on_chat(text, kind, from_user, from_id, **kw):\n"
+            "          if kind != \"chat\" or not text.startswith(\"!\"):\n"
+            "              return\n"
+            "          if text.strip() == \"!ping\":\n"
+            "              threading.Thread(\n"
+            "                  target=lambda: api.send_channel_message(\n"
+            "                      f\"{from_user}: pong!\"),\n"
+            "                  daemon=True).start()\n"
+            "      bus.on(\"chat_message\", on_chat)\n"
+            "\n"
+            "3. Verbindungsprotokoll in Datei schreiben:\n"
+            "\n"
+            "  import datetime, pathlib\n"
+            "  metadata = {\"name\": \"Verbindungslog\", \"version\": \"1.0\"}\n"
+            "  LOG = pathlib.Path.home() / \"teamtalk_verbindungen.log\"\n"
+            "\n"
+            "  def register(bus, api=None):\n"
+            "      bus.on(\"connection_state_changed\", _log)\n"
+            "\n"
+            "  def _log(connected, reason):\n"
+            "      ts = datetime.datetime.now().strftime(\"%Y-%m-%d %H:%M:%S\")\n"
+            "      status = \"VERBUNDEN\" if connected else f\"GETRENNT ({reason})\"\n"
+            "      with LOG.open(\"a\", encoding=\"utf-8\") as f:\n"
+            "          f.write(f\"[{ts}] {status}\\n\")\n"
+            "\n"
+            "4. macOS-Desktop-Benachrichtigung bei Verbindungsverlust:\n"
+            "\n"
+            "  import subprocess\n"
+            "  metadata = {\"name\": \"Verbindungsalarm\", \"version\": \"1.0\"}\n"
+            "\n"
+            "  def register(bus, api=None):\n"
+            "      bus.on(\"connection_state_changed\", _alarm)\n"
+            "\n"
+            "  def _alarm(connected, reason):\n"
+            "      if not connected:\n"
+            "          subprocess.run([\"osascript\", \"-e\",\n"
+            "              'display notification \"Verbindung verloren\" '\n"
+            "              'with title \"TeamTalk VO Client\"'], check=False)\n"
+            "\n"
+            "Debugging\n"
+            "---------\n"
+            "Plugins können print() nutzen. Ausgaben erscheinen im Terminal wenn die\n"
+            "App aus dem Quellcode gestartet wird:\n"
+            "\n"
+            "  cd TeamTalk-VO-Client-macOS\n"
+            "  .venv/bin/python src/app.py\n"
+            "\n"
+            "Fehler beim Laden:\n"
+            "  [PluginLoader] Fehler beim Laden von mein_plugin.py: <Ursache>\n"
+            "Handler-Fehler:\n"
+            "  [EventBus] Handler <fn> für '<event>' fehlgeschlagen: <Ursache>\n"
+            "\n"
+            "Häufige Probleme:\n"
+            "  Plugin wird nicht geladen  – Dateiname beginnt mit '_'\n"
+            "  Handler wird nicht aufgerufen – Falscher Event-Name (case-sensitiv)\n"
+            "  App friert ein             – Blockierender Code im Handler\n"
+            "  api ist None               – Altes Plugin mit register(bus) statt\n"
+            "                               register(bus, api=None)\n"
         )
 
-        dlg = wx.Dialog(self, title="TeamTalk VoiceOver Client – Handbuch",
+    def _get_manual_text_en(self) -> str:
+        """English user manual."""
+        return (
+            f"TeamTalk VoiceOver Client – User Manual  (Version {APP_VERSION})\n"
+            "=======================================================================\n"
+            "\n"
+            "Note: This manual is updated with each release.\n"
+            "Current information is always available in the manual of the\n"
+            "installed version.\n"
+            "\n"
+            "Table of Contents\n"
+            "-----------------\n"
+            " 1. Overview\n"
+            " 2. Getting started\n"
+            " 3. Tab: Connection\n"
+            " 4. Tab: Channels & Chat\n"
+            " 5. Tab: Chat\n"
+            " 6. Tab: Audio\n"
+            " 7. Tab: Recordings & Media\n"
+            " 8. Tab: Files\n"
+            " 9. Tab: Administration\n"
+            "10. Tab: ElevenLabs TTS (Speak)\n"
+            "11. Tab: Desktop\n"
+            "12. Tab: Settings\n"
+            "13. Tab: Shortcuts\n"
+            "14. Tab: System log\n"
+            "15. Tab: Video\n"
+            "16. Menu bar\n"
+            "17. Keyboard shortcuts\n"
+            "18. Push-to-Talk and voice activation\n"
+            "19. Text-to-Speech (espeak-ng)\n"
+            "20. Platform differences (macOS / Windows / Linux)\n"
+            "21. Automation (macros and triggers)\n"
+            "22. Global hotkeys (macOS)\n"
+            "23. Braille output\n"
+            "24. AI features (Claude / Gemini)\n"
+            "25. HTTP control API\n"
+            "26. Webhook integration\n"
+            "27. Interface language\n"
+            "28. Plugin manager\n"
+            "\n"
+            "\n"
+            "1. Overview\n"
+            "===========\n"
+            "TeamTalk VoiceOver Client is an accessible client for TeamTalk 5 servers,\n"
+            "optimised for VoiceOver (macOS), NVDA/JAWS (Windows) and other screen readers.\n"
+            "It enables voice and text communication, file transfer, media streaming\n"
+            "and desktop sharing.\n"
+            "\n"
+            "\n"
+            "2. Getting started\n"
+            "==================\n"
+            "The main window is divided into tabs. Use Ctrl+Tab / Shift+Ctrl+Tab to switch\n"
+            "between tabs. On macOS, VoiceOver gestures address elements directly.\n"
+            "\n"
+            "Lists: All lists in the programme are built as simple ListBoxes.\n"
+            "Entries are separated by commas so that screen readers can read them fluently.\n"
+            "\n"
+            "Status bar: Continuous feedback is displayed at the bottom of the window\n"
+            "(connection status, actions, errors).\n"
+            "\n"
+            "\n"
+            "3. Tab: Connection\n"
+            "==================\n"
+            "Manage server profiles and establish connections here.\n"
+            "\n"
+            "Section 'Server profile'\n"
+            "  Profile list:    List of saved profiles. Selecting one loads its data.\n"
+            "  New:             Create an empty profile.\n"
+            "  Duplicate:       Copy the selected profile.\n"
+            "  Delete:          Remove the selected profile.\n"
+            "  Save:            Save current input to the profile.\n"
+            "\n"
+            "Section 'Connection data'\n"
+            "  Profile name:    Display name for the profile (local only).\n"
+            "  Server host:     Hostname or IP address of the TeamTalk server.\n"
+            "  TCP port:        TCP port (default: 10333).\n"
+            "  UDP port:        UDP port (default: 10333).\n"
+            "  Username:        Login name. Leave empty for guest login.\n"
+            "  Password:        Password (empty = no password).\n"
+            "  Nickname:        Display name shown in the channel.\n"
+            "  Channel:         Channel to join automatically after login.\n"
+            "  Channel password: Password for the target channel (if required).\n"
+            "  Server password: Server entry password.\n"
+            "\n"
+            "Section 'Actions'\n"
+            "  Connect:         Connect with the entered data.\n"
+            "  Disconnect:      Disconnect from the server.\n"
+            "  Reconnect:       Reconnect to the last used server.\n"
+            "\n"
+            "Section 'Connection status'\n"
+            "  Shows the current connection status (Disconnected / Connected / Logged in).\n"
+            "\n"
+            "Options\n"
+            "  Auto-reconnect: When active, the programme reconnects automatically\n"
+            "  after a connection loss.\n"
+            "\n"
+            "Import (.tt file): Import a server directly from a .tt file.\n"
+            "Export (.tt file): Save the selected server as a .tt file.\n"
+            "Check status: Test TCP reachability of all servers (✓ / ✗).\n"
+            "Ping history: Shows average/min/max of the last 10 measurements.\n"
+            "\n"
+            "\n"
+            "4. Tab: Channels & Chat\n"
+            "=======================\n"
+            "Shows the channel structure of the server, users and chat.\n"
+            "\n"
+            "Section 'Channel list'\n"
+            "  Flat list of all channels and users on the server.\n"
+            "  Indentation shows channel depth (spaces = sub-level).\n"
+            "  Enter or double-click: Join channel.\n"
+            "\n"
+            "Section 'Users in channel'\n"
+            "  Users appear as entries below their channel.\n"
+            "  Entry format: Nickname, status, properties\n"
+            "\n"
+            "Context menu on user (right-click or application key):\n"
+            "  User info:              Show detailed information.\n"
+            "  Announce user info:     Output info via TTS.\n"
+            "  Send message:           Send a private message.\n"
+            "  Adjust volume:          Set individual volume for this user.\n"
+            "  Louder / Quieter:       Increase / decrease volume by 10%.\n"
+            "  Mute voice:             Mute this user's voice.\n"
+            "  Mute media stream:      Mute this user's media stream.\n"
+            "  Forward voice:          Forward voice to another channel.\n"
+            "  Forward media stream:   Forward media stream.\n"
+            "  Operator:               Make / demote user as channel operator.\n"
+            "  Kick:                   Remove user from channel.\n"
+            "  Kick + ban:             Kick and ban user from channel.\n"
+            "  Kick from server:       Remove user from the entire server.\n"
+            "  Kick from server + ban: Remove from server and set IP ban.\n"
+            "  Ban on server:          Add IP address to server ban list.\n"
+            "  Transmission rights:    Manage subscriptions (voice, video, desktop,\n"
+            "                          media, messages) for this user.\n"
+            "  Subscriptions:          Manage own subscriptions for this user.\n"
+            "  Move to channel:        Move user to another channel.\n"
+            "  Save target channel:    Save current channel as move target.\n"
+            "  To saved channel:       Move user to the saved target channel.\n"
+            "  Mute all:               Mute all users in the channel.\n"
+            "\n"
+            "\n"
+            "5. Tab: Chat\n"
+            "============\n"
+            "Send and receive text messages.\n"
+            "\n"
+            "Section 'Chat target'\n"
+            "  Shows where messages will be sent.\n"
+            "  Private (checkbox): Enables private chat.\n"
+            "  Private to (dropdown): Recipient for private messages.\n"
+            "\n"
+            "Chat history:\n"
+            "  Multi-line text field, read-only. Colour coding:\n"
+            "    Black = Channel message\n"
+            "    Blue  = Private message\n"
+            "    Green = Own message\n"
+            "    Grey  = System message\n"
+            "\n"
+            "Enter message: Input field + Send button (or Enter).\n"
+            "\n"
+            "Chat history management:\n"
+            "  Export history: Save current chat as a TXT file.\n"
+            "  Clear history:  Delete chat history (optionally including saved file).\n"
+            "  Save chat history (Settings): Saves up to 200 entries per server.\n"
+            "\n"
+            "\n"
+            "6. Tab: Audio\n"
+            "=============\n"
+            "Configure audio devices and transmission options.\n"
+            "\n"
+            "First start – setting up audio\n"
+            "  On first start, microphone and speakers are not yet active.\n"
+            "  Steps:\n"
+            "  1. Open the 'Audio' tab.\n"
+            "  2. Under 'Devices', select the desired input device (microphone).\n"
+            "  3. Select the desired output device (speakers / headphones).\n"
+            "  4. Press 'Apply audio' – the devices are now activated.\n"
+            "  Without this step, voice can neither be sent nor received.\n"
+            "  Note: Voice activation is disabled by default. After applying the\n"
+            "  devices it can be enabled here (checkbox 'Voice activation') or\n"
+            "  you can use Push-to-Talk.\n"
+            "\n"
+            "Section 'Devices'\n"
+            "  Input device:  Microphone for transmission (dropdown).\n"
+            "  Output device: Speakers / headphones (dropdown).\n"
+            "\n"
+            "Section 'Voice activation'\n"
+            "  Voice activation (checkbox): Activate microphone automatically on speech.\n"
+            "  Activation level (0–100):    Threshold for voice activation.\n"
+            "  Hold time (ms, 0–5000):      How long to keep sending after speech ends.\n"
+            "\n"
+            "Section 'Levels and volume'\n"
+            "  Microphone gain (0–32000): Microphone sensitivity.\n"
+            "  Output volume (0–32000):   Output volume.\n"
+            "\n"
+            "Section 'VU meter'\n"
+            "  Shows the current microphone level as a progress bar (Audio tab only).\n"
+            "\n"
+            "Section 'Output'\n"
+            "  Mute output (checkbox): Mute entire output.\n"
+            "\n"
+            "Section 'Device effects'\n"
+            "  AGC (checkbox):              Automatic gain control.\n"
+            "  Noise suppression:           Reduce background noise.\n"
+            "  Echo cancellation:           Suppress echoes from the microphone.\n"
+            "  Apply effects (button):      Activate selected effects.\n"
+            "\n"
+            "Section 'Preprocessing'\n"
+            "  Selection: None / SpeexDSP / WebRTC. Takes effect immediately.\n"
+            "\n"
+            "Section 'Actions'\n"
+            "  Duplex mode (checkbox):   Run input and output together.\n"
+            "  Refresh devices:          Re-read device list.\n"
+            "  Apply audio:              Activate selected devices and settings.\n"
+            "  Push-to-Talk (checkbox):  Enable PTT mode (hold Space to speak).\n"
+            "  Microphone test (checkbox): Hear your own voice as a check.\n"
+            "\n"
+            "Section 'PTT hotkey'\n"
+            "  Record hotkey: Record a key as PTT hotkey within the app.\n"
+            "  Note: Hotkey only works when the programme window is active.\n"
+            "\n"
+            "Section 'Save audio settings'\n"
+            "  Apply audio settings on start (checkbox):\n"
+            "    Automatically load saved settings at programme start.\n"
+            "  Auto-apply on device change (checkbox):\n"
+            "    Apply automatically when a device is connected/disconnected.\n"
+            "  Save current audio settings: Save all settings.\n"
+            "  Apply saved audio settings:  Load saved values.\n"
+            "  Delete saved audio settings: Remove saved values.\n"
+            "\n"
+            "Section 'Local playback'\n"
+            "  Plays an audio file locally – only you hear the playback,\n"
+            "  nothing is streamed to the channel. Available to all users.\n"
+            "  File:     Path to audio file (Browse button opens file dialog).\n"
+            "  Play:     Start playback (supported: MP3, WAV, OGG, FLAC, M4A).\n"
+            "  Pause /\n"
+            "  Resume:   Pause and resume playback.\n"
+            "  Stop:     End playback.\n"
+            "\n"
+            "\n"
+            "7. Tab: Recordings & Media\n"
+            "==========================\n"
+            "\n"
+            "Section 'Recording'\n"
+            "  Format (dropdown): WAV, MP3 (16/32/64/128/256/320 kbit).\n"
+            "  Start recording: Select save location, then start recording.\n"
+            "  Stop recording: End the running recording.\n"
+            "\n"
+            "Section 'Record conversations'\n"
+            "  Auto-record (checkbox): Record all users' conversations.\n"
+            "  Target folder: Folder where files are saved.\n"
+            "  Filename: Name pattern with placeholders (%Y%m%d-%H%M%S #%userid% %username%).\n"
+            "  Format: WAV, MP3 128k or 256k.\n"
+            "  Include own voice (checkbox).\n"
+            "  Apply: Apply settings.\n"
+            "\n"
+            "Section 'Media streaming'\n"
+            "  Streaming source (dropdown):\n"
+            "    File:       Stream a local audio/video file (WAV, MP3, OGG, MP4, AVI...).\n"
+            "    YouTube:    Stream a YouTube video via URL or search (yt-dlp).\n"
+            "    SoundCloud: Stream a SoundCloud track via URL or search (yt-dlp).\n"
+            "    Twitch:     Stream a Twitch channel via URL (yt-dlp, no search).\n"
+            "    Bandcamp:   Stream a Bandcamp track via URL (yt-dlp, no search).\n"
+            "    Vimeo:      Stream a Vimeo video via URL (yt-dlp, no search).\n"
+            "    Mixcloud:   Stream a Mixcloud mix via URL (yt-dlp, no search).\n"
+            "    Web radio:  Live stream from built-in station list or custom URL.\n"
+            "    Podcasts:   Podcast search (iTunes API) or load RSS feed directly.\n"
+            "    Playlist:   Stream multiple local files as a playlist (see below).\n"
+            "\n"
+            "  File streaming:\n"
+            "    Browse: Select file.\n"
+            "    Play / Pause / Stop.\n"
+            "    Position (0–1000): Seek within the file.\n"
+            "    Streaming volume (25–400): Volume of the streamed signal.\n"
+            "\n"
+            "  YouTube/SoundCloud (yt-dlp with search):\n"
+            "    Search: Enter a term, press Search, select result from list.\n"
+            "    Link: Enter URL directly, press Stream.\n"
+            "    Pause / Stop.\n"
+            "\n"
+            "  Web radio:\n"
+            "    Station list: Preset stations (90s90s, 80s80s, TechnoBase, etc.).\n"
+            "    Web radio search: Online search via Radio Browser API.\n"
+            "    Stream URL: Enter a custom URL and stream it.\n"
+            "\n"
+            "  Podcasts:\n"
+            "    Podcast search: Search via iTunes API.\n"
+            "    Feed URL: Enter an RSS feed URL directly and load it.\n"
+            "    Episode list: Select an episode and stream it.\n"
+            "\n"
+            "  Playlist:\n"
+            "    Playlist list:   Shows all tracks (filename only).\n"
+            "    Add...:          Multi-select local audio files (MP3, WAV, OGG,\n"
+            "                     FLAC, M4A, Opus, MP4, AVI, MKV).\n"
+            "    Load M3U...:     Import an existing M3U or M3U8 file.\n"
+            "                     Relative paths are resolved relative to the M3U file.\n"
+            "    Remove:          Delete selected track from playlist.\n"
+            "    Move up /\n"
+            "    Move down:       Change track order.\n"
+            "    Export as M3U...: Save current playlist as .m3u file.\n"
+            "    Clear:           Remove all tracks.\n"
+            "    Auto-advance (checkbox): Automatically play next track when current ends.\n"
+            "    Play:            Start streaming from the selected track.\n"
+            "    Pause / Stop:    Pause / end playback.\n"
+            "    Streaming volume: Volume of the streamed signal (25–400).\n"
+            "\n"
+            "\n"
+            "8. Tab: Files\n"
+            "=============\n"
+            "File transfer in the current channel.\n"
+            "\n"
+            "File list: Shows all files in the channel.\n"
+            "  Entry format: Filename, size, uploaded by, date\n"
+            "\n"
+            "Upload:   Upload a file from the local computer to the channel.\n"
+            "Download: Download the selected file (choose save location).\n"
+            "Delete:   Delete the selected file from the channel (confirmation dialog).\n"
+            "Refresh:  Reload the file list.\n"
+            "\n"
+            "Transfer progress: Progress bar during upload/download.\n"
+            "\n"
+            "\n"
+            "9. Tab: Administration\n"
+            "======================\n"
+            "Only available to users with administrator rights.\n"
+            "\n"
+            "Section 'User accounts'\n"
+            "  Columns: Username, type (Standard/Administrator), note.\n"
+            "  Load accounts: Load the account list from the server.\n"
+            "  Add account: Create a new account (username, password, note, type).\n"
+            "  Delete account: Remove the selected account (confirmation dialog).\n"
+            "\n"
+            "Section 'Bans'\n"
+            "  Columns: IP address, username, timestamp.\n"
+            "  Load bans:        Load ban list from server.\n"
+            "  Unban:            Remove the selected ban.\n"
+            "  Ban IP address...: Directly ban an IP address without the user\n"
+            "                     needing to be connected. Text input dialog.\n"
+            "\n"
+            "Section 'Server properties'\n"
+            "  Server name, MOTD (welcome message), max. users.\n"
+            "  Load:               Read current server values.\n"
+            "  Save:               Write changed values to the server.\n"
+            "  Save configuration: Save the server configuration file.\n"
+            "\n"
+            "\n"
+            "10. Tab: ElevenLabs TTS (Speak)\n"
+            "================================\n"
+            "Have your own AI voice speak into the channel via ElevenLabs.\n"
+            "\n"
+            "Prerequisite: ElevenLabs API key.\n"
+            "Enter the API key in Settings:\n"
+            "  Settings → Section 'ElevenLabs' → Field 'API key'\n"
+            "  → Press Save.\n"
+            "The key applies globally to all server profiles. It is automatically\n"
+            "passed to the Speak tab on the next connection.\n"
+            "\n"
+            "Operation:\n"
+            "  Voice / Model: Select from lists loaded via the API.\n"
+            "  Refresh:       Reload voices and models from the API.\n"
+            "  Stability (0–100):    Voice stability.\n"
+            "  Similarity (0–100):   Similarity to the original voice.\n"
+            "  Style (0–100):        Style exaggeration.\n"
+            "  Speaker boost:        Enhance speaker clarity (not for v3 models).\n"
+            "  Text:                 Enter the text to be spoken.\n"
+            "  Speak:                Generate audio and stream it to the channel.\n"
+            "  Stop:                 Stop streaming.\n"
+            "\n"
+            "\n"
+            "11. Tab: Desktop\n"
+            "================\n"
+            "Desktop sharing: Transmit your own screen to the channel.\n"
+            "\n"
+            "Section 'Send desktop'\n"
+            "  Send desktop (checkbox): Start/stop continuous transmission.\n"
+            "  FPS: Frame rate (1, 2, 5 or 10 frames/second).\n"
+            "  Scale: Reduce image size (25%, 50%, 75%, 100%).\n"
+            "  Send once: Send a single frame.\n"
+            "  End sharing: Stop transmission.\n"
+            "\n"
+            "Section 'Desktop control (remote)'\n"
+            "  Left click / Right click / Middle click:\n"
+            "  Send a mouse click to the desktop receiver.\n"
+            "\n"
+            "Section 'Status'\n"
+            "  Shows the current sharing status.\n"
+            "\n"
+            "\n"
+            "12. Tab: Settings\n"
+            "=================\n"
+            "\n"
+            "Use the search field at the top to jump directly to a section.\n"
+            "\n"
+            "Section 'General'\n"
+            "  Language:            Interface language (German / English). Restart required.\n"
+            "  Gender:              Reported to the server (Male/Female/Neutral).\n"
+            "  Away timer:          Automatically set 'Away' after X minutes of inactivity.\n"
+            "  BearWare account:    BearWare ID and token for registered users.\n"
+            "  Save chat history:   Save history per server and reload on next connection.\n"
+            "  Auto-join last channel: Automatically join the last channel after connecting.\n"
+            "  Show timestamps:     Add [HH:MM:SS] prefix to chat messages.\n"
+            "\n"
+            "Section 'Display'\n"
+            "  Tray icon:           Minimise programme to system tray.\n"
+            "  Always on top:       Keep window always in front.\n"
+            "  Channel name in title: Show channel and user count in title bar.\n"
+            "  Show toolbar:        Display button toolbar.\n"
+            "  Event log:           Log system events.\n"
+            "  VU meter:            Show input level meter.\n"
+            "\n"
+            "Section 'Connection'\n"
+            "  Default subscriptions: Default subscriptions for new users.\n"
+            "  Bind local port:     Specify local UDP/TCP port.\n"
+            "\n"
+            "Section 'Sound events'\n"
+            "  18 events can be assigned sounds:\n"
+            "    User joined, left, channel changed, connected, disconnected,\n"
+            "    message received, private received, transmission started/stopped,\n"
+            "    question mode, video start, desktop start, file start, recording start,\n"
+            "    hotkey pressed, error.\n"
+            "  Volume: Volume of event sounds.\n"
+            "  Playback device: Output device for sounds.\n"
+            "\n"
+            "Section 'Audio'\n"
+            "  See Tab Audio (audio settings are mirrored here).\n"
+            "\n"
+            "Section 'Video'\n"
+            "  Configure video camera.\n"
+            "\n"
+            "Section 'Shortcuts'\n"
+            "  See Tab Shortcuts.\n"
+            "\n"
+            "Section 'System & TTS'\n"
+            "  Enable TTS (checkbox).\n"
+            "  Read chat / Read private / Read system / Read own.\n"
+            "  Interrupt: Stop running output when a new message arrives.\n"
+            "  Language: ISO language code (e.g. 'de', 'en').\n"
+            "  Voice: espeak-ng voice (e.g. 'de', 'en', 'Linda', 'Max').\n"
+            "  Speed (80–450): Speaking rate in words per minute.\n"
+            "  Volume (0–200): TTS output volume.\n"
+            "  espeak-ng path: Manual path to the espeak-ng binary.\n"
+            "  Select voice: Dialog to browse available voices.\n"
+            "  Save settings.\n"
+            "\n"
+            "\n"
+            "13. Tab: Shortcuts\n"
+            "==================\n"
+            "In-app hotkeys (active window only):\n"
+            "  Mute all:                  Mute/unmute all users.\n"
+            "  Toggle voice activation:   Enable/disable VA.\n"
+            "  Toggle video:              Start/stop video transmission.\n"
+            "  Announce input level:      Read current microphone level via TTS.\n"
+            "  Announce user info:        Read info about selected user via TTS.\n"
+            "  Announce ping:             Read current ping via TTS.\n"
+            "  Announce braille status:   Read configured status fields via TTS.\n"
+            "  Reply to last sender:      Open reply to the last private message sender.\n"
+            "  Cycle sound profile:       Switch between sound profiles.\n"
+            "  Cycle braille verbosity:   Toggle braille verbosity level.\n"
+            "  AI summary:                Summarise recent chat messages with AI.\n"
+            "  Bookmark 1/2/3:            Join saved bookmark channels.\n"
+            "  Toggle recording:          Start/stop recording.\n"
+            "  Status template 1/2/3:     Set predefined status messages.\n"
+            "  Mic boost up/down:         Increase/decrease microphone gain.\n"
+            "  Cancel TTS:                Stop running TTS and clear queue.\n"
+            "\n"
+            "Global hotkeys (macOS, system-wide):\n"
+            "  PTT and mute work even in the background.\n"
+            "  Enable and then record keys.\n"
+            "\n"
+            "Record hotkey: Press button, then press the desired key.\n"
+            "ESC = cancel recording.\n"
+            "\n"
+            "\n"
+            "14. Tab: System log\n"
+            "===================\n"
+            "Log of internal events (connection, errors, TTS messages).\n"
+            "Copy log: Copy contents to clipboard.\n"
+            "Clear log: Reset the log.\n"
+            "\n"
+            "\n"
+            "15. Tab: Video\n"
+            "==============\n"
+            "Video camera transmission.\n"
+            "Select video camera and start transmission.\n"
+            "\n"
+            "\n"
+            "16. Menu bar\n"
+            "============\n"
+            "\n"
+            "Menu 'File'\n"
+            "  New window:   Open a further client instance.\n"
+            "  Settings:     Open Settings tab (Cmd+,).\n"
+            "  Quit:         Close the programme.\n"
+            "\n"
+            "Menu 'Channel'\n"
+            "  Create:               Create a new channel.\n"
+            "  Edit:                 Change channel settings.\n"
+            "  Delete:               Remove channel (admin).\n"
+            "  Join:                 Join the selected channel.\n"
+            "  Leave:                Leave the current channel.\n"
+            "  Announce info:        Output channel info via TTS.\n"
+            "  Announce statistics:  Read channel statistics via TTS.\n"
+            "  Announce status:      Read channel status via TTS.\n"
+            "  Copy TT URL:          Copy TeamTalk URL to clipboard.\n"
+            "  Channel bans:         Show channel ban list.\n"
+            "  Channel message:      Send message to everyone in the channel.\n"
+            "  Upload file:          Upload file to channel.\n"
+            "  Download file:        Download file from channel.\n"
+            "  Delete file:          Remove file from channel.\n"
+            "  Refresh file list:    Reload file list.\n"
+            "  Streaming (File/YouTube/SoundCloud/...): Start media streaming.\n"
+            "\n"
+            "Menu 'User'\n"
+            "  All actions as in the context menu (Tab Channels, Section 4).\n"
+            "\n"
+            "Menu 'Server'\n"
+            "  Users online:         List of all connected users.\n"
+            "                        Contains a search field: enter username and\n"
+            "                        press Enter or click 'Search' to highlight the entry.\n"
+            "  Broadcast message:    Send message to all users (admin).\n"
+            "  Server statistics:    Show server metrics.\n"
+            "  Server bans:          Show server IP ban list.\n"
+            "  Administration:       Open Admin tab.\n"
+            "  Server properties:    Edit name, MOTD, max users.\n"
+            "  Save configuration:   Save configuration on the server.\n"
+            "\n"
+            "Menu 'Profile'\n"
+            "  Change nickname:      Change display name.\n"
+            "  Change status:        Set status message.\n"
+            "  Question mode:        Raise / lower hand (toggle).\n"
+            "  Hear yourself:        Hear your own voice via output (loopback).\n"
+            "  Toggle TTS:           Enable/disable Text-to-Speech globally.\n"
+            "  Desktop sharing:      Start/stop desktop sharing.\n"
+            "\n"
+            "Menu 'Notifications'\n"
+            "  Chat TTS:    Enable/disable TTS for channel messages.\n"
+            "  Private TTS: Enable/disable TTS for private messages.\n"
+            "  System TTS:  Enable/disable TTS for system messages.\n"
+            "  Own TTS:     Enable/disable TTS for own messages.\n"
+            "\n"
+            "Menu 'Audio'\n"
+            "  Push-to-Talk:          Toggle PTT mode.\n"
+            "  Voice activation:      Toggle VA.\n"
+            "  Audio settings:        Open Audio tab.\n"
+            "  AGC / Noise suppression / Echo cancellation: Toggle effects.\n"
+            "  Apply effects:         Activate selected effects.\n"
+            "  Apply audio:           Apply device configuration.\n"
+            "  Refresh devices:       Re-read device list.\n"
+            "  Microphone test:       Start/stop self-test loop.\n"
+            "  Mute all:              Mute all users.\n"
+            "\n"
+            "Menu 'Video'\n"
+            "  Send video:            Start/stop video transmission.\n"
+            "  Video settings:        Open Video tab.\n"
+            "  Refresh devices:       Update camera list.\n"
+            "\n"
+            "Menu 'Recordings'\n"
+            "  Start recording:       Record channel audio.\n"
+            "  Stop recording:        End recording.\n"
+            "  Record conversations:  Configure conversation recording.\n"
+            "  Browse recordings:     Open the recording browser.\n"
+            "\n"
+            "Menu 'Automation'\n"
+            "  Macro editor...:       Create and manage macros.\n"
+            "  Scheduled macros...:   Schedule macros to run at specific times.\n"
+            "  Trigger rules...:      Define event-based macro triggers.\n"
+            "\n"
+            "Menu 'Help'\n"
+            "  Settings:              Open settings (Cmd+,).\n"
+            "  Export logs:           Save system log to file.\n"
+            "  Connection statistics: Show client network statistics.\n"
+            "  Announce statistics:   Read statistics via TTS.\n"
+            "  Manual:                Show this manual.\n"
+            "  Shortcut reference:    Show configured hotkeys.\n"
+            "  Changelog:             Show version changes.\n"
+            "  About:                 Programme info, credits, licences.\n"
+            "\n"
+            "\n"
+            "17. Keyboard shortcuts\n"
+            "======================\n"
+            "  Cmd+,          Open Settings (macOS)\n"
+            "  Cmd+W          Close dialog/window\n"
+            "  Space          Push-to-Talk (hold) – when PTT is active\n"
+            "  Ctrl+Tab       Next tab\n"
+            "  Shift+Ctrl+Tab Previous tab\n"
+            "\n"
+            "Configurable hotkeys (Tab Shortcuts):\n"
+            "  Mute all\n"
+            "  Toggle voice activation\n"
+            "  Toggle video\n"
+            "  ... (see Tab Shortcuts for full list)\n"
+            "\n"
+            "\n"
+            "18. Push-to-Talk and voice activation\n"
+            "======================================\n"
+            "Push-to-Talk (PTT):\n"
+            "  Enable 'Push-to-Talk' in the Audio tab.\n"
+            "  Hold Space = microphone active.\n"
+            "  Alternative hotkey: Record under 'PTT hotkey' in the Audio tab.\n"
+            "  Note: Only works when the programme window is active.\n"
+            "  On macOS: Activate global PTT in Tab Shortcuts for background operation.\n"
+            "\n"
+            "Voice activation (VA):\n"
+            "  Enable 'Voice activation' in the Audio tab.\n"
+            "  Set level: How loud it must be for the microphone to activate.\n"
+            "  Hold time: How long the microphone keeps transmitting after silence.\n"
+            "  PTT and VA are mutually exclusive: using PTT does not send via VA.\n"
+            "\n"
+            "\n"
+            "19. Text-to-Speech (espeak-ng)\n"
+            "==============================\n"
+            "The client includes espeak-ng for speech output.\n"
+            "Configuration in Tab Settings, Section 'System & TTS':\n"
+            "  Language: e.g. 'de' for German, 'en' for English.\n"
+            "  Voice:    espeak-ng voice (empty = language used directly).\n"
+            "            Browse voice list via 'Select voice'.\n"
+            "  Speed (80–450): Higher value = faster output.\n"
+            "  Volume (0–200): Default = 100.\n"
+            "  Interrupt: Immediately stop running output when a new message arrives.\n"
+            "\n"
+            "What is read aloud?\n"
+            "  - Chat messages (when 'Read chat' is active)\n"
+            "  - Private messages (when 'Read private' is active)\n"
+            "  - System messages (when 'Read system' is active)\n"
+            "  - Own messages (when 'Read own' is active)\n"
+            "\n"
+            "\n"
+            "20. Platform differences\n"
+            "========================\n"
+            "\n"
+            "macOS\n"
+            "  Primary platform. Full VoiceOver support.\n"
+            "  All controls have correct roles (button, dropdown, list, etc.).\n"
+            "  Audio output: afplay.\n"
+            "  TTS: espeak-ng (bundled) with afplay.\n"
+            "  PTT hotkey only with active window unless global hotkeys are enabled.\n"
+            "\n"
+            "Windows\n"
+            "  NVDA and JAWS are supported.\n"
+            "  Audio output: winsound.\n"
+            "  TTS: espeak-ng (bundled) with winsound.\n"
+            "  PTT hotkey: Space and configured hotkey work.\n"
+            "\n"
+            "Linux\n"
+            "  Basic support available.\n"
+            "  Audio output via espeak-ng directly (no afplay/winsound).\n"
+            "  Screen reader support depends on wxGTK.\n"
+            "\n"
+            "\n"
+            "21. Automation (macros and triggers)\n"
+            "=====================================\n"
+            "Three tools are available via the 'Automation' menu:\n"
+            "\n"
+            "Macro editor (Automation → Macro editor...)\n"
+            "  Create, edit and delete macros.\n"
+            "  Each macro has a name and an action list.\n"
+            "  Action types:\n"
+            "    speak   – Read text via TTS.\n"
+            "    channel – Switch to a channel by name.\n"
+            "    status  – Set status message.\n"
+            "    ptt     – PTT control (on/off/toggle).\n"
+            "    wait    – Pause in milliseconds.\n"
+            "  Macros can be run manually or started by schedule/trigger.\n"
+            "\n"
+            "Scheduled macros (Automation → Scheduled macros...)\n"
+            "  Run a macro daily at a configured time (HH:MM).\n"
+            "  Multiple schedules are possible.\n"
+            "\n"
+            "Trigger rules (Automation → Trigger rules...)\n"
+            "  Run macros automatically on events.\n"
+            "  Supported events:\n"
+            "    user_join    – A user enters a channel.\n"
+            "    user_leave   – A user leaves a channel.\n"
+            "    chat_message – Channel message received.\n"
+            "    private_msg  – Private message received.\n"
+            "    channel_join – I join a channel.\n"
+            "  Optional name filter: Only trigger if the username contains the entered text.\n"
+            "\n"
+            "\n"
+            "22. Global hotkeys (macOS)\n"
+            "==========================\n"
+            "On macOS, PTT and mute can work system-wide,\n"
+            "even when the programme window is in the background.\n"
+            "\n"
+            "Enable: Tab Shortcuts → 'Enable global hotkeys' (checkbox).\n"
+            "Note: macOS will ask for keyboard access permissions –\n"
+            "these must be granted once in System Settings → Privacy &\n"
+            "Security → Accessibility.\n"
+            "\n"
+            "Configurable global hotkeys:\n"
+            "  PTT (push-to-talk): Activate microphone while held.\n"
+            "  Mute all:           Mute/unmute total output.\n"
+            "\n"
+            "Note: In-app hotkeys (Tab 13) only work when the programme\n"
+            "window has focus.\n"
+            "\n"
+            "\n"
+            "23. Braille output\n"
+            "==================\n"
+            "The client can provide structured status information via a\n"
+            "configurable braille output.\n"
+            "\n"
+            "Configuration: Settings → AI & Integration → Braille output.\n"
+            "Fields: Channel, user count, ping, mute status, connection status.\n"
+            "\n"
+            "Hotkey 'Announce braille status': Reads the current status via TTS.\n"
+            "Configurable in Tab Shortcuts.\n"
+            "\n"
+            "\n"
+            "24. AI features (Claude / Gemini)\n"
+            "==================================\n"
+            "The client supports AI-powered chat summaries.\n"
+            "\n"
+            "Prerequisite: API key in Settings → AI & Integration.\n"
+            "  Claude API key:  For Anthropic Claude.\n"
+            "  Gemini API key:  For Google Gemini.\n"
+            "  AI provider:     Select which service to use.\n"
+            "\n"
+            "Hotkey 'AI summary': Summarises recent chat messages.\n"
+            "Result is read aloud via TTS.\n"
+            "\n"
+            "\n"
+            "25. HTTP control API\n"
+            "====================\n"
+            "The built-in HTTP API allows remote control of the client from any\n"
+            "programme that can send HTTP requests – e.g. Streamdeck, Home Assistant,\n"
+            "shell scripts, Automator (macOS), n8n, Node-RED, and more.\n"
+            "\n"
+            "Enabling\n"
+            "--------\n"
+            "Settings → AI & Integration → 'Enable HTTP API' (checkbox).\n"
+            "Default port: 8765. Changeable in the 'HTTP API port' field.\n"
+            "Takes effect immediately; no restart required.\n"
+            "\n"
+            "Security note\n"
+            "-------------\n"
+            "The server listens exclusively on 127.0.0.1 (localhost) – no network\n"
+            "access. No authentication: any local process of the same user can call\n"
+            "the API.\n"
+            "\n"
+            "Response format\n"
+            "---------------\n"
+            "All endpoints respond with JSON:\n"
+            "\n"
+            "  Success: {\"ok\": true,  \"result\": <value or text>}\n"
+            "  Error:   {\"ok\": false, \"error\": \"description\"}\n"
+            "\n"
+            "HTTP status code: 200 on success, 500 on error.\n"
+            "\n"
+            "Endpoints\n"
+            "---------\n"
+            "All requests are HTTP GET.\n"
+            "\n"
+            "PTT control:\n"
+            "  GET /ptt/on\n"
+            "    Enable Push-to-Talk (turn on microphone).\n"
+            "    Response: {\"ok\": true, \"result\": \"PTT on\"}\n"
+            "\n"
+            "  GET /ptt/off\n"
+            "    Disable Push-to-Talk.\n"
+            "    Response: {\"ok\": true, \"result\": \"PTT off\"}\n"
+            "\n"
+            "  GET /ptt/toggle\n"
+            "    Toggle PTT (on → off → on …).\n"
+            "    Response: {\"ok\": true, \"result\": \"PTT toggled\"}\n"
+            "\n"
+            "Mute control:\n"
+            "  GET /mute/on\n"
+            "    Mute the entire audio output.\n"
+            "    Response: {\"ok\": true, \"result\": \"muted\"}\n"
+            "\n"
+            "  GET /mute/off\n"
+            "    Unmute audio output.\n"
+            "    Response: {\"ok\": true, \"result\": \"unmuted\"}\n"
+            "\n"
+            "  GET /mute/toggle\n"
+            "    Toggle mute.\n"
+            "    Response: {\"ok\": true, \"result\": \"mute toggled\"}\n"
+            "\n"
+            "Channel:\n"
+            "  GET /channel/<name>\n"
+            "    Join the channel whose name contains <name> (substring match).\n"
+            "    Example: /channel/Lobby\n"
+            "    Response: {\"ok\": true, \"result\": \"joining Lobby\"}\n"
+            "    Note: Channel joining is asynchronous.\n"
+            "\n"
+            "Status:\n"
+            "  GET /status/<text>\n"
+            "    Set the status message of your user.\n"
+            "    Encode spaces as %20 or +.\n"
+            "    Example: /status/In%20a%20meeting\n"
+            "    Response: {\"ok\": true, \"result\": \"status set: In a meeting\"}\n"
+            "\n"
+            "TTS:\n"
+            "  GET /speak/<text>\n"
+            "    Read <text> aloud via TTS (URL-encoded).\n"
+            "    Example: /speak/Hello%20World\n"
+            "    Response: {\"ok\": true, \"result\": \"speaking: Hello World\"}\n"
+            "\n"
+            "Status query:\n"
+            "  GET /info\n"
+            "    Returns the current app status as JSON.\n"
+            "    Response:\n"
+            "      {\n"
+            "        \"ok\": true,\n"
+            "        \"result\": {\n"
+            "          \"connected\": true,\n"
+            "          \"channel\": \"server-profile-key\"\n"
+            "        }\n"
+            "      }\n"
+            "\n"
+            "Practical examples\n"
+            "------------------\n"
+            "\n"
+            "Shell / Terminal:\n"
+            "  curl http://127.0.0.1:8765/ptt/on\n"
+            "  curl http://127.0.0.1:8765/mute/toggle\n"
+            "  curl http://127.0.0.1:8765/speak/Hello%20World\n"
+            "  curl http://127.0.0.1:8765/info\n"
+            "\n"
+            "Python:\n"
+            "  import urllib.request\n"
+            "  urllib.request.urlopen('http://127.0.0.1:8765/ptt/on')\n"
+            "\n"
+            "AppleScript (macOS):\n"
+            "  do shell script \"curl -s http://127.0.0.1:8765/mute/toggle\"\n"
+            "\n"
+            "Streamdeck plugin (HTTP Request action):\n"
+            "  URL: http://127.0.0.1:8765/ptt/toggle\n"
+            "  Method: GET\n"
+            "\n"
+            "Home Assistant:\n"
+            "  service: rest_command.teamtalk_ptt_toggle\n"
+            "  Configure in configuration.yaml:\n"
+            "    rest_command:\n"
+            "      teamtalk_ptt_toggle:\n"
+            "        url: 'http://127.0.0.1:8765/ptt/toggle'\n"
+            "\n"
+            "Error handling\n"
+            "--------------\n"
+            "  Unknown path:    HTTP 500, {\"ok\": false, \"error\": \"Unknown path: /xyz\"}\n"
+            "  App not ready:   HTTP 500, {\"ok\": false, \"error\": \"App not ready\"}\n"
+            "\n"
+            "\n"
+            "26. Webhook integration\n"
+            "=======================\n"
+            "The client automatically sends JSON payloads (HTTP POST) to a configured\n"
+            "URL when certain events occur. External services like n8n, Zapier,\n"
+            "Home Assistant or custom servers can react to these events.\n"
+            "\n"
+            "Configuration\n"
+            "-------------\n"
+            "Settings → AI & Integration:\n"
+            "  Webhook URL:     Target URL (must start with http:// or https://).\n"
+            "  Webhook events:  Comma-separated list of events to react to.\n"
+            "                   Empty = all events.\n"
+            "\n"
+            "Allowed URL schemes: http:// and https:// (others are rejected).\n"
+            "\n"
+            "Payload format\n"
+            "--------------\n"
+            "Each POST contains a JSON body:\n"
+            "\n"
+            "  {\n"
+            "    \"event\":  \"<event name>\",\n"
+            "    \"ts\":     \"2026-03-29T14:23:01\",\n"
+            "    \"app\":    \"TeamTalk VO Client\",\n"
+            "    <event-specific fields>\n"
+            "  }\n"
+            "\n"
+            "HTTP headers:\n"
+            "  Content-Type: application/json\n"
+            "  User-Agent: TeamTalkVOClient/2.7\n"
+            "\n"
+            "Timeout: 5 seconds. Failed requests are logged in the system log\n"
+            "but not retried.\n"
+            "\n"
+            "Supported events\n"
+            "----------------\n"
+            "\n"
+            "private_msg – Private message received\n"
+            "  Fields: from_user (str), text (str)\n"
+            "  Example:\n"
+            "  {\n"
+            "    \"event\": \"private_msg\",\n"
+            "    \"ts\": \"2026-03-29T14:23:01\",\n"
+            "    \"app\": \"TeamTalk VO Client\",\n"
+            "    \"from_user\": \"Alice\",\n"
+            "    \"text\": \"Are you there?\"\n"
+            "  }\n"
+            "\n"
+            "channel_msg – Channel message received\n"
+            "  Fields: from_user (str), text (str)\n"
+            "\n"
+            "user_join – User has entered a channel\n"
+            "  Fields: user (str), channel (str)\n"
+            "\n"
+            "user_leave – User has left a channel\n"
+            "  Fields: user (str), channel (str)\n"
+            "\n"
+            "connect – Connected to server\n"
+            "  Fields: server (str)\n"
+            "\n"
+            "disconnect – Connection lost\n"
+            "  Fields: server (str)\n"
+            "\n"
+            "recording_start – Recording started\n"
+            "  Fields: path (str)\n"
+            "\n"
+            "Practical examples\n"
+            "------------------\n"
+            "\n"
+            "n8n webhook:\n"
+            "  1. New workflow → Trigger: 'Webhook'\n"
+            "  2. Copy URL from n8n and enter it in the client settings.\n"
+            "  3. Filter events, e.g. only private_msg.\n"
+            "\n"
+            "Custom Python server:\n"
+            "  from http.server import HTTPServer, BaseHTTPRequestHandler\n"
+            "  import json\n"
+            "  class Handler(BaseHTTPRequestHandler):\n"
+            "      def do_POST(self):\n"
+            "          length = int(self.headers['Content-Length'])\n"
+            "          data = json.loads(self.rfile.read(length))\n"
+            "          print('Event:', data['event'])\n"
+            "          self.send_response(200); self.end_headers()\n"
+            "  HTTPServer(('', 9999), Handler).serve_forever()\n"
+            "\n"
+            "\n"
+            "27. Interface language\n"
+            "======================\n"
+            "The client supports German and English.\n"
+            "\n"
+            "Switch: Settings → General → Language.\n"
+            "Note: A restart is required for the language to take full effect.\n"
+            "Menus, dialogs and the manual will then appear in the selected language.\n"
+            "\n"
+            "\n"
+            "28. Plugin manager\n"
+            "==================\n"
+            "Plugins are Python scripts that extend or automate the client without\n"
+            "modifying its source code. They react to app events and can actively\n"
+            "control the app (TTS, send messages, join channels).\n"
+            "\n"
+            "Plugin directory\n"
+            "----------------\n"
+            "In the app bundle:\n"
+            "  TeamTalk VO Client.app/Contents/Resources/plugins/\n"
+            "\n"
+            "In development mode (source code):\n"
+            "  TeamTalk-VO-Client-macOS/plugins/\n"
+            "\n"
+            "The directory may need to be created manually.\n"
+            "All *.py files in it are loaded automatically at app start.\n"
+            "Files starting with _ are skipped.\n"
+            "\n"
+            "Plugin structure\n"
+            "----------------\n"
+            "A plugin is a single Python file:\n"
+            "\n"
+            "  # plugins/my_plugin.py\n"
+            "\n"
+            "  metadata = {\n"
+            "      \"name\":        \"My Plugin\",\n"
+            "      \"version\":     \"1.0\",\n"
+            "      \"description\": \"Does something useful\",\n"
+            "      \"author\":      \"Your Name\",\n"
+            "  }\n"
+            "\n"
+            "  def register(bus, api):\n"
+            "      \"\"\"Called once at app start.\"\"\"\n"
+            "      bus.on(\"connection_state_changed\", on_connection)\n"
+            "\n"
+            "  def on_connection(connected, reason):\n"
+            "      if connected:\n"
+            "          api.speak(\"Connected!\")\n"
+            "\n"
+            "Required:\n"
+            "  register(bus, api)  – Entry point; called once at startup.\n"
+            "\n"
+            "Optional:\n"
+            "  metadata            – Dict with name, version, description, author.\n"
+            "                        Shown in the Settings tab 'Plugins'.\n"
+            "\n"
+            "EventBus (bus)\n"
+            "--------------\n"
+            "The EventBus connects plugins to app events.\n"
+            "\n"
+            "  bus.on(event, handler)   – Register a handler for an event.\n"
+            "  bus.off(event, handler)  – Remove a handler.\n"
+            "  bus.emit(event, **kw)    – Fire a custom event.\n"
+            "\n"
+            "Available events:\n"
+            "\n"
+            "  app_startup\n"
+            "    Fired ~2 seconds after the app has fully initialised.\n"
+            "    Parameters: (none)\n"
+            "\n"
+            "  connection_state_changed\n"
+            "    Connection established or lost.\n"
+            "    Parameters: connected (bool), reason (str)\n"
+            "    reason: 'login' | 'failed' | 'lost'\n"
+            "\n"
+            "  user_joined\n"
+            "    A user has entered a channel.\n"
+            "    Parameters: user (str), user_id (int), channel_id (int),\n"
+            "                 channel_name (str)\n"
+            "\n"
+            "  user_left\n"
+            "    A user has left a channel.\n"
+            "    Parameters: user (str), user_id (int), channel_id (int),\n"
+            "                 channel_name (str)\n"
+            "\n"
+            "  chat_message\n"
+            "    Message received or sent.\n"
+            "    Parameters: text (str), kind (str), from_user (str), from_id (int)\n"
+            "    kind: 'chat' | 'private' | 'broadcast'\n"
+            "\n"
+            "  channel_joined\n"
+            "    You have joined a channel.\n"
+            "    Parameters: channel_id (int)\n"
+            "\n"
+            "  file_transfer_complete\n"
+            "    File transfer completed.\n"
+            "    Parameters: filename (str)\n"
+            "\n"
+            "PluginAPI (api)\n"
+            "---------------\n"
+            "Enables active control of the app from within the plugin.\n"
+            "\n"
+            "TTS:\n"
+            "  api.speak(text, kind='system')\n"
+            "    Read text aloud via TTS. Safe to call from any thread.\n"
+            "    kind: 'system' | 'chat' | 'private'\n"
+            "\n"
+            "Connection status:\n"
+            "  api.is_connected() → bool\n"
+            "    True if connected to a server.\n"
+            "  api.get_server_name() → str\n"
+            "    Configured server name (empty = not connected).\n"
+            "\n"
+            "Users & channels:\n"
+            "  api.get_my_user_id() → int\n"
+            "    Own user ID (0 = not connected).\n"
+            "  api.get_my_channel_id() → int\n"
+            "    ID of current channel (0 = no channel).\n"
+            "  api.get_channel_users(channel_id) → list\n"
+            "    Users in channel as a list of dicts:\n"
+            "    [{\"id\": 42, \"name\": \"Alice\", \"is_admin\": False}, ...]\n"
+            "\n"
+            "Sending messages (always call from a background thread!):\n"
+            "  api.send_channel_message(text, channel_id=0) → bool\n"
+            "    Send message to own channel (or channel_id).\n"
+            "  api.send_private_message(user_id, text) → bool\n"
+            "    Send a private message to a user.\n"
+            "\n"
+            "Channel:\n"
+            "  api.join_channel(channel_id, password='')\n"
+            "    Join a channel (asynchronous via wx.CallAfter).\n"
+            "\n"
+            "Plugin configuration:\n"
+            "  api.get_config(plugin_name) → PluginConfig\n"
+            "    Persistent key-value store per plugin.\n"
+            "    Stored in:\n"
+            "    ~/Library/Application Support/TeamTalkVOClient/plugin_configs/\n"
+            "\n"
+            "    cfg = api.get_config('my_plugin')\n"
+            "    cfg.set('key', 'value')       # saved immediately\n"
+            "    cfg.get('key', 'default')     # read\n"
+            "    cfg.delete('key')             # remove\n"
+            "    cfg.all()                     # all entries\n"
+            "\n"
+            "Threading rules\n"
+            "---------------\n"
+            "Handlers are called in the GUI thread (EventBus is synchronous).\n"
+            "\n"
+            "  CORRECT – blocking ops in background thread:\n"
+            "    import threading\n"
+            "    def on_event(**kw):\n"
+            "        threading.Thread(target=_do_work, daemon=True).start()\n"
+            "\n"
+            "  WRONG – blocks the GUI thread:\n"
+            "    def on_event(**kw):\n"
+            "        time.sleep(5)  # freezes the app!\n"
+            "\n"
+            "  api.speak() is always safe (uses wx.CallAfter internally).\n"
+            "  api.send_channel_message() must be called from a background thread.\n"
+            "\n"
+            "Example plugins\n"
+            "---------------\n"
+            "\n"
+            "1. Greet users on channel join:\n"
+            "\n"
+            "  metadata = {\"name\": \"Greeter\", \"version\": \"1.0\"}\n"
+            "\n"
+            "  def register(bus, api):\n"
+            "      def on_join(user, channel_id, **kw):\n"
+            "          if channel_id == api.get_my_channel_id():\n"
+            "              api.speak(f\"Welcome, {user}!\")\n"
+            "      bus.on(\"user_joined\", on_join)\n"
+            "\n"
+            "2. Chat commands (!ping, !users):\n"
+            "\n"
+            "  import threading\n"
+            "  metadata = {\"name\": \"Chat commands\", \"version\": \"1.0\"}\n"
+            "\n"
+            "  def register(bus, api):\n"
+            "      def on_chat(text, kind, from_user, from_id, **kw):\n"
+            "          if kind != \"chat\" or not text.startswith(\"!\"):\n"
+            "              return\n"
+            "          if text.strip() == \"!ping\":\n"
+            "              threading.Thread(\n"
+            "                  target=lambda: api.send_channel_message(\n"
+            "                      f\"{from_user}: pong!\"),\n"
+            "                  daemon=True).start()\n"
+            "      bus.on(\"chat_message\", on_chat)\n"
+            "\n"
+            "3. Log connections to file:\n"
+            "\n"
+            "  import datetime, pathlib\n"
+            "  metadata = {\"name\": \"Connection log\", \"version\": \"1.0\"}\n"
+            "  LOG = pathlib.Path.home() / \"teamtalk_connections.log\"\n"
+            "\n"
+            "  def register(bus, api=None):\n"
+            "      bus.on(\"connection_state_changed\", _log)\n"
+            "\n"
+            "  def _log(connected, reason):\n"
+            "      ts = datetime.datetime.now().strftime(\"%Y-%m-%d %H:%M:%S\")\n"
+            "      status = \"CONNECTED\" if connected else f\"DISCONNECTED ({reason})\"\n"
+            "      with LOG.open(\"a\", encoding=\"utf-8\") as f:\n"
+            "          f.write(f\"[{ts}] {status}\\n\")\n"
+            "\n"
+            "4. macOS desktop notification on connection loss:\n"
+            "\n"
+            "  import subprocess\n"
+            "  metadata = {\"name\": \"Connection alert\", \"version\": \"1.0\"}\n"
+            "\n"
+            "  def register(bus, api=None):\n"
+            "      bus.on(\"connection_state_changed\", _alert)\n"
+            "\n"
+            "  def _alert(connected, reason):\n"
+            "      if not connected:\n"
+            "          subprocess.run([\"osascript\", \"-e\",\n"
+            "              'display notification \"Connection lost\" '\n"
+            "              'with title \"TeamTalk VO Client\"'], check=False)\n"
+            "\n"
+            "Debugging\n"
+            "---------\n"
+            "Plugins can use print(). Output appears in the terminal when the app\n"
+            "is started from source code:\n"
+            "\n"
+            "  cd TeamTalk-VO-Client-macOS\n"
+            "  .venv/bin/python src/app.py\n"
+            "\n"
+            "Load errors:\n"
+            "  [PluginLoader] Error loading my_plugin.py: <cause>\n"
+            "Handler errors:\n"
+            "  [EventBus] Handler <fn> for '<event>' failed: <cause>\n"
+            "\n"
+            "Common problems:\n"
+            "  Plugin not loaded       – Filename starts with '_'\n"
+            "  Handler not called      – Wrong event name (case-sensitive)\n"
+            "  App freezes             – Blocking code in handler\n"
+            "  api is None             – Old plugin with register(bus) instead of\n"
+            "                            register(bus, api=None)\n"
+        )
+
+    def on_menu_manual(self, _event):
+        """Öffnet das Handbuch in der konfigurierten Sprache."""
+        if current_language() == "en":
+            manual_text = self._get_manual_text_en()
+            dlg_title = "TeamTalk VoiceOver Client – Manual"
+            close_label = "&Close"
+        else:
+            manual_text = self._get_manual_text_de()
+            dlg_title = "TeamTalk VoiceOver Client – Handbuch"
+            close_label = "&Schließen"
+
+        dlg = wx.Dialog(self, title=dlg_title,
                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
         dlg.SetAcceleratorTable(accel)
@@ -4999,9 +6973,9 @@ class MainFrame(wx.Frame):
             value=manual_text,
             style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_NOHIDESEL,
         )
-        txt.SetName("Handbuch")
+        txt.SetName(_("Handbuch"))
         txt.SetFont(wx.Font(11, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
-        close_btn = wx.Button(dlg, wx.ID_CLOSE, "&Schließen")
+        close_btn = wx.Button(dlg, wx.ID_CLOSE, close_label)
         close_btn.Bind(wx.EVT_BUTTON, lambda e: dlg.EndModal(wx.ID_CLOSE))
         sizer.Add(txt, 1, wx.ALL | wx.EXPAND, 4)
         sizer.Add(close_btn, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
@@ -5041,6 +7015,12 @@ class MainFrame(wx.Frame):
             ("Lesezeichen 1",             _fmt(int(getattr(s, "hotkey_bookmark_1", 0) or 0))),
             ("Lesezeichen 2",             _fmt(int(getattr(s, "hotkey_bookmark_2", 0) or 0))),
             ("Lesezeichen 3",             _fmt(int(getattr(s, "hotkey_bookmark_3", 0) or 0))),
+            ("Lesezeichen 4",             _fmt(int(getattr(s, "hotkey_bookmark_4", 0) or 0))),
+            ("Lesezeichen 5",             _fmt(int(getattr(s, "hotkey_bookmark_5", 0) or 0))),
+            ("Lesezeichen 6",             _fmt(int(getattr(s, "hotkey_bookmark_6", 0) or 0))),
+            ("Lesezeichen 7",             _fmt(int(getattr(s, "hotkey_bookmark_7", 0) or 0))),
+            ("Lesezeichen 8",             _fmt(int(getattr(s, "hotkey_bookmark_8", 0) or 0))),
+            ("Lesezeichen 9",             _fmt(int(getattr(s, "hotkey_bookmark_9", 0) or 0))),
             ("Aufnahme umschalten",       _fmt(int(getattr(s, "hotkey_record_toggle", 0) or 0))),
             ("Status-Vorlage 1",          _fmt(int(getattr(s, "hotkey_status_template_1", 0) or 0))),
             ("Status-Vorlage 2",          _fmt(int(getattr(s, "hotkey_status_template_2", 0) or 0))),
@@ -5249,6 +7229,89 @@ class MainFrame(wx.Frame):
         root.Add(nb, 1, wx.ALL | wx.EXPAND, 8)
         root.Add(dlg.CreateButtonSizer(wx.OK), 0, wx.ALL | wx.ALIGN_RIGHT, 10)
         dlg.SetSizerAndFit(root)
+        dlg.CentreOnParent()
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def on_menu_saved_messages(self, _event) -> None:
+        """Zeigt gespeicherte Chat-Nachrichten in einem Dialog an."""
+        items = self._saved_messages.items()
+        dlg = wx.Dialog(self, title="Gespeicherte Nachrichten", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetMinSize((680, 440))
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
+
+        root = wx.BoxSizer(wx.VERTICAL)
+        if not items:
+            root.Add(wx.StaticText(dlg, label="Keine gespeicherten Nachrichten."), 0, wx.ALL, 16)
+        else:
+            lbl = wx.StaticText(dlg, label=f"{len(items)} gespeicherte Nachricht(en):")
+            root.Add(lbl, 0, wx.ALL, 8)
+            lb = wx.ListBox(dlg)
+            lb.SetName("Gespeicherte Nachrichten Liste")
+            from ui.a11y import setup_list_accessible
+            setup_list_accessible(lb)
+            for m in items:
+                srv = f" [{m.server}]" if m.server else ""
+                lb.Append(f"{m.time_str}{srv}: {m.text[:120]}")
+            lb.SetMinSize((-1, 280))
+            root.Add(lb, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
+
+            btn_row = wx.BoxSizer(wx.HORIZONTAL)
+            del_btn = wx.Button(dlg, label="&Löschen")
+            del_btn.SetName("Ausgewählte Nachricht löschen")
+            clear_btn = wx.Button(dlg, label="&Alle löschen")
+            clear_btn.SetName("Alle gespeicherten Nachrichten löschen")
+            copy_btn = wx.Button(dlg, label="&Kopieren")
+            copy_btn.SetName("Nachricht kopieren")
+            btn_row.Add(del_btn, 0, wx.RIGHT, 8)
+            btn_row.Add(clear_btn, 0, wx.RIGHT, 8)
+            btn_row.Add(copy_btn, 0)
+            root.Add(btn_row, 0, wx.ALL, 8)
+
+            def _on_delete(_e):
+                idx = lb.GetSelection()
+                if idx == wx.NOT_FOUND:
+                    return
+                self._saved_messages.remove(idx)
+                lb.Delete(idx)
+                if lb.GetCount() > 0:
+                    lb.SetSelection(min(idx, lb.GetCount() - 1))
+
+            def _on_clear(_e):
+                confirm = wx.MessageDialog(
+                    dlg, "Alle gespeicherten Nachrichten wirklich löschen?",
+                    "Alle löschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+                )
+                if confirm.ShowModal() == wx.ID_YES:
+                    self._saved_messages.clear()
+                    lb.Clear()
+                confirm.Destroy()
+
+            def _on_copy(_e):
+                idx = lb.GetSelection()
+                if idx == wx.NOT_FOUND:
+                    return
+                saved_items = self._saved_messages.items()
+                if idx < len(saved_items):
+                    text = saved_items[idx].text
+                    if wx.TheClipboard.Open():
+                        wx.TheClipboard.SetData(wx.TextDataObject(text))
+                        wx.TheClipboard.Close()
+                        self.set_status("Nachricht in Zwischenablage kopiert")
+
+            del_btn.Bind(wx.EVT_BUTTON, _on_delete)
+            clear_btn.Bind(wx.EVT_BUTTON, _on_clear)
+            copy_btn.Bind(wx.EVT_BUTTON, _on_copy)
+
+        btn_sizer = wx.StdDialogButtonSizer()
+        ok_btn = wx.Button(dlg, wx.ID_OK)
+        btn_sizer.AddButton(ok_btn)
+        btn_sizer.Realize()
+        root.Add(btn_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
+
+        dlg.SetSizer(root)
         dlg.CentreOnParent()
         dlg.ShowModal()
         dlg.Destroy()
@@ -6063,6 +8126,71 @@ class MainFrame(wx.Frame):
         except Exception as exc:
             self.set_status(f"Export fehlgeschlagen: {exc}")
 
+    def on_menu_settings_backup(self, _event) -> None:
+        """Exportiert alle App-Daten als ZIP-Backup."""
+        import zipfile as _zip
+        import time as _time
+        from platform_paths import app_data_dir as _app_data_dir
+        app_dir = _app_data_dir()
+        default_name = f"teamtalk_backup_{_time.strftime('%Y%m%d_%H%M%S')}.zip"
+        with wx.FileDialog(
+            self, "Einstellungen sichern",
+            wildcard="ZIP-Backup (*.zip)|*.zip|Alle Dateien|*.*",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+            defaultFile=default_name,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            dest = Path(dlg.GetPath())
+        try:
+            # Alle relevanten Dateien in ZIP schreiben
+            _BACKUP_EXTENSIONS = {".db", ".json", ".txt"}
+            with _zip.ZipFile(dest, "w", _zip.ZIP_DEFLATED) as zf:
+                for f in app_dir.iterdir():
+                    if f.is_file() and f.suffix.lower() in _BACKUP_EXTENSIONS:
+                        zf.write(f, f.name)
+            self.set_status(f"Backup erstellt: {dest.name}")
+        except Exception as exc:
+            self.set_status(f"Backup fehlgeschlagen: {exc}")
+
+    def on_menu_settings_restore(self, _event) -> None:
+        """Stellt ein ZIP-Backup wieder her (überschreibt aktuelle Einstellungen)."""
+        import zipfile as _zip
+        from platform_paths import app_data_dir as _app_data_dir
+        app_dir = _app_data_dir()
+        with wx.FileDialog(
+            self, "Backup wiederherstellen",
+            wildcard="ZIP-Backup (*.zip)|*.zip|Alle Dateien|*.*",
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            src = Path(dlg.GetPath())
+        confirm = wx.MessageDialog(
+            self,
+            "Achtung: Die aktuellen Einstellungen werden überschrieben.\n"
+            "Die App wird danach neu gestartet.\n\nFortfahren?",
+            "Backup wiederherstellen",
+            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
+        )
+        if confirm.ShowModal() != wx.ID_YES:
+            confirm.Destroy()
+            return
+        confirm.Destroy()
+        try:
+            with _zip.ZipFile(src, "r") as zf:
+                zf.extractall(app_dir)
+            self.set_status("Backup wiederhergestellt – App wird neu gestartet…")
+            wx.CallLater(1500, self._restart_app)
+        except Exception as exc:
+            self.set_status(f"Wiederherstellung fehlgeschlagen: {exc}")
+
+    def _restart_app(self) -> None:
+        """Startet die App neu."""
+        import subprocess as _sp
+        _sp.Popen([sys.executable] + sys.argv)
+        wx.CallAfter(self.on_menu_quit, None)
+
     # ------------------------------------------------------------------
     # Keyboard
     # ------------------------------------------------------------------
@@ -6122,12 +8250,21 @@ class MainFrame(wx.Frame):
             if key and key == int(getattr(settings, "hotkey_ai_summary", 0) or 0):
                 self._trigger_ai_summary()
                 return
-            # v2.2.0 – Lesezeichen-Hotkeys
-            for idx, hk_attr in enumerate(["hotkey_bookmark_1", "hotkey_bookmark_2", "hotkey_bookmark_3"]):
+            # v2.2.0 / v3.8.0 – Lesezeichen-Hotkeys (1-9)
+            for idx, hk_attr in enumerate([
+                "hotkey_bookmark_1", "hotkey_bookmark_2", "hotkey_bookmark_3",
+                "hotkey_bookmark_4", "hotkey_bookmark_5", "hotkey_bookmark_6",
+                "hotkey_bookmark_7", "hotkey_bookmark_8", "hotkey_bookmark_9",
+            ]):
                 hk = int(getattr(settings, hk_attr, 0) or 0)
                 if key and key == hk:
                     self._bookmarks.jump(self, idx)
                     return
+            # v3.9.0 – KI-Antwortvorschläge
+            hk_reply = int(getattr(settings, "hotkey_ai_reply_suggestions", 0) or 0)
+            if key and key == hk_reply:
+                self._show_ai_reply_suggestions()
+                return
             # v2.3.0 – Makro-Hotkeys
             macro = self._macros.find_by_hotkey(key)
             if macro:
@@ -6791,6 +8928,22 @@ class MainFrame(wx.Frame):
             is_own = bool(from_id and my_id and from_id == my_id)
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and not is_own and from_id:
                 self._last_private_sender_id = from_id
+                # v3.9.0 – für Antwortvorschläge
+                self._last_private_message_text = str(content or "")
+            # v3.9.0 – Echtzeit-Übersetzung (Hintergrundthread, nur fremde Nachrichten)
+            if not is_own and self._translator.is_enabled():
+                def _translate_and_append(txt=str(content or ""), kind_=kind, fu=from_user):
+                    import threading as _t
+                    def _worker():
+                        translated = self._translator.translate(txt)
+                        if translated and translated.strip() != txt.strip():
+                            wx.CallAfter(
+                                self.chat_tab.append_chat,
+                                f"  ↳ [{self._translator.target_language()}] {translated}",
+                                "system", False,
+                            )
+                    _t.Thread(target=_worker, daemon=True).start()
+                wx.CallAfter(_translate_and_append)
                 # v3.3.0 – VoiceOver-Ankündigung für eingehende Privatnachrichten
                 from ui.a11y import post_voiceover_announcement
                 wx.CallAfter(post_voiceover_announcement, f"Privatnachricht von {from_user}: {content}")
@@ -6917,6 +9070,11 @@ class MainFrame(wx.Frame):
         # v2.7.0 – HTTP-API stoppen
         try:
             self._http_api.stop()
+        except Exception:
+            pass
+        # v4.0.0 – Asyncio-Bridge stoppen
+        try:
+            self._async_bridge.stop()
         except Exception:
             pass
         # v2.0.0 – SQLite-DB schließen
