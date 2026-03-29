@@ -63,9 +63,10 @@ from tls_verify import CertPinStore
 from plugin_package import PluginPackage, read_package, install_package, PluginManifestError
 from plugin_marketplace import PluginMarketplace
 from companion_server import CompanionServer
+from macos_integration import send_notification, set_dock_badge, DarkModeWatcher
 
 
-APP_VERSION = "5.2.0"
+APP_VERSION = "5.3.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -386,6 +387,10 @@ class MainFrame(wx.Frame):
         self._cert_pins = CertPinStore(app_dir)
         # v4.10.0 – Plugin-Marktplatz
         self._marketplace = PluginMarketplace(plugins_dir=app_dir / "plugins")
+        # v5.3.0 – macOS Desktop-Integration
+        self._dark_mode_watcher = DarkModeWatcher(self._on_dark_mode_change)
+        self._dark_mode_watcher.start()
+        self._unread_count: int = 0
         # v5.1.0 – Companion-Server (Mobil-Companion)
         self._companion = CompanionServer(
             get_status_fn=self._companion_status,
@@ -1387,6 +1392,26 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     # v5.1.0 – Companion-Server Callbacks
     # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # v5.3.0 – macOS-Integration Callbacks
+    # ------------------------------------------------------------------
+
+    def _on_dark_mode_change(self, is_dark: bool) -> None:
+        """Wird aufgerufen wenn Dark-Mode wechselt."""
+        import wx
+        wx.CallAfter(lambda: self.bus.emit("dark_mode_changed", is_dark=is_dark))
+
+    def _send_native_notification(self, title: str, body: str) -> None:
+        send_notification(title, body)
+
+    def _update_unread_badge(self, delta: int = 1) -> None:
+        self._unread_count = max(0, self._unread_count + delta)
+        set_dock_badge(self._unread_count)
+
+    def _clear_unread_badge(self) -> None:
+        self._unread_count = 0
+        set_dock_badge(0)
 
     def _companion_status(self) -> dict:
         active = self.server_manager.get_active() if hasattr(self, "server_manager") else None

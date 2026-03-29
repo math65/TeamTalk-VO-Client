@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-03-29 (v5.3.0)
+- Native macOS-Benachrichtigungen: send_notification() nutzt
+  UNUserNotificationCenter (macOS 10.14+) mit Fallback auf NSUserNotification
+- Dock-Badge: set_dock_badge(n) / clear_dock_badge() für ungelesene Nachrichten;
+  frame._unread_count + _update_unread_badge() / _clear_unread_badge()
+- Dark-Mode-Watcher: DarkModeWatcher pollt effectiveAppearance alle 2 Sekunden;
+  dark_mode_changed Bus-Event mit is_dark=True/False beim Wechsel
+- Spotlight-Metadaten: set_spotlight_comment() setzt kMDItemComment via Finder
+- Menüleisten-Symbol: MenuBarIcon (NSStatusItem) als optionales Status-Symbol
+- Alle Features graceful degradiert wenn PyObjC nicht verfügbar
+
 2026-03-29 (v5.2.0)
 - KI-Antwortvorschläge kontextbewusst: suggest_replies(context=[...]) übergibt
   bis zu 5 vorherige Nachrichten als Gesprächskontext an das Backend
