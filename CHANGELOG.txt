@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-03-29 (v4.9.0)
+- Keychain API-Key-Speicherung: save_api_key/get_api_key/delete_api_key in
+  keychain.py; speichert claude_api_key und gemini_api_key sicher in der
+  OS-Keychain (separater Service-Name TeamTalkVOClient-APIKeys)
+- Gespeicherte Nachrichten TTL: SavedMessageManager.expire() entfernt Einträge
+  älter als max_age_days (Standard: 30 Tage); wird beim App-Start automatisch
+  aufgerufen; beim Laden werden abgelaufene Einträge direkt übersprungen
+- Audit-Log: AuditLog (audit_log.py) protokolliert sensible Aktionen als JSONL
+  in audit.jsonl; vordefinierte Aktions-Konstanten (A_SERVER_CONNECT,
+  A_API_KEY_SAVED, A_PLUGIN_LOADED u. v. m.); purge_older_than_days() für
+  automatische Bereinigung; Server-Connect wird ab sofort geloggt
+- TLS-Fingerprint-Verifizierung: CertPinStore (tls_verify.py) speichert
+  SHA-256-Fingerprints pro Host in cert_pins.json; verify() prüft beim
+  Verbindungsaufbau; get_cert_fingerprint() liest Fingerprint direkt aus
+  TLS-Handshake (ohne CA-Validierung, nur Standardbibliothek)
+
 2026-03-29 (v4.8.0)
 - EN-Übersetzungen erweitert: ~50 neue Einträge für v4.1–v4.7-Features in
   _TRANSLATIONS (Plugin-Reload, EQ-Presets, Chat-HTML, Braillezeilen-Modi…)

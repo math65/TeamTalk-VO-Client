@@ -58,9 +58,11 @@ from async_bridge import AsyncBusBridge
 from offline_queue import OfflineMessageQueue
 from startup_profiler import StartupProfiler
 from eq_presets import EqPresetsManager
+from audit_log import AuditLog, A_SERVER_CONNECT, A_SERVER_DISCONNECT, A_API_KEY_SAVED, A_API_KEY_DELETED, A_SAVED_MSG_EXPIRED
+from tls_verify import CertPinStore
 
 
-APP_VERSION = "4.8.0"
+APP_VERSION = "4.9.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -376,6 +378,12 @@ class MainFrame(wx.Frame):
         self._offline_queue = OfflineMessageQueue(app_dir)
         # v4.7.0 – EQ-Preset-Manager
         self._eq_presets = EqPresetsManager(app_dir)
+        # v4.9.0 – Audit-Log, TLS-Pin-Store, gespeicherte Nachrichten ablaufen lassen
+        self._audit_log = AuditLog(app_dir)
+        self._cert_pins = CertPinStore(app_dir)
+        _expired = self._saved_messages.expire()
+        if _expired > 0:
+            self._audit_log.log(A_SAVED_MSG_EXPIRED, detail=str(_expired))
         # v1.10.0 – Event-Bus + Plugin-Loader
         from event_bus import EventBus
         self.bus = EventBus()
@@ -7545,6 +7553,9 @@ class MainFrame(wx.Frame):
 
     def handle_connect_result(self, result: ConnectResult):
         self.set_status(result.message)
+        # v4.9.0 – Audit-Log
+        if result.ok:
+            self._audit_log.log(A_SERVER_CONNECT, detail=self._get_server_key())
         if result.ok:
             self._reconnect_attempts = 0
             self._offline_buffering = False
