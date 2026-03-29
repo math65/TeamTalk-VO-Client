@@ -67,9 +67,10 @@ from macos_integration import send_notification, set_dock_badge, DarkModeWatcher
 from file_manager import FileManager
 from video_manager import VideoStatsCollector, VideoRecorder
 from analytics import UsageAnalytics
+from health_check import HealthChecker, check_disk_space, check_event_bus
 
 
-APP_VERSION = "5.7.0"
+APP_VERSION = "5.8.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -397,6 +398,10 @@ class MainFrame(wx.Frame):
         self._video_recorder = VideoRecorder(app_dir)
         # v5.7.0 – Analytics
         self._analytics = UsageAnalytics(app_dir)
+        # v5.8.0 – Health-Check
+        self._health = HealthChecker()
+        self._health.register("disk_space", check_disk_space)
+        self._health.register("event_bus", lambda: check_event_bus(self.bus))
         # v5.3.0 – macOS Desktop-Integration
         self._dark_mode_watcher = DarkModeWatcher(self._on_dark_mode_change)
         self._dark_mode_watcher.start()

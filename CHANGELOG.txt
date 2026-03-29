@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-03-29 (v5.8.0)
+- EventBus Metriken: metrics() gibt total_emitted, handler_errors, active_events,
+  top_events(10) zurück; handler_count(event="") für Gesamt- oder Event-Count
+- Fehler-Zähler: _handler_errors inkrementiert bei jeder Handler-Exception
+- HealthChecker (health_check.py): register(name, fn), run_all(), overall_status(),
+  text_report(); HealthCheckResult mit latency_ms
+- Vordefinierte Prüfungen: check_disk_space(min_mb=50), check_event_bus(bus),
+  check_settings_db(db_path)
+- frame._health als App-Schnittstelle mit disk_space und event_bus Prüfungen
+
 2026-03-29 (v5.7.0)
 - UsageAnalytics (analytics.py): lokale Nutzungsmetriken ohne externes Tracking;
   SessionRecord pro Verbindung; on_connect/on_disconnect/on_message_sent/
