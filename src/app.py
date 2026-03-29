@@ -64,9 +64,10 @@ from plugin_package import PluginPackage, read_package, install_package, PluginM
 from plugin_marketplace import PluginMarketplace
 from companion_server import CompanionServer
 from macos_integration import send_notification, set_dock_badge, DarkModeWatcher
+from file_manager import FileManager
 
 
-APP_VERSION = "5.4.0"
+APP_VERSION = "5.5.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -387,6 +388,8 @@ class MainFrame(wx.Frame):
         self._cert_pins = CertPinStore(app_dir)
         # v4.10.0 – Plugin-Marktplatz
         self._marketplace = PluginMarketplace(plugins_dir=app_dir / "plugins")
+        # v5.5.0 – Dateiverwaltung
+        self._file_manager = FileManager(app_dir)
         # v5.3.0 – macOS Desktop-Integration
         self._dark_mode_watcher = DarkModeWatcher(self._on_dark_mode_change)
         self._dark_mode_watcher.start()

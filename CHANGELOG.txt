@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-03-29 (v5.5.0)
+- FileManager (file_manager.py): Download-/Upload-Verlauf als JSON persistiert
+  (max 1000 Einträge); add(), mark_completed(), recent(n), by_category(),
+  purge_older_than_days(), stats()
+- Datei-Kategorisierung: categorize_file() nach Erweiterung (audio/video/bild/
+  dokument/archiv/code/sonstiges)
+- Sichere Dateinamen: safe_filename() bereinigt ungültige Zeichen;
+  auto_rename() verhindert Datei-Kollisionen im Download-Verzeichnis
+- suggest_local_path() schlägt kollisionsfreien Pfad im Download-Verzeichnis vor
+- Transfer-Statistiken: stats() gibt Anzahl/Bytes für Downloads/Uploads je
+  Kategorie zurück
+- frame._file_manager als App-Schnittstelle
+
 2026-03-29 (v5.4.0)
 - LiveRegionAnnouncer: Klasse in a11y.py mit Entduplizierung und Debounce;
   announce(text, force=False) / announce_delayed(text, delay_ms=300) /
