@@ -121,6 +121,7 @@ class AppSettings:
     bearware_username: str = ""
     bearware_password: str = ""
     bearware_login: bool = False
+    app_language: str = "de"
     # Verbindung
     default_subscriptions: int = 0
     tcp_bind_port: int = 0
@@ -169,6 +170,7 @@ class AppSettings:
     chat_muted_users: str = ""
     save_private_chat_history: bool = False
     update_check_on_start: bool = True
+    chat_show_timestamps: bool = False
     braille_compact_mode: bool = False
     hotkey_announce_level: int = 0
     # v1.6.0 features
@@ -294,6 +296,7 @@ class SettingsStore:
             self.settings.bearware_username = str(data.get("bearware_username", "") or "")
             self.settings.bearware_password = str(data.get("bearware_password", "") or "")
             self.settings.bearware_login = bool(data.get("bearware_login", False))
+            self.settings.app_language = str(data.get("app_language", "de") or "de")
             self.settings.default_subscriptions = int(data.get("default_subscriptions", 0) or 0)
             self.settings.tcp_bind_port = int(data.get("tcp_bind_port", 0) or 0)
             self.settings.udp_bind_port = int(data.get("udp_bind_port", 0) or 0)
@@ -340,6 +343,7 @@ class SettingsStore:
             self.settings.chat_muted_users = str(data.get("chat_muted_users", "") or "")
             self.settings.save_private_chat_history = bool(data.get("save_private_chat_history", False))
             self.settings.update_check_on_start = bool(data.get("update_check_on_start", True))
+            self.settings.chat_show_timestamps = bool(data.get("chat_show_timestamps", False))
             self.settings.braille_compact_mode = bool(data.get("braille_compact_mode", False))
             self.settings.hotkey_announce_level = int(data.get("hotkey_announce_level", 0) or 0)
             # v1.6.0
@@ -452,6 +456,7 @@ class SettingsStore:
             "bearware_username": str(self.settings.bearware_username or ""),
             "bearware_password": str(self.settings.bearware_password or ""),
             "bearware_login": bool(self.settings.bearware_login),
+            "app_language": str(self.settings.app_language or "de"),
             "default_subscriptions": int(self.settings.default_subscriptions or 0),
             "tcp_bind_port": int(self.settings.tcp_bind_port or 0),
             "udp_bind_port": int(self.settings.udp_bind_port or 0),
@@ -496,6 +501,7 @@ class SettingsStore:
             "chat_muted_users": str(self.settings.chat_muted_users or ""),
             "save_private_chat_history": bool(self.settings.save_private_chat_history),
             "update_check_on_start": bool(self.settings.update_check_on_start),
+            "chat_show_timestamps": bool(self.settings.chat_show_timestamps),
             "braille_compact_mode": bool(self.settings.braille_compact_mode),
             "hotkey_announce_level": int(self.settings.hotkey_announce_level or 0),
             # v1.6.0

@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.1.2"
+APP_VERSION = "6.1.3"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -5189,7 +5189,7 @@ class MainFrame(wx.Frame):
             "Suchfeld: Bereichsnamen tippen, um direkt dorthin zu springen.\n"
             "\n"
             "Bereich 'Allgemein'\n"
-            "  Sprache:             Oberflächensprache (Deutsch / Englisch). Neustart erforderlich.\n"
+            "  Sprache:             Oberflächensprache (Deutsch / English / Français / Español). Neustart erforderlich.\n"
             "  Geschlecht:          Wird dem Server gemeldet (Männlich/Weiblich/Neutral).\n"
             "  Abwesenheits-Timer:  Nach X Minuten Inaktivität automatisch 'Abwesend' setzen.\n"
             "  BearWare-Konto:      BearWare-ID und Token für registrierte Nutzer.\n"
@@ -6359,7 +6359,7 @@ class MainFrame(wx.Frame):
             "Use the search field at the top to jump directly to a section.\n"
             "\n"
             "Section 'General'\n"
-            "  Language:            Interface language (German / English). Restart required.\n"
+            "  Language:            Interface language (Deutsch / English / Français / Español). Restart required.\n"
             "  Gender:              Reported to the server (Male/Female/Neutral).\n"
             "  Away timer:          Automatically set 'Away' after X minutes of inactivity.\n"
             "  BearWare account:    BearWare ID and token for registered users.\n"

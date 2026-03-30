@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-03-30 (v6.1.3)
+- Bugfix Sprache: `app_language` wird jetzt in allen Settings-Stores
+  (SQLite und JSON-Kompatibilitätsstore) korrekt geladen und gespeichert.
+  Dadurch bleibt die gewählte App-Sprache nach Neustart erhalten.
+- Bugfix Sprache: `chat_show_timestamps` wird jetzt ebenfalls korrekt
+  persistent gespeichert und beim Start wieder geladen.
+- Handbuch aktualisiert: Sprachauswahl nennt jetzt die tatsächlich
+  unterstützten UI-Sprachen Deutsch, English, Français und Español.
+- Versionsabgleich: App, macOS-Bundle und `version_info.txt` auf `6.1.3`
+  synchronisiert.
+
 2026-03-30 (v6.1.2)
 - Bugfix Sprache: Nach Änderung der App-Sprache in den Einstellungen wird die
   App jetzt automatisch neu gestartet; vorher wurde kein Neustart ausgelöst
