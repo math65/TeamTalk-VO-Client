@@ -7816,24 +7816,25 @@ class MainFrame(wx.Frame):
                 tag = str(data.get("tag_name", "") or "").lstrip("v")
                 if tag and tag != APP_VERSION:
                     assets = data.get("assets", [])
-                    # v6.1.3 – browser_download_url + Token-Query-Param (privates Repo)
-                    # Der /releases/assets/{id} API-Endpunkt gibt nur JSON-Metadaten zurück,
-                    # nicht den Dateiinhalt. browser_download_url mit ?token= lädt die Datei.
-                    download_url = ""
+                    # v6.1.3 – releases/download/{tag}/{filename} mit Authorization-Header
+                    # (browser_download_url zeigt auf /attachments/{uuid} → Login-Redirect;
+                    #  /releases/assets/{id} gibt JSON-Metadaten zurück, nicht die Datei;
+                    #  /releases/download/{tag}/{name} liefert mit Auth-Header korrekt 200)
+                    import urllib.parse as _uparse
                     asset_name = f"TeamTalk VO Client {tag}.dmg"
                     if assets:
-                        raw_url = assets[0].get("browser_download_url", "")
                         asset_name = assets[0].get("name", asset_name)
-                        if raw_url:
-                            tok = _upd_tok()
-                            download_url = f"{raw_url}?token={tok}"
+                    encoded_name = _uparse.quote(asset_name)
+                    download_url = (
+                        f"https://git.garogaming.xyz/flarion/TeamTalk-VO-Client"
+                        f"/releases/download/v{tag}/{encoded_name}"
+                    )
                     wx.CallAfter(
                         self.set_status,
                         f"Update verfügbar: v{tag} (aktuell: v{APP_VERSION})",
                     )
                     wx.CallAfter(self.tts.speak, f"Update verfügbar, Version {tag}", kind="system")
-                    if download_url:
-                        wx.CallAfter(self._show_update_dialog, tag, download_url, asset_name)
+                    wx.CallAfter(self._show_update_dialog, tag, download_url, asset_name)
             except Exception:
                 pass
         threading.Thread(target=_worker, daemon=True).start()
@@ -7874,7 +7875,11 @@ class MainFrame(wx.Frame):
             import urllib.request
             try:
                 # Chunk-Streaming: kein vollständiger RAM-Load, Fortschrittsanzeige
-                req = urllib.request.Request(download_url)
+                # Authorization-Header (Token als Bearer/Header, nicht Query-Param)
+                req = urllib.request.Request(
+                    download_url,
+                    headers={"Authorization": f"token {_upd_tok()}"},
+                )
                 with urllib.request.urlopen(req, timeout=300) as resp:  # noqa: S310
                     total = int(resp.headers.get("Content-Length") or 0)
                     chunk = 65536  # 64 KB
