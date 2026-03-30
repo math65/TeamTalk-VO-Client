@@ -13,6 +13,7 @@ from .video import VideoTab
 from .shortcuts import ShortcutsTab
 from .system import SystemTab
 from platform_paths import app_data_dir, log_dir
+from i18n import _
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -123,6 +124,7 @@ class SettingsTab(wx.Panel):
             "Chat & Automation": [self.chat_automation_tab],
             "KI & Integration": [self.ki_integration_tab],
         }
+        self._section_keys = list(self._sections.keys())
 
         # Add each unique panel to the root sizer once
         _seen = set()
@@ -1718,21 +1720,31 @@ class SettingsTab(wx.Panel):
 
     def show_section(self, section: str) -> None:
         if section in self._sections:
-            self.section_choice.SetStringSelection(section)
+            idx = self._section_keys.index(section)
+            self.section_choice.SetSelection(idx)
             self._show_section(section)
 
     def _on_section_changed(self, _event):
-        self._show_section(self.section_choice.GetStringSelection())
+        idx = self.section_choice.GetSelection()
+        if 0 <= idx < len(self._section_keys):
+            self._show_section(self._section_keys[idx])
 
     def _on_section_search(self, _event) -> None:
         query = self._section_search.GetValue().strip().lower()
         if not query:
             return
-        for name in self._sections:
-            if query in name.lower():
-                self.section_choice.SetStringSelection(name)
+        for idx, name in enumerate(self._section_keys):
+            localized = _(name)
+            if query in name.lower() or query in localized.lower():
+                self.section_choice.SetSelection(idx)
                 self._show_section(name)
                 return
+
+    def localize_ui(self) -> None:
+        current = self.section_choice.GetSelection()
+        self.section_choice.SetItems([_(name) for name in self._section_keys])
+        if 0 <= current < len(self._section_keys):
+            self.section_choice.SetSelection(current)
 
     def _on_share_logs_menu(self, _event):
         menu = wx.Menu()

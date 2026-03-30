@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-03-30 (v6.1.4)
+- UI-Lokalisierung erweitert: Fenster, Dialoge, Menüs, Buttons, Labels,
+  Notebook-Reiter und viele statische UI-Texte werden jetzt beim Aufbau
+  zentral anhand der gewählten App-Sprache lokalisiert.
+- Bereichsnavigation und Einstellungsbereiche arbeiten jetzt mit stabilen
+  internen Schlüsseln und übersetzten Sichttexten, damit die UI-Sprache
+  umschaltbar ist ohne die Logik zu brechen.
+- Handbuch- und Changelog-Dialoge an die Sprachlogik angebunden; Dialogtitel,
+  Schaltflächen und Dokumentanzeige werden jetzt sprachabhängig aufgebaut.
+
 2026-03-30 (v6.1.3)
 - Bugfix Update-Download: Der Download-Endpunkt /releases/assets/{id} liefert
   nur JSON-Metadaten, nicht die Datei – gespeichertes "DMG" war daher JSON.

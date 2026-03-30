@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.1.3"
+APP_VERSION = "6.1.4"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -146,6 +146,133 @@ def _get_startup_profiler() -> "StartupProfiler":
 _third_party = Path(__file__).resolve().parent.parent / "third_party"
 if str(_third_party) not in sys.path:
     sys.path.insert(0, str(_third_party))
+
+
+def _translate_ui_text(text: str) -> str:
+    if not text:
+        return text
+    parts = text.split("\t", 1)
+    label = parts[0]
+    shortcut = f"\t{parts[1]}" if len(parts) == 2 else ""
+    escaped = label.replace("&&", "\0")
+    has_accel = "&" in escaped
+    clean = escaped.replace("&", "").replace("\0", "&")
+    translated = _(clean)
+    if has_accel and translated and "&" not in translated:
+        for idx, ch in enumerate(translated):
+            if ch.isalpha():
+                translated = translated[:idx] + "&" + translated[idx:]
+                break
+        else:
+            translated = "&" + translated
+    return translated + shortcut
+
+
+def _localize_menu(menu: wx.Menu) -> None:
+    try:
+        count = menu.GetMenuItemCount()
+    except Exception:
+        return
+    for pos in range(count):
+        item = menu.FindItemByPosition(pos)
+        if item is None or item.IsSeparator():
+            continue
+        try:
+            item.SetItemLabel(_translate_ui_text(item.GetItemLabel()))
+        except Exception:
+            pass
+        try:
+            submenu = item.GetSubMenu()
+        except Exception:
+            submenu = None
+        if submenu:
+            _localize_menu(submenu)
+
+
+def _localize_window_tree(window: wx.Window) -> None:
+    if window is None or current_language() == "de":
+        return
+    try:
+        title = window.GetTitle()
+    except Exception:
+        title = ""
+    if title:
+        try:
+            window.SetTitle(_translate_ui_text(title))
+        except Exception:
+            pass
+    if isinstance(window, wx.Frame):
+        try:
+            menubar = window.GetMenuBar()
+        except Exception:
+            menubar = None
+        if menubar:
+            try:
+                for idx in range(menubar.GetMenuCount()):
+                    menubar.SetMenuLabel(idx, _translate_ui_text(menubar.GetMenuLabel(idx)))
+                    submenu = menubar.GetMenu(idx)
+                    if submenu:
+                        _localize_menu(submenu)
+            except Exception:
+                pass
+    try:
+        if isinstance(window, wx.Notebook):
+            for idx in range(window.GetPageCount()):
+                window.SetPageText(idx, _translate_ui_text(window.GetPageText(idx)))
+    except Exception:
+        pass
+    if hasattr(window, "localize_ui"):
+        try:
+            window.localize_ui()
+        except Exception:
+            pass
+    try:
+        children = list(window.GetChildren())
+    except Exception:
+        children = []
+    for child in children:
+        try:
+            label = child.GetLabel()
+        except Exception:
+            label = None
+        if isinstance(label, str) and label:
+            try:
+                child.SetLabel(_translate_ui_text(label))
+            except Exception:
+                pass
+        try:
+            name = child.GetName()
+        except Exception:
+            name = ""
+        if name:
+            try:
+                child.SetName(_translate_ui_text(name))
+            except Exception:
+                pass
+        try:
+            help_text = child.GetHelpText()
+        except Exception:
+            help_text = ""
+        if help_text:
+            try:
+                child.SetHelpText(_translate_ui_text(help_text))
+            except Exception:
+                pass
+        try:
+            if isinstance(child, wx.RadioBox):
+                child.SetLabel(_translate_ui_text(child.GetLabel()))
+                for idx in range(child.GetCount()):
+                    child.SetString(idx, _translate_ui_text(child.GetString(idx)))
+            elif isinstance(child, wx.Choice):
+                items = [child.GetString(i) for i in range(child.GetCount())]
+                if items and not hasattr(child, "_lang_codes"):
+                    sel = child.GetSelection()
+                    child.SetItems([_translate_ui_text(x) for x in items])
+                    if 0 <= sel < child.GetCount():
+                        child.SetSelection(sel)
+        except Exception:
+            pass
+        _localize_window_tree(child)
 
 
 class ServerCheckDialog(wx.Dialog):
@@ -237,6 +364,7 @@ class SettingsWindow(wx.Frame):
         self.Bind(wx.EVT_SHOW, self._on_show)
         self.Bind(wx.EVT_CHAR_HOOK, self._on_char_hook)
         self._bind_shortcuts()
+        wx.CallAfter(_localize_window_tree, self)
 
     def _on_close(self, event):
         # Hide instead of destroy to keep state.
@@ -282,6 +410,7 @@ class ConnectionWindow(wx.Frame):
         panel.SetSizer(sizer)
         self.Bind(wx.EVT_CLOSE, self._on_close)
         self._bind_shortcuts()
+        wx.CallAfter(_localize_window_tree, self)
 
     def _on_close(self, event):
         # Hide instead of destroy to keep state.
@@ -664,8 +793,7 @@ class MainFrame(wx.Frame):
             self.content_sizer.Show(p, label == "Kanäle und Chat")
         self.content_panel.SetSizer(self.content_sizer)
 
-        self.tab_choice.SetItems(self._panel_order)
-        self.tab_choice.SetSelection(0)
+        self._refresh_panel_choice_labels(0)
         self._update_tab_info(0)
         self.tab_choice.Bind(wx.EVT_CHOICE, self.on_tab_choice_changed)
 
@@ -687,6 +815,7 @@ class MainFrame(wx.Frame):
         panel.SetSizer(main_sizer)
         self.SetSize((980, 700))
         self.Centre()
+        wx.CallAfter(self._apply_localization)
 
         # Anzeigeeinstellungen sofort anwenden (Toolbar/Log standardmaessig versteckt).
         self.apply_display_settings()
@@ -3312,6 +3441,7 @@ class MainFrame(wx.Frame):
 
         dlg.SetSizer(root)
         dlg.CentreOnParent()
+        _localize_window_tree(dlg)
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -7134,7 +7264,8 @@ class MainFrame(wx.Frame):
 
     def on_menu_manual(self, _event):
         """Öffnet das Handbuch in der konfigurierten Sprache."""
-        if current_language() == "en":
+        lang = current_language()
+        if lang == "en":
             manual_text = self._get_manual_text_en()
             dlg_title = "TeamTalk VoiceOver Client – Manual"
             close_label = "&Close"
@@ -7142,6 +7273,10 @@ class MainFrame(wx.Frame):
             manual_text = self._get_manual_text_de()
             dlg_title = "TeamTalk VoiceOver Client – Handbuch"
             close_label = "&Schließen"
+        if lang in ("fr", "es"):
+            manual_text = self._localize_document_text(self._get_manual_text_en(), lang)
+            dlg_title = _translate_ui_text("TeamTalk VoiceOver Client – Manual")
+            close_label = _translate_ui_text("&Close")
 
         dlg = wx.Dialog(self, title=dlg_title,
                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
@@ -7164,8 +7299,24 @@ class MainFrame(wx.Frame):
         sizer.Add(close_btn, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
         dlg.SetSizer(sizer)
         txt.SetInsertionPoint(0)
+        _localize_window_tree(dlg)
         dlg.ShowModal()
         dlg.Destroy()
+
+    def _localize_document_text(self, text: str, lang: Optional[str] = None) -> str:
+        effective = lang or current_language()
+        if effective in ("", "de"):
+            return text
+        lines: List[str] = []
+        for line in text.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                lines.append(line)
+                continue
+            prefix_len = len(line) - len(line.lstrip())
+            prefix = line[:prefix_len]
+            lines.append(prefix + _(stripped, effective))
+        return "\n".join(lines)
 
     def on_menu_hotkey_reference(self, _event):
         """Zeigt eine übersichtliche Tastenkürzel-Referenz als Text-Dialog."""
@@ -7244,6 +7395,7 @@ class MainFrame(wx.Frame):
         root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
         dlg.SetSizerAndFit(root)
         dlg.CentreOnParent()
+        _localize_window_tree(dlg)
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -7403,6 +7555,7 @@ class MainFrame(wx.Frame):
             lroot.Add(ld.CreateButtonSizer(wx.OK), 0, wx.ALL | wx.ALIGN_RIGHT, 10)
             ld.SetSizerAndFit(lroot)
             ld.CentreOnParent()
+            _localize_window_tree(ld)
             ld.ShowModal()
             ld.Destroy()
 
@@ -7413,6 +7566,7 @@ class MainFrame(wx.Frame):
         root.Add(dlg.CreateButtonSizer(wx.OK), 0, wx.ALL | wx.ALIGN_RIGHT, 10)
         dlg.SetSizerAndFit(root)
         dlg.CentreOnParent()
+        _localize_window_tree(dlg)
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -7519,6 +7673,7 @@ class MainFrame(wx.Frame):
             root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
             dlg.SetSizerAndFit(root)
             dlg.CentreOnParent()
+            _localize_window_tree(dlg)
             dlg.ShowModal()
             dlg.Destroy()
             return
@@ -7574,6 +7729,7 @@ class MainFrame(wx.Frame):
         root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
         dlg.SetSizerAndFit(root)
         dlg.CentreOnParent()
+        _localize_window_tree(dlg)
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -7581,11 +7737,14 @@ class MainFrame(wx.Frame):
         base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
         changelog_path = base / "CHANGELOG.txt"
         if not changelog_path.exists():
-            return "Kein Changelog vorhanden."
+            return _translate_ui_text("Kein Changelog vorhanden.")
         try:
-            return changelog_path.read_text(encoding="utf-8", errors="replace")
+            text = changelog_path.read_text(encoding="utf-8", errors="replace")
+            if current_language() in ("fr", "es"):
+                return self._localize_document_text(text)
+            return text
         except Exception:
-            return "Changelog konnte nicht geladen werden."
+            return _translate_ui_text("Changelog konnte nicht geladen werden.")
 
     def _build_changelog_sections(self) -> List[Tuple[str, List[str]]]:
         text = self._build_changelog_text()
@@ -8152,8 +8311,7 @@ class MainFrame(wx.Frame):
                 sizer = self.content_panel.GetSizer()
                 sizer.Add(self.speak_tab, 1, wx.EXPAND)
                 sizer.Show(self.speak_tab, False)
-                self.tab_choice.SetItems(self._panel_order)
-                self.tab_choice.SetSelection(self._panel_order.index("Kanäle und Chat"))
+                self._refresh_panel_choice_labels("Kanäle und Chat")
                 self._speak_tab_added = True
             self.speak_tab.set_api_key(api_key)
         else:
@@ -8164,7 +8322,7 @@ class MainFrame(wx.Frame):
                 self._panels.pop("Sprechen", None)
                 if "Sprechen" in self._panel_order:
                     self._panel_order.remove("Sprechen")
-                self.tab_choice.SetItems(self._panel_order)
+                self._refresh_panel_choice_labels(self.tab_choice.GetSelection())
                 self._speak_tab_added = False
 
     def _auto_init_sound_devices(self):
@@ -8777,9 +8935,28 @@ class MainFrame(wx.Frame):
             label = ""
         if label:
             info = self._tab_info_map.get(label, "")
-            self.tab_info.SetLabel(info)
+            self.tab_info.SetLabel(_translate_ui_text(info))
             if self.tab_choice.GetSelection() != idx:
                 self.tab_choice.SetSelection(idx)
+
+    def _refresh_panel_choice_labels(self, selected: int | str | None = None) -> None:
+        items = [_translate_ui_text(name) for name in self._panel_order]
+        self.tab_choice.SetItems(items)
+        if isinstance(selected, str):
+            try:
+                selected = self._panel_order.index(selected)
+            except ValueError:
+                selected = None
+        if isinstance(selected, int) and 0 <= selected < len(self._panel_order):
+            self.tab_choice.SetSelection(selected)
+
+    def _apply_localization(self) -> None:
+        self.SetTitle(f"TeamTalk VoiceOver Client {APP_VERSION}")
+        self._refresh_panel_choice_labels(self.tab_choice.GetSelection())
+        self._update_tab_info(self.tab_choice.GetSelection())
+        _localize_window_tree(self)
+        _localize_window_tree(self.settings_window)
+        _localize_window_tree(self.connection_window)
 
     def _switch_to_panel(self, label: str) -> None:
         """Show the panel for *label* and hide all others."""
@@ -9388,9 +9565,16 @@ class App(wx.App):
         patch_button_accessibility()
         patch_list_row_accessibility()
         patch_control_accessibility()
+        self.Bind(wx.EVT_WINDOW_CREATE, self._on_window_create)
         frame = MainFrame()
         frame.Show()
         return True
+
+    def _on_window_create(self, event) -> None:
+        window = event.GetWindow()
+        if isinstance(window, (wx.Dialog, wx.Frame)):
+            wx.CallAfter(_localize_window_tree, window)
+        event.Skip()
 
     def OnExit(self) -> int:
         # Force-terminate the process after all windows are destroyed.
