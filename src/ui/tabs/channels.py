@@ -544,7 +544,7 @@ class ChannelsTab(wx.Panel):
     def _show_channel_context_menu_for(self, channel_id: int) -> None:
         """Kontextmenü für einen Kanal-Eintrag."""
         menu = wx.Menu()
-        join_item = menu.Append(wx.ID_ANY, "Kanal &beitreten")
+        join_item = menu.Append(wx.ID_ANY, _("Kanal &beitreten"))
         menu.AppendSeparator()
 
         # Kanal-Notiz: zeige ob eine Notiz existiert
@@ -554,7 +554,7 @@ class ChannelsTab(wx.Panel):
             has_note = self.frame._channel_notes.has_note(server_key, channel_id)
         except Exception:
             pass
-        note_label = "Notiz bearbeiten... [✓]" if has_note else "Notiz bearbeiten..."
+        note_label = _("Notiz bearbeiten... [✓]") if has_note else _("Notiz bearbeiten...")
         note_item = menu.Append(wx.ID_ANY, note_label)
 
         def _join(_e):
@@ -584,13 +584,13 @@ class ChannelsTab(wx.Panel):
         voice_muted = bool(user_state & int(tt.UserState.USERSTATE_MUTE_VOICE))
         media_muted = bool(user_state & int(tt.UserState.USERSTATE_MUTE_MEDIAFILE))
 
-        info_item = menu.Append(wx.ID_ANY, "Benutzerinfo...")
+        info_item = menu.Append(wx.ID_ANY, _("Benutzerinfo..."))
         menu.AppendSeparator()
 
-        vol_voice_item = menu.Append(wx.ID_ANY, "Lautstärke Stimme...")
-        vol_media_item = menu.Append(wx.ID_ANY, "Lautstärke Mediendatei...")
-        mute_voice_item = menu.AppendCheckItem(wx.ID_ANY, "Stimme stummschalten")
-        mute_media_item = menu.AppendCheckItem(wx.ID_ANY, "Mediendatei stummschalten")
+        vol_voice_item = menu.Append(wx.ID_ANY, _("Lautstärke Stimme..."))
+        vol_media_item = menu.Append(wx.ID_ANY, _("Lautstärke Mediendatei..."))
+        mute_voice_item = menu.AppendCheckItem(wx.ID_ANY, _("Stimme stummschalten"))
+        mute_media_item = menu.AppendCheckItem(wx.ID_ANY, _("Mediendatei stummschalten"))
         mute_voice_item.Check(voice_muted)
         mute_media_item.Check(media_muted)
 
@@ -618,18 +618,18 @@ class ChannelsTab(wx.Panel):
             mi = sub_menu.AppendCheckItem(wx.ID_ANY, label)
             mi.Check(bool(current_subs & int(flag)))
             sub_items.append((mi, flag))
-        menu.AppendSubMenu(sub_menu, "Abonnements")
+        menu.AppendSubMenu(sub_menu, _("Abonnements"))
 
         my_ch = self.frame.client.get_my_channel_id()
         is_op = self.frame.client.is_channel_operator(int(my_ch), user_id) if my_ch else False
-        op_label = "Operator entziehen" if is_op else "Zum Operator machen"
+        op_label = _("Operator entziehen") if is_op else _("Zum Operator machen")
         op_item = menu.Append(wx.ID_ANY, op_label)
 
-        ban_item = menu.Append(wx.ID_ANY, "Bannen...")
-        move_item = menu.Append(wx.ID_ANY, "Benutzer verschieben...")
-        kick_item = menu.Append(wx.ID_ANY, "Kicken")
-        kick_ban_item = menu.Append(wx.ID_ANY, "Kicken + Bannen")
-        desktop_access_item = menu.Append(wx.ID_ANY, "Desktop-Zugriff erlauben")
+        ban_item = menu.Append(wx.ID_ANY, _("Bannen..."))
+        move_item = menu.Append(wx.ID_ANY, _("Benutzer verschieben..."))
+        kick_item = menu.Append(wx.ID_ANY, _("Kicken"))
+        kick_ban_item = menu.Append(wx.ID_ANY, _("Kicken + Bannen"))
+        desktop_access_item = menu.Append(wx.ID_ANY, _("Desktop-Zugriff erlauben"))
 
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_info(user_id), info_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_volume(user_id, int(tt.StreamType.STREAMTYPE_VOICE), "Stimme"), vol_voice_item)

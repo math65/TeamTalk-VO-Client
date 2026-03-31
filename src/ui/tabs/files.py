@@ -18,6 +18,7 @@ class FilesTab(wx.Panel):
         self.frame = frame
         self.SetName("Dateien")
         self._active_transfer_id = 0
+        self._active_transfer_name = ""
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -49,7 +50,10 @@ class FilesTab(wx.Panel):
         self.refresh_btn = wx.Button(self, label="&Aktualisieren")
         self.refresh_btn.SetName("Dateiliste aktualisieren")
         self.refresh_btn.Bind(wx.EVT_BUTTON, self.on_refresh)
-        for btn in (self.upload_btn, self.download_btn, self.delete_btn, self.refresh_btn):
+        self.history_btn = wx.Button(self, label="Ver&lauf")
+        self.history_btn.SetName("Dateiübertragungsverlauf")
+        self.history_btn.Bind(wx.EVT_BUTTON, self.on_history)
+        for btn in (self.upload_btn, self.download_btn, self.delete_btn, self.refresh_btn, self.history_btn):
             btn_row.Add(btn, 0, wx.RIGHT, 8)
         action_sizer.Add(btn_row, 0, wx.ALL, 8)
         sizer.Add(action_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
@@ -98,6 +102,15 @@ class FilesTab(wx.Panel):
         else:
             self.frame.set_status("Keine Dateien im aktuellen Kanal")
 
+    def _current_channel_name(self, ch_id: int) -> str:
+        try:
+            channel = self.frame.client.get_channel(int(ch_id))
+            if channel:
+                return self.frame.tt_str(getattr(channel, "szName", "")) or str(ch_id)
+        except Exception:
+            pass
+        return str(ch_id)
+
     def on_refresh(self, _event):
         self.refresh_file_list()
         self.frame.set_status("Dateiliste aktualisiert")
@@ -114,6 +127,18 @@ class FilesTab(wx.Panel):
         tid = self.frame.client.send_file(int(ch_id), path)
         if tid > 0:
             self._active_transfer_id = tid
+            self._active_transfer_name = wx.FileName(path).GetFullName()
+            file_info = wx.FileName(path)
+            size_bytes = file_info.GetSize().GetValue() if file_info.FileExists() else 0
+            self.frame._file_manager.add(
+                filename=self._active_transfer_name,
+                size_bytes=size_bytes,
+                direction="upload",
+                channel_name=self._current_channel_name(int(ch_id)),
+                sender=self.frame.nickname.GetValue().strip(),
+                local_path=path,
+                completed=False,
+            )
             self.frame.set_status("Upload gestartet")
         else:
             self.frame.set_status("Upload fehlgeschlagen")
@@ -138,6 +163,16 @@ class FilesTab(wx.Panel):
         tid = self.frame.client.recv_file(int(ch_id), file_id, path)
         if tid > 0:
             self._active_transfer_id = tid
+            self._active_transfer_name = name
+            self.frame._file_manager.add(
+                filename=name,
+                size_bytes=0,
+                direction="download",
+                channel_name=self._current_channel_name(int(ch_id)),
+                sender="",
+                local_path=path,
+                completed=False,
+            )
             self.frame.set_status("Download gestartet")
         else:
             self.frame.set_status("Download fehlgeschlagen")
@@ -177,7 +212,38 @@ class FilesTab(wx.Panel):
         # Check completion
         if transferred >= total and total > 0:
             self.transfer_gauge.SetValue(100)
+            if self._active_transfer_name:
+                self.frame._file_manager.mark_completed(self._active_transfer_name)
             self.frame.set_status("Dateitransfer abgeschlossen")
             wx.CallLater(500, self.refresh_file_list)
 
+    def on_history(self, _event) -> None:
+        records = self.frame._file_manager.recent(50)
+        stats = self.frame._file_manager.stats()
+        dlg = wx.Dialog(self, title="Dateiübertragungsverlauf", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetMinSize((760, 480))
+        root = wx.BoxSizer(wx.VERTICAL)
+        header = (
+            f"Downloads: {stats['total_downloads']}  |  Uploads: {stats['total_uploads']}  |  "
+            f"Geladen: {stats['downloaded_bytes']} Byte  |  Gesendet: {stats['uploaded_bytes']} Byte"
+        )
+        root.Add(wx.StaticText(dlg, label=header), 0, wx.ALL, 10)
+        text = wx.TextCtrl(dlg, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+        text.SetName("Dateiübertragungsverlauf")
+        if records:
+            lines = []
+            for rec in records:
+                state = "fertig" if rec.completed else "offen"
+                lines.append(
+                    f"{rec.direction}: {rec.filename} | {rec.channel_name} | {rec.size_human()} | {state} | {rec.local_path}"
+                )
+            text.SetValue("\n".join(lines))
+        else:
+            text.SetValue("Noch kein Dateiübertragungsverlauf vorhanden.")
+        root.Add(text, 1, wx.ALL | wx.EXPAND, 10)
+        root.Add(dlg.CreateButtonSizer(wx.OK), 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+        dlg.SetSizerAndFit(root)
+        dlg.CentreOnParent()
+        dlg.ShowModal()
+        dlg.Destroy()
 

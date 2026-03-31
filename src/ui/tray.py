@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import wx
 import wx.adv
+from i18n import _
 
 
 class TrayIcon(wx.adv.TaskBarIcon):
@@ -14,8 +15,8 @@ class TrayIcon(wx.adv.TaskBarIcon):
 
     def CreatePopupMenu(self):
         menu = wx.Menu()
-        show = menu.Append(wx.ID_ANY, "Anzeigen")
-        quit_item = menu.Append(wx.ID_ANY, "Beenden")
+        show = menu.Append(wx.ID_ANY, _("Anzeigen"))
+        quit_item = menu.Append(wx.ID_ANY, _("Beenden"))
         self.Bind(wx.EVT_MENU, self.on_show, show)
         self.Bind(wx.EVT_MENU, self.on_quit, quit_item)
         return menu

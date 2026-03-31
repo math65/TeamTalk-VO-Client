@@ -13,6 +13,7 @@ from .video import VideoTab
 from .shortcuts import ShortcutsTab
 from .system import SystemTab
 from platform_paths import app_data_dir, log_dir
+from macos_integration import set_spotlight_comment
 from i18n import _
 
 if TYPE_CHECKING:
@@ -157,7 +158,7 @@ class SettingsTab(wx.Panel):
         lang_sizer = wx.StaticBoxSizer(lang_box, wx.HORIZONTAL)
         lang_sizer.Add(wx.StaticText(panel, label="Sprache / Language:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         _LANG_CODES = ["de", "en", "fr", "es"]
-        _LANG_LABELS = ["Deutsch", "English", "Français", "Español"]
+        _LANG_LABELS = ["Deutsch", "Englisch", "Französisch", "Spanisch"]
         self._app_language = wx.Choice(panel, choices=_LANG_LABELS)
         self._app_language._lang_codes = _LANG_CODES
         self._app_language.SetName("App-Sprache")
@@ -1746,11 +1747,17 @@ class SettingsTab(wx.Panel):
         if 0 <= current < len(self._section_keys):
             self.section_choice.SetSelection(current)
 
+        if hasattr(self, "_app_language"):
+            lang_current = self._app_language.GetSelection()
+            self._app_language.SetItems([_(name) for name in ["Deutsch", "Englisch", "Französisch", "Spanisch"]])
+            if 0 <= lang_current < self._app_language.GetCount():
+                self._app_language.SetSelection(lang_current)
+
     def _on_share_logs_menu(self, _event):
         menu = wx.Menu()
-        export_item = menu.Append(wx.ID_ANY, "Logs exportieren (ZIP)")
-        copy_item = menu.Append(wx.ID_ANY, "Logs kopieren")
-        both_item = menu.Append(wx.ID_ANY, "Beides (ZIP + Kopieren)")
+        export_item = menu.Append(wx.ID_ANY, _("Logs exportieren (ZIP)"))
+        copy_item = menu.Append(wx.ID_ANY, _("Logs kopieren"))
+        both_item = menu.Append(wx.ID_ANY, _("Beides (ZIP + Kopieren)"))
         self.Bind(wx.EVT_MENU, lambda evt: self._export_logs_zip(), export_item)
         self.Bind(wx.EVT_MENU, lambda evt: self._copy_logs_to_clipboard(), copy_item)
         self.Bind(wx.EVT_MENU, lambda evt: self._export_and_copy_logs(), both_item)
@@ -1806,6 +1813,10 @@ class SettingsTab(wx.Panel):
             with zipfile.ZipFile(out_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
                 for path in paths:
                     zf.write(path, arcname=path.name)
+            try:
+                set_spotlight_comment(out_path, "TeamTalk VO Client logs")
+            except Exception:
+                pass
             self.frame.set_status(f"Logs exportiert: {out_path}")
         except Exception as exc:
             self.frame.set_status(f"Log-Export fehlgeschlagen: {exc}")

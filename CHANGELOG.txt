@@ -1,6 +1,48 @@
 Changelog
 =========
 
+2026-03-30 (v6.1.5)
+- Changelog-Audit gegen den Codebestand durchgeführt und dokumentierte
+  Abweichungen bereinigt.
+- Versionsabgleich repariert: `src/platform_info.py` nutzt jetzt ebenfalls die
+  aktuelle App-Version `6.1.5` statt eines veralteten `6.0.0`-Stands.
+- Über-Dialog erweitert: der im Changelog beschriebene Feature-Status aus
+  `feature_summary()` ist jetzt als eigener Reiter sichtbar.
+- Handbuchtexte zur Sprachunterstützung korrigiert: statt nur Deutsch/Englisch
+  nennen DE- und EN-Handbuch jetzt die tatsächlich unterstützten UI-Sprachen
+  Deutsch, English, Français und Español.
+- Plugin-Marktplatz jetzt tatsächlich in der UI erreichbar: der Plugin-Manager
+  enthält nun einen Marktplatz-Bereich mit Katalog-URL, Suche, Ergebnisliste,
+  Detailansicht und Installation aus `.ttplugin`-Paketen.
+- Companion-Server war bisher nur instanziiert, aber nicht gestartet:
+  Start beim App-Init und Stop beim Shutdown ergänzt.
+- Gesundheitsbericht und Nutzungsbericht jetzt im Hilfe-Menü erreichbar;
+  Health-Checks und lokale Analytics können direkt angezeigt und Analytics
+  zusätzlich als JSON exportiert werden.
+- Multi-Server-Session-Persistenz ergänzt: Sessions werden beim Beenden
+  gespeichert und beim nächsten Start wieder eingelesen; zusätzlich gibt es
+  eine Sitzungsübersicht im Server-Menü.
+- FileManager real an den Dateien-Tab angebunden: Uploads/Downloads landen nun
+  im Dateiübertragungsverlauf, inklusive Verlauf-Dialog und Abschlussmarkierung.
+- Analytics tiefer integriert: gesendete/empfangene Nachrichten, Kanalwechsel,
+  Disconnects und Verbindungsfehler fließen jetzt in den Nutzungsbericht ein.
+- TLS-Fingerprint-Verwaltung jetzt im Verbindungstab erreichbar: Fingerprint
+  eines Servers prüfen, pinnen und entfernen direkt aus der UI.
+- Video-Erweiterungen sichtbarer gemacht: Video-Statistik, Video-Beschreibung
+  und Video-Aufnahmeverlauf sind jetzt direkt im Video-Bereich abrufbar.
+- UI-Lokalisierung weiter vervollständigt: viele bislang noch deutsch
+  verbleibende Texte in Menüs, Einstellungen, Verbindungsdialogen,
+  Datei-/Medienbereichen und Kontextmenüs werden jetzt in Englisch
+  übersetzt; Französisch und Spanisch profitieren über den EN-Fallback.
+- Dynamische Popup-Menüs lokalisiert: Tray-Menü, Log-Teilen, Serverliste,
+  Kanal-/Benutzer-Kontextmenüs und Online-Benutzer-Menüs folgen jetzt
+  ebenfalls der gewählten App-Sprache.
+- macOS-Menüleisten-Symbol jetzt tatsächlich aktiv: `MenuBarIcon` wird beim
+  Start angezeigt, folgt Statusänderungen und wird beim Beenden sauber
+  entfernt.
+- Spotlight-Metadaten praktisch angebunden: exportierte Log-ZIP-Dateien
+  erhalten auf macOS nun einen Spotlight-Kommentar.
+
 2026-03-30 (v6.1.4)
 - UI-Lokalisierung erweitert: Fenster, Dialoge, Menüs, Buttons, Labels,
   Notebook-Reiter und viele statische UI-Texte werden jetzt beim Aufbau

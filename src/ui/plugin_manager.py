@@ -69,6 +69,54 @@ class PluginManagerDialog(wx.Dialog):
         btn_row.Add(self._open_dir_btn, 0)
         root.Add(btn_row, 0, wx.LEFT | wx.BOTTOM, 8)
 
+        # Marketplace
+        market_box = wx.StaticBox(self, label="Plugin-Marktplatz")
+        market_sizer = wx.StaticBoxSizer(market_box, wx.VERTICAL)
+
+        url_row = wx.BoxSizer(wx.HORIZONTAL)
+        url_row.Add(wx.StaticText(self, label="Katalog-URL:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._catalog_url = wx.TextCtrl(self, value=str(getattr(self.frame._marketplace, "_url", "")))
+        self._catalog_url.SetName("Plugin-Marktplatz URL")
+        self._fetch_btn = wx.Button(self, label="Katalog laden")
+        self._fetch_btn.SetName("Plugin-Marktplatz laden")
+        self._fetch_btn.Bind(wx.EVT_BUTTON, self._on_fetch_catalog)
+        url_row.Add(self._catalog_url, 1, wx.RIGHT | wx.EXPAND, 8)
+        url_row.Add(self._fetch_btn, 0)
+        market_sizer.Add(url_row, 0, wx.ALL | wx.EXPAND, 8)
+
+        search_row = wx.BoxSizer(wx.HORIZONTAL)
+        search_row.Add(wx.StaticText(self, label="Suche:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._search = wx.TextCtrl(self)
+        self._search.SetName("Plugin-Marktplatz Suche")
+        self._search.Bind(wx.EVT_TEXT, self._on_search_marketplace)
+        search_row.Add(self._search, 1, wx.EXPAND)
+        market_sizer.Add(search_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        self._market_list = wx.ListBox(self)
+        self._market_list.SetName("Plugin-Marktplatz Liste")
+        setup_list_accessible(self._market_list)
+        self._market_list.SetMinSize((-1, 120))
+        self._market_list.Bind(wx.EVT_LISTBOX, self._on_market_select)
+        market_sizer.Add(self._market_list, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        self._market_detail = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+        self._market_detail.SetName("Plugin-Marktplatz Details")
+        self._market_detail.SetMinSize((-1, 90))
+        market_sizer.Add(self._market_detail, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        market_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._install_btn = wx.Button(self, label="Installieren")
+        self._install_btn.SetName("Plugin installieren")
+        self._install_btn.Bind(wx.EVT_BUTTON, self._on_install_marketplace)
+        self._install_btn.Disable()
+        market_btn_row.Add(self._install_btn, 0, wx.RIGHT, 8)
+        self._market_status = wx.StaticText(self, label="Kein Katalog geladen")
+        self._market_status.SetName("Plugin-Marktplatz Status")
+        market_btn_row.Add(self._market_status, 1, wx.ALIGN_CENTER_VERTICAL)
+        market_sizer.Add(market_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        root.Add(market_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         # Schließen
         btn_sizer = wx.StdDialogButtonSizer()
         ok_btn = wx.Button(self, wx.ID_OK, "&Schließen")
@@ -81,6 +129,7 @@ class PluginManagerDialog(wx.Dialog):
 
         self._plugins_dir = plugins_dir
         self._plugin_filenames: list = []
+        self._market_entries: list = []
         self._populate()
 
     # ------------------------------------------------------------------
@@ -207,3 +256,86 @@ class PluginManagerDialog(wx.Dialog):
             subprocess.Popen(["explorer", str(self._plugins_dir)])
         else:
             subprocess.Popen(["xdg-open", str(self._plugins_dir)])
+
+    def _on_fetch_catalog(self, _event) -> None:
+        marketplace = self.frame._marketplace
+        catalog_url = self._catalog_url.GetValue().strip()
+        if catalog_url:
+            marketplace._url = catalog_url
+        self._market_status.SetLabel("Katalog wird geladen...")
+        ok = marketplace.fetch_catalog()
+        if not ok:
+            self._market_entries = []
+            self._market_list.Clear()
+            self._market_detail.SetValue("")
+            self._install_btn.Disable()
+            self._market_status.SetLabel(marketplace.last_error or "Katalog konnte nicht geladen werden")
+            return
+        self._market_entries = marketplace.all_entries()
+        self._fill_market_list(self._market_entries)
+        self._market_status.SetLabel(f"{len(self._market_entries)} Plugin(s) geladen")
+
+    def _fill_market_list(self, entries) -> None:
+        self._market_list.Clear()
+        for entry in entries:
+            label = entry.display_name or entry.name or "(Unbenannt)"
+            if entry.version:
+                label += f" v{entry.version}"
+            self._market_list.Append(label)
+        if entries:
+            self._market_list.SetSelection(0)
+            self._on_market_select(None)
+        else:
+            self._market_detail.SetValue("")
+            self._install_btn.Disable()
+
+    def _on_search_marketplace(self, _event) -> None:
+        marketplace = self.frame._marketplace
+        query = self._search.GetValue().strip()
+        if not query:
+            entries = marketplace.all_entries()
+        else:
+            entries = marketplace.search(query)
+        self._market_entries = entries
+        self._fill_market_list(entries)
+        self._market_status.SetLabel(f"{len(entries)} Treffer")
+
+    def _on_market_select(self, _event) -> None:
+        idx = self._market_list.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._market_entries):
+            self._market_detail.SetValue("")
+            self._install_btn.Disable()
+            return
+        entry = self._market_entries[idx]
+        lines = [
+            f"Name: {entry.display_name or entry.name or '–'}",
+            f"Version: {entry.version or '–'}",
+            f"Autor: {entry.author or '–'}",
+            f"Beschreibung: {entry.description or '–'}",
+            f"URL: {entry.download_url or '–'}",
+        ]
+        self._market_detail.SetValue("\n".join(lines))
+        self._install_btn.Enable(bool(entry.download_url))
+
+    def _on_install_marketplace(self, _event) -> None:
+        idx = self._market_list.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._market_entries):
+            return
+        entry = self._market_entries[idx]
+        installed = self.frame._marketplace.install(entry)
+        if not installed:
+            wx.MessageBox(
+                self.frame._marketplace.last_error or "Installation fehlgeschlagen",
+                "Plugin-Marktplatz",
+                wx.OK | wx.ICON_ERROR,
+                self,
+            )
+            self._market_status.SetLabel("Installation fehlgeschlagen")
+            return
+        try:
+            self.frame._plugin_loader.load_all()
+        except Exception:
+            pass
+        self._populate()
+        self.frame.set_status(f"Plugin installiert: {entry.display_name or entry.name}")
+        self._market_status.SetLabel(f"Installiert: {entry.display_name or entry.name}")

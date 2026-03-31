@@ -370,6 +370,7 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
                 return
             if client.send_user_message(target_user_id, msg):
                 self.append_chat(f"An {self.private_user.GetString(user_idx)}: {msg}", kind="own")
+                self.frame._analytics.on_message_sent()
             else:
                 self.frame.set_status("Nachricht konnte nicht gesendet werden")
         else:
@@ -379,6 +380,7 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
                 return
             if client.send_channel_message(channel_id, msg):
                 self.append_chat(f"Ich: {msg}", kind="own")
+                self.frame._analytics.on_message_sent()
             else:
                 self.frame.set_status("Nachricht konnte nicht gesendet werden")
 

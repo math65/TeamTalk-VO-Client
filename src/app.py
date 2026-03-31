@@ -63,15 +63,15 @@ from tls_verify import CertPinStore
 from plugin_package import PluginPackage, read_package, install_package, PluginManifestError
 from plugin_marketplace import PluginMarketplace
 from companion_server import CompanionServer
-from macos_integration import send_notification, set_dock_badge, DarkModeWatcher
+from macos_integration import send_notification, set_dock_badge, DarkModeWatcher, MenuBarIcon
 from file_manager import FileManager
 from video_manager import VideoStatsCollector, VideoRecorder
 from analytics import UsageAnalytics
-from health_check import HealthChecker, check_disk_space, check_event_bus
+from health_check import HealthChecker, check_disk_space, check_event_bus, check_settings_db
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.1.4"
+APP_VERSION = "6.1.5"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -532,10 +532,16 @@ class MainFrame(wx.Frame):
         self._health = HealthChecker()
         self._health.register("disk_space", check_disk_space)
         self._health.register("event_bus", lambda: check_event_bus(self.bus))
+        self._health.register("settings_db", lambda: check_settings_db(self._settings_db.path))
         # v5.3.0 – macOS Desktop-Integration
         self._dark_mode_watcher = DarkModeWatcher(self._on_dark_mode_change)
         self._dark_mode_watcher.start()
         self._unread_count: int = 0
+        self._menu_bar_icon = MenuBarIcon()
+        try:
+            self._menu_bar_icon.show(f"TeamTalk VoiceOver Client {APP_VERSION}")
+        except Exception:
+            pass
         # v5.1.0 – Companion-Server (Mobil-Companion)
         self._companion = CompanionServer(
             get_status_fn=self._companion_status,
@@ -543,6 +549,10 @@ class MainFrame(wx.Frame):
             get_users_fn=self._companion_users,
             send_message_fn=self._companion_send,
         )
+        try:
+            self._companion.start()
+        except Exception as exc:
+            self.logger.write(f"Companion-Server konnte nicht gestartet werden: {exc}")
         _expired = self._saved_messages.expire()
         if _expired > 0:
             self._audit_log.log(A_SAVED_MSG_EXPIRED, detail=str(_expired))
@@ -559,6 +569,7 @@ class MainFrame(wx.Frame):
         self._plugin_api = PluginAPI(self)
         # v2.0.0 – Multi-Server, Braille, KI
         self.server_manager = ServerManager(self.bus)
+        self._session_state_path = app_dir / "server_sessions.json"
         self._ai_summary: ChatSummaryManager | None = None  # wird nach TTS-Init gesetzt
         # Bus-Handler für Multi-Server
         self.bus.on("active_server_changed", self._on_active_server_changed)
@@ -853,6 +864,8 @@ class MainFrame(wx.Frame):
             self.SetAcceleratorTable(accel)
             self.Bind(wx.EVT_MENU, self.on_menu_settings, id=wx.ID_PREFERENCES)
 
+        wx.CallLater(350, self._restore_saved_sessions)
+
         # Toolbar button bindings
         self.tb_ptt.Bind(wx.EVT_CHECKBOX, self._on_tb_ptt)
         self.tb_va.Bind(wx.EVT_CHECKBOX, self._on_tb_va)
@@ -1035,6 +1048,15 @@ class MainFrame(wx.Frame):
                 self.server_manager.switch_to(sid)
             except Exception as exc:
                 self.set_status(f"Server-Wechsel fehlgeschlagen: {exc}")
+
+    def _restore_saved_sessions(self) -> None:
+        try:
+            restored = self.server_manager.load_sessions(self._session_state_path, self.store.items())
+            if restored:
+                self._refresh_server_choice()
+                self.set_status(f"{restored} gespeicherte Sitzung(en) wiederhergestellt")
+        except Exception as exc:
+            self.logger.write(f"Session-Wiederherstellung fehlgeschlagen: {exc}")
 
     # ------------------------------------------------------------------
     # v2.0.0 – Sprachsteuerung
@@ -1864,6 +1886,7 @@ class MainFrame(wx.Frame):
         server_save_config = server_menu.Append(wx.ID_ANY, "Konfiguration speichern")
         server_menu.AppendSeparator()
         server_speaking_log = server_menu.Append(wx.ID_ANY, "Wer-spricht-Protokoll...")
+        server_sessions = server_menu.Append(wx.ID_ANY, "Sitzungsübersicht...")
         menubar.Append(server_menu, _("Server"))
 
         # Profil
@@ -1940,6 +1963,8 @@ class MainFrame(wx.Frame):
         help_menu = wx.Menu()
         help_settings = help_menu.Append(wx.ID_PREFERENCES, "Einstellungen...\tCmd+,")
         help_logs = help_menu.Append(wx.ID_ANY, "Logs exportieren...")
+        help_health = help_menu.Append(wx.ID_ANY, "Gesundheitsbericht...")
+        help_analytics = help_menu.Append(wx.ID_ANY, "Nutzungsbericht...")
         help_stats = help_menu.Append(wx.ID_ANY, "Verbindungsstatistiken...")
         help_stats_speak = help_menu.Append(wx.ID_ANY, "Statistiken vorlesen")
         help_menu.AppendSeparator()
@@ -2056,6 +2081,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_server_properties, server_props)
         self.Bind(wx.EVT_MENU, self.on_menu_server_save_config, server_save_config)
         self.Bind(wx.EVT_MENU, self.on_menu_speaking_log, server_speaking_log)
+        self.Bind(wx.EVT_MENU, self.on_menu_session_overview, server_sessions)
 
         self.Bind(wx.EVT_MENU, self.on_menu_change_nickname, profile_nick)
         self.Bind(wx.EVT_MENU, self.on_menu_change_status, profile_status)
@@ -2100,6 +2126,8 @@ class MainFrame(wx.Frame):
 
         self.Bind(wx.EVT_MENU, self.on_menu_settings, help_settings)
         self.Bind(wx.EVT_MENU, self.on_menu_export_logs, help_logs)
+        self.Bind(wx.EVT_MENU, self.on_menu_health_report, help_health)
+        self.Bind(wx.EVT_MENU, self.on_menu_analytics_report, help_analytics)
         self.Bind(wx.EVT_MENU, self.on_menu_client_stats, help_stats)
         self.Bind(wx.EVT_MENU, self.on_menu_client_stats_speak, help_stats_speak)
         self.Bind(wx.EVT_MENU, self.on_menu_saved_messages, help_saved_msgs)
@@ -2116,6 +2144,10 @@ class MainFrame(wx.Frame):
         self.status.SetLabel(text)
         self.log.AppendText(text + "\n")
         self.logger.write(text)
+        try:
+            self._menu_bar_icon.update_tooltip(f"TeamTalk VoiceOver Client {APP_VERSION}\n{text}")
+        except Exception:
+            pass
 
     def _apply_saved_audio_prefs_on_startup(self) -> None:
         try:
@@ -2704,6 +2736,7 @@ class MainFrame(wx.Frame):
             pass
         self.sound_manager.play("server_disconnect", self.settings_store.settings.sound_events.get("server_disconnect"))
         self.client.disconnect_transport()
+        self._analytics.on_disconnect()
         # v2.6.0 – Verbindungsqualitäts-Timer stoppen
         try:
             if hasattr(self, "_quality_timer") and self._quality_timer.IsRunning():
@@ -2792,6 +2825,29 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
         self.server_stats_dialog = None
 
+    def on_menu_session_overview(self, _event) -> None:
+        data = self.server_manager.per_session_stats()
+        dlg = wx.Dialog(self, title="Sitzungsübersicht", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetMinSize((640, 420))
+        root = wx.BoxSizer(wx.VERTICAL)
+        text = wx.TextCtrl(dlg, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+        text.SetName("Sitzungsübersicht")
+        if data:
+            lines = []
+            for sid, info in data.items():
+                active = "aktiv" if info.get("is_active") else "inaktiv"
+                lines.append(f"{info.get('profile', '?')} | {info.get('state', '?')} | {active} | {sid}")
+            text.SetValue("\n".join(lines))
+        else:
+            text.SetValue("Keine Sitzungen vorhanden.")
+        root.Add(text, 1, wx.ALL | wx.EXPAND, 10)
+        root.Add(dlg.CreateButtonSizer(wx.OK), 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+        dlg.SetSizerAndFit(root)
+        dlg.CentreOnParent()
+        _localize_window_tree(dlg)
+        dlg.ShowModal()
+        dlg.Destroy()
+
     def on_menu_server_bans(self, _event):
         if not self._require_connected("Sperren (Server) anzeigen"):
             return
@@ -2841,6 +2897,68 @@ class MainFrame(wx.Frame):
 
     def on_menu_client_stats(self, _event):
         dlg = ClientStatisticsDialog(self, self)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def on_menu_health_report(self, _event) -> None:
+        self._health.run_all()
+        dlg = wx.Dialog(self, title="Gesundheitsbericht", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetMinSize((680, 420))
+        root = wx.BoxSizer(wx.VERTICAL)
+        text = wx.TextCtrl(
+            dlg,
+            value=self._health.text_report(),
+            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2,
+        )
+        text.SetName("Gesundheitsbericht")
+        root.Add(text, 1, wx.ALL | wx.EXPAND, 10)
+        root.Add(dlg.CreateButtonSizer(wx.OK), 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+        dlg.SetSizerAndFit(root)
+        dlg.CentreOnParent()
+        _localize_window_tree(dlg)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def on_menu_analytics_report(self, _event) -> None:
+        dlg = wx.Dialog(self, title="Nutzungsbericht", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetMinSize((720, 460))
+        root = wx.BoxSizer(wx.VERTICAL)
+        text = wx.TextCtrl(
+            dlg,
+            value=self._analytics.text_report(),
+            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2,
+        )
+        text.SetName("Nutzungsbericht")
+        root.Add(text, 1, wx.ALL | wx.EXPAND, 10)
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        export_btn = wx.Button(dlg, label="Exportieren")
+        export_btn.SetName("Nutzungsbericht exportieren")
+        btn_row.Add(export_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(dlg.CreateButtonSizer(wx.OK), 0)
+        root.Add(btn_row, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+
+        def _on_export(_evt):
+            default_name = f"analytics_{time.strftime('%Y%m%d_%H%M%S')}.json"
+            with wx.FileDialog(
+                dlg,
+                "Nutzungsbericht exportieren",
+                wildcard="JSON-Dateien (*.json)|*.json|Alle Dateien|*.*",
+                style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+                defaultFile=default_name,
+            ) as fd:
+                if fd.ShowModal() != wx.ID_OK:
+                    return
+                path = fd.GetPath()
+            try:
+                self._analytics.export_json(Path(path))
+                self.set_status(f"Nutzungsbericht exportiert: {path}")
+            except Exception as exc:
+                self.set_status(f"Export fehlgeschlagen: {exc}")
+
+        export_btn.Bind(wx.EVT_BUTTON, _on_export)
+        dlg.SetSizerAndFit(root)
+        dlg.CentreOnParent()
+        _localize_window_tree(dlg)
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -3365,6 +3483,7 @@ class MainFrame(wx.Frame):
             return
         if self.client.send_channel_message(int(chan_id), msg):
             self.chat_tab.append_chat(f"Ich: {msg}", kind="own")
+            self._analytics.on_message_sent()
         else:
             self.set_status("Senden fehlgeschlagen")
 
@@ -3544,6 +3663,7 @@ class MainFrame(wx.Frame):
             return
         if self.client.send_user_message(int(user.nUserID), msg):
             self.chat_tab.append_chat(f"An {nick}: {msg}", kind="own")
+            self._analytics.on_message_sent()
         else:
             self.set_status("Nachricht konnte nicht gesendet werden")
 
@@ -5861,7 +5981,7 @@ class MainFrame(wx.Frame):
             "\n"
             "27. Sprache der Benutzeroberfläche\n"
             "====================================\n"
-            "Der Client unterstützt Deutsch und Englisch.\n"
+            "Der Client unterstützt Deutsch, English, Français und Español.\n"
             "\n"
             "Umschalten: Einstellungen → Allgemein → Sprache.\n"
             "Hinweis: Ein Neustart ist erforderlich, damit die Sprache vollständig\n"
@@ -7026,7 +7146,7 @@ class MainFrame(wx.Frame):
             "\n"
             "27. Interface language\n"
             "======================\n"
-            "The client supports German and English.\n"
+            "The client supports German, English, French and Spanish.\n"
             "\n"
             "Switch: Settings → General → Language.\n"
             "Note: A restart is required for the language to take full effect.\n"
@@ -7562,6 +7682,21 @@ class MainFrame(wx.Frame):
         open_btn.Bind(wx.EVT_BUTTON, on_open_license)
         lic_list.Bind(wx.EVT_LISTBOX_DCLICK, on_open_license)
 
+        # ---- Reiter 4: Feature-Status ----
+        p_features = wx.Panel(nb)
+        p_features.SetName("Feature-Status")
+        fs = wx.BoxSizer(wx.VERTICAL)
+        tc_features = wx.TextCtrl(
+            p_features,
+            value=feature_summary(current_language()),
+            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2,
+        )
+        tc_features.SetName("Feature-Status")
+        tc_features.SetMinSize((640, 340))
+        fs.Add(tc_features, 1, wx.ALL | wx.EXPAND, 10)
+        p_features.SetSizer(fs)
+        nb.AddPage(p_features, "Feature-Status")
+
         root.Add(nb, 1, wx.ALL | wx.EXPAND, 8)
         root.Add(dlg.CreateButtonSizer(wx.OK), 0, wx.ALL | wx.ALIGN_RIGHT, 10)
         dlg.SetSizerAndFit(root)
@@ -7779,16 +7914,28 @@ class MainFrame(wx.Frame):
         def worker():
             try:
                 self.client.stop_event_loop_and_wait()
+                host = tab.host.GetValue().strip()
+                tcp_port = int(tab.tcp_port.GetValue().strip())
+                encrypted = tab.encrypted.GetValue()
+                pinned = self._cert_pins.get_pinned(host)
+                if encrypted and pinned:
+                    verify_result = self._cert_pins.verify(host, port=tcp_port, timeout=5.0)
+                    if not verify_result.ok:
+                        wx.CallAfter(
+                            self.handle_connect_result,
+                            ConnectResult(False, verify_result.error or "TLS-Fingerprint-Prüfung fehlgeschlagen"),
+                        )
+                        return
                 _se = self.settings_store.settings.sound_events
                 result = self.client.connect_and_login(
-                    host=tab.host.GetValue().strip(),
-                    tcp_port=int(tab.tcp_port.GetValue().strip()),
+                    host=host,
+                    tcp_port=tcp_port,
                     udp_port=int(tab.udp_port.GetValue().strip()),
                     nickname=tab.nickname.GetValue().strip(),
                     username=tab.username.GetValue().strip(),
                     password=tab.password.GetValue().strip(),
                     client_name=tab.client_name.GetValue().strip(),
-                    encrypted=tab.encrypted.GetValue(),
+                    encrypted=encrypted,
                     timeout_ms=8000,
                     on_login_confirmed=lambda: self.sound_manager.play("server_connect", _se.get("server_connect")),
                 )
@@ -8216,6 +8363,7 @@ class MainFrame(wx.Frame):
                 self.client.start_event_loop(self.handle_tt_message)
                 if result.ok:
                     wx.CallAfter(self.set_status, result.message)
+                    self._analytics.on_channel_switch()
                     wx.CallAfter(self._save_last_channel, channel_id)
                     self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
@@ -8373,6 +8521,18 @@ class MainFrame(wx.Frame):
         def worker():
             self.client.stop_event_loop_and_wait()
             encrypted = bool(parsed.encrypted or parsed.profile.encrypted)
+            if encrypted and self._cert_pins.get_pinned(parsed.profile.host):
+                verify_result = self._cert_pins.verify(
+                    parsed.profile.host,
+                    port=parsed.profile.tcp_port,
+                    timeout=5.0,
+                )
+                if not verify_result.ok:
+                    wx.CallAfter(
+                        self.handle_connect_result,
+                        ConnectResult(False, verify_result.error or "TLS-Fingerprint-Prüfung fehlgeschlagen"),
+                    )
+                    return
             verify_peer = parsed.verify_peer
             tls_has_custom_material = bool(
                 (parsed.ca_certificate_pem or "").strip()
@@ -9035,11 +9195,14 @@ class MainFrame(wx.Frame):
 
         if event == tt.ClientEvent.CLIENTEVENT_CON_FAILED:
             wx.CallAfter(self.set_status, "Verbindung fehlgeschlagen")
+            self._analytics.on_error()
             self._offline_buffering = True
             wx.CallAfter(self.schedule_reconnect)
             self.bus.emit("connection_state_changed", connected=False, reason="failed")
         elif event == tt.ClientEvent.CLIENTEVENT_CON_LOST:
             wx.CallAfter(self.set_status, "Verbindung verloren")
+            self._analytics.on_error()
+            self._analytics.on_disconnect()
             self._offline_buffering = True
             wx.CallAfter(self.schedule_reconnect)
             self.sound_manager.play("server_disconnect", self.settings_store.settings.sound_events.get("server_disconnect"))
@@ -9362,6 +9525,8 @@ class MainFrame(wx.Frame):
                 if len(self._channel_message_log) > 200:
                     self._channel_message_log = self._channel_message_log[-200:]
             wx.CallAfter(self.chat_tab.append_chat, f"{from_user}: {content}", kind, speak)
+            if not (from_id and my_id and from_id == my_id):
+                self._analytics.on_message_received()
             self._message_buffers.pop(key, None)
             # v2.8.0 – Stichwort-Alarm (nur Kanalnachrichten von anderen)
             if msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL) and not (from_id and my_id and from_id == my_id):
@@ -9516,9 +9681,18 @@ class MainFrame(wx.Frame):
             self._http_api.stop()
         except Exception:
             pass
+        # v5.1.0 – Companion-Server stoppen
+        try:
+            self._companion.stop()
+        except Exception:
+            pass
         # v4.0.0 – Asyncio-Bridge stoppen
         try:
             self._async_bridge.stop()
+        except Exception:
+            pass
+        try:
+            self.server_manager.save_sessions(self._session_state_path)
         except Exception:
             pass
         # v2.0.0 – SQLite-DB schließen
@@ -9546,6 +9720,10 @@ class MainFrame(wx.Frame):
         # Destroy UI
         try:
             self.tray.Destroy()
+        except Exception:
+            pass
+        try:
+            self._menu_bar_icon.hide()
         except Exception:
             pass
         try:

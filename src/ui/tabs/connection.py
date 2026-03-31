@@ -9,6 +9,7 @@ from ..tt_file_parser import build_teamtalk_url, build_teamtalk_xml, parse_teamt
 from ..models import ServerProfile
 from ..a11y import setup_list_accessible
 from ..server_browser import ServerBrowserDialog
+from tls_verify import get_cert_fingerprint
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -95,11 +96,15 @@ class ConnectionTab(wx.Panel):
         self.export_tt_btn = wx.Button(self, label=".tt &exportieren")
         self.export_tt_btn.SetName("Server als TT-Datei exportieren")
         self.export_tt_btn.Bind(wx.EVT_BUTTON, self._on_export_selected_tt)
+        self.tls_pin_btn = wx.Button(self, label="TLS-&Fingerprint...")
+        self.tls_pin_btn.SetName("TLS-Fingerprint")
+        self.tls_pin_btn.Bind(wx.EVT_BUTTON, self._on_tls_fingerprint)
         btn_row.Add(self.join_code_btn, 0, wx.RIGHT, 8)
         btn_row.Add(self.public_servers_btn, 0, wx.RIGHT, 8)
         btn_row.Add(self.status_check_btn, 0, wx.RIGHT, 8)
         btn_row.Add(self.import_tt_btn, 0, wx.RIGHT, 8)
-        btn_row.Add(self.export_tt_btn, 0)
+        btn_row.Add(self.export_tt_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(self.tls_pin_btn, 0)
 
         server_sizer.Add(self.server_list, 0, wx.ALL | wx.EXPAND, 8)
         server_sizer.Add(btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
@@ -256,6 +261,87 @@ class ConnectionTab(wx.Panel):
             return prefix + self._all_server_names[i]
 
         self.server_list.Set([_label(i) for i in self._filtered_indices])
+
+    def _on_tls_fingerprint(self, _event) -> None:
+        host = self.host.GetValue().strip()
+        if not host:
+            self.frame.set_status("Server darf nicht leer sein")
+            return
+        try:
+            port = int(self.tcp_port.GetValue().strip() or "0")
+        except ValueError:
+            self.frame.set_status("Port muss eine Zahl sein")
+            return
+        if port <= 0:
+            self.frame.set_status("TCP-Port ungültig")
+            return
+
+        dlg = wx.Dialog(self, title="TLS-Fingerprint", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetMinSize((720, 420))
+        root = wx.BoxSizer(wx.VERTICAL)
+        info = wx.StaticText(dlg, label=f"Server: {host}:{port}")
+        root.Add(info, 0, wx.ALL, 10)
+        text = wx.TextCtrl(dlg, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+        text.SetName("TLS-Fingerprint")
+        text.SetMinSize((-1, 220))
+        root.Add(text, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 10)
+
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        refresh_btn = wx.Button(dlg, label="Prüfen")
+        pin_btn = wx.Button(dlg, label="Pinnen")
+        unpin_btn = wx.Button(dlg, label="Pin entfernen")
+        close_btn = wx.Button(dlg, wx.ID_OK, "Schließen")
+        btn_row.Add(refresh_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(pin_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(unpin_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(close_btn, 0)
+        root.Add(btn_row, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+
+        def _render(current: str | None = None) -> None:
+            pinned = self.frame._cert_pins.get_pinned(host)
+            lines = [
+                f"Host: {host}",
+                f"Port: {port}",
+                f"Gepinnt: {pinned or '-'}",
+                f"Aktuell: {current or '-'}",
+            ]
+            if pinned and current:
+                lines.append("Status: OK" if pinned.upper() == current.upper() else "Status: Fingerprint-Mismatch")
+            text.SetValue("\n".join(lines))
+
+        def _refresh(_evt=None) -> None:
+            text.SetValue("Fingerprint wird geladen...")
+            wx.YieldIfNeeded()
+            current = get_cert_fingerprint(host, port=port, timeout=5.0)
+            if not current:
+                self.frame.set_status("TLS-Fingerprint konnte nicht geladen werden")
+                _render(None)
+                return
+            self.frame.set_status("TLS-Fingerprint geladen")
+            _render(current)
+
+        def _pin(_evt) -> None:
+            current = get_cert_fingerprint(host, port=port, timeout=5.0)
+            if not current:
+                self.frame.set_status("TLS-Fingerprint konnte nicht geladen werden")
+                return
+            self.frame._cert_pins.pin(host, current)
+            self.frame.set_status(f"TLS-Fingerprint gespeichert: {host}")
+            _render(current)
+
+        def _unpin(_evt) -> None:
+            self.frame._cert_pins.unpin(host)
+            self.frame.set_status(f"TLS-Pin entfernt: {host}")
+            _render(None)
+
+        refresh_btn.Bind(wx.EVT_BUTTON, _refresh)
+        pin_btn.Bind(wx.EVT_BUTTON, _pin)
+        unpin_btn.Bind(wx.EVT_BUTTON, _unpin)
+        dlg.SetSizerAndFit(root)
+        dlg.CentreOnParent()
+        _render(None)
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def _on_check_server_status(self, _event) -> None:
         import socket
@@ -690,13 +776,13 @@ class ConnectionTab(wx.Panel):
     def on_server_list_context(self, _event):
         real_idx = self._get_real_index()
         menu = wx.Menu()
-        connect_item = menu.Append(wx.ID_ANY, "Verbinden")
-        edit_item = menu.Append(wx.ID_ANY, "Bearbeiten")
-        dup_item = menu.Append(wx.ID_ANY, "Duplizieren")
-        gen_tt_item = menu.Append(wx.ID_ANY, "TT-Datei generieren")
-        remove_item = menu.Append(wx.ID_ANY, "Entfernen")
+        connect_item = menu.Append(wx.ID_ANY, _("Verbinden"))
+        edit_item = menu.Append(wx.ID_ANY, _("Bearbeiten"))
+        dup_item = menu.Append(wx.ID_ANY, _("Duplizieren"))
+        gen_tt_item = menu.Append(wx.ID_ANY, _("TT-Datei generieren"))
+        remove_item = menu.Append(wx.ID_ANY, _("Entfernen"))
         menu.AppendSeparator()
-        join_code_item = menu.Append(wx.ID_ANY, "Beitrittscode eingeben")
+        join_code_item = menu.Append(wx.ID_ANY, _("Beitrittscode eingeben"))
 
         connect_item.Enable(real_idx is not None)
         edit_item.Enable(real_idx is not None)

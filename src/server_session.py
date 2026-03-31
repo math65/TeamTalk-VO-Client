@@ -214,6 +214,48 @@ class ServerManager:
         except Exception:
             pass
 
+    def load_sessions(self, path: Path, profiles: List[ServerProfile]) -> int:
+        """Lädt Session-Metadaten und rekonstruiert Session-Einträge."""
+        if not path.exists():
+            return 0
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return 0
+        if not isinstance(data, dict):
+            return 0
+        sessions_data = data.get("sessions", [])
+        active_id = str(data.get("active_id", "") or "")
+        profiles_by_name = {p.name: p for p in profiles}
+        self._sessions = {}
+        self._active_id = None
+        restored = 0
+        for entry in sessions_data:
+            if not isinstance(entry, dict):
+                continue
+            profile_name = str(entry.get("profile_name", "") or "")
+            profile = profiles_by_name.get(profile_name)
+            if profile is None:
+                continue
+            session_id = str(entry.get("session_id", "") or uuid.uuid4())
+            session = ServerSession(session_id, profile)
+            session.state = str(entry.get("state", "disconnected") or "disconnected")
+            self._sessions[session_id] = session
+            restored += 1
+        if active_id and active_id in self._sessions:
+            self._active_id = active_id
+        elif self._sessions:
+            self._active_id = next(iter(self._sessions.keys()))
+        if self._active_id:
+            self._global_bus.emit(
+                "active_server_changed",
+                session_id=self._active_id,
+                session=self._sessions[self._active_id],
+            )
+        for sid, session in self._sessions.items():
+            self._global_bus.emit("session_added", session_id=sid, session=session)
+        return restored
+
     def per_session_stats(self) -> Dict[str, Dict]:
         """Gibt Verbindungsstatus-Übersicht aller Sessions als Dict zurück."""
         return {

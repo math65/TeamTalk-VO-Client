@@ -1,4 +1,4 @@
-"""PlatformInfo – Plattform-Release Metadaten (v6.0.0).
+"""PlatformInfo – Plattform-Release Metadaten.
 
 Stellt konsistente Versionsinformationen, Feature-Flags und
 Plattform-Capabilities für die gesamte App bereit.
@@ -9,10 +9,12 @@ import platform
 import sys
 from typing import Dict, List
 
+from i18n import _, current_language
+
 
 APP_NAME = "TeamTalk VoiceOver Client"
-APP_VERSION = "6.0.0"
-APP_CODENAME = "Libero"  # v6.0.0 Codename
+APP_VERSION = "6.1.5"
+APP_CODENAME = "Libero"
 APP_AUTHOR = "Florian Lichteblau (Flarion)"
 APP_URL = "https://git.garogaming.xyz/flarion/TeamTalk-VO-Client"
 APP_LICENSE = "MIT"
@@ -76,33 +78,34 @@ def _has_module(name: str) -> bool:
         return False
 
 
-def feature_summary() -> str:
+def feature_summary(lang: str | None = None) -> str:
     """Gibt einen lesbaren Feature-Status-Bericht zurück."""
+    effective_lang = lang or current_language()
     caps = capabilities()
     info = platform_info()
     lines = [
         f"{APP_NAME} v{APP_VERSION} '{APP_CODENAME}'",
-        f"Plattform: {info['platform']} {info['platform_version']} ({info['machine']})",
-        f"Python: {info['python_version']}",
+        f"{_('Plattform', effective_lang)}: {info['platform']} {info['platform_version']} ({info['machine']})",
+        f"{_('Python', effective_lang)}: {info['python_version']}",
         "",
-        "Feature-Status:",
+        f"{_('Feature-Status', effective_lang)}:",
     ]
     labels = {
-        "platform_macos": "macOS",
-        "voiceover": "VoiceOver/Braille",
-        "native_notifications": "Native Benachrichtigungen",
-        "dock_badge": "Dock-Badge",
-        "keychain": "Keychain",
-        "ai_claude": "KI: Claude",
-        "ai_gemini": "KI: Gemini",
-        "ai_ollama": "KI: Ollama",
-        "companion_server": "Companion-Server",
-        "plugin_marketplace": "Plugin-Marktplatz",
-        "multi_server": "Multi-Server",
-        "analytics": "Analytics",
-        "health_check": "Health-Check",
-        "tls_fingerprint": "TLS-Fingerprint",
-        "audit_log": "Audit-Log",
+        "platform_macos": _("macOS", effective_lang),
+        "voiceover": _("VoiceOver/Braille", effective_lang),
+        "native_notifications": _("Native Benachrichtigungen", effective_lang),
+        "dock_badge": _("Dock-Badge", effective_lang),
+        "keychain": _("Keychain", effective_lang),
+        "ai_claude": _("KI: Claude", effective_lang),
+        "ai_gemini": _("KI: Gemini", effective_lang),
+        "ai_ollama": _("KI: Ollama", effective_lang),
+        "companion_server": _("Companion-Server", effective_lang),
+        "plugin_marketplace": _("Plugin-Marktplatz", effective_lang),
+        "multi_server": _("Multi-Server", effective_lang),
+        "analytics": _("Analytics", effective_lang),
+        "health_check": _("Health-Check", effective_lang),
+        "tls_fingerprint": _("TLS-Fingerprint", effective_lang),
+        "audit_log": _("Audit-Log", effective_lang),
     }
     for key, label in labels.items():
         icon = "✓" if caps.get(key, False) else "✗"

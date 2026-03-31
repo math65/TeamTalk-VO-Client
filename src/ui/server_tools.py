@@ -183,15 +183,15 @@ class OnlineUsersDialog(wx.Dialog):
         user = self._users[idx]
 
         menu = wx.Menu()
-        info_item = menu.Append(wx.ID_ANY, "Benutzerinfo...")
+        info_item = menu.Append(wx.ID_ANY, _("Benutzerinfo..."))
         menu.AppendSeparator()
-        pm_item = menu.Append(wx.ID_ANY, "Privatnachricht senden...")
+        pm_item = menu.Append(wx.ID_ANY, _("Privatnachricht senden..."))
         menu.AppendSeparator()
-        move_item = menu.Append(wx.ID_ANY, "Benutzer verschieben...")
-        kick_ch_item = menu.Append(wx.ID_ANY, "Aus Kanal kicken")
-        kick_srv_item = menu.Append(wx.ID_ANY, "Vom Server kicken")
-        ban_item = menu.Append(wx.ID_ANY, "Bannen...")
-        kick_ban_item = menu.Append(wx.ID_ANY, "Kicken + Bannen")
+        move_item = menu.Append(wx.ID_ANY, _("Benutzer verschieben..."))
+        kick_ch_item = menu.Append(wx.ID_ANY, _("Aus Kanal kicken"))
+        kick_srv_item = menu.Append(wx.ID_ANY, _("Vom Server kicken"))
+        ban_item = menu.Append(wx.ID_ANY, _("Bannen..."))
+        kick_ban_item = menu.Append(wx.ID_ANY, _("Kicken + Bannen"))
 
         user_id = int(user.nUserID)
         self.Bind(wx.EVT_MENU, lambda e: self._do_user_info(user_id), info_item)

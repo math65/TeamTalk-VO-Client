@@ -18,6 +18,7 @@ class VideoTab(wx.Panel):
         self._devices = []
         self._formats: List[Tuple[object, str]] = []
         self._tx_enabled = False
+        self._local_video_stat_user_id = -1
 
         root = wx.BoxSizer(wx.VERTICAL)
 
@@ -74,6 +75,21 @@ class VideoTab(wx.Panel):
         self.tx_toggle.SetName("Video senden")
         self.tx_toggle.Bind(wx.EVT_CHECKBOX, self.on_toggle_tx)
         tx_sizer.Add(self.tx_toggle, 0, wx.ALL, 4)
+
+        tools_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.stats_btn = wx.Button(self, label="Video-Statistik")
+        self.stats_btn.SetName("Video-Statistik")
+        self.stats_btn.Bind(wx.EVT_BUTTON, self.on_show_stats)
+        self.alt_btn = wx.Button(self, label="Video-Beschreibung")
+        self.alt_btn.SetName("Video-Beschreibung")
+        self.alt_btn.Bind(wx.EVT_BUTTON, self.on_show_alt_text)
+        self.rec_btn = wx.Button(self, label="Video-Aufnahmen")
+        self.rec_btn.SetName("Video-Aufnahmen")
+        self.rec_btn.Bind(wx.EVT_BUTTON, self.on_show_recordings)
+        tools_row.Add(self.stats_btn, 0, wx.RIGHT, 8)
+        tools_row.Add(self.alt_btn, 0, wx.RIGHT, 8)
+        tools_row.Add(self.rec_btn, 0)
+        tx_sizer.Add(tools_row, 0, wx.ALL, 4)
 
         root.Add(tx_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
@@ -231,6 +247,7 @@ class VideoTab(wx.Panel):
             if ok:
                 self._tx_enabled = True
                 self.tx_toggle.SetValue(True)
+                self._update_local_video_state(True)
                 self.frame.set_status("Video senden aktiviert")
             else:
                 self._tx_enabled = False
@@ -240,6 +257,7 @@ class VideoTab(wx.Panel):
             self.frame.client.stop_video_capture_transmission()
             self._tx_enabled = False
             self.tx_toggle.SetValue(False)
+            self._update_local_video_state(False)
             self.frame.set_status("Video senden deaktiviert")
 
     def _ensure_video_ready(self) -> bool:
@@ -261,3 +279,77 @@ class VideoTab(wx.Panel):
         except Exception:
             pass
         return self.frame.client.init_video_capture_device(device_id, fmt)
+
+    def _current_video_stats(self):
+        lines = self.frame._video_stats.summary_lines()
+        return lines
+
+    def _update_local_video_state(self, enabled: bool) -> None:
+        nickname = self.frame.connection_tab.nickname.GetValue().strip() or "Ich"
+        user_id = int(self.frame.client.get_my_user_id() or self._local_video_stat_user_id)
+        self._local_video_stat_user_id = user_id
+        fmt = self._selected_format()
+        width = int(getattr(fmt, "nWidth", 0) or 0) if fmt is not None else 0
+        height = int(getattr(fmt, "nHeight", 0) or 0) if fmt is not None else 0
+        fps = 0.0
+        if fmt is not None:
+            den = int(getattr(fmt, "nFPS_Denominator", 0) or 0)
+            num = int(getattr(fmt, "nFPS_Numerator", 0) or 0)
+            fps = float(num) / float(den) if den > 0 else float(num)
+        if enabled:
+            self.frame._video_stats.update(user_id, nickname, width, height, fps, 0.0)
+            if not self.frame._video_recorder.is_recording(user_id):
+                self.frame._video_recorder.start_recording(user_id, nickname)
+        else:
+            if self.frame._video_recorder.is_recording(user_id):
+                self.frame._video_recorder.stop_recording(user_id)
+            self.frame._video_stats.remove(user_id)
+
+    def on_show_stats(self, _event) -> None:
+        dlg = wx.Dialog(self, title="Video-Statistik", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetMinSize((620, 360))
+        root = wx.BoxSizer(wx.VERTICAL)
+        text = wx.TextCtrl(dlg, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+        text.SetName("Video-Statistik")
+        text.SetValue("\n".join(self._current_video_stats()))
+        root.Add(text, 1, wx.ALL | wx.EXPAND, 10)
+        root.Add(dlg.CreateButtonSizer(wx.OK), 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+        dlg.SetSizerAndFit(root)
+        dlg.CentreOnParent()
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def on_show_alt_text(self, _event) -> None:
+        from video_manager import generate_video_alt_text
+
+        all_stats = self.frame._video_stats.all_stats()
+        if not all_stats:
+            self.frame.set_status("Keine aktiven Video-Streams")
+            return
+        text = "\n".join(generate_video_alt_text(stat) for stat in all_stats)
+        dlg = wx.MessageDialog(self, text, "Video-Beschreibung", wx.OK | wx.ICON_INFORMATION)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def on_show_recordings(self, _event) -> None:
+        dlg = wx.Dialog(self, title="Video-Aufnahmen", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetMinSize((720, 420))
+        root = wx.BoxSizer(wx.VERTICAL)
+        text = wx.TextCtrl(dlg, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+        text.SetName("Video-Aufnahmen")
+        history = self.frame._video_recorder.history(50)
+        if history:
+            lines = []
+            for rec in history:
+                lines.append(
+                    f"{rec.nickname} | {rec.duration_s:.1f}s | {rec.frame_count} Frames | {rec.path}"
+                )
+            text.SetValue("\n".join(lines))
+        else:
+            text.SetValue("Noch keine Video-Aufnahmen vorhanden.")
+        root.Add(text, 1, wx.ALL | wx.EXPAND, 10)
+        root.Add(dlg.CreateButtonSizer(wx.OK), 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+        dlg.SetSizerAndFit(root)
+        dlg.CentreOnParent()
+        dlg.ShowModal()
+        dlg.Destroy()
