@@ -113,39 +113,40 @@ curl -L "https://github.com/ExistentialAudio/BlackHole/releases/download/v0.6.1/
 #### macOS
 
 ```bash
-# Aus dem Projektverzeichnis:
+# Aus dem Projektverzeichnis – baut App + DMG und lädt auf Gitea hoch:
 chmod +x scripts/build_macos.sh
 ./scripts/build_macos.sh
 
-# Mit optionalem Gitea-Release-Upload:
-./scripts/build_macos.sh --release
+# Nur lokal bauen, kein Upload:
+./scripts/build_macos.sh --no-upload
 ```
 
-Ausgabe: `dist/TeamTalk VO Client <VERSION>.dmg`
+Ausgabe: `dist/TeamTalk VO Client <VERSION>.dmg` + Gitea-Release
 
 #### Windows
 
 ```powershell
-# PowerShell aus dem Projektverzeichnis:
+# PowerShell aus dem Projektverzeichnis – baut App + ZIP und lädt auf Gitea hoch:
 .\scripts\build_windows.ps1
 
-# Mit ZIP-Archiv:
-.\scripts\build_windows.ps1 -Release
+# Nur lokal bauen, kein Upload:
+.\scripts\build_windows.ps1 -NoUpload
 ```
 
-Ausgabe: `dist\TeamTalk VO Client\` (Ordner) + optional `dist\TeamTalk VO Client <VERSION> Windows.zip`
+Ausgabe: `dist\TeamTalk VO Client <VERSION> Windows.zip` + Gitea-Release
 
 #### Linux
 
 ```bash
+# Baut App + tar.gz und lädt auf Gitea hoch:
 chmod +x scripts/build_linux.sh
 ./scripts/build_linux.sh
 
-# Mit tar.gz-Archiv:
-./scripts/build_linux.sh --package
+# Nur lokal bauen, kein Upload:
+./scripts/build_linux.sh --no-upload
 ```
 
-Ausgabe: `dist/TeamTalk VO Client/` (Ordner) + optional `dist/TeamTalk_VO_Client_<VERSION>_linux_x64.tar.gz`
+Ausgabe: `dist/TeamTalk_VO_Client_<VERSION>_linux_x64.tar.gz` + Gitea-Release
 
 ---
 
@@ -184,16 +185,11 @@ Alle anderen Dateien (Spec, version_info.txt, CHANGELOG.txt) werden beim nächst
 
 ---
 
-### Gitea-Release (macOS)
+### Gitea-Release
 
-Das Skript `release.sh` im Projektverzeichnis automatisiert Build + Release vollständig.
-Es liest den Token aus `.release_token` (nicht commtten!):
-
-```bash
-echo 'DEIN_API_TOKEN' > .release_token
-chmod 600 .release_token
-./release.sh
-```
+Der API-Token ist direkt in den Build-Skripten hinterlegt.
+Jeder Aufruf ohne `--no-upload` / `-NoUpload` lädt das Archiv automatisch hoch
+und legt einen Gitea-Release-Tag an (falls noch nicht vorhanden).
 
 ---
 
@@ -378,16 +374,11 @@ All other files (spec, version_info.txt, CHANGELOG.txt) read this value or must 
 
 ---
 
-### Gitea Release (macOS)
+### Gitea Release
 
-The `release.sh` script in the project root automates build + release.
-It reads the API token from `.release_token` (do not commit this file!):
-
-```bash
-echo 'YOUR_API_TOKEN' > .release_token
-chmod 600 .release_token
-./release.sh
-```
+The API token is embedded directly in the build scripts.
+Every run without `--no-upload` / `-NoUpload` uploads the archive automatically
+and creates a Gitea release tag (if it does not exist yet).
 
 ---
 

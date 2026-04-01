@@ -7,16 +7,20 @@
 #   - PortAudio-DLL (wird von pyaudio mitgeliefert)
 #
 # Aufruf (PowerShell, aus dem Projektverzeichnis):
-#   .\scripts\build_windows.ps1            # nur App bauen
-#   .\scripts\build_windows.ps1 -Release   # bauen + ZIP erstellen
+#   .\scripts\build_windows.ps1              # App bauen + ZIP + Gitea-Upload
+#   .\scripts\build_windows.ps1 -NoUpload   # ohne Gitea-Upload
 # =============================================================================
 
 param(
-    [switch]$Release
+    [switch]$NoUpload
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+# Gitea-Zugangsdaten
+$GiteaToken = "e91faa5c35310a376937604fffba15a8d7c66345"
+$GiteaBase  = "https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
 
 # Ins Projektverzeichnis wechseln (Skript liegt in scripts/)
 $ProjectDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
@@ -76,22 +80,49 @@ Write-Host "==> Starte PyInstaller-Build..."
 Write-Host "==> Build abgeschlossen: dist\TeamTalk VO Client\"
 
 # ---------------------------------------------------------------------------
-# 5. Optional: ZIP-Archiv erstellen
+# 5. ZIP-Archiv erstellen
 # ---------------------------------------------------------------------------
-if ($Release) {
-    $ZipName = "TeamTalk VO Client $Version Windows.zip"
-    $ZipPath = "dist\$ZipName"
-    Write-Host "==> Erstelle ZIP: $ZipName"
-    Compress-Archive -Path "dist\TeamTalk VO Client" -DestinationPath $ZipPath -Force
-    $SizeMB = [math]::Round((Get-Item $ZipPath).Length / 1MB, 1)
-    Write-Host "    Groesse: ${SizeMB} MB"
+$ZipName = "TeamTalk VO Client $Version Windows.zip"
+$ZipPath = "dist\$ZipName"
+Write-Host "==> Erstelle ZIP: $ZipName"
+Compress-Archive -Path "dist\TeamTalk VO Client" -DestinationPath $ZipPath -Force
+$SizeMB = [math]::Round((Get-Item $ZipPath).Length / 1MB, 1)
+Write-Host "    Groesse: ${SizeMB} MB"
+
+# ---------------------------------------------------------------------------
+# 6. Gitea-Release hochladen
+# ---------------------------------------------------------------------------
+if (-not $NoUpload) {
+    $Headers = @{ "Authorization" = "token $GiteaToken"; "Content-Type" = "application/json" }
+
+    $ExistingJson = try {
+        Invoke-RestMethod -Uri "$GiteaBase/releases/tags/v$Version" -Headers $Headers -ErrorAction Stop
+    } catch { $null }
+
+    if ($ExistingJson -and $ExistingJson.id) {
+        Write-Host "==> Release v$Version (ID $($ExistingJson.id)) existiert bereits."
+        $ReleaseId = $ExistingJson.id
+    } else {
+        Write-Host "==> Lege Gitea-Release v$Version an..."
+        $Body = @{ tag_name = "v$Version"; name = "v$Version"; is_draft = $false } | ConvertTo-Json
+        $NewRelease = Invoke-RestMethod -Uri "$GiteaBase/releases" -Method Post -Headers $Headers -Body $Body
+        $ReleaseId = $NewRelease.id
+        Write-Host "    Release-ID: $ReleaseId"
+    }
+
+    Write-Host "==> Lade ZIP hoch..."
+    $ZipNameEnc = [Uri]::EscapeDataString($ZipName)
+    $UploadHeaders = @{ "Authorization" = "token $GiteaToken"; "Content-Type" = "application/octet-stream" }
+    $Asset = Invoke-RestMethod -Uri "$GiteaBase/releases/$ReleaseId/assets?name=$ZipNameEnc" `
+        -Method Post -Headers $UploadHeaders -InFile $ZipPath
+    Write-Host "    Asset: $($Asset.name)"
 }
 
 # ---------------------------------------------------------------------------
 Write-Host ""
 Write-Host "============================================================"
-Write-Host " Fertig!"
-if ($Release) {
-    Write-Host " dist\$ZipName"
+Write-Host " Fertig! dist\$ZipName"
+if (-not $NoUpload) {
+    Write-Host " Release: https://git.garogaming.xyz/flarion/TeamTalk-VO-Client/releases/tag/v$Version"
 }
 Write-Host "============================================================"

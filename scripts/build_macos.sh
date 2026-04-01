@@ -9,8 +9,8 @@
 #   - PortAudio (für pyaudio): brew install portaudio
 #
 # Aufruf (aus dem Projektverzeichnis):
-#   ./scripts/build_macos.sh          # nur App + DMG bauen
-#   ./scripts/build_macos.sh --release  # bauen + Gitea-Release hochladen
+#   ./scripts/build_macos.sh            # App + DMG bauen + Gitea-Release hochladen
+#   ./scripts/build_macos.sh --no-upload  # nur App + DMG, kein Upload
 # =============================================================================
 
 set -euo pipefail
@@ -18,9 +18,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
-RELEASE=false
+# Gitea-Zugangsdaten (privates Repo)
+GITEA_TOKEN="e91faa5c35310a376937604fffba15a8d7c66345"
+GITEA_BASE="https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
+
+UPLOAD=true
 for arg in "$@"; do
-  [[ "$arg" == "--release" ]] && RELEASE=true
+  [[ "$arg" == "--no-upload" ]] && UPLOAD=false
 done
 
 # ---------------------------------------------------------------------------
@@ -100,20 +104,11 @@ hdiutil create \
 echo "    Größe: $(du -sh "$DMG_PATH" | cut -f1)"
 
 # ---------------------------------------------------------------------------
-# 7. Optional: Gitea-Release hochladen
+# 7. Gitea-Release hochladen
 # ---------------------------------------------------------------------------
-if $RELEASE; then
-  TOKEN_FILE=".release_token"
-  if [[ ! -f "$TOKEN_FILE" ]]; then
-    echo "FEHLER: $TOKEN_FILE nicht gefunden (wird für --release benötigt)." >&2
-    echo "  Anlegen: echo 'DEIN_TOKEN' > .release_token" >&2
-    exit 1
-  fi
-  TOKEN=$(< "$TOKEN_FILE" tr -d '[:space:]')
-  BASE="https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
-
-  EXISTING=$(curl -sf -H "Authorization: token $TOKEN" \
-    "$BASE/releases/tags/v${VERSION}" \
+if $UPLOAD; then
+  EXISTING=$(curl -sf -H "Authorization: token $GITEA_TOKEN" \
+    "$GITEA_BASE/releases/tags/v${VERSION}" \
     | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null || true)
 
   if [[ -n "$EXISTING" ]]; then
@@ -121,16 +116,17 @@ if $RELEASE; then
     RELEASE_ID="$EXISTING"
   else
     echo "==> Lege Gitea-Release v${VERSION} an..."
-    RELEASE_ID=$(curl -s -X POST "$BASE/releases" \
-      -H "Authorization: token $TOKEN" -H "Content-Type: application/json" \
+    RELEASE_ID=$(curl -s -X POST "$GITEA_BASE/releases" \
+      -H "Authorization: token $GITEA_TOKEN" -H "Content-Type: application/json" \
       -d "{\"tag_name\":\"v${VERSION}\",\"name\":\"v${VERSION}\",\"is_draft\":false}" \
       | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
     echo "    Release-ID: $RELEASE_ID"
   fi
 
   echo "==> Lade DMG hoch..."
-  curl -s -X POST "$BASE/releases/${RELEASE_ID}/assets?name=$(python3 -c "import urllib.parse; print(urllib.parse.quote('${DMG_NAME}'))")" \
-    -H "Authorization: token $TOKEN" \
+  DMG_NAME_ENC=$(python3 -c "import urllib.parse; print(urllib.parse.quote('${DMG_NAME}'))")
+  curl -s -X POST "$GITEA_BASE/releases/${RELEASE_ID}/assets?name=${DMG_NAME_ENC}" \
+    -H "Authorization: token $GITEA_TOKEN" \
     -H "Content-Type: application/octet-stream" \
     --data-binary "@${DMG_PATH}" \
     | python3 -c "import sys,json; r=json.load(sys.stdin); print('    Asset:', r.get('name', r.get('message','?')))"
@@ -140,7 +136,7 @@ fi
 echo ""
 echo "============================================================"
 echo " Fertig! dist/${DMG_NAME}"
-if $RELEASE; then
+if $UPLOAD; then
   echo " Release: https://git.garogaming.xyz/flarion/TeamTalk-VO-Client/releases/tag/v${VERSION}"
 fi
 echo "============================================================"
