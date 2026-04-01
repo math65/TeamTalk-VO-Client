@@ -13,7 +13,7 @@ from i18n import _, current_language
 
 
 APP_NAME = "TeamTalk VoiceOver Client"
-APP_VERSION = "6.1.5"
+APP_VERSION = "6.2.0"
 APP_CODENAME = "Libero"
 APP_AUTHOR = "Florian Lichteblau (Flarion)"
 APP_URL = "https://git.garogaming.xyz/flarion/TeamTalk-VO-Client"

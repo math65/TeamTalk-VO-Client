@@ -67,7 +67,7 @@ class WebhookManager:
                     data=body,
                     headers={
                         "Content-Type": "application/json",
-                        "User-Agent": "TeamTalkVOClient/4.3",
+                        "User-Agent": "TeamTalkVOClient/6.1.6",
                     },
                     method="POST",
                 )

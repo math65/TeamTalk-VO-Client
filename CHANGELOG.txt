@@ -1,6 +1,21 @@
 Changelog
 =========
 
+2026-04-01 (v6.2.0)
+- Desktop-Streaming: neues plattformübergreifendes Backend (screen_capture.py)
+  via mss – ersetzt wx.ScreenDC; 10–30× schneller, kein RGB-Konvertierungsloop mehr;
+  BGRA direkt für TeamTalk BMP_RGB32 korrekt (vorher war R/B vertauscht).
+- Desktop-Streaming: Fensterauswahl UI – Vollbild (Monitor-Auswahl) oder einzelnes
+  Fenster aus Systemliste (macOS via Quartz, Windows via win32gui, Linux via xdotool,
+  Wayland via grim-Subprocess).
+- Systemton-Erkennung (system_audio.py): Loopback/Monitor-Geräte in der Geräteliste
+  automatisch mit "[Systemton]" markiert; neue UI-Box im Audio-Tab mit
+  plattformspezifischem Hinweistext und "BlackHole installieren"-Button (macOS).
+- BlackHole 2ch v0.6.1 im App-Bundle enthalten (third_party/blackhole/BlackHole2ch.pkg);
+  Ein-Klick-Installation direkt aus der App heraus; Fallback auf Homebrew oder Hinweistext.
+- Installationsanleitung für macOS in vier Sprachen (DE/EN/FR/ES): INSTALL_macOS.md –
+  erklärt Client-Installation, BlackHole-Setup und ersten Server-Start.
+
 2026-03-31 (v6.1.6)
 - Mikrofon-Verarbeitung: neuer Bereich im Audio-Tab mit Noise Gate, Expander,
   Limiter und Expander+Limiter; Modus, Schwellwert und Rauschunterdrückungs-dB

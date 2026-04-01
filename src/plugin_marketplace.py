@@ -83,7 +83,7 @@ class PluginMarketplace:
         try:
             req = urllib.request.Request(
                 self._url,
-                headers={"User-Agent": "TeamTalkVOClient/4.10.0"},
+                headers={"User-Agent": "TeamTalkVOClient/6.1.6"},
             )
             with urllib.request.urlopen(req, timeout=self._timeout) as resp:
                 raw = resp.read()
@@ -128,7 +128,7 @@ class PluginMarketplace:
         try:
             req = urllib.request.Request(
                 entry.download_url,
-                headers={"User-Agent": "TeamTalkVOClient/4.10.0"},
+                headers={"User-Agent": "TeamTalkVOClient/6.1.6"},
             )
             with urllib.request.urlopen(req, timeout=self._timeout) as resp:
                 data = resp.read()

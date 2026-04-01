@@ -6,8 +6,8 @@
 <title>TeamTalk VoiceOver Client – Handbuch</title>
 <style>
   body { font-family: sans-serif; font-size: 14px; margin: 0; padding: 16px 24px; background: #fff; color: #111; line-height: 1.6; }
-  h1 { font-size: 1.8em; border-bottom: 2px solid #333; padding-bottom: 6px; margin-top: 24px; }
-  h2 { font-size: 1.4em; border-bottom: 1px solid #999; padding-bottom: 4px; margin-top: 20px; color: #222; }
+  h1 { font-size: 1.8em; border-bottom: 2px solid #333; padding-bottom: 6px; margin-top: 32px; }
+  h2 { font-size: 1.4em; border-bottom: 1px solid #999; padding-bottom: 4px; margin-top: 24px; color: #222; }
   h3 { font-size: 1.1em; margin-top: 16px; color: #333; }
   table { border-collapse: collapse; width: 100%; margin: 10px 0; }
   th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; vertical-align: top; }
@@ -21,46 +21,85 @@
   .lin { background: #fff3cd; color: #5a4000; }
   .note { background: #fffbe6; border-left: 4px solid #e6b800; padding: 8px 12px; margin: 10px 0; border-radius: 3px; }
   .tip  { background: #e8f5e9; border-left: 4px solid #388e3c; padding: 8px 12px; margin: 10px 0; border-radius: 3px; }
-  #toc { background: #f7f7f7; border: 1px solid #ddd; padding: 12px 16px; display: inline-block; min-width: 280px; margin-bottom: 16px; }
-  #toc h2 { margin-top: 0; border: none; }
-  #toc ol { margin: 0; }
-  #toc li { margin: 2px 0; }
+  .new  { background: #eef6ff; border-left: 4px solid #1a73e8; padding: 8px 12px; margin: 10px 0; border-radius: 3px; }
+  .part-header { background: #f0f0f0; border-left: 5px solid #555; padding: 6px 14px; margin-top: 40px; font-size: 1.0em; font-weight: bold; letter-spacing: 0.04em; color: #444; }
+  #toc { background: #f7f7f7; border: 1px solid #ddd; padding: 12px 20px; display: inline-block; min-width: 320px; margin-bottom: 20px; }
+  #toc h2 { margin-top: 0; border: none; font-size: 1.1em; }
+  #toc .toc-part { margin-top: 10px; font-weight: bold; color: #444; font-size: 0.9em; letter-spacing: 0.03em; list-style: none; padding-left: 0; }
+  #toc ol { margin: 2px 0 2px 16px; }
+  #toc li { margin: 2px 0; font-size: 0.95em; }
+  .badge-new { display: inline-block; background: #1a73e8; color: #fff; font-size: 0.7em; font-weight: bold; padding: 0 5px; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
 </style>
 </head>
 <body>
 
 <h1>TeamTalk VoiceOver Client – Benutzerhandbuch</h1>
 <p>Barrierefreier TeamTalk-Client für VoiceOver (macOS), NVDA / JAWS (Windows) und Orca (Linux).<br>
-Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
+Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>6.1.6</strong></p>
 
+<!-- ============================================================ -->
 <div id="toc">
 <h2>Inhaltsverzeichnis</h2>
+
+<p class="toc-part">Teil A · Einstieg</p>
 <ol>
-  <li><a href="#ueber">Über diese App</a></li>
-  <li><a href="#systemanforderungen">Systemanforderungen &amp; Plattformunterschiede</a></li>
+  <li><a href="#ueber">Über diese App &amp; Was ist neu</a></li>
+  <li><a href="#systemanforderungen">Systemanforderungen</a></li>
   <li><a href="#installation">Installation &amp; erster Start</a></li>
+</ol>
+
+<p class="toc-part">Teil B · Hauptfenster &amp; Navigation</p>
+<ol start="4">
   <li><a href="#hauptfenster">Hauptfenster – Überblick</a></li>
-  <li><a href="#menue">Menüleiste (alle Menüpunkte)</a></li>
+  <li><a href="#menue">Menüleiste</a></li>
+  <li><a href="#fokus">Fokus-Shortcuts (Cmd+1–4) <span class="badge-new">NEU</span></a></li>
+  <li><a href="#schnellaktionen">Schnellaktionen-Leiste &amp; Tray-Symbol</a></li>
+</ol>
+
+<p class="toc-part">Teil C · Verbindung &amp; Kommunikation</p>
+<ol start="8">
   <li><a href="#verbindung">Verbindung herstellen</a></li>
   <li><a href="#kanaelechat">Kanäle, Nutzerliste &amp; Chat</a></li>
+  <li><a href="#benachrichtigungen">Benachrichtigungen <span class="badge-new">NEU</span></a></li>
+</ol>
+
+<p class="toc-part">Teil D · Audio</p>
+<ol start="11">
   <li><a href="#audio">Audio-Einstellungen</a></li>
-  <li><a href="#medien">Aufnahme &amp; Medien-Streaming</a></li>
-  <li><a href="#dateien">Dateien</a></li>
-  <li><a href="#admin">Administration</a></li>
+  <li><a href="#mikverarbeitung">Mikrofon-Verarbeitung <span class="badge-new">NEU</span></a></li>
+  <li><a href="#systemtts">System-TTS (espeak-ng)</a></li>
   <li><a href="#sprechen">Sprechen (ElevenLabs TTS)</a></li>
+</ol>
+
+<p class="toc-part">Teil E · Medien &amp; Dateien</p>
+<ol start="15">
+  <li><a href="#medien">Aufnahme &amp; Medien-Streaming</a></li>
   <li><a href="#desktop">Desktopfreigabe</a></li>
+  <li><a href="#dateien">Dateien</a></li>
+</ol>
+
+<p class="toc-part">Teil F · Einstellungen &amp; Anpassung</p>
+<ol start="18">
   <li><a href="#einstellungen">Einstellungen</a></li>
-  <li><a href="#systemtts">System &amp; TTS (espeak-ng)</a></li>
-  <li><a href="#kuerzel">Tastaturkürzel anpassen</a></li>
-  <li><a href="#schnellaktionen">Schnellaktionen-Leiste</a></li>
-  <li><a href="#tray">Tray-Symbol</a></li>
+  <li><a href="#kuerzel">Tastaturkürzel &amp; Globale Hotkeys</a></li>
+</ol>
+
+<p class="toc-part">Teil G · Server-Verwaltung</p>
+<ol start="20">
+  <li><a href="#admin">Administration</a></li>
+</ol>
+
+<p class="toc-part">Teil H · Referenz</p>
+<ol start="21">
+  <li><a href="#plattform">Plattformunterschiede</a></li>
   <li><a href="#probleme">Häufige Probleme &amp; Lösungen</a></li>
-  <li><a href="#plattform">Plattformunterschiede im Detail</a></li>
 </ol>
 </div>
 
-<!-- ================================================================ -->
-<h1 id="ueber">1 · Über diese App</h1>
+<!-- ============================================================ -->
+<div class="part-header">Teil A · Einstieg</div>
+
+<h1 id="ueber">1 · Über diese App &amp; Was ist neu</h1>
 <p>Der <strong>TeamTalk VoiceOver Client</strong> ist ein grafischer Client für das TeamTalk-Protokoll, der speziell für blinde und sehbehinderte Nutzer entwickelt wurde. Alle Bedienelemente sind für Screenreader optimiert:</p>
 <ul>
   <li><strong>macOS</strong> – VoiceOver mit Braillezeile (primäre Plattform)</li>
@@ -68,32 +107,44 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
   <li><strong>Linux</strong> – Orca (grundlegend unterstützt)</li>
 </ul>
 <p>TeamTalk ist ein Sprachkommunikationsdienst ähnlich wie Mumble oder Discord. Der Client verbindet sich mit einem TeamTalk-Server, tritt Kanälen bei und ermöglicht Sprach- und Textkommunikation.</p>
+<p>Die App unterstützt vier Oberflächensprachen: <strong>Deutsch, English, Français, Español</strong>. Die Sprache kann unter <em>Einstellungen → Allgemein → App-Sprache</em> gewechselt werden; die App startet dann neu.</p>
 
-<!-- ================================================================ -->
-<h1 id="systemanforderungen">2 · Systemanforderungen &amp; Plattformunterschiede</h1>
+<h2>Was ist neu in v6.1.6</h2>
+<div class="new">
+<strong>Neu in v6.1.6 (2026-03-31):</strong>
+<ul>
+  <li><strong>Mikrofon-Verarbeitung</strong>: Noise Gate, Expander, Limiter und Expander+Limiter direkt im Audio-Tab – Modus, Schwellwert und Rauschunterdrückungs-dB einstellbar (→ <a href="#mikverarbeitung">Abschnitt 12</a>).</li>
+  <li><strong>Mikrofon-Vorschau</strong>: "Vorschau starten/stoppen"-Taste im Verarbeitungsbereich – hören Sie sich selbst ohne Serververbindung (Loopback).</li>
+  <li><strong>Fokus-Shortcuts <span class="platform mac">macOS</span></strong>: Cmd+1 bis Cmd+4 setzen den Fokus direkt auf Kanalliste, Chatverlauf, Nachrichteneingabe und Ereignisprotokoll (→ <a href="#fokus">Abschnitt 6</a>).</li>
+  <li><strong>Kanalbasierte Benachrichtigungen</strong>: macOS-Benachrichtigungen für Benutzer-betreten/-verlassen erscheinen nur noch wenn der Nutzer im eigenen Kanal ist; der Titel nennt Name und Richtung (→ <a href="#benachrichtigungen">Abschnitt 10</a>).</li>
+</ul>
+</div>
+
+<!-- ============================================================ -->
+<h1 id="systemanforderungen">2 · Systemanforderungen</h1>
 
 <table>
 <tr><th>Merkmal</th><th><span class="platform mac">macOS</span></th><th><span class="platform win">Windows</span></th><th><span class="platform lin">Linux</span></th></tr>
-<tr><td>Mindestversion</td><td>macOS 11 (Big Sur)</td><td>Windows 10 (64-bit)</td><td>Ubuntu 20.04 oder vergleichbar</td></tr>
+<tr><td>Mindestversion</td><td>macOS 11 Big Sur</td><td>Windows 10 (64-bit)</td><td>Ubuntu 20.04 oder vergleichbar</td></tr>
 <tr><td>Screenreader</td><td>VoiceOver (eingebaut)</td><td>NVDA, JAWS</td><td>Orca</td></tr>
 <tr><td>TTS-Ausgabe</td><td>afplay (eingebaut)</td><td>winsound (eingebaut)</td><td>direkt via espeak-ng</td></tr>
 <tr><td>Tastaturkürzel für Buttons</td><td>Nicht nötig (VoiceOver navigiert direkt)</td><td>Alt+markierter Buchstabe</td><td>Alt+markierter Buchstabe</td></tr>
-<tr><td>Listenansagen</td><td>"Liste, N Einträge" (VoiceOver-Patch aktiv)</td><td>NVDA/JAWS lesen Einträge normal vor</td><td>Orca liest Einträge vor</td></tr>
+<tr><td>Listenansagen</td><td>"Liste, N Einträge" (VoiceOver-Patch aktiv)</td><td>NVDA/JAWS lesen Einträge normal</td><td>Orca liest Einträge vor</td></tr>
 <tr><td>Tray-Symbol</td><td>Menüleiste oben rechts</td><td>Systemtray unten rechts</td><td>Systemtray (falls verfügbar)</td></tr>
-<tr><td>Fenster schließen</td><td>Minimiert in Tray (rotes X), Cmd+Q zum Beenden</td><td>Minimiert in Tray, Datei → Beenden</td><td>Minimiert in Tray, Datei → Beenden</td></tr>
+<tr><td>Fenster schließen</td><td>Minimiert in Tray (rotes X), Cmd+Q beendet</td><td>Minimiert in Tray, Datei → Beenden</td><td>Minimiert in Tray, Datei → Beenden</td></tr>
 </table>
 
 <div class="note">
-<strong>Hinweis für macOS-Nutzer:</strong> Das Schließen des Hauptfensters (rotes X oder Cmd+W) minimiert die App in die Menüleiste – die Verbindung bleibt aktiv. Um die App wirklich zu beenden: <em>Datei → Beenden</em> oder <em>Cmd+Q</em>.
+<strong>macOS:</strong> Das Schließen des Hauptfensters (rotes X oder Cmd+W) minimiert die App in die Menüleiste – die Verbindung bleibt aktiv. Um wirklich zu beenden: <em>Datei → Beenden</em> oder Cmd+Q.
 </div>
 <div class="note">
-<strong>Hinweis für Windows-Nutzer:</strong> Alt+Buchstabe aktiviert die markierte Schaltfläche direkt (z.B. Alt+V für "Verbinden"). Dies funktioniert innerhalb des gerade angezeigten Bereichs.
+<strong>Windows:</strong> Alt+Buchstabe aktiviert die markierte Schaltfläche direkt (z.B. Alt+V für "Verbinden"). Dies funktioniert innerhalb des gerade angezeigten Bereichs.
 </div>
 
-<!-- ================================================================ -->
+<!-- ============================================================ -->
 <h1 id="installation">3 · Installation &amp; erster Start</h1>
 
-<h2>macOS</h2>
+<h2><span class="platform mac">macOS</span></h2>
 <ol>
   <li>DMG-Datei öffnen (Doppelklick).</li>
   <li>"TeamTalk VO Client.app" in den Programme-Ordner ziehen.</li>
@@ -101,7 +152,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
   <li>Mikrofon- und ggf. Bildschirmaufnahme-Berechtigung erteilen wenn gefragt.</li>
 </ol>
 
-<h2>Windows</h2>
+<h2><span class="platform win">Windows</span></h2>
 <ol>
   <li>EXE- oder ZIP-Datei herunterladen.</li>
   <li>ZIP-Inhalt in einen Ordner entpacken (z.B. <code>C:\Programme\TeamTalk VO Client</code>).</li>
@@ -109,29 +160,35 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
   <li>Windows Defender / SmartScreen: "Trotzdem ausführen" wählen.</li>
 </ol>
 
-<h2>Linux</h2>
+<h2><span class="platform lin">Linux</span></h2>
 <ol>
   <li>AppImage oder tar.gz herunterladen und entpacken.</li>
   <li>AppImage ausführbar machen: <code>chmod +x TeamTalk*.AppImage</code></li>
   <li>Starten: <code>./TeamTalk*.AppImage</code></li>
+  <li>espeak-ng installieren falls noch nicht vorhanden: <code>sudo apt install espeak-ng</code></li>
 </ol>
 
 <h2>Erster Start</h2>
-<p>Beim ersten Start öffnet sich das Hauptfenster mit dem Bereich "Kanäle und Chat". Um sich zu verbinden, öffnen Sie zunächst das Verbindungsfenster über <em>Datei → Verbinden</em> oder die Schaltfläche <em>Verbinden</em> in der Schnellaktionen-Leiste.</p>
+<p>Beim ersten Start öffnet sich das Hauptfenster. Um sich zu verbinden, öffnen Sie zunächst das Verbindungsfenster über <em>Datei → Verbinden</em> oder die Schaltfläche <em>Verbinden</em> in der Schnellaktionen-Leiste. Serververbindungen werden als Profile gespeichert und bei jedem Start wiederhergestellt.</p>
 
-<!-- ================================================================ -->
+<h2>App-Update</h2>
+<p>Über <em>Hilfe → Nach Updates suchen</em> prüft die App, ob eine neue Version verfügbar ist. Das Update-DMG (macOS) wird direkt in der App heruntergeladen und gespeichert – kein Browser-Zugang zum Repository nötig.</p>
+
+<!-- ============================================================ -->
+<div class="part-header">Teil B · Hauptfenster &amp; Navigation</div>
+
 <h1 id="hauptfenster">4 · Hauptfenster – Überblick</h1>
-<p>Das Hauptfenster besteht von oben nach unten aus:</p>
+<p>Das Hauptfenster ist von oben nach unten in folgende Bereiche unterteilt:</p>
 
 <table>
 <tr><th>Element</th><th>Beschreibung</th></tr>
 <tr><td>Menüleiste</td><td>Datei, Sound, Kanal, Sprache, Hilfe – alle wichtigen Funktionen als Menüpunkte</td></tr>
-<tr><td>Bereich-Auswahl</td><td>Auswahlmenü "Bereich:" zum Wechseln zwischen den Hauptbereichen (Kanäle und Chat, Medien, Desktop, Dateien, Administration)</td></tr>
+<tr><td>Bereich-Auswahl</td><td>Auswahlmenü "Bereich:" zum Wechseln zwischen Hauptbereichen (Kanäle und Chat, Aufnahme &amp; Medien, Desktop, Dateien, Administration)</td></tr>
 <tr><td>Bereichsinfo</td><td>Kurzbeschreibung des aktuell gewählten Bereichs</td></tr>
 <tr><td>Hauptinhalt</td><td>Der aktuelle Bereich (Panel), z.B. Kanalliste + Nutzerliste + Chat</td></tr>
-<tr><td>Status</td><td>Zeigt den aktuellen Verbindungsstatus an (z.B. "Verbunden als Florian auf Server XY")</td></tr>
-<tr><td>Ereignisprotokoll</td><td>Mehrzeiliges Protokoll aller Ereignisse (optional, ein-/ausblendbar)</td></tr>
-<tr><td>Schnellaktionen</td><td>Checkboxen für PTT, Sprachaktivierung, Video, Desktop, Stumm, Aufnahme, Frage-Modus; Zahlfelder für Ausgabe- und Mikrofon-Lautstärke; VU-Meter (optional, ein-/ausblendbar)</td></tr>
+<tr><td>Statuszeile</td><td>Zeigt den Verbindungsstatus an (z.B. "Verbunden als Florian auf Server XY")</td></tr>
+<tr><td>Ereignisprotokoll</td><td>Mehrzeiliges Protokoll aller Ereignisse (optional ein-/ausblendbar)</td></tr>
+<tr><td>Schnellaktionen</td><td>Checkboxen für PTT, Sprachaktivierung, Video, Desktop, Stumm, Aufnahme, Frage-Modus; Lautstärke-Zahlfelder; VU-Meter (optional)</td></tr>
 </table>
 
 <h2>Navigation mit Screenreader</h2>
@@ -142,7 +199,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <tr><td><span class="platform lin">Linux Orca</span></td><td>Tab / Shift+Tab</td><td>Enter oder Leertaste</td><td>Tab zum Auswahlmenü "Bereich", Pfeiltasten</td></tr>
 </table>
 
-<!-- ================================================================ -->
+<!-- ============================================================ -->
 <h1 id="menue">5 · Menüleiste</h1>
 
 <h2>Menü: Datei</h2>
@@ -154,9 +211,9 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <tr><td>Sound-Konfiguration → Ausgabegeräte</td><td>–</td><td>Listet alle verfügbaren Lautsprecher/Kopfhörer</td></tr>
 <tr><td>Sound-Konfiguration → Audio-Einstellungen…</td><td>–</td><td>Öffnet das Einstellungsfenster direkt auf dem Audio-Tab</td></tr>
 <tr><td>Sound-Konfiguration → Audio anwenden</td><td>–</td><td>Wendet die aktuellen Audiogeräte sofort an</td></tr>
-<tr><td>Sound-Konfiguration → Geräte aktualisieren</td><td>–</td><td>Scannt nach neuen Audiogeräten (nach USB-Verbindung etc.)</td></tr>
+<tr><td>Sound-Konfiguration → Geräte aktualisieren</td><td>–</td><td>Scannt nach neuen Audiogeräten (nach USB-Verbindung usw.)</td></tr>
 <tr><td>Sound-Konfiguration → Effekte anwenden</td><td>–</td><td>Aktiviert AGC, Rauschunterdrückung und Echounterdrückung</td></tr>
-<tr><td>Konversationen aufzeichnen…</td><td>–</td><td>Öffnet das Einstellungsfenster für automatische Aufnahmen</td></tr>
+<tr><td>Konversationen aufzeichnen…</td><td>–</td><td>Öffnet die Einstellungen für automatische Aufnahmen</td></tr>
 <tr><td>Einstellungen…</td><td>F4 / Cmd+,</td><td>Öffnet das Einstellungsfenster</td></tr>
 <tr><td>Verbinden</td><td>–</td><td>Verbindet mit dem zuletzt eingestellten Server</td></tr>
 <tr><td>Trennen</td><td>–</td><td>Trennt die aktuelle Verbindung</td></tr>
@@ -194,7 +251,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <table>
 <tr><th>Menüpunkt</th><th>Tastenkürzel</th><th>Funktion</th></tr>
 <tr><td>Sprechen</td><td>F5</td><td>Öffnet den Sprechen-Tab (ElevenLabs TTS)</td></tr>
-<tr><td>Letzten Text wiederholen</td><td>F6</td><td>Wiederholt den zuletzt gesprochenenen Text (ElevenLabs)</td></tr>
+<tr><td>Letzten Text wiederholen</td><td>F6</td><td>Wiederholt den zuletzt gesprochenen Text (ElevenLabs)</td></tr>
 <tr><td>Streaming stoppen</td><td>F7</td><td>Stoppt das laufende Audio-Streaming</td></tr>
 </table>
 
@@ -202,15 +259,63 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <table>
 <tr><th>Menüpunkt</th><th>Funktion</th></tr>
 <tr><td>Handbuch</td><td>Öffnet dieses Handbuch</td></tr>
-<tr><td>Über TeamTalk VoiceOver Client…</td><td>Zeigt Version, Lizenzen und Danksagungen</td></tr>
+<tr><td>Gesundheitsbericht</td><td>Zeigt Systemzustand und Health-Check-Ergebnisse</td></tr>
+<tr><td>Nutzungsbericht</td><td>Zeigt lokale Nutzungsstatistiken (Analytics); Export als JSON möglich</td></tr>
+<tr><td>Nach Updates suchen</td><td>Prüft ob eine neue Version verfügbar ist und lädt das Update herunter</td></tr>
+<tr><td>Über TeamTalk VoiceOver Client…</td><td>Zeigt Version, Feature-Status, Lizenzen und Danksagungen</td></tr>
 </table>
 
-<!-- ================================================================ -->
-<h1 id="verbindung">6 · Verbindung herstellen</h1>
-<p>Das <strong>Verbindungsfenster</strong> öffnet sich über <em>Datei → Einstellungen → Verbindung</em> oder beim Start automatisch. Es enthält die Serverliste und alle Verbindungsfelder.</p>
+<!-- ============================================================ -->
+<h1 id="fokus">6 · Fokus-Shortcuts (Cmd+1–4) <span class="badge-new">NEU in 6.1.6</span></h1>
+<p>Auf <span class="platform mac">macOS</span> können Sie mit Cmd+Zahl den Fokus direkt auf das gewünschte Element im "Kanäle und Chat"-Bereich setzen:</p>
+
+<table>
+<tr><th>Kürzel</th><th>Ziel</th><th>Wann nützlich</th></tr>
+<tr><td><code>Cmd+1</code></td><td>Kanalliste</td><td>Kanal wechseln ohne Tab-Navigation</td></tr>
+<tr><td><code>Cmd+2</code></td><td>Chatverlauf</td><td>Nachrichten direkt lesen</td></tr>
+<tr><td><code>Cmd+3</code></td><td>Nachrichteneingabe</td><td>Sofort tippen ohne vorher zu navigieren</td></tr>
+<tr><td><code>Cmd+4</code></td><td>Ereignisprotokoll</td><td>Systemereignisse nachschlagen</td></tr>
+</table>
+
+<div class="tip">Diese Shortcuts funktionieren nur wenn der "Kanäle und Chat"-Bereich aktiv ist und das Hauptfenster fokussiert ist.</div>
+<div class="note">Fokus-Shortcuts sind ausschließlich auf macOS verfügbar. Auf Windows und Linux navigieren Sie mit Tab/Shift+Tab.</div>
+
+<!-- ============================================================ -->
+<h1 id="schnellaktionen">7 · Schnellaktionen-Leiste &amp; Tray-Symbol</h1>
+
+<h2>Schnellaktionen-Leiste</h2>
+<p>Die Schnellaktionen-Leiste (Toolbar) ist standardmäßig ausgeblendet und kann über <em>Einstellungen → Anzeige → Toolbar anzeigen</em> aktiviert werden.</p>
+<table>
+<tr><th>Element</th><th>Alt-Kürzel</th><th>Beschreibung</th></tr>
+<tr><td>PTT (Checkbox)</td><td>Alt+P</td><td>Push-to-Talk schnell ein-/ausschalten</td></tr>
+<tr><td>Sprachaktivierung (Checkbox)</td><td>Alt+S</td><td>Voice Activation schnell ein-/ausschalten</td></tr>
+<tr><td>Video (Checkbox)</td><td>Alt+V</td><td>Kamera-Übertragung starten/stoppen</td></tr>
+<tr><td>Desktop (Checkbox)</td><td>Alt+D</td><td>Desktopfreigabe starten/stoppen</td></tr>
+<tr><td>Stumm (Checkbox)</td><td>Alt+T</td><td>Alle anderen Nutzer stummschalten</td></tr>
+<tr><td>Aufnahme (Checkbox)</td><td>Alt+A</td><td>Kanalaufnahme starten/stoppen</td></tr>
+<tr><td>?-Modus (Checkbox)</td><td>Alt+M</td><td>Fragezeichen-Status setzen (signalisiert Redebedarf)</td></tr>
+<tr><td>Ausgabe (Zahlfeld 0–200)</td><td>–</td><td>Ausgabelautstärke schnell anpassen</td></tr>
+<tr><td>Mikrofon (Zahlfeld 0–200)</td><td>–</td><td>Mikrofon-Gain schnell anpassen</td></tr>
+<tr><td>Pegel (Fortschrittsanzeige)</td><td>–</td><td>Aktueller Mikrofon-Eingangspegel (VU-Meter)</td></tr>
+</table>
+
+<h2>Tray-Symbol</h2>
+<p>Das Tray-Symbol erscheint automatisch sobald die App läuft und folgt Statusänderungen (verbunden/getrennt).</p>
+<ul>
+  <li><span class="platform mac">macOS</span>: Menüleiste oben rechts. Klick öffnet ein Menü mit Fenster anzeigen, Verbinden/Trennen, Stummschalten und Beenden.</li>
+  <li><span class="platform win">Windows</span>: System-Tray unten rechts. Doppelklick bringt das Fenster zurück. Rechtsklick öffnet das Tray-Menü.</li>
+  <li><span class="platform lin">Linux</span>: Systemtray (funktioniert mit GNOME + AppIndicator-Extension, KDE).</li>
+</ul>
+<p>Wenn Sie das Hauptfenster schließen (X-Schaltfläche), wird es im Tray versteckt – die Verbindung bleibt aktiv. Um die App wirklich zu beenden: <em>Datei → Beenden</em> oder Cmd+Q.</p>
+
+<!-- ============================================================ -->
+<div class="part-header">Teil C · Verbindung &amp; Kommunikation</div>
+
+<h1 id="verbindung">8 · Verbindung herstellen</h1>
+<p>Das <strong>Verbindungsfenster</strong> ist der erste Bereich beim Start. Es enthält die Serverliste und alle Verbindungsfelder.</p>
 
 <h2>Serverliste</h2>
-<p>Die Serverliste zeigt alle gespeicherten Server. Mit den Schaltflächen darunter können Sie Server verwalten:</p>
+<p>Die Serverliste zeigt alle gespeicherten Server. Mit den Schaltflächen darunter verwalten Sie Server:</p>
 <table>
 <tr><th>Schaltfläche</th><th>Alt-Kürzel</th><th>Funktion</th></tr>
 <tr><td>Neu</td><td>Alt+N</td><td>Speichert die aktuell eingegebenen Daten als neuen Server</td></tr>
@@ -218,7 +323,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <tr><td>Entfernen</td><td>Alt+E</td><td>Löscht den markierten Server (mit Bestätigung)</td></tr>
 <tr><td>Beitrittscode eingeben</td><td>Alt+T</td><td>Verbindet über eine tt://-URL oder eine .tt-Datei</td></tr>
 </table>
-<p>Doppelklick oder Enter auf einen Listeneintrag verbindet sich sofort. Rechtsklick öffnet ein Kontextmenü mit weiteren Optionen (Duplizieren, TT-Datei generieren).</p>
+<p>Doppelklick oder Enter auf einen Listeneintrag verbindet sich sofort. Rechtsklick öffnet ein Kontextmenü (Duplizieren, TT-Datei generieren).</p>
 
 <h2>Verbindungsfelder</h2>
 <table>
@@ -230,7 +335,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <tr><td>Benutzername</td><td>Login-Name (bei Gastzugang oft <code>guest</code>)</td></tr>
 <tr><td>Passwort</td><td>Login-Passwort (bei Gastzugang oft <code>guest</code>)</td></tr>
 <tr><td>Client-Name</td><td>Name des Clients (wird anderen Nutzern angezeigt, Standard: "TeamTalk VO")</td></tr>
-<tr><td>ElevenLabs API Key</td><td>API-Schlüssel für den ElevenLabs TTS-Dienst (optional, für den Sprechen-Tab)</td></tr>
+<tr><td>ElevenLabs API Key</td><td>API-Schlüssel für ElevenLabs TTS (optional, für den Sprechen-Tab)</td></tr>
 <tr><td>Verschlüsselt</td><td>Haken setzen wenn der Server TLS/SSL verwendet</td></tr>
 </table>
 
@@ -239,7 +344,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <tr><th>Schaltfläche</th><th>Alt-Kürzel</th><th>Funktion</th></tr>
 <tr><td>Verbinden</td><td>Alt+V</td><td>Verbindet sich mit dem Server</td></tr>
 <tr><td>Neu verbinden</td><td>Alt+D</td><td>Trennt und verbindet sofort erneut</td></tr>
-<tr><td>Server prüfen</td><td>Alt+S</td><td>Prüft alle Server in der Liste auf aktive Nutzer (kurze Verbindungsunterbrechung)</td></tr>
+<tr><td>Server prüfen</td><td>Alt+S</td><td>Prüft alle Server in der Liste auf aktive Nutzer</td></tr>
 <tr><td>Root-Kanal beitreten</td><td>Alt+R</td><td>Wechselt in den Root-Kanal</td></tr>
 <tr><td>Kanal verlassen</td><td>Alt+K</td><td>Verlässt den aktuellen Kanal</td></tr>
 <tr><td>Abmelden</td><td>Alt+A</td><td>Meldet sich vom Server ab ohne die Verbindung zu trennen</td></tr>
@@ -255,34 +360,53 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 </ul>
 <p>Nach der Eingabe fragt die App, ob sofort verbunden werden soll.</p>
 
-<!-- ================================================================ -->
-<h1 id="kanaelechat">7 · Kanäle, Nutzerliste &amp; Chat</h1>
-<p>Dies ist der Hauptbereich ("Kanäle und Chat"). Er gliedert sich in zwei Hälften:</p>
+<!-- ============================================================ -->
+<h1 id="kanaelechat">9 · Kanäle, Nutzerliste &amp; Chat</h1>
+<p>Dies ist der Hauptbereich "Kanäle und Chat". Er gliedert sich in zwei Hälften:</p>
 
 <h2>Linke Hälfte: Kanäle &amp; Nutzer</h2>
-<p>Zwei Listen übereinander:</p>
 <ul>
-  <li><strong>Kanalliste</strong>: Zeigt alle Kanäle des Servers mit Pfad, Nutzerzahl und Passwort-Indikator. Format: <code>Kanalname, Nutzer: N, Passwort: Ja/Nein</code>. Doppelklick oder Enter tritt dem Kanal bei.</li>
+  <li><strong>Kanalliste</strong>: Zeigt alle Kanäle des Servers. Format: <code>Kanalname, Nutzer: N, Passwort: Ja/Nein</code>. Doppelklick oder Enter tritt dem Kanal bei. Kanalpasswörter werden bei Bedarf abgefragt.</li>
   <li><strong>Nutzerliste</strong>: Zeigt alle Nutzer im aktuellen Kanal. Format: <code>Nickname, Benutzername, Status</code>. Doppelklick öffnet den Privatchat mit diesem Nutzer.</li>
 </ul>
-<p>Die Schaltfläche <strong>Kanal beitreten</strong> (Alt+K) tritt dem markierten Kanal bei. Kanalpasswörter werden bei Bedarf abgefragt.</p>
+<p>Die Schaltfläche <strong>Kanal beitreten</strong> (Alt+K) tritt dem markierten Kanal bei.</p>
 
 <h2>Rechte Hälfte: Chat</h2>
-<p>Ein mehrzeiliges Textfeld zeigt den Kanalchat und Privatnachrichten. Darunter:</p>
 <ul>
+  <li><strong>Chatverlauf</strong>: Mehrzeiliges Textfeld mit Kanal- und Privatnachrichten.</li>
   <li><strong>Eingabefeld</strong>: Nachricht eintippen, dann Enter oder "Senden" (Alt+S).</li>
-  <li><strong>Privat-Checkbox</strong> (Alt+P): Wenn aktiviert, wird die Nachricht als Privatnachricht an den in der Nutzerliste ausgewählten Nutzer geschickt.</li>
-  <li><strong>Verlauf exportieren</strong> (Alt+E): Speichert den aktuell angezeigten Chat-Verlauf als TXT-Datei. Ein Datei-Speicherdialog erscheint.</li>
-  <li><strong>Verlauf leeren</strong> (Alt+L): Löscht den angezeigten Chat-Verlauf nach Rückfrage. Falls die Verlaufsspeicherung aktiviert ist, wird auch die gespeicherte Datei für diesen Server gelöscht.</li>
+  <li><strong>Privat-Checkbox</strong> (Alt+P): Nachricht als Privatnachricht an den markierten Nutzer senden.</li>
+  <li><strong>Verlauf exportieren</strong> (Alt+E): Speichert den Chat-Verlauf als TXT-Datei.</li>
+  <li><strong>Verlauf leeren</strong> (Alt+L): Löscht den angezeigten Verlauf nach Rückfrage. Wenn Verlaufsspeicherung aktiv ist, wird auch die gespeicherte Datei gelöscht.</li>
 </ul>
 
 <h2>Chat-Verlauf speichern (optional)</h2>
-<p>Wenn unter <em>Einstellungen → Allgemein → Chat-Verlauf speichern</em> aktiviert, werden Nachrichten serverseitig in einer JSON-Datei gespeichert (max. 200 Einträge pro Server). Beim nächsten Verbinden mit demselben Server wird der gespeicherte Verlauf automatisch in den Chat-Bereich geladen.</p>
+<p>Wenn unter <em>Einstellungen → Allgemein → Chat-Verlauf speichern</em> aktiviert, werden Nachrichten pro Server in einer JSON-Datei gespeichert (max. 200 Einträge). Beim nächsten Verbinden mit demselben Server wird der Verlauf automatisch geladen.</p>
 <div class="note">Der Verlauf kann jederzeit über "Verlauf leeren" zurückgesetzt werden.</div>
 
-<!-- ================================================================ -->
-<h1 id="audio">8 · Audio-Einstellungen</h1>
-<p>Erreichbar über: <em>Datei → Einstellungen → Audio</em> oder <em>Datei → Sound-Konfiguration → Audio-Einstellungen…</em></p>
+<!-- ============================================================ -->
+<h1 id="benachrichtigungen">10 · Benachrichtigungen <span class="badge-new">NEU in 6.1.6</span></h1>
+
+<h2><span class="platform mac">macOS</span> – Native Benachrichtigungen</h2>
+<p>Ab v6.1.6 erscheinen macOS-Systembenachrichtigungen für Kanal-Ereignisse <strong>nur dann</strong>, wenn der betroffene Nutzer im selben Kanal wie Sie ist. Das reduziert irrelevante Meldungen auf vollen Servern.</p>
+
+<table>
+<tr><th>Ereignis</th><th>Benachrichtigung (Beispiel)</th></tr>
+<tr><td>Nutzer betritt Ihren Kanal</td><td>"Florian ist beigetreten – Kanal Lounge"</td></tr>
+<tr><td>Nutzer verlässt Ihren Kanal</td><td>"Florian hat verlassen – Kanal Lounge"</td></tr>
+<tr><td>Neue Privatnachricht</td><td>Absendername + Nachrichtenvorschau</td></tr>
+</table>
+
+<div class="tip">Wenn Sie keine Benachrichtigungen möchten, deaktivieren Sie sie unter <em>Systemeinstellungen → Benachrichtigungen → TeamTalk VO Client</em>.</div>
+
+<h2>Sound-Ereignisse</h2>
+<p>Zusätzlich zu nativen Benachrichtigungen kann für jedes Ereignis ein eigener Klang abgespielt werden. Die Konfiguration erfolgt unter <em>Einstellungen → Sound-Ereignisse</em> (→ <a href="#einstellungen">Abschnitt 18</a>).</p>
+
+<!-- ============================================================ -->
+<div class="part-header">Teil D · Audio</div>
+
+<h1 id="audio">11 · Audio-Einstellungen</h1>
+<p>Erreichbar über: <em>Datei → Sound-Konfiguration → Audio-Einstellungen…</em> oder <em>Einstellungen → Audio</em></p>
 
 <h2>Mikrofon aktivieren</h2>
 <ol>
@@ -293,22 +417,22 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 </ol>
 <div class="tip">Nach dem ersten Verbinden müssen Sie Audio-Einstellungen einmal anwenden, damit das Mikrofon aktiv ist.</div>
 
-<h2>Sprachaktivierung (Voice Activation, VA)</h2>
+<h2>Sprachaktivierung (Voice Activation)</h2>
 <p>Die Sprachaktivierung überträgt automatisch, wenn Sie sprechen – ohne Tastendrücken.</p>
 <table>
 <tr><th>Einstellung</th><th>Beschreibung</th></tr>
 <tr><td>Sprachaktivierung (Checkbox)</td><td>Ein-/ausschalten (Alt+S)</td></tr>
 <tr><td>Aktivierungspegel (0–100)</td><td>Schwelle ab der Übertragung beginnt. Niedrigerer Wert = empfindlicher. Standard: 30</td></tr>
-<tr><td>Nachlauf in ms (0–5000)</td><td>Wie lange nach Stille noch übertragen wird. Standard: 0 ms (sofort stoppen)</td></tr>
+<tr><td>Nachlauf in ms (0–5000)</td><td>Wie lange nach Stille noch übertragen wird. Standard: 0 ms</td></tr>
 </table>
 
 <h2>Push-to-Talk (PTT)</h2>
-<p>Beim PTT-Modus wird nur übertragen, solange Sie einen Hotkey gedrückt halten.</p>
+<p>Im PTT-Modus wird nur übertragen, solange Sie einen Hotkey gedrückt halten.</p>
 <ol>
   <li>Aktivieren Sie "Push-to-Talk" (Checkbox).</li>
   <li>Klicken Sie <strong>Hotkey aufnehmen</strong> (Alt+H).</li>
   <li>Drücken Sie die gewünschte Taste (Standard: Leertaste).</li>
-  <li>Klicken Sie erneut oder drücken Sie Enter um aufzuhören.</li>
+  <li>Klicken Sie erneut oder drücken Sie Enter zum Beenden.</li>
 </ol>
 <div class="note">PTT und Sprachaktivierung schließen sich gegenseitig aus – nur eines kann gleichzeitig aktiv sein.</div>
 
@@ -318,7 +442,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <tr><td>AGC (Automatische Verstärkungsregelung)</td><td>Alt+C</td><td>Aktivieren – hält Lautstärke konstant</td></tr>
 <tr><td>Rauschunterdrückung</td><td>Alt+R</td><td>Aktivieren – filtert Hintergrundgeräusche</td></tr>
 <tr><td>Echounterdrückung</td><td>Alt+E</td><td>Aktivieren wenn Lautsprecher verwendet werden</td></tr>
-<tr><td>Duplex-Modus</td><td>Alt+D</td><td>Nur aktivieren wenn Echounterdrückung benötigt wird – höhere Latenz</td></tr>
+<tr><td>Duplex-Modus</td><td>Alt+D</td><td>Nur wenn Echounterdrückung nötig – erhöht Latenz</td></tr>
 </table>
 
 <h2>Weitere Audio-Optionen</h2>
@@ -327,12 +451,101 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <tr><td>Ausgabe stummschalten</td><td>Stummschaltet alle anderen Nutzer</td></tr>
 <tr><td>Mikrofonverstärkung (0–32000)</td><td>Verstärkt das Mikrofonsignal. Standard: 2000</td></tr>
 <tr><td>Ausgabe-Lautstärke (0–32000)</td><td>Globale Ausgabelautstärke. Standard: 1000</td></tr>
-<tr><td>Mikrofontest</td><td>Starte einen Loopback-Test: Sie hören sich selbst</td></tr>
 <tr><td>Audioprofile</td><td>Aktuelle Einstellungen als Profil speichern und wieder laden</td></tr>
 </table>
 
-<!-- ================================================================ -->
-<h1 id="medien">9 · Aufnahme &amp; Medien-Streaming</h1>
+<!-- ============================================================ -->
+<h1 id="mikverarbeitung">12 · Mikrofon-Verarbeitung <span class="badge-new">NEU in 6.1.6</span></h1>
+<p>Der Bereich "Mikrofon-Verarbeitung" befindet sich im Audio-Tab und bietet erweiterte Signalverarbeitung für Ihr Mikrofonsignal, bevor es übertragen wird.</p>
+
+<h2>Verarbeitungsmodi</h2>
+<table>
+<tr><th>Modus</th><th>Beschreibung</th><th>Empfehlung</th></tr>
+<tr><td>Keine</td><td>Keine zusätzliche Verarbeitung</td><td>Wenn das Mikrofon bereits gute Qualität liefert</td></tr>
+<tr><td>Noise Gate</td><td>Schneidet alles unterhalb des Schwellwerts ab – kein Hintergrundrauschen wenn Sie nicht sprechen</td><td>Laute Umgebung</td></tr>
+<tr><td>Expander</td><td>Verstärkt den Kontrast zwischen lautem Signal und Rauschen</td><td>Leises Mikrofon mit Hintergrundrauschen</td></tr>
+<tr><td>Limiter</td><td>Begrenzt Spitzen um Übersteuerung zu verhindern</td><td>Wenn Sie manchmal sehr laut sprechen</td></tr>
+<tr><td>Expander+Limiter</td><td>Kombiniert Expander und Limiter</td><td>Allgemeine Empfehlung für unregelmäßige Umgebungen</td></tr>
+</table>
+
+<h2>Parameter</h2>
+<table>
+<tr><th>Parameter</th><th>Beschreibung</th></tr>
+<tr><td>Schwellwert (dB)</td><td>Pegel, unterhalb (Gate/Expander) oder oberhalb (Limiter) dessen der Modus eingreift</td></tr>
+<tr><td>Rauschunterdrückung (dB)</td><td>Stärke der Dämpfung unterhalb des Schwellwerts (bei Noise Gate und Expander)</td></tr>
+</table>
+
+<h2>Mikrofon-Vorschau</h2>
+<p>Mit der Schaltfläche <strong>Vorschau starten/stoppen</strong> können Sie sich selbst via Loopback hören, ohne mit einem Server verbunden zu sein. So testen Sie die Verarbeitungseinstellungen direkt.</p>
+<div class="tip">Nutzen Sie die Vorschau zusammen mit dem VU-Meter in der Schnellaktionen-Leiste, um die optimale Schwellwert-Einstellung zu finden.</div>
+<div class="note">Alle Verarbeitungseinstellungen werden im Audioprofil gespeichert und beim Laden eines Profils wiederhergestellt.</div>
+
+<!-- ============================================================ -->
+<h1 id="systemtts">13 · System-TTS (espeak-ng)</h1>
+<p>Erreichbar über: <em>Einstellungen → System &amp; TTS</em></p>
+<p>Die eingebaute TTS-Funktion (espeak-ng) liest Systemmeldungen, Chat und Privatnachrichten automatisch vor.</p>
+
+<h2>TTS ein-/ausschalten</h2>
+<ul>
+  <li><strong>TTS aktiv</strong> (Alt+T): Aktiviert die Sprachausgabe.</li>
+  <li><strong>Neue Meldung unterbricht</strong> (Alt+N): Laufende Ansage abbrechen wenn neue eintrifft.</li>
+</ul>
+
+<h2>Was soll vorgelesen werden?</h2>
+<table>
+<tr><th>Option</th><th>Alt-Kürzel</th><th>Beschreibung</th></tr>
+<tr><td>Chat vorlesen</td><td>Alt+C</td><td>Kanal-Chatnachrichten</td></tr>
+<tr><td>Privat vorlesen</td><td>Alt+P</td><td>Privatnachrichten</td></tr>
+<tr><td>System vorlesen</td><td>Alt+S</td><td>Systemnachrichten (Verbindung, Trennung usw.)</td></tr>
+<tr><td>Eigene Nachrichten vorlesen</td><td>Alt+E</td><td>Eigene gesendete Nachrichten</td></tr>
+</table>
+
+<h2>Stimme einstellen</h2>
+<ol>
+  <li><strong>TTS aktiv</strong> einschalten.</li>
+  <li>Sprache im Auswahlmenü wählen (z.B. "de" für Deutsch, "Alle" für alle Sprachen).</li>
+  <li>Optional: Filter eingeben um die Stimmenliste zu durchsuchen.</li>
+  <li>Stimme in der Liste auswählen.</li>
+  <li><strong>Sprechtempo (80–400)</strong>: Standard 175. Höher = schneller.</li>
+  <li><strong>Lautstärke (0–200)</strong>: Standard 100.</li>
+  <li><strong>Stimmen aktualisieren</strong> (Alt+I): Lädt Stimmenliste neu.</li>
+  <li><strong>Test vorlesen</strong> (Alt+R): Hört einen Testtext mit aktuellen Einstellungen.</li>
+</ol>
+
+<h2>espeak-ng Pfad</h2>
+<p>Normalerweise wird espeak-ng automatisch gefunden. Wenn nicht, kann der Pfad zur Binary manuell eingetragen werden (z.B. <code>/usr/bin/espeak-ng</code>).</p>
+
+<!-- ============================================================ -->
+<h1 id="sprechen">14 · Sprechen (ElevenLabs TTS)</h1>
+<p>Mit dem Sprechen-Tab streamen Sie Text über ElevenLabs Text-to-Speech in den Kanal – andere Nutzer hören eine hochwertige KI-Stimme.</p>
+<p>Voraussetzung: Ein gültiger ElevenLabs API-Schlüssel muss im Verbindungsformular eingetragen sein.</p>
+
+<h2>Einrichtung</h2>
+<ol>
+  <li>ElevenLabs API-Schlüssel im Verbindungsformular eintragen.</li>
+  <li>Verbinden – Stimmen und Modelle werden automatisch geladen.</li>
+  <li>Den Sprechen-Tab öffnen (Menü Sprache → Sprechen oder F5).</li>
+</ol>
+
+<h2>Bedienung</h2>
+<table>
+<tr><th>Element</th><th>Beschreibung</th></tr>
+<tr><td>Stimme</td><td>Auswahlmenü aller verfügbaren ElevenLabs-Stimmen</td></tr>
+<tr><td>Modell</td><td>KI-Modell (z.B. eleven_multilingual_v2, eleven_v3)</td></tr>
+<tr><td>Stabilität (0–100)</td><td>Höher = stabiler/monotoner, niedriger = ausdrucksvoller. Standard: 50</td></tr>
+<tr><td>Ähnlichkeit (0–100)</td><td>Nähe zur Originalstimme. Standard: 75</td></tr>
+<tr><td>Stil (0–100)</td><td>Stil-Übertreibung. Standard: 0</td></tr>
+<tr><td>Sprecher-Boost</td><td>Verbessert Stimmklarheit (nicht bei v3-Modellen)</td></tr>
+<tr><td>Text zum Sprechen</td><td>Text eingeben, der vorgelesen werden soll</td></tr>
+<tr><td>Sprechen (Alt+P)</td><td>Generiert Audio und streamt es in den Kanal</td></tr>
+<tr><td>Stopp (Alt+T)</td><td>Stoppt das laufende Streaming sofort</td></tr>
+<tr><td>Aktualisieren (Alt+A)</td><td>Lädt Stimmen und Modelle neu von der API</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<div class="part-header">Teil E · Medien &amp; Dateien</div>
+
+<h1 id="medien">15 · Aufnahme &amp; Medien-Streaming</h1>
 <p>Erreichbar über: Bereich-Auswahlmenü → "Aufnahme &amp; Medien"</p>
 
 <h2>Kanal aufnehmen</h2>
@@ -361,7 +574,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
   <li>Unterstützte Formate: WAV, MP3, OGG, Opus, MP4, AVI, MKV.</li>
   <li><strong>Abspielen</strong> (Alt+A) – streamt die Datei in den aktuellen Kanal.</li>
   <li>Position (0–1000): Zahlfeld zum Springen innerhalb der Datei.</li>
-  <li>Streaming-Lautstärke (25–400): 100 = normal, 200 = doppelt so laut.</li>
+  <li>Streaming-Lautstärke (25–400): 100 = normal, 200 = doppelt laut.</li>
 </ol>
 
 <h3>YouTube, SoundCloud, Twitch, Bandcamp, Vimeo, Mixcloud (via yt-dlp)</h3>
@@ -387,71 +600,8 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
   <li>Episode aus der Liste wählen und <strong>Episode streamen</strong> (Alt+E).</li>
 </ol>
 
-<!-- ================================================================ -->
-<h1 id="dateien">10 · Dateien</h1>
-<p>Erreichbar über: Bereich-Auswahlmenü → "Dateien"</p>
-<p>Zeigt alle Dateien im aktuellen Kanal. Format: <code>Dateiname, Größe, Hochgeladen von, Datum</code></p>
-<table>
-<tr><th>Schaltfläche</th><th>Alt-Kürzel</th><th>Funktion</th></tr>
-<tr><td>Hochladen</td><td>Alt+H</td><td>Wählt eine lokale Datei und lädt sie in den Kanal hoch</td></tr>
-<tr><td>Herunterladen</td><td>Alt+R</td><td>Lädt die markierte Datei herunter (Speicherort wählen)</td></tr>
-<tr><td>Löschen</td><td>Alt+L</td><td>Löscht die markierte Datei (nur eigene Dateien oder Admin)</td></tr>
-<tr><td>Aktualisieren</td><td>Alt+A</td><td>Aktualisiert die Dateiliste</td></tr>
-</table>
-
-<!-- ================================================================ -->
-<h1 id="admin">11 · Administration</h1>
-<p>Erreichbar über: Bereich-Auswahlmenü → "Administration" (nur für Administratoren sichtbar)</p>
-
-<h2>Benutzerkonten</h2>
-<ul>
-  <li><strong>Konten laden</strong>: Lädt alle Konten vom Server.</li>
-  <li><strong>Konto hinzufügen</strong>: Erstellt ein neues Konto. Felder: Benutzername, Passwort, Konto-Typ (Administrator-Haken setzen für Admin-Rechte).</li>
-  <li><strong>Konto löschen</strong>: Löscht das markierte Konto.</li>
-</ul>
-
-<h2>Sperren (Bans)</h2>
-<ul>
-  <li><strong>Sperren laden</strong>: Lädt die aktuelle Sperrliste.</li>
-  <li><strong>Entsperren</strong>: Hebt die Sperre für den markierten Nutzer auf.</li>
-</ul>
-
-<h2>Server-Konfiguration</h2>
-<ul>
-  <li><strong>Laden</strong>: Lädt die Server-Einstellungen (Name, MOTD, Nutzer-Limits).</li>
-  <li><strong>Speichern</strong>: Speichert geänderte Server-Einstellungen.</li>
-  <li><strong>Konfiguration speichern</strong>: Schreibt die Konfiguration auf dem Server dauerhaft.</li>
-</ul>
-
-<!-- ================================================================ -->
-<h1 id="sprechen">12 · Sprechen (ElevenLabs TTS)</h1>
-<p>Mit dem Sprechen-Tab können Sie Text über ElevenLabs Text-to-Speech in den Kanal streamen – andere Nutzer hören eine hochwertige KI-Stimme.</p>
-<p>Voraussetzung: Ein gültiger ElevenLabs API-Schlüssel muss im Verbindungsformular eingetragen sein.</p>
-
-<h2>Einrichtung</h2>
-<ol>
-  <li>ElevenLabs API-Schlüssel im Verbindungsformular eintragen.</li>
-  <li>Verbinden – Stimmen und Modelle werden automatisch geladen.</li>
-  <li>Den Sprechen-Tab öffnen (Menü Sprache → Sprechen oder F5).</li>
-</ol>
-
-<h2>Bedienung</h2>
-<table>
-<tr><th>Element</th><th>Beschreibung</th></tr>
-<tr><td>Stimme</td><td>Auswahlmenü aller verfügbaren ElevenLabs-Stimmen</td></tr>
-<tr><td>Modell</td><td>KI-Modell (z.B. eleven_multilingual_v2, eleven_v3)</td></tr>
-<tr><td>Stabilität (0–100)</td><td>Höher = stabiler/monotoner, niedriger = ausdrucksvoller. Standard: 50</td></tr>
-<tr><td>Ähnlichkeit (0–100)</td><td>Nähe zur Originalstimme. Standard: 75</td></tr>
-<tr><td>Stil (0–100)</td><td>Stil-Übertreibung. Standard: 0 (kein Stil)</td></tr>
-<tr><td>Sprecher-Boost</td><td>Verbessert Stimmklarheit (nicht bei v3-Modellen verfügbar)</td></tr>
-<tr><td>Text zum Sprechen</td><td>Geben Sie den Text ein, der vorgelesen werden soll</td></tr>
-<tr><td>Sprechen (Alt+P)</td><td>Generiert Audio und streamt es in den Kanal</td></tr>
-<tr><td>Stopp (Alt+T)</td><td>Stoppt das laufende Streaming sofort</td></tr>
-<tr><td>Aktualisieren (Alt+A)</td><td>Lädt Stimmen und Modelle neu von der API</td></tr>
-</table>
-
-<!-- ================================================================ -->
-<h1 id="desktop">13 · Desktopfreigabe</h1>
+<!-- ============================================================ -->
+<h1 id="desktop">16 · Desktopfreigabe</h1>
 <p>Erreichbar über: Bereich-Auswahlmenü → "Desktop"</p>
 <p>Teilt Ihren Bildschirm mit anderen Nutzern im Kanal.</p>
 <table>
@@ -461,9 +611,25 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <tr><td>Freigabe beenden (Alt+F)</td><td>Stoppt die Desktopfreigabe</td></tr>
 </table>
 <p>Die Schaltflächen Linksklick (Alt+L), Rechtsklick (Alt+R) und Mittelklick (Alt+M) ermöglichen ferngesteuerte Mauseingaben auf dem empfangenden Gerät.</p>
+<div class="note"><span class="platform lin">Linux</span>: Desktopfreigabe und Maus-Fernsteuerung können je nach Compositor eingeschränkt sein.</div>
 
-<!-- ================================================================ -->
-<h1 id="einstellungen">14 · Einstellungen</h1>
+<!-- ============================================================ -->
+<h1 id="dateien">17 · Dateien</h1>
+<p>Erreichbar über: Bereich-Auswahlmenü → "Dateien"</p>
+<p>Zeigt alle Dateien im aktuellen Kanal. Format: <code>Dateiname, Größe, Hochgeladen von, Datum</code></p>
+<table>
+<tr><th>Schaltfläche</th><th>Alt-Kürzel</th><th>Funktion</th></tr>
+<tr><td>Hochladen</td><td>Alt+H</td><td>Wählt eine lokale Datei und lädt sie in den Kanal hoch</td></tr>
+<tr><td>Herunterladen</td><td>Alt+R</td><td>Lädt die markierte Datei herunter (Speicherort wählen)</td></tr>
+<tr><td>Löschen</td><td>Alt+L</td><td>Löscht die markierte Datei (nur eigene Dateien oder Admin)</td></tr>
+<tr><td>Aktualisieren</td><td>Alt+A</td><td>Aktualisiert die Dateiliste</td></tr>
+</table>
+<p>Uploads und Downloads werden im Dateiübertragungsverlauf protokolliert, der über die Schaltfläche <strong>Verlauf</strong> abrufbar ist.</p>
+
+<!-- ============================================================ -->
+<div class="part-header">Teil F · Einstellungen &amp; Anpassung</div>
+
+<h1 id="einstellungen">18 · Einstellungen</h1>
 <p>Erreichbar über: <em>Datei → Einstellungen…</em> oder F4 / Cmd+,</p>
 <p>Das Einstellungsfenster ist in Bereiche unterteilt (Auswahlmenü "Bereich"):</p>
 
@@ -472,8 +638,9 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <tr><th>Option</th><th>Beschreibung</th></tr>
 <tr><td>BearWare Web-Login</td><td>Verwendet BearWare.dk-Anmeldedaten für Server die dies erfordern</td></tr>
 <tr><td>Benutzername / Passwort</td><td>BearWare-Zugangsdaten</td></tr>
+<tr><td>App-Sprache</td><td>Wechselt die Oberflächensprache (Deutsch, English, Français, Español); Neustart erforderlich</td></tr>
 <tr><td>Chat-Verlauf speichern</td><td>Speichert Chat-Nachrichten pro Server als JSON (max. 200 Einträge). Verlauf wird beim nächsten Verbinden automatisch geladen.</td></tr>
-<tr><td>Letzten Kanal automatisch beitreten</td><td>Tritt nach dem Verbinden automatisch dem zuletzt genutzten Kanal dieses Servers bei.</td></tr>
+<tr><td>Letzten Kanal automatisch beitreten</td><td>Tritt nach dem Verbinden automatisch dem zuletzt genutzten Kanal dieses Servers bei</td></tr>
 </table>
 
 <h2>Bereich: Anzeige</h2>
@@ -482,7 +649,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <tr><td>Im Tray minimieren</td><td>Fenster schließen minimiert in den Tray statt zu beenden</td></tr>
 <tr><td>Immer im Vordergrund</td><td>Fenster bleibt vor allen anderen</td></tr>
 <tr><td>VU-Meter anzeigen</td><td>Zeigt den Eingangspegel in der Schnellaktionen-Leiste</td></tr>
-<tr><td>Fenstertitel aktualisieren</td><td>Aktueller Kanal im Fenstertitel</td></tr>
+<tr><td>Fenstertitel aktualisieren</td><td>Aktueller Kanal erscheint im Fenstertitel</td></tr>
 <tr><td>Toolbar anzeigen</td><td>Schnellaktionen-Leiste ein-/ausblenden</td></tr>
 <tr><td>Ereignisprotokoll anzeigen</td><td>Protokollfenster ein-/ausblenden</td></tr>
 </table>
@@ -499,46 +666,14 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 </table>
 
 <h2>Bereich: Sound-Ereignisse</h2>
-<p>Weist Klängen Ereignissen zu (Nutzer tritt bei, verlässt, Nachricht usw.). Für jedes Ereignis kann eine WAV-Datei ausgewählt werden. Mit "Testen" hören Sie den Sound vorher. Die Sound-Lautstärke (0–100) regelt alle Ereignistöne gleichzeitig.</p>
+<p>Weist Klängen Ereignissen zu (Nutzer tritt bei, verlässt, neue Nachricht usw.). Für jedes Ereignis kann eine WAV-Datei ausgewählt werden. Mit "Testen" hören Sie den Klang vorher. Die Sound-Lautstärke (0–100) regelt alle Ereignistöne gleichzeitig.</p>
 
-<!-- ================================================================ -->
-<h1 id="systemtts">15 · System &amp; TTS (espeak-ng)</h1>
-<p>Erreichbar über: <em>Datei → Einstellungen</em> → Bereich "System &amp; TTS"</p>
-<p>Die eingebaute Text-to-Speech-Funktion (espeak-ng) liest Systemmeldungen, Chat und Privatnachrichten automatisch vor.</p>
+<h2>Bereich: System &amp; TTS</h2>
+<p>Einstellungen für die eingebaute Text-to-Speech-Ausgabe (espeak-ng). Siehe → <a href="#systemtts">Abschnitt 13</a>.</p>
 
-<h2>TTS ein-/ausschalten</h2>
-<ul>
-  <li><strong>TTS aktiv</strong> (Alt+T): Aktiviert die Sprachausgabe.</li>
-  <li><strong>Neue Meldung unterbricht</strong> (Alt+N): Laufende Ansage abbrechen wenn neue eintrifft.</li>
-</ul>
-
-<h2>Was soll vorgelesen werden?</h2>
-<table>
-<tr><th>Option</th><th>Alt-Kürzel</th><th>Beschreibung</th></tr>
-<tr><td>Chat vorlesen</td><td>Alt+C</td><td>Kanal-Chatnachrichten</td></tr>
-<tr><td>Privat vorlesen</td><td>Alt+P</td><td>Privatnachrichten</td></tr>
-<tr><td>System vorlesen</td><td>Alt+S</td><td>Systemnachrichten (Verbindung, Trennung, etc.)</td></tr>
-<tr><td>Eigene Nachrichten vorlesen</td><td>Alt+E</td><td>Eigene gesendete Nachrichten</td></tr>
-</table>
-
-<h2>Stimme einstellen</h2>
-<ol>
-  <li><strong>TTS aktiv</strong> einschalten.</li>
-  <li>Sprache im Auswahlmenü wählen (z.B. "de" für Deutsch, "Alle" für alle Sprachen).</li>
-  <li>Optional: Filter eingeben um Stimmenliste zu durchsuchen.</li>
-  <li>Stimme in der Liste auswählen.</li>
-  <li><strong>Sprechtempo (80–400)</strong>: Standard 175. Höher = schneller.</li>
-  <li><strong>Lautstärke (0–200)</strong>: Standard 100.</li>
-  <li><strong>Stimmen aktualisieren</strong> (Alt+I): Lädt Stimmenliste neu.</li>
-  <li><strong>Test vorlesen</strong> (Alt+R): Hört einen Testtext mit aktuellen Einstellungen.</li>
-</ol>
-
-<h2>espeak-ng Pfad</h2>
-<p>Normalerweise wird espeak-ng automatisch gefunden. Wenn nicht, kann der Pfad zur Binary manuell eingetragen werden (z.B. <code>/usr/bin/espeak-ng</code>).</p>
-
-<!-- ================================================================ -->
-<h1 id="kuerzel">16 · Tastaturkürzel anpassen</h1>
-<p>Erreichbar über: <em>Datei → Einstellungen</em> → Bereich "Tastaturkürzel"</p>
+<!-- ============================================================ -->
+<h1 id="kuerzel">19 · Tastaturkürzel &amp; Globale Hotkeys</h1>
+<p>Erreichbar über: <em>Einstellungen → Tastaturkürzel</em></p>
 
 <h2>App-Hotkeys (innerhalb der App)</h2>
 <p>Diese Hotkeys funktionieren nur wenn das App-Fenster fokussiert ist.</p>
@@ -558,74 +693,64 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
 <p>Globale Hotkeys funktionieren systemweit – auch wenn die App im Hintergrund oder minimiert ist.</p>
 <table>
 <tr><th>Option</th><th>Beschreibung</th></tr>
-<tr><td>Globale Hotkeys aktivieren</td><td>Schaltet die systemweite Überwachung ein. Die Taste wird über NSEvent abgehört (kein Eingabe-Abfangen, nur Beobachten).</td></tr>
+<tr><td>Globale Hotkeys aktivieren</td><td>Schaltet die systemweite Überwachung ein (via NSEvent-Monitor, kein Abfangen)</td></tr>
 <tr><td>PTT (Sprechtaste)</td><td>Gedrückt halten zum Sprechen, loslassen stoppt die Übertragung</td></tr>
 <tr><td>Stummschalten umschalten</td><td>Einzelner Tastendruck schaltet alle Nutzer stumm oder wieder an</td></tr>
 </table>
 <ol>
   <li>"Globale Hotkeys aktivieren" einschalten.</li>
   <li>Für PTT oder Stummschalten: <strong>Hotkey aufnehmen</strong> klicken.</li>
-  <li>Gewünschte Taste drücken – der macOS Virtual Key Code wird gespeichert und der Name angezeigt.</li>
+  <li>Gewünschte Taste drücken – der macOS Virtual Key Code wird gespeichert.</li>
   <li>ESC bricht die Aufnahme ab.</li>
 </ol>
-<div class="note"><strong>Hinweis:</strong> Globale Hotkeys sind nur auf macOS verfügbar. Es werden keine Tastenanschläge abgefangen – die App beobachtet nur Tastendrücke via NSEvent-Monitor.</div>
+<div class="note">Globale Hotkeys sind nur auf macOS verfügbar.</div>
 
-<!-- ================================================================ -->
-<h1 id="schnellaktionen">17 · Schnellaktionen-Leiste</h1>
-<p>Die Schnellaktionen-Leiste (Toolbar) ist standardmäßig ausgeblendet und kann über <em>Datei → Einstellungen → Anzeige → Toolbar anzeigen</em> aktiviert werden.</p>
-<p>Sie enthält:</p>
-<table>
-<tr><th>Element</th><th>Alt-Kürzel</th><th>Beschreibung</th></tr>
-<tr><td>PTT (Checkbox)</td><td>Alt+P</td><td>Push-to-Talk schnell ein-/ausschalten</td></tr>
-<tr><td>Sprachaktivierung (Checkbox)</td><td>Alt+S</td><td>Voice Activation schnell ein-/ausschalten</td></tr>
-<tr><td>Video (Checkbox)</td><td>Alt+V</td><td>Kamera-Übertragung starten/stoppen</td></tr>
-<tr><td>Desktop (Checkbox)</td><td>Alt+D</td><td>Desktopfreigabe starten/stoppen</td></tr>
-<tr><td>Stumm (Checkbox)</td><td>Alt+T</td><td>Alle anderen Nutzer stummschalten</td></tr>
-<tr><td>Aufnahme (Checkbox)</td><td>Alt+A</td><td>Kanalaufnahme starten/stoppen</td></tr>
-<tr><td>?-Modus (Checkbox)</td><td>Alt+M</td><td>Fragezeichen-Status setzen (signalisiert Redebedarf)</td></tr>
-<tr><td>Ausgabe (Zahlfeld 0–200)</td><td>–</td><td>Ausgabelautstärke schnell anpassen</td></tr>
-<tr><td>Mikrofon (Zahlfeld 0–200)</td><td>–</td><td>Mikrofon-Gain schnell anpassen</td></tr>
-<tr><td>Pegel (Fortschrittsanzeige)</td><td>–</td><td>Aktueller Mikrofon-Eingangspegel (VU-Meter)</td></tr>
-</table>
+<h2>Fokus-Shortcuts <span class="platform mac">macOS</span></h2>
+<p>Cmd+1–4 setzen den Fokus im "Kanäle und Chat"-Bereich. Diese Shortcuts sind fest belegt und können nicht geändert werden. Siehe → <a href="#fokus">Abschnitt 6</a>.</p>
 
-<!-- ================================================================ -->
-<h1 id="tray">18 · Tray-Symbol</h1>
-<p>Das Tray-Symbol erscheint automatisch wenn die App läuft.</p>
+<!-- ============================================================ -->
+<div class="part-header">Teil G · Server-Verwaltung</div>
+
+<h1 id="admin">20 · Administration</h1>
+<p>Erreichbar über: Bereich-Auswahlmenü → "Administration" (nur für Administratoren sichtbar)</p>
+
+<h2>Benutzerkonten</h2>
 <ul>
-  <li><span class="platform mac">macOS</span>: Menüleiste oben rechts. Klick öffnet ein Menü.</li>
-  <li><span class="platform win">Windows</span>: System-Tray unten rechts. Doppelklick bringt das Fenster zurück.</li>
+  <li><strong>Konten laden</strong>: Lädt alle Konten vom Server.</li>
+  <li><strong>Konto hinzufügen</strong>: Erstellt ein neues Konto. Felder: Benutzername, Passwort, Konto-Typ (Administrator-Haken für Admin-Rechte).</li>
+  <li><strong>Konto löschen</strong>: Löscht das markierte Konto.</li>
 </ul>
-<p>Das Tray-Menü enthält: Fenster anzeigen, Verbinden/Trennen, Stumm schalten, Beenden.</p>
-<p>Wenn Sie das Hauptfenster schließen (X-Schaltfläche), wird es im Tray versteckt – die Verbindung bleibt aktiv. Um die App wirklich zu beenden: <em>Datei → Beenden</em>.</p>
 
-<!-- ================================================================ -->
-<h1 id="probleme">19 · Häufige Probleme &amp; Lösungen</h1>
+<h2>Sperren (Bans)</h2>
+<ul>
+  <li><strong>Sperren laden</strong>: Lädt die aktuelle Sperrliste.</li>
+  <li><strong>Entsperren</strong>: Hebt die Sperre für den markierten Nutzer auf.</li>
+</ul>
 
-<table>
-<tr><th>Problem</th><th>Ursache</th><th>Lösung</th></tr>
-<tr><td>Kein Ton trotz Verbindung</td><td>Audiogerät nicht angewandt</td><td>Datei → Sound-Konfiguration → Audio anwenden</td></tr>
-<tr><td>Andere hören mich nicht</td><td>Mikrofon nicht aktiviert oder falsche VA/PTT-Einstellung</td><td>Sprachaktivierung oder PTT aktivieren; Audioeinstellungen anwenden</td></tr>
-<tr><td>Verbindung bricht ständig ab</td><td>Netzwerkproblem oder falscher Port</td><td>TCP/UDP-Port prüfen; "Automatisch neu verbinden" aktivieren</td></tr>
-<tr><td>TTS spricht nicht</td><td>TTS aktiv nicht eingeschaltet</td><td>Einstellungen → System &amp; TTS → TTS aktiv einschalten</td></tr>
-<tr><td>Stimmen laden nicht (ElevenLabs)</td><td>API-Schlüssel fehlt oder ungültig</td><td>Gültigen API-Schlüssel im Verbindungsformular eintragen</td></tr>
-<tr><td>yt-dlp Stream startet nicht</td><td>yt-dlp nicht gefunden oder veraltet</td><td>yt-dlp aktualisieren: <code>yt-dlp -U</code></td></tr>
-<tr><td>Listen werden als "Tabelle" angesagt <span class="platform mac">macOS</span></td><td>VoiceOver-Patch nicht geladen</td><td>App neu starten; ggf. Accessibility-Berechtigung prüfen</td></tr>
-<tr><td>App reagiert nicht beim Beenden <span class="platform win">Windows</span></td><td>Hintergrundprozess läuft noch</td><td>Task-Manager → TeamTalk VO Client beenden</td></tr>
-</table>
+<h2>Server-Konfiguration</h2>
+<ul>
+  <li><strong>Laden</strong>: Lädt die Server-Einstellungen (Name, MOTD, Nutzer-Limits).</li>
+  <li><strong>Speichern</strong>: Speichert geänderte Server-Einstellungen.</li>
+  <li><strong>Konfiguration speichern</strong>: Schreibt die Konfiguration auf dem Server dauerhaft.</li>
+</ul>
 
-<!-- ================================================================ -->
-<h1 id="plattform">20 · Plattformunterschiede im Detail</h1>
+<!-- ============================================================ -->
+<div class="part-header">Teil H · Referenz</div>
+
+<h1 id="plattform">21 · Plattformunterschiede</h1>
 
 <h2><span class="platform mac">macOS</span></h2>
 <ul>
   <li><strong>VoiceOver-Navigation</strong>: VO+Pfeiltasten bewegen sich durch alle Elemente. VO+Leertaste aktiviert. VO+M für die Menüleiste.</li>
-  <li><strong>Listen</strong>: Werden als "Liste, N Einträge" angesagt (patched). Pfeiltasten oben/unten navigieren.</li>
+  <li><strong>Listen</strong>: Werden als "Liste, N Einträge" angesagt (VoiceOver-Patch aktiv). Pfeiltasten oben/unten navigieren.</li>
   <li><strong>Auswahlmenüs</strong>: Werden als "Auswahlmenü" angesagt. Pfeiltasten ändern den Wert.</li>
   <li><strong>Zahlenfelder (SpinCtrl)</strong>: Pfeiltasten ändern den Wert; direkte Eingabe möglich.</li>
+  <li><strong>Fokus-Shortcuts</strong>: Cmd+1–4 setzen Fokus auf Kanalliste, Chatverlauf, Eingabe, Protokoll.</li>
   <li><strong>Fenster schließen</strong>: Cmd+W minimiert in Tray. Cmd+Q beendet komplett.</li>
   <li><strong>Standardkürzel</strong>: Cmd+O (Datei öffnen), Cmd+N (neuer Client), Cmd+, (Einstellungen).</li>
   <li><strong>Mikrofon-Berechtigung</strong>: macOS fragt einmalig nach Mikrofonzugriff. In Systemeinstellungen → Datenschutz freigeben.</li>
   <li><strong>Braillezeile</strong>: Alle Steuerelementnamen und -rollen sind auf Deutsch benannt.</li>
+  <li><strong>Benachrichtigungen</strong>: Native macOS-Benachrichtigungen für Kanal-Ereignisse (ab v6.1.6 kanalbasiert gefiltert).</li>
 </ul>
 
 <h2><span class="platform win">Windows</span></h2>
@@ -644,11 +769,29 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong></p>
   <li><strong>Audiogeräte</strong>: PulseAudio oder ALSA. Gerätename im Auswahlmenü wählen.</li>
   <li><strong>espeak-ng</strong>: Systemversion wird bevorzugt (<code>sudo apt install espeak-ng</code>).</li>
   <li><strong>Tray</strong>: Funktioniert mit kompatiblen Desktop-Umgebungen (GNOME mit AppIndicator-Extension, KDE).</li>
-  <li><strong>Einschränkungen</strong>: Desktopfreigabe und Maus-Fernsteuerung möglicherweise eingeschränkt je nach Compositor.</li>
+  <li><strong>Einschränkungen</strong>: Desktopfreigabe und Maus-Fernsteuerung können je nach Compositor eingeschränkt sein.</li>
 </ul>
 
+<!-- ============================================================ -->
+<h1 id="probleme">22 · Häufige Probleme &amp; Lösungen</h1>
+
+<table>
+<tr><th>Problem</th><th>Ursache</th><th>Lösung</th></tr>
+<tr><td>Kein Ton trotz Verbindung</td><td>Audiogerät nicht angewandt</td><td>Datei → Sound-Konfiguration → Audio anwenden</td></tr>
+<tr><td>Andere hören mich nicht</td><td>Mikrofon nicht aktiviert oder falsche VA/PTT-Einstellung</td><td>Sprachaktivierung oder PTT aktivieren; Audio-Einstellungen anwenden</td></tr>
+<tr><td>Mikrofon klingt schlecht</td><td>Keine Verarbeitungsfilter aktiv</td><td>Mikrofon-Verarbeitung → Modus "Expander+Limiter" wählen und Vorschau testen</td></tr>
+<tr><td>Verbindung bricht ständig ab</td><td>Netzwerkproblem oder falscher Port</td><td>TCP/UDP-Port prüfen; "Automatisch neu verbinden" aktivieren</td></tr>
+<tr><td>TTS spricht nicht</td><td>TTS aktiv nicht eingeschaltet</td><td>Einstellungen → System &amp; TTS → TTS aktiv einschalten</td></tr>
+<tr><td>Stimmen laden nicht (ElevenLabs)</td><td>API-Schlüssel fehlt oder ungültig</td><td>Gültigen API-Schlüssel im Verbindungsformular eintragen</td></tr>
+<tr><td>yt-dlp Stream startet nicht</td><td>yt-dlp nicht gefunden oder veraltet</td><td>yt-dlp aktualisieren: <code>yt-dlp -U</code></td></tr>
+<tr><td>Listen werden als "Tabelle" angesagt <span class="platform mac">macOS</span></td><td>VoiceOver-Patch nicht geladen</td><td>App neu starten; Accessibility-Berechtigung in Systemeinstellungen prüfen</td></tr>
+<tr><td>Cmd+1–4 reagiert nicht <span class="platform mac">macOS</span></td><td>"Kanäle und Chat" nicht aktiver Bereich</td><td>Bereich-Auswahlmenü auf "Kanäle und Chat" setzen</td></tr>
+<tr><td>App reagiert nicht beim Beenden <span class="platform win">Windows</span></td><td>Hintergrundprozess läuft noch</td><td>Task-Manager → TeamTalk VO Client beenden</td></tr>
+<tr><td>App-Sprache nicht gewechselt</td><td>Neustart noch nicht erfolgt</td><td>Einstellungen → Allgemein → Sprache wählen → App startet automatisch neu</td></tr>
+</table>
+
 <hr>
-<p><em>TeamTalk VoiceOver Client – Handbuch. Hauptentwickler: Florian Lichteblau (Flarion). Danksagungen: Garo (Git-Server, Windows-Tests), FVH (Tabs, ElevenLabs), DHT (Tests), Korn (M1), de Losse (Mac mini).</em></p>
+<p><em>TeamTalk VoiceOver Client v6.1.6 – Benutzerhandbuch. Hauptentwickler: Florian Lichteblau (Flarion). Danksagungen: Garo (Git-Server, Windows-Tests), FVH (Tabs, ElevenLabs), DHT (Tests), Korn (M1), de Losse (Mac mini).</em></p>
 
 </body>
 </html>

@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import sys
 from typing import Optional, TYPE_CHECKING
 
 import wx
 
+import system_audio as sa
+
 if TYPE_CHECKING:
     from app import MainFrame
+
+_IS_MAC = sys.platform == "darwin"
 
 
 class AudioTab(wx.Panel):
@@ -44,6 +49,29 @@ class AudioTab(wx.Panel):
         dev_form.Add(self.output_device, 1, wx.EXPAND)
         dev_sizer.Add(dev_form, 0, wx.ALL | wx.EXPAND, 8)
         sizer.Add(dev_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
+
+        # --- Systemton (Loopback) ---
+        sys_box = wx.StaticBox(self, label="Systemton")
+        sys_sizer = wx.StaticBoxSizer(sys_box, wx.VERTICAL)
+
+        self.sys_hint_label = wx.StaticText(self, label=sa.loopback_hint())
+        self.sys_hint_label.SetName("Systemton-Hinweis")
+        self.sys_hint_label.Wrap(520)
+        sys_sizer.Add(self.sys_hint_label, 0, wx.ALL, 8)
+
+        sys_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        if _IS_MAC:
+            self.sys_install_btn = wx.Button(self, label="BlackHole &installieren")
+            self.sys_install_btn.SetName("BlackHole installieren")
+            self.sys_install_btn.Bind(wx.EVT_BUTTON, self._on_install_loopback)
+            sys_btn_row.Add(self.sys_install_btn, 0, wx.RIGHT, 8)
+        self.sys_refresh_hint_btn = wx.Button(self, label="Status aktuali&sieren")
+        self.sys_refresh_hint_btn.SetName("Systemton-Status aktualisieren")
+        self.sys_refresh_hint_btn.Bind(wx.EVT_BUTTON, self._on_refresh_sys_hint)
+        sys_btn_row.Add(self.sys_refresh_hint_btn, 0)
+        sys_sizer.Add(sys_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        sizer.Add(sys_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
 
         # --- Voice activation ---
         va_box = wx.StaticBox(self, label="Sprachaktivierung")
@@ -397,11 +425,15 @@ class AudioTab(wx.Panel):
                 ),
             )
             return
-        inputs = [d for d in devices if d.nMaxInputChannels > 0]
-        outputs = [d for d in devices if d.nMaxOutputChannels > 0]
-        input_labels = [tt_str(d.szDeviceName) for d in inputs]
-        output_labels = [tt_str(d.szDeviceName) for d in outputs]
-        input_ids = tuple(int(d.nDeviceID) for d in inputs)
+        raw_inputs  = [d for d in devices if d.nMaxInputChannels > 0]
+        raw_outputs = [d for d in devices if d.nMaxOutputChannels > 0]
+        in_entries  = sa.classify_devices(raw_inputs,  tt_str)
+        out_entries = sa.classify_devices(raw_outputs, tt_str)
+        inputs  = [e.device for e in in_entries]
+        outputs = [e.device for e in out_entries]
+        input_labels  = [e.label for e in in_entries]
+        output_labels = [e.label for e in out_entries]
+        input_ids  = tuple(int(d.nDeviceID) for d in inputs)
         output_ids = tuple(int(d.nDeviceID) for d in outputs)
 
         input_list_changed = input_ids != tuple(int(d.nDeviceID) for d in self._input_devices)
@@ -859,6 +891,24 @@ class AudioTab(wx.Panel):
         if 32 <= keycode <= 126:
             return chr(keycode)
         return f"Taste {keycode}"
+
+    # ------------------------------------------------------------------
+    # Systemton
+    # ------------------------------------------------------------------
+
+    def _on_install_loopback(self, _event) -> None:
+        """macOS: BlackHole-Installer starten."""
+        sa.open_loopback_installer(self)
+
+    def _on_refresh_sys_hint(self, _event) -> None:
+        """Systemton-Hinweistext und Install-Button aktualisieren."""
+        hint = sa.loopback_hint()
+        self.sys_hint_label.SetLabel(hint)
+        self.sys_hint_label.Wrap(520)
+        if _IS_MAC and hasattr(self, "sys_install_btn"):
+            self.sys_install_btn.Enable(not sa.is_blackhole_installed())
+        self.Layout()
+        self.frame.set_status("Systemton-Status aktualisiert")
 
     # ------------------------------------------------------------------
     # Lokale Wiedergabe
