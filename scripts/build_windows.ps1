@@ -9,9 +9,9 @@ $ErrorActionPreference = "Stop"
 $GITEA_TOKEN = "e91faa5c35310a376937604fffba15a8d7c66345"
 $GITEA_API   = "https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
 
-# $PSScriptRoot ist der Ordner, in dem dieses Skript liegt (scripts/)
-# Eine Ebene hoch = Projektverzeichnis
-$ROOT = Split-Path -Parent $PSScriptRoot
+# Projektverzeichnis = eine Ebene ueber dem scripts/-Ordner
+# Resolve-Path loest ".." auf und liefert den absoluten Pfad
+$ROOT = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Write-Host "Projektverzeichnis: $ROOT"
 Set-Location $ROOT
 
