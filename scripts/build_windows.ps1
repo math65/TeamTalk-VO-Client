@@ -1,21 +1,20 @@
 # =============================================================================
-# build_windows.ps1 – TeamTalk VO Client für Windows bauen
+# build_windows.ps1 - TeamTalk VO Client fuer Windows bauen
 # =============================================================================
 # Voraussetzungen:
 #   - Windows 10 oder neuer (64-Bit)
-#   - Python 3.9–3.12 (https://python.org) – "Add Python to PATH" aktivieren
+#   - Python 3.9-3.12 (https://python.org) - "Add Python to PATH" aktivieren
 #   - PortAudio-DLL (wird von pyaudio mitgeliefert)
 #
 # Aufruf (PowerShell, aus dem Projektverzeichnis):
-#   .\scripts\build_windows.ps1              # App bauen + ZIP + Gitea-Upload
-#   .\scripts\build_windows.ps1 -NoUpload   # ohne Gitea-Upload
+#   .\scripts\build_windows.ps1            # App bauen + ZIP + Gitea-Upload
+#   .\scripts\build_windows.ps1 -NoUpload  # ohne Gitea-Upload
 # =============================================================================
 
 param(
     [switch]$NoUpload
 )
 
-Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # Gitea-Zugangsdaten
@@ -27,7 +26,7 @@ $ProjectDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Pat
 Set-Location $ProjectDir
 
 # ---------------------------------------------------------------------------
-# 1. Python prüfen
+# 1. Python pruefen
 # ---------------------------------------------------------------------------
 $PythonExe = $null
 foreach ($candidate in @("python3.12", "python3.11", "python3.10", "python3.9", "python3", "python")) {
@@ -37,14 +36,15 @@ foreach ($candidate in @("python3.12", "python3.11", "python3.10", "python3.9", 
         $parts = $ver.Split(".")
         if ([int]$parts[0] -eq 3 -and [int]$parts[1] -ge 9 -and [int]$parts[1] -le 12) {
             $PythonExe = $candidate
-            Write-Host "==> Python: $(& $candidate --version) ($candidate)"
+            $pyVer = & $candidate --version
+            Write-Host "==> Python: $pyVer ($candidate)"
             break
         }
     }
 }
 
 if (-not $PythonExe) {
-    Write-Error "Python 3.9–3.12 nicht gefunden. Bitte von https://python.org installieren."
+    Write-Error "Python 3.9-3.12 nicht gefunden. Bitte von https://python.org installieren."
     exit 1
 }
 
@@ -57,8 +57,8 @@ if (-not (Test-Path ".venv")) {
 }
 
 Write-Host "==> Installiere Abhaengigkeiten (requirements_windows.txt)..."
-.venv\Scripts\pip install --upgrade pip --quiet
-.venv\Scripts\pip install -r requirements_windows.txt --quiet
+& ".venv\Scripts\pip" install --upgrade pip --quiet
+& ".venv\Scripts\pip" install -r requirements_windows.txt --quiet
 Write-Host "    Fertig."
 
 # ---------------------------------------------------------------------------
@@ -76,8 +76,8 @@ Write-Host "==> Version: $Version"
 # 4. App bauen (PyInstaller)
 # ---------------------------------------------------------------------------
 Write-Host "==> Starte PyInstaller-Build..."
-.venv\Scripts\pyinstaller -y "TeamTalk VO Client_win.spec"
-Write-Host "==> Build abgeschlossen: dist\TeamTalk VO Client\"
+& ".venv\Scripts\pyinstaller" -y "TeamTalk VO Client_win.spec"
+Write-Host "==> Build abgeschlossen: dist\TeamTalk VO Client"
 
 # ---------------------------------------------------------------------------
 # 5. ZIP-Archiv erstellen
@@ -87,35 +87,53 @@ $ZipPath = "dist\$ZipName"
 Write-Host "==> Erstelle ZIP: $ZipName"
 Compress-Archive -Path "dist\TeamTalk VO Client" -DestinationPath $ZipPath -Force
 $SizeMB = [math]::Round((Get-Item $ZipPath).Length / 1MB, 1)
-Write-Host "    Groesse: ${SizeMB} MB"
+Write-Host "    Groesse: $SizeMB MB"
 
 # ---------------------------------------------------------------------------
 # 6. Gitea-Release hochladen
 # ---------------------------------------------------------------------------
 if (-not $NoUpload) {
-    $Headers = @{ "Authorization" = "token $GiteaToken"; "Content-Type" = "application/json" }
+    $AuthHeaders = @{
+        "Authorization" = "token $GiteaToken"
+        "Content-Type"  = "application/json"
+    }
 
-    $ExistingJson = try {
-        Invoke-RestMethod -Uri "$GiteaBase/releases/tags/v$Version" -Headers $Headers -ErrorAction Stop
-    } catch { $null }
+    $ReleaseId = $null
+    try {
+        $existing = Invoke-RestMethod -Uri "$GiteaBase/releases/tags/v$Version" `
+            -Headers $AuthHeaders -ErrorAction Stop
+        if ($existing -and $existing.id) {
+            Write-Host "==> Release v$Version (ID $($existing.id)) existiert bereits."
+            $ReleaseId = $existing.id
+        }
+    } catch {
+        $ReleaseId = $null
+    }
 
-    if ($ExistingJson -and $ExistingJson.id) {
-        Write-Host "==> Release v$Version (ID $($ExistingJson.id)) existiert bereits."
-        $ReleaseId = $ExistingJson.id
-    } else {
+    if (-not $ReleaseId) {
         Write-Host "==> Lege Gitea-Release v$Version an..."
-        $Body = @{ tag_name = "v$Version"; name = "v$Version"; is_draft = $false } | ConvertTo-Json
-        $NewRelease = Invoke-RestMethod -Uri "$GiteaBase/releases" -Method Post -Headers $Headers -Body $Body
-        $ReleaseId = $NewRelease.id
+        $bodyObj = @{
+            tag_name   = "v$Version"
+            name       = "v$Version"
+            is_draft   = $false
+        }
+        $bodyJson = $bodyObj | ConvertTo-Json -Compress
+        $newRelease = Invoke-RestMethod -Uri "$GiteaBase/releases" `
+            -Method Post -Headers $AuthHeaders -Body $bodyJson
+        $ReleaseId = $newRelease.id
         Write-Host "    Release-ID: $ReleaseId"
     }
 
     Write-Host "==> Lade ZIP hoch..."
     $ZipNameEnc = [Uri]::EscapeDataString($ZipName)
-    $UploadHeaders = @{ "Authorization" = "token $GiteaToken"; "Content-Type" = "application/octet-stream" }
-    $Asset = Invoke-RestMethod -Uri "$GiteaBase/releases/$ReleaseId/assets?name=$ZipNameEnc" `
-        -Method Post -Headers $UploadHeaders -InFile $ZipPath
-    Write-Host "    Asset: $($Asset.name)"
+    $uploadHeaders = @{
+        "Authorization" = "token $GiteaToken"
+        "Content-Type"  = "application/octet-stream"
+    }
+    $asset = Invoke-RestMethod `
+        -Uri "$GiteaBase/releases/$ReleaseId/assets?name=$ZipNameEnc" `
+        -Method Post -Headers $uploadHeaders -InFile $ZipPath
+    Write-Host "    Asset: $($asset.name)"
 }
 
 # ---------------------------------------------------------------------------
