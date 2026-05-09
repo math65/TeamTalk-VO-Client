@@ -196,6 +196,8 @@ class AppSettings:
     # v2.1.0 features
     auto_reconnect_enabled: bool = True
     notifications_enabled: bool = True
+    companion_server_enabled: bool = True
+    companion_server_port: int = 19880
     # v2.2.0 features
     tts_chat_rate: int = 0
     tts_system_rate: int = 0

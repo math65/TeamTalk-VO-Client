@@ -323,6 +323,11 @@ class SettingsTab(wx.Panel):
         self._show_event_log.Bind(wx.EVT_CHECKBOX, self._on_event_log_changed)
         disp_sizer.Add(self._show_event_log, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+        self._notifications_enabled = wx.CheckBox(panel, label="Desktop-&Benachrichtigungen aktivieren")
+        self._notifications_enabled.SetName("Desktop-Benachrichtigungen aktivieren")
+        self._notifications_enabled.SetValue(bool(getattr(s, "notifications_enabled", True)))
+        disp_sizer.Add(self._notifications_enabled, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
         sizer.Add(disp_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # Single save button
@@ -883,6 +888,29 @@ class SettingsTab(wx.Panel):
         api_sizer.Add(api_port_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         sizer.Add(api_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
+        # ---- Companion-Server ----
+        cs_box = wx.StaticBox(panel, label="Companion-Server")
+        cs_sizer = wx.StaticBoxSizer(cs_box, wx.VERTICAL)
+
+        self._companion_enabled = wx.CheckBox(panel, label="&Companion-Server aktivieren")
+        self._companion_enabled.SetName("Companion-Server aktivieren")
+        self._companion_enabled.SetValue(bool(getattr(s, "companion_server_enabled", True)))
+        cs_sizer.Add(self._companion_enabled, 0, wx.ALL, 8)
+
+        cs_port_row = wx.BoxSizer(wx.HORIZONTAL)
+        cs_port_row.Add(wx.StaticText(panel, label="Port:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._companion_port = wx.SpinCtrl(panel, min=1024, max=65535,
+                                           initial=int(getattr(s, "companion_server_port", 19880) or 19880))
+        self._companion_port.SetName("Companion-Server Port")
+        cs_port_row.Add(self._companion_port, 0)
+        cs_sizer.Add(cs_port_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        cs_note = wx.StaticText(panel, label="Ermöglicht Verbindungen von Begleit-Apps (Standard-Port 19880).")
+        cs_note.SetName("Companion-Server Hinweis")
+        cs_sizer.Add(cs_note, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        sizer.Add(cs_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         # Single save button
         save_btn = wx.Button(panel, label="&Speichern")
         save_btn.SetName("KI & Integration speichern")
@@ -1214,6 +1242,7 @@ class SettingsTab(wx.Panel):
         s.show_toolbar = self._show_toolbar.GetValue()
         s.show_event_log = self._show_event_log.GetValue()
         s.show_vu_meter = self._show_vu_meter.GetValue()
+        s.notifications_enabled = self._notifications_enabled.GetValue()
         self.frame.settings_store.save()
         self.frame.apply_display_settings()
         self._on_vu_meter_changed(None)
@@ -1657,6 +1686,23 @@ class SettingsTab(wx.Panel):
             elif new_enabled and old_enabled:
                 self.frame._http_api.stop()
                 self.frame._http_api.start(new_port)
+        except Exception:
+            pass
+        # Companion Server
+        new_cs_enabled = self._companion_enabled.GetValue()
+        new_cs_port = int(self._companion_port.GetValue())
+        old_cs_enabled = bool(getattr(s, "companion_server_enabled", True))
+        old_cs_port = int(getattr(s, "companion_server_port", 19880) or 19880)
+        s.companion_server_enabled = new_cs_enabled
+        s.companion_server_port = new_cs_port
+        try:
+            if new_cs_enabled and not old_cs_enabled:
+                self.frame._companion.start(new_cs_port)
+            elif not new_cs_enabled and old_cs_enabled:
+                self.frame._companion.stop()
+            elif new_cs_enabled and old_cs_enabled and new_cs_port != old_cs_port:
+                self.frame._companion.stop()
+                self.frame._companion.start(new_cs_port)
         except Exception:
             pass
         self.frame.settings_store.save()

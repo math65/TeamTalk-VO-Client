@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.3.9"
+APP_VERSION = "6.4.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -543,16 +543,19 @@ class MainFrame(wx.Frame):
         except Exception:
             pass
         # v5.1.0 – Companion-Server (Mobil-Companion)
+        _cs_port = int(getattr(self.settings_store.settings, "companion_server_port", 19880) or 19880)
         self._companion = CompanionServer(
             get_status_fn=self._companion_status,
             get_channels_fn=self._companion_channels,
             get_users_fn=self._companion_users,
             send_message_fn=self._companion_send,
+            port=_cs_port,
         )
-        try:
-            self._companion.start()
-        except Exception as exc:
-            self.logger.write(f"Companion-Server konnte nicht gestartet werden: {exc}")
+        if bool(getattr(self.settings_store.settings, "companion_server_enabled", True)):
+            try:
+                self._companion.start()
+            except Exception as exc:
+                self.logger.write(f"Companion-Server konnte nicht gestartet werden: {exc}")
         _expired = self._saved_messages.expire()
         if _expired > 0:
             self._audit_log.log(A_SAVED_MSG_EXPIRED, detail=str(_expired))

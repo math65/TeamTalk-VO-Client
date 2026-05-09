@@ -60,9 +60,11 @@ class CompanionServer:
         except queue.Full:
             pass
 
-    def start(self) -> None:
+    def start(self, port: Optional[int] = None) -> None:
         if self._running:
             return
+        if port is not None:
+            self._port = port
         self._running = True
         server = self
         port = self._port

@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2026-05-09 (v6.4.0)
+- Neu: Desktop-Benachrichtigungen können jetzt in Einstellungen → Allgemein &
+  Anzeige ein- und ausgeschaltet werden (war zuvor immer aktiv ohne Schalter).
+- Neu: Companion-Server ist jetzt konfigurierbar (Einstellungen → KI & Integration
+  → "Companion-Server"): aktivieren/deaktivieren und Port einstellen (Standard
+  19880). Änderungen werden sofort übernommen ohne Neustart.
+
 2026-05-09 (v6.3.9)
 - Fix: client.get_channels() existiert nicht – korrekte Methode ist
   client.get_server_channels(). Betroffen: app.py (3×), macro_manager.py,

@@ -311,6 +311,8 @@ class SQLiteSettingsStore:
         # batch 2 – previously missing
         s.auto_reconnect_enabled = _bool("auto_reconnect_enabled", True)
         s.notifications_enabled = _bool("notifications_enabled", True)
+        s.companion_server_enabled = _bool("companion_server_enabled", True)
+        s.companion_server_port = _int("companion_server_port", 19880)
         s.channel_bookmarks = _list("channel_bookmarks")
         s.hotkey_bookmark_1 = _int("hotkey_bookmark_1", 0)
         s.hotkey_bookmark_2 = _int("hotkey_bookmark_2", 0)
@@ -465,6 +467,8 @@ class SQLiteSettingsStore:
         # batch 2 – previously missing
         _set("auto_reconnect_enabled", bool(getattr(s, "auto_reconnect_enabled", True)))
         _set("notifications_enabled", bool(getattr(s, "notifications_enabled", True)))
+        _set("companion_server_enabled", bool(getattr(s, "companion_server_enabled", True)))
+        _set("companion_server_port", int(getattr(s, "companion_server_port", 19880) or 19880))
         _set("channel_bookmarks", list(getattr(s, "channel_bookmarks", []) or []))
         _set("hotkey_bookmark_1", int(getattr(s, "hotkey_bookmark_1", 0) or 0))
         _set("hotkey_bookmark_2", int(getattr(s, "hotkey_bookmark_2", 0) or 0))
