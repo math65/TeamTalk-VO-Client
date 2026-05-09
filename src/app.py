@@ -55,7 +55,6 @@ from channel_notes import ChannelNotesManager
 from chat_translator import ChatTranslatorManager
 from ai_reply import AiReplyManager
 from async_bridge import AsyncBusBridge
-from offline_queue import OfflineMessageQueue
 from startup_profiler import StartupProfiler
 from eq_presets import EqPresetsManager
 from audit_log import AuditLog, A_SERVER_CONNECT, A_SERVER_DISCONNECT, A_API_KEY_SAVED, A_API_KEY_DELETED, A_SAVED_MSG_EXPIRED
@@ -71,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.2.2"
+APP_VERSION = "6.3.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -512,8 +511,6 @@ class MainFrame(wx.Frame):
         self._translator = ChatTranslatorManager(self.settings_store)
         self._ai_reply = AiReplyManager(self.settings_store)
         self._last_private_message_text: str = ""
-        # v4.5.0 – Offline-Nachrichten-Warteschlange
-        self._offline_queue = OfflineMessageQueue(app_dir)
         # v4.7.0 – EQ-Preset-Manager
         self._eq_presets = EqPresetsManager(app_dir)
         # v4.9.0 – Audit-Log, TLS-Pin-Store, gespeicherte Nachrichten ablaufen lassen
@@ -574,6 +571,7 @@ class MainFrame(wx.Frame):
         # Bus-Handler für Multi-Server
         self.bus.on("active_server_changed", self._on_active_server_changed)
         self.bus.on("server_state_changed", self._on_server_state_changed)
+        self.bus.on("transcription_result", self._on_transcription_result)
         # v3.5.0 – Makro-Trigger via Bus-Events
         self.bus.on("user_joined", lambda **kw: self._macros.fire_event("user_join", **kw))
         self.bus.on("user_left", lambda **kw: self._macros.fire_event("user_leave", **kw))
@@ -1004,6 +1002,21 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     # v2.0.0 – Multi-Server Bus-Handler
     # ------------------------------------------------------------------
+
+    def _on_transcription_result(self, text: str, language: str = "") -> None:
+        """Speichert Transkriptionsergebnis in Tagesdatei wenn Autosave aktiv."""
+        if not getattr(self.settings_store.settings, "transcription_autosave", False):
+            return
+        import datetime
+        ts = datetime.datetime.now()
+        try:
+            save_dir = self._app_dir / "transcripts"
+            save_dir.mkdir(parents=True, exist_ok=True)
+            filepath = save_dir / f"{ts.strftime('%Y-%m-%d')}.txt"
+            with filepath.open("a", encoding="utf-8") as fh:
+                fh.write(f"[{ts.strftime('%H:%M:%S')}] {text.strip()}\n")
+        except Exception:
+            pass
 
     def _on_active_server_changed(self, session_id: str, session) -> None:
         """Wird aufgerufen wenn die aktive Session wechselt."""

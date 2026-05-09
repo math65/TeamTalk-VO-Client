@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-05-09 (v6.3.0)
+- Einstellungen (KI & Barrierefreiheit): neue Sektion "Chat-Übersetzung" mit
+  Toggle "Chat-Übersetzung aktivieren" und Zielsprachen-Auswahl (13 Sprachen);
+  Einstellungen werden korrekt in der Datenbank gespeichert und beim Start geladen.
+- Einstellungen (KI & Barrierefreiheit): neue Option "Transkription automatisch
+  speichern" – bei aktivierter Live-Transkription werden Ergebnisse automatisch in
+  Tagesdateien unter <AppData>/transcripts/YYYY-MM-DD.txt geschrieben.
+- Aufräumen: OfflineMessageQueue (offline_queue.py) war seit v4.5.0 tot (nie
+  aufgerufen, durch interne Liste ersetzt); Import und Instanziierung entfernt.
+
 2026-05-09 (v6.2.2)
 - Hilfe-Menü: neuer Eintrag "Auf Updates prüfen..." – startet eine manuelle
   Update-Prüfung; zeigt eine Meldung wenn kein Update vorhanden oder ein Fehler

@@ -751,7 +751,46 @@ class SettingsTab(wx.Panel):
         self._transcription_enabled.SetName("Live-Transkription aktivieren")
         self._transcription_enabled.SetValue(bool(getattr(s, "transcription_enabled", False)))
         trans_sizer.Add(self._transcription_enabled, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._transcription_autosave = wx.CheckBox(panel, label="Transkription automatisch &speichern")
+        self._transcription_autosave.SetName("Transkription automatisch speichern")
+        self._transcription_autosave.SetValue(bool(getattr(s, "transcription_autosave", False)))
+        trans_sizer.Add(self._transcription_autosave, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         sizer.Add(trans_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # ---- Chat-Übersetzung ----
+        ct_box = wx.StaticBox(panel, label="Chat-Übersetzung")
+        ct_sizer = wx.StaticBoxSizer(ct_box, wx.VERTICAL)
+
+        ct_info = wx.StaticText(panel, label=(
+            "Übersetzt eingehende Chat-Nachrichten via KI-Backend (Claude/Gemini/Ollama)."
+        ))
+        ct_info.SetName("Chat-Übersetzung Info")
+        ct_sizer.Add(ct_info, 0, wx.ALL, 8)
+
+        self._translate_enabled = wx.CheckBox(panel, label="Chat-Übersetzung &aktivieren")
+        self._translate_enabled.SetName("Chat-Übersetzung aktivieren")
+        self._translate_enabled.SetValue(bool(getattr(s, "translate_chat_enabled", False)))
+        ct_sizer.Add(self._translate_enabled, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        _TRANSLATE_LANGS = [
+            "Deutsch", "Englisch", "Französisch", "Spanisch", "Italienisch",
+            "Portugiesisch", "Niederländisch", "Polnisch", "Russisch",
+            "Türkisch", "Japanisch", "Chinesisch (Vereinfacht)", "Arabisch",
+        ]
+        ct_lang_row = wx.BoxSizer(wx.HORIZONTAL)
+        ct_lang_row.Add(
+            wx.StaticText(panel, label="Zielsprache:"),
+            0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8,
+        )
+        self._translate_language = wx.Choice(panel, choices=_TRANSLATE_LANGS)
+        self._translate_language.SetName("Zielsprache")
+        _cur_lang = str(getattr(s, "translate_target_language", "Deutsch") or "Deutsch")
+        _lang_idx = _TRANSLATE_LANGS.index(_cur_lang) if _cur_lang in _TRANSLATE_LANGS else 0
+        self._translate_language.SetSelection(_lang_idx)
+        ct_lang_row.Add(self._translate_language, 1)
+        ct_sizer.Add(ct_lang_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        sizer.Add(ct_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # ---- Plugins StaticBox ----
         pl_box = wx.StaticBox(panel, label="Geladene Plugins")
@@ -1337,8 +1376,16 @@ class SettingsTab(wx.Panel):
         s.braille_verbosity = verbosity
         self.frame.braille.verbosity = verbosity
         s.transcription_enabled = self._transcription_enabled.GetValue()
-        # Transkription starten/stoppen je nach Einstellung
+        s.transcription_autosave = self._transcription_autosave.GetValue()
         self._apply_transcription_setting(s.transcription_enabled)
+        s.translate_chat_enabled = self._translate_enabled.GetValue()
+        _TRANSLATE_LANGS = [
+            "Deutsch", "Englisch", "Französisch", "Spanisch", "Italienisch",
+            "Portugiesisch", "Niederländisch", "Polnisch", "Russisch",
+            "Türkisch", "Japanisch", "Chinesisch (Vereinfacht)", "Arabisch",
+        ]
+        _sel = self._translate_language.GetSelection()
+        s.translate_target_language = _TRANSLATE_LANGS[_sel] if 0 <= _sel < len(_TRANSLATE_LANGS) else "Deutsch"
         # v3.3.0 – Braille-Status-Felder
         s.braille_status_show_channel = self._braille_status_channel.GetValue()
         s.braille_status_show_users = self._braille_status_users.GetValue()
