@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-05-09 (v6.3.2)
+- Kritischer Persistenz-Fix: 27 Einstellungen wurden zwar im UI gespeichert aber beim
+  Neustart nicht aus der Datenbank geladen und gingen so bei jedem Neustart verloren.
+  Betrifft: Auto-Antwort, Braille-Status-Felder, Verbindungsqualität, Noise Gate,
+  PTT-Max-Sekunden, Aufnahmelimits, Stille-Erkennung, TTS-Stimmen/-Raten,
+  VU-Alarm, Webhook-URL/-Ereignisse, Server-Info in Titelzeile u.a.
+  settings_db.py: alle 27 Felder in load() und save() ergänzt; neuer _json()-Helper
+  für Listenfelder.
+- files.py: Rückgabewert von delete_file() wird jetzt geprüft; bei fehlgeschlagenem
+  Löschen erscheint Fehlermeldung statt falscher Erfolgsmeldung.
+
 2026-05-09 (v6.3.1)
 - Fix: _on_transcription_result verwendete self._app_dir (existiert nicht); korrigiert
   auf app_data_dir() aus platform_paths – Autosave-Dateien landen jetzt korrekt im

@@ -167,6 +167,16 @@ class SQLiteSettingsStore:
             except Exception:
                 return default
 
+        def _json(key: str, default) -> object:
+            raw = db.get(key)
+            if raw == "":
+                return default
+            try:
+                v = json.loads(raw)
+                return v if v is not None else default
+            except Exception:
+                return default
+
         def _dict(key: str) -> dict:
             raw = db.get(key)
             if raw == "":
@@ -269,6 +279,35 @@ class SQLiteSettingsStore:
         s.active_server_session = _str("active_server_session", "")
         # v2.0.2
         s.gemini_api_key = _str("gemini_api_key", "")
+        # previously missing – persisted from here on
+        s.auto_reply_enabled = _bool("auto_reply_enabled", False)
+        s.auto_reply_message = _str("auto_reply_message", "Ich bin gerade nicht erreichbar.")
+        s.alert_keywords_tts = _bool("alert_keywords_tts", True)
+        s.braille_status_show_channel = _bool("braille_status_show_channel", True)
+        s.braille_status_show_users = _bool("braille_status_show_users", True)
+        s.braille_status_show_ping = _bool("braille_status_show_ping", True)
+        s.braille_status_show_mute = _bool("braille_status_show_mute", False)
+        s.braille_status_show_connection = _bool("braille_status_show_connection", True)
+        s.connection_quality_announce = _bool("connection_quality_announce", False)
+        s.connection_quality_threshold_ms = _int("connection_quality_threshold_ms", 300)
+        s.noise_gate_enabled = _bool("noise_gate_enabled", False)
+        s.noise_gate_threshold = _int("noise_gate_threshold", 500)
+        s.ptt_max_seconds = _int("ptt_max_seconds", 0)
+        s.recording_max_minutes = _int("recording_max_minutes", 0)
+        s.recording_max_size_mb = _int("recording_max_size_mb", 0)
+        s.server_info_in_titlebar = _bool("server_info_in_titlebar", False)
+        s.silence_detection_enabled = _bool("silence_detection_enabled", False)
+        s.silence_detection_threshold_pct = _int("silence_detection_threshold_pct", 2)
+        s.silence_detection_timeout_sec = _int("silence_detection_timeout_sec", 30)
+        s.tts_chat_rate = _int("tts_chat_rate", 0)
+        s.tts_system_rate = _int("tts_system_rate", 0)
+        s.tts_channel_rate = _int("tts_channel_rate", 0)
+        s.tts_chat_voice = _str("tts_chat_voice", "")
+        s.tts_system_voice = _str("tts_system_voice", "")
+        s.vu_alert_enabled = _bool("vu_alert_enabled", False)
+        s.vu_alert_threshold = _int("vu_alert_threshold", 90)
+        s.webhook_url = _str("webhook_url", "")
+        s.webhook_events = _json("webhook_events", [])
 
     def save(self) -> None:
         s = self.settings
@@ -358,6 +397,35 @@ class SQLiteSettingsStore:
         _set("active_server_session", str(getattr(s, "active_server_session", "") or ""))
         # v2.0.2
         _set("gemini_api_key", str(getattr(s, "gemini_api_key", "") or ""))
+        # previously missing
+        _set("auto_reply_enabled", bool(getattr(s, "auto_reply_enabled", False)))
+        _set("auto_reply_message", str(getattr(s, "auto_reply_message", "") or ""))
+        _set("alert_keywords_tts", bool(getattr(s, "alert_keywords_tts", True)))
+        _set("braille_status_show_channel", bool(getattr(s, "braille_status_show_channel", True)))
+        _set("braille_status_show_users", bool(getattr(s, "braille_status_show_users", True)))
+        _set("braille_status_show_ping", bool(getattr(s, "braille_status_show_ping", True)))
+        _set("braille_status_show_mute", bool(getattr(s, "braille_status_show_mute", False)))
+        _set("braille_status_show_connection", bool(getattr(s, "braille_status_show_connection", True)))
+        _set("connection_quality_announce", bool(getattr(s, "connection_quality_announce", False)))
+        _set("connection_quality_threshold_ms", int(getattr(s, "connection_quality_threshold_ms", 300) or 300))
+        _set("noise_gate_enabled", bool(getattr(s, "noise_gate_enabled", False)))
+        _set("noise_gate_threshold", int(getattr(s, "noise_gate_threshold", 500) or 500))
+        _set("ptt_max_seconds", int(getattr(s, "ptt_max_seconds", 0) or 0))
+        _set("recording_max_minutes", int(getattr(s, "recording_max_minutes", 0) or 0))
+        _set("recording_max_size_mb", int(getattr(s, "recording_max_size_mb", 0) or 0))
+        _set("server_info_in_titlebar", bool(getattr(s, "server_info_in_titlebar", False)))
+        _set("silence_detection_enabled", bool(getattr(s, "silence_detection_enabled", False)))
+        _set("silence_detection_threshold_pct", int(getattr(s, "silence_detection_threshold_pct", 2) or 2))
+        _set("silence_detection_timeout_sec", int(getattr(s, "silence_detection_timeout_sec", 30) or 30))
+        _set("tts_chat_rate", int(getattr(s, "tts_chat_rate", 0) or 0))
+        _set("tts_system_rate", int(getattr(s, "tts_system_rate", 0) or 0))
+        _set("tts_channel_rate", int(getattr(s, "tts_channel_rate", 0) or 0))
+        _set("tts_chat_voice", str(getattr(s, "tts_chat_voice", "") or ""))
+        _set("tts_system_voice", str(getattr(s, "tts_system_voice", "") or ""))
+        _set("vu_alert_enabled", bool(getattr(s, "vu_alert_enabled", False)))
+        _set("vu_alert_threshold", int(getattr(s, "vu_alert_threshold", 90) or 90))
+        _set("webhook_url", str(getattr(s, "webhook_url", "") or ""))
+        _set("webhook_events", list(getattr(s, "webhook_events", []) or []))
 
         db.commit()
 

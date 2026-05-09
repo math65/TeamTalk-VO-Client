@@ -196,9 +196,12 @@ class FilesTab(wx.Panel):
             dlg.Destroy()
             return
         dlg.Destroy()
-        self.frame.client.delete_file(int(ch_id), file_id)
-        self.frame.set_status("Datei gelöscht")
-        wx.CallLater(500, self.refresh_file_list)
+        cmd_id = self.frame.client.delete_file(int(ch_id), file_id)
+        if cmd_id > 0:
+            self.frame.set_status("Datei gelöscht")
+            wx.CallLater(500, self.refresh_file_list)
+        else:
+            self.frame.set_status("Löschen fehlgeschlagen – keine Berechtigung?")
 
     def on_file_transfer_update(self, transfer_id: int):
         ft = self.frame.client.get_file_transfer_info(transfer_id)
