@@ -283,6 +283,8 @@ class AppSettings:
     eq_out_volume_pct: int = 100
     # v6.5.0 features
     watched_users: List[str] = field(default_factory=list)
+    # v6.6.0 features
+    server_audio_profiles: Dict[str, str] = field(default_factory=dict)
 
 
 class SettingsStore:

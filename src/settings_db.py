@@ -353,6 +353,8 @@ class SQLiteSettingsStore:
         s.hotkey_announce_status = _int("hotkey_announce_status", 0)
         # v6.5.0
         s.watched_users = _list("watched_users")
+        # v6.6.0
+        s.server_audio_profiles = _dict("server_audio_profiles")
 
     def save(self) -> None:
         s = self.settings
@@ -516,6 +518,8 @@ class SQLiteSettingsStore:
         _set("hotkey_announce_status", int(getattr(s, "hotkey_announce_status", 0) or 0))
         # v6.5.0
         _set("watched_users", list(getattr(s, "watched_users", []) or []))
+        # v6.6.0
+        _set("server_audio_profiles", dict(getattr(s, "server_audio_profiles", {}) or {}))
 
         db.commit()
 

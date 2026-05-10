@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2026-05-10 (v6.6.0)
+- Neu: Offline-Nachrichtenwarteschlange – Nachrichten die im Offline-Modus
+  geschrieben werden, landen in einer persistenten Warteschlange und werden
+  nach dem nächsten Reconnect automatisch übermittelt. Verwaltung über
+  Automation → Offline-Warteschlange...
+- Neu: Per-Server-Audioprofile – Jedem Server kann ein Audioprofil zugeordnet
+  werden, das beim Verbinden automatisch angewendet wird. Konfiguration über
+  Automation → Per-Server-Audioprofile...
+
 2026-05-10 (v6.5.1)
 - Fix: version_info.txt hatte noch veraltete filevers/prodvers-Tupel (6, 3, 6, 0)
   statt der aktuellen Version; jetzt synchron mit APP_VERSION gehalten.

@@ -354,11 +354,29 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
         msg = expand_emoji_shortcodes(msg)
 
         client = self.frame.client
+        is_private = self.private_chat.GetValue()
+
         if not client.is_connected():
+            oq = getattr(self.frame, "_offline_queue", None)
+            if oq is not None and is_private:
+                user_idx = self.private_user.GetSelection()
+                if user_idx != wx.NOT_FOUND:
+                    uid = self.private_user.GetClientData(user_idx) or 0
+                    uname = self.private_user.GetString(user_idx)
+                    oq.enqueue(msg, "private", uid, uname)
+                    self.append_chat(f"[Offline] An {uname}: {msg}", kind="own")
+                    self.chat_input.Clear()
+                    self.frame.set_status(f"Nachricht in Offline-Warteschlange ({len(oq)} ausstehend)")
+                    return
+            elif oq is not None and not is_private:
+                oq.enqueue(msg, "channel", 0, "Kanal")
+                self.append_chat(f"[Offline] Ich: {msg}", kind="own")
+                self.chat_input.Clear()
+                self.frame.set_status(f"Nachricht in Offline-Warteschlange ({len(oq)} ausstehend)")
+                return
             self.frame.set_status("Nicht verbunden")
             return
 
-        is_private = self.private_chat.GetValue()
         if is_private:
             user_idx = self.private_user.GetSelection()
             if user_idx == wx.NOT_FOUND:

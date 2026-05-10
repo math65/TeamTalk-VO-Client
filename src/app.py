@@ -58,6 +58,7 @@ from async_bridge import AsyncBusBridge
 from startup_profiler import StartupProfiler
 from eq_presets import EqPresetsManager
 from audit_log import AuditLog, A_SERVER_CONNECT, A_SERVER_DISCONNECT, A_API_KEY_SAVED, A_API_KEY_DELETED, A_SAVED_MSG_EXPIRED
+from offline_queue import OfflineMessageQueue
 from tls_verify import CertPinStore
 from plugin_package import PluginPackage, read_package, install_package, PluginManifestError
 from plugin_marketplace import PluginMarketplace
@@ -70,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.5.1"
+APP_VERSION = "6.6.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -517,6 +518,8 @@ class MainFrame(wx.Frame):
         self._last_private_message_text: str = ""
         # v4.7.0 – EQ-Preset-Manager
         self._eq_presets = EqPresetsManager(app_dir)
+        # v6.6.0 – Offline-Nachrichtenwarteschlange
+        self._offline_queue = OfflineMessageQueue(app_dir)
         # v4.9.0 – Audit-Log, TLS-Pin-Store, gespeicherte Nachrichten ablaufen lassen
         self._audit_log = AuditLog(app_dir)
         self._cert_pins = CertPinStore(app_dir)
@@ -2019,6 +2022,9 @@ class MainFrame(wx.Frame):
         auto_chat_search = auto_menu.Append(wx.ID_ANY, "Chat-Verlauf durchsuchen...")
         auto_tts_transcript = auto_menu.Append(wx.ID_ANY, "TTS-Mitschrift...")
         auto_menu.AppendSeparator()
+        auto_offline_queue = auto_menu.Append(wx.ID_ANY, "Offline-Warteschlange...")
+        auto_server_audio = auto_menu.Append(wx.ID_ANY, "Per-Server-Audioprofile...")
+        auto_menu.AppendSeparator()
         auto_plugin_manager = auto_menu.Append(wx.ID_ANY, "Plugin-Manager...")
         menubar.Append(auto_menu, _("Automation"))
 
@@ -2190,6 +2196,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_user_watcher, auto_user_watcher)
         self.Bind(wx.EVT_MENU, self.on_menu_chat_search, auto_chat_search)
         self.Bind(wx.EVT_MENU, self.on_menu_tts_transcript, auto_tts_transcript)
+        self.Bind(wx.EVT_MENU, self.on_menu_offline_queue, auto_offline_queue)
+        self.Bind(wx.EVT_MENU, self.on_menu_server_audio_profiles, auto_server_audio)
         self.Bind(wx.EVT_MENU, self.on_menu_plugin_manager, auto_plugin_manager)
 
         self.Bind(wx.EVT_MENU, self.on_menu_settings, help_settings)
@@ -4881,6 +4889,18 @@ class MainFrame(wx.Frame):
     def on_menu_tts_transcript(self, _event) -> None:
         from ui.tts_transcript_dialog import TTSTranscriptDialog
         dlg = TTSTranscriptDialog(self, self.tts)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def on_menu_offline_queue(self, _event) -> None:
+        from ui.offline_queue_dialog import OfflineQueueDialog
+        dlg = OfflineQueueDialog(self, self._offline_queue)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def on_menu_server_audio_profiles(self, _event) -> None:
+        from ui.server_audio_profile_dialog import ServerAudioProfileDialog
+        dlg = ServerAudioProfileDialog(self, self.settings_store)
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -8089,6 +8109,11 @@ class MainFrame(wx.Frame):
             # Offline-Ereignisse wiedergeben
             if self._offline_event_log:
                 wx.CallLater(800, self._replay_offline_log)
+            # v6.6.0 – Offline-Warteschlange leeren
+            if len(self._offline_queue) > 0:
+                wx.CallLater(1500, self._drain_offline_queue)
+            # v6.6.0 – Per-Server-Audioprofil anwenden
+            wx.CallLater(1200, self._apply_server_audio_profile)
             # v2.4.0 – Noise gate anwenden
             self._apply_noise_gate()
             # v2.5.0 – Auto-Antwort zurücksetzen
@@ -8204,6 +8229,45 @@ class MainFrame(wx.Frame):
         for ts, text, kind in log:
             self.chat_tab.append_chat(f"[{ts}] {text}", kind=kind, speak=False)
         self.tts.speak(f"{len(log)} verpasste Ereignisse", kind="system")
+
+    def _drain_offline_queue(self) -> None:
+        """Sendet nach Reconnect alle gepufferten Offline-Nachrichten."""
+        items = self._offline_queue.dequeue_all()
+        if not items:
+            return
+        sent = 0
+        for m in items:
+            try:
+                if m.target_type == "private" and m.target_id:
+                    if self.client.send_user_message(m.target_id, m.text):
+                        sent += 1
+                elif m.target_type == "channel":
+                    ch = self.client.get_my_channel_id()
+                    if ch and self.client.send_channel_message(ch, m.text):
+                        sent += 1
+            except Exception:
+                pass
+        self.chat_tab.append_chat(f"--- {sent} Offline-Nachricht(en) übermittelt ---", kind="system", speak=False)
+        self.tts.speak(f"{sent} Offline-Nachrichten gesendet", kind="system")
+
+    def _apply_server_audio_profile(self) -> None:
+        """Wendet das für den aktuellen Server konfigurierte Audioprofil an."""
+        key = getattr(self, "_current_server_key", "")
+        if not key:
+            return
+        profiles_map = dict(getattr(self.settings_store.settings, "server_audio_profiles", {}) or {})
+        profile_name = profiles_map.get(key, "")
+        if not profile_name:
+            return
+        profiles = list(getattr(self.settings_store.settings, "sound_profiles", []) or [])
+        for p in profiles:
+            if isinstance(p, dict) and p.get("name") == profile_name:
+                try:
+                    self.audio_tab.apply_audio_prefs(p.get("prefs", {}), announce=False)
+                    self.set_status(f"Audioprofil '{profile_name}' für {key} angewendet")
+                except Exception:
+                    pass
+                return
 
     def _buffer_offline_event(self, text: str, kind: str) -> None:
         """Puffert ein Ereignis während der Offline-Phase (max. 50)."""
