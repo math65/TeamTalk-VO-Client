@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2026-05-10 (v6.6.1)
+- Fix: _apply_server_audio_profile() rief fälschlicherweise apply_audio_prefs()
+  auf Sound-Event-Profilen auf (die kein "prefs"-Schlüssel haben). Korrektur:
+  setzt jetzt active_sound_profile direkt (wie _cycle_sound_profile); wird
+  außerdem sofort beim Speichern aus dem Dialog angewendet wenn verbunden.
+- Fix: Menü- und Dialog-Bezeichnung von "Audioprofile" auf "Soundprofile"
+  korrigiert, da die Funktion Sound-Event-Profile steuert, nicht Audio-Geräte.
+
 2026-05-10 (v6.6.0)
 - Neu: Offline-Nachrichtenwarteschlange – Nachrichten die im Offline-Modus
   geschrieben werden, landen in einer persistenten Warteschlange und werden

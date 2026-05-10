@@ -10,7 +10,7 @@ class ServerAudioProfileDialog(wx.Dialog):
     def __init__(self, parent, settings_store):
         super().__init__(
             parent,
-            title="Per-Server-Audioprofile",
+            title="Per-Server-Soundprofile",
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
         self._store = settings_store
@@ -25,7 +25,7 @@ class ServerAudioProfileDialog(wx.Dialog):
 
         root = wx.BoxSizer(wx.VERTICAL)
         root.Add(
-            wx.StaticText(self, label="Server-Schlüssel → Audioprofil (automatisch beim Verbinden angewendet):"),
+            wx.StaticText(self, label="Server-Schlüssel → Sound-Profil (wird beim Verbinden automatisch aktiviert):"),
             0, wx.ALL, 8,
         )
 

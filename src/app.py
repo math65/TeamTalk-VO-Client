@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.6.0"
+APP_VERSION = "6.6.1"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -2023,7 +2023,7 @@ class MainFrame(wx.Frame):
         auto_tts_transcript = auto_menu.Append(wx.ID_ANY, "TTS-Mitschrift...")
         auto_menu.AppendSeparator()
         auto_offline_queue = auto_menu.Append(wx.ID_ANY, "Offline-Warteschlange...")
-        auto_server_audio = auto_menu.Append(wx.ID_ANY, "Per-Server-Audioprofile...")
+        auto_server_audio = auto_menu.Append(wx.ID_ANY, "Per-Server-Soundprofile...")
         auto_menu.AppendSeparator()
         auto_plugin_manager = auto_menu.Append(wx.ID_ANY, "Plugin-Manager...")
         menubar.Append(auto_menu, _("Automation"))
@@ -4901,7 +4901,8 @@ class MainFrame(wx.Frame):
     def on_menu_server_audio_profiles(self, _event) -> None:
         from ui.server_audio_profile_dialog import ServerAudioProfileDialog
         dlg = ServerAudioProfileDialog(self, self.settings_store)
-        dlg.ShowModal()
+        if dlg.ShowModal() == wx.ID_OK and getattr(self, "_current_server_key", ""):
+            self._apply_server_audio_profile()
         dlg.Destroy()
 
     def _on_menu_toggle_translation(self, _event) -> None:
@@ -8251,7 +8252,7 @@ class MainFrame(wx.Frame):
         self.tts.speak(f"{sent} Offline-Nachrichten gesendet", kind="system")
 
     def _apply_server_audio_profile(self) -> None:
-        """Wendet das für den aktuellen Server konfigurierte Audioprofil an."""
+        """Setzt das für den aktuellen Server konfigurierte Sound-Profil."""
         key = getattr(self, "_current_server_key", "")
         if not key:
             return
@@ -8259,15 +8260,9 @@ class MainFrame(wx.Frame):
         profile_name = profiles_map.get(key, "")
         if not profile_name:
             return
-        profiles = list(getattr(self.settings_store.settings, "sound_profiles", []) or [])
-        for p in profiles:
-            if isinstance(p, dict) and p.get("name") == profile_name:
-                try:
-                    self.audio_tab.apply_audio_prefs(p.get("prefs", {}), announce=False)
-                    self.set_status(f"Audioprofil '{profile_name}' für {key} angewendet")
-                except Exception:
-                    pass
-                return
+        self.settings_store.settings.active_sound_profile = profile_name
+        self.settings_store.save()
+        self.set_status(f"Sound-Profil '{profile_name}' für {key} aktiv")
 
     def _buffer_offline_event(self, text: str, kind: str) -> None:
         """Puffert ein Ereignis während der Offline-Phase (max. 50)."""
