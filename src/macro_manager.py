@@ -113,7 +113,11 @@ class MacroManager:
             # Optional filter: user name / channel name
             filter_val = str(rule.get("filter", "") or "").strip().lower()
             if filter_val:
-                match_val = str(kwargs.get("user", "") or kwargs.get("channel", "")).lower()
+                match_val = str(
+                    kwargs.get("user", "")
+                    or kwargs.get("from_user", "")
+                    or kwargs.get("channel", "")
+                ).lower()
                 if filter_val not in match_val:
                     continue
             macro_name = str(rule.get("macro", "") or "")

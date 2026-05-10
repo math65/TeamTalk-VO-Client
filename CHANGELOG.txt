@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2026-05-10 (v6.4.6)
+- Fix: Makro-Trigger mit Filter für chat_message-Events griff auf den falschen
+  Keyword-Parameter zu (user= statt from_user=). Eingehende Privatnachrichten
+  lösten gefilterte Trigger nie aus. Filter prüft jetzt user=, from_user= und
+  channel= in dieser Reihenfolge.
+
 2026-05-10 (v6.4.5)
 - Fix: "Automatisch neu verbinden"-Checkbox im Verbindungs-Tab speicherte
   Änderungen nicht in den Einstellungen – Menüeintrag und Einstellung wurden
