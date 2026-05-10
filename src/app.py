@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.4.3"
+APP_VERSION = "6.4.4"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -1555,6 +1555,12 @@ class MainFrame(wx.Frame):
             self.SetWindowStyle(self.GetWindowStyle() | wx.STAY_ON_TOP)
         else:
             self.SetWindowStyle(self.GetWindowStyle() & ~wx.STAY_ON_TOP)
+        # Sync auto-reconnect state from settings into both UI elements
+        try:
+            self._menu_auto_reconnect.Check(self._auto_reconnect)
+            self.connection_tab.auto_reconnect.SetValue(self._auto_reconnect)
+        except Exception:
+            pass
         self.Layout()
 
     def apply_general_settings(self) -> None:
@@ -1630,8 +1636,17 @@ class MainFrame(wx.Frame):
 
     def _companion_channels(self) -> list:
         try:
+            all_users = list(self.client.get_server_users() or [])
+            users_by_ch: dict = {}
+            for u in all_users:
+                cid = int(getattr(u, "nChannelID", 0) or 0)
+                users_by_ch[cid] = users_by_ch.get(cid, 0) + 1
             return [
-                {"id": ch.channelid, "name": ch.name, "users": ch.nusers}
+                {
+                    "id": int(ch.nChannelID),
+                    "name": self.tt_str(ch.szName),
+                    "users": users_by_ch.get(int(ch.nChannelID), 0),
+                }
                 for ch in (self.client.get_server_channels() or [])
             ]
         except Exception:
@@ -1640,7 +1655,10 @@ class MainFrame(wx.Frame):
     def _companion_users(self) -> list:
         try:
             return [
-                {"id": u.userid, "name": u.nickname}
+                {
+                    "id": int(u.nUserID),
+                    "name": self.tt_str(u.szNickname) or self.tt_str(u.szUsername) or f"id{u.nUserID}",
+                }
                 for u in (self.client.get_server_users() or [])
             ]
         except Exception:
@@ -1782,7 +1800,8 @@ class MainFrame(wx.Frame):
         con_disconnect = file_menu.Append(wx.ID_ANY, "Trennen")
         con_reconnect = file_menu.Append(wx.ID_ANY, "Neu verbinden")
         file_menu.AppendSeparator()
-        con_autoreconnect = file_menu.AppendCheckItem(wx.ID_ANY, "Automatisch neu verbinden")
+        self._menu_auto_reconnect = file_menu.AppendCheckItem(wx.ID_ANY, "Automatisch neu verbinden")
+        con_autoreconnect = self._menu_auto_reconnect
         file_menu.AppendSeparator()
         con_join_root = file_menu.Append(wx.ID_ANY, "Root-Kanal beitreten")
         con_leave = file_menu.Append(wx.ID_ANY, "Kanal verlassen")

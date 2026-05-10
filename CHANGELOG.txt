@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2026-05-10 (v6.4.4)
+- Fix: "Automatisch neu verbinden"-Checkbox und Menüeintrag wurden nach App-Start
+  nicht mit dem gespeicherten Wert initialisiert – Checkbox war immer deaktiviert,
+  auch wenn die Einstellung gespeichert war.
+- Fix: Companion-Server-API /channels und /users lieferten immer leere Listen,
+  weil interne SDK-Attributnamen (nChannelID/szName/nUserID/szNickname) falsch
+  als Python-Namen (channelid/name/userid/nickname) angesprochen wurden.
+
 2026-05-09 (v6.4.3)
 - Fix: VoiceOver-Ankündigung und Makro-Trigger für eingehende Privatnachrichten
   wurden nur ausgelöst, wenn der Echtzeit-Übersetzer aktiv war. Jetzt werden
