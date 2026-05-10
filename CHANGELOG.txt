@@ -1,6 +1,21 @@
 Changelog
 =========
 
+2026-05-10 (v6.4.1)
+- Fix: _companion_send() übergab Parameter in falscher Reihenfolge an
+  send_channel_message(text, channel_id) statt (channel_id, text) – Companion-
+  Server-Nachrichten wurden nie korrekt gesendet.
+- Fix: Braille-Status rief client.get_my_channel() auf (existiert nicht);
+  korrekt: client.get_channel(client.get_my_channel_id()).
+- Fix: _companion_users() rief client.get_users() auf (existiert nicht);
+  korrekt: client.get_server_users().
+- Fix: Globaler Stummschalten-Hotkey rief client.mute_all() auf (existiert
+  nicht); korrekt: client.set_sound_output_mute().
+- Fix: Zeitgesteuerte Stille (MuteScheduler) rief client.set_sound_input_mute()
+  auf (existiert nicht); korrekt: client.set_sound_output_mute().
+- Fix: TeamTalkClient.disconnect() fehlte als öffentliche Methode; server_session
+  konnte Sessions nicht sauber trennen.
+
 2026-05-09 (v6.4.0)
 - Neu: Desktop-Benachrichtigungen können jetzt in Einstellungen → Allgemein &
   Anzeige ein- und ausgeschaltet werden (war zuvor immer aktiv ohne Schalter).

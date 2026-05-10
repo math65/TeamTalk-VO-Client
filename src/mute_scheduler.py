@@ -70,7 +70,7 @@ class MuteScheduler:
         self._muted_by_schedule = mute
         import wx
         try:
-            wx.CallAfter(self._frame.client.set_sound_input_mute, mute)
+            wx.CallAfter(self._frame.client.set_sound_output_mute, mute)
         except Exception:
             pass
 

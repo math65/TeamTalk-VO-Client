@@ -1255,6 +1255,9 @@ class TeamTalkClient:
     def disconnect_transport(self) -> None:
         self._disconnect_and_drain()
 
+    def disconnect(self) -> None:
+        self._disconnect_and_drain()
+
     def close(self) -> None:
         self._connected = False
         self.stop_event_loop()

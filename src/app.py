@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.4.0"
+APP_VERSION = "6.4.1"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -1287,7 +1287,7 @@ class MainFrame(wx.Frame):
         # Kanal
         if getattr(s, "braille_status_show_channel", True):
             try:
-                ch = self.client.get_my_channel()
+                ch = self.client.get_channel(self.client.get_my_channel_id())
                 name = ch.szName.decode() if ch and hasattr(ch.szName, "decode") else (str(ch.szName) if ch else "")
                 if name:
                     parts.append(f"Kanal: {name}")
@@ -1640,14 +1640,14 @@ class MainFrame(wx.Frame):
         try:
             return [
                 {"id": u.userid, "name": u.nickname}
-                for u in (self.client.get_users() or [])
+                for u in (self.client.get_server_users() or [])
             ]
         except Exception:
             return []
 
     def _companion_send(self, text: str, channel_id: int) -> bool:
         try:
-            return self.client.send_channel_message(text, channel_id)
+            return self.client.send_channel_message(channel_id, text)
         except Exception:
             return False
 
@@ -1708,7 +1708,7 @@ class MainFrame(wx.Frame):
 
     def _on_global_mute(self) -> None:
         self._mute_all = not self._mute_all
-        self.client.mute_all(self._mute_all)
+        self.client.set_sound_output_mute(self._mute_all)
         self.set_status("Stummgeschaltet" if self._mute_all else "Stummschaltung aufgehoben")
 
     def start_global_hotkey_capture(self, target: str) -> None:
