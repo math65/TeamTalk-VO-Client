@@ -755,7 +755,7 @@ class MainWindow(QMainWindow):
         if not profile:
             return
         try:
-            from ui_wx.tt_file_parser import build_teamtalk_url
+            from ui.tt_file_parser import build_teamtalk_url
             url = build_teamtalk_url(profile)
             QApplication.clipboard().setText(url)
             self.set_status("TT-URL in Zwischenablage kopiert")
@@ -788,9 +788,28 @@ class MainWindow(QMainWindow):
                 pass
             if hasattr(self, "shortcuts_tab"):
                 self.shortcuts_tab.set_capture_label(target, False)
-            self.set_status(f"Tastenkürzel gespeichert")
+            self.set_status("Tastenkürzel gespeichert")
+            return
+        ptt_key = getattr(self.settings_store.settings, "ptt_key", None)
+        if ptt_key and event.key() == ptt_key and not event.isAutoRepeat() and not self._ptt_active:
+            self._ptt_active = True
+            try:
+                self.client.enable_voice_transmission(True)
+            except Exception:
+                pass
             return
         super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event) -> None:
+        ptt_key = getattr(self.settings_store.settings, "ptt_key", None)
+        if ptt_key and event.key() == ptt_key and not event.isAutoRepeat() and self._ptt_active:
+            self._ptt_active = False
+            try:
+                self.client.enable_voice_transmission(False)
+            except Exception:
+                pass
+            return
+        super().keyReleaseEvent(event)
 
     # ------------------------------------------------------------------
     # Chat sending
@@ -857,7 +876,20 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def apply_audio_prefs(self) -> None:
-        self.set_status("Audio-Einstellungen übernommen")
+        try:
+            in_idx = self.audio_tab.input_device.currentIndex()
+            out_idx = self.audio_tab.output_device.currentIndex()
+            in_devs = self.audio_tab._input_devices
+            out_devs = self.audio_tab._output_devices
+            if in_devs and 0 <= in_idx < len(in_devs):
+                self.client.close_sound_input_device()
+                self.client.init_sound_input_device(int(in_devs[in_idx].nDeviceID))
+            if out_devs and 0 <= out_idx < len(out_devs):
+                self.client.close_sound_output_device()
+                self.client.init_sound_output_device(int(out_devs[out_idx].nDeviceID))
+            self.set_status("Audio-Einstellungen übernommen")
+        except Exception as exc:
+            self.set_status(f"Audio-Fehler: {exc}")
 
     def set_voice_activation(self, enabled: bool) -> None:
         try:
@@ -872,13 +904,24 @@ class MainWindow(QMainWindow):
             pass
 
     def set_va_delay(self, ms: int) -> None:
-        pass
+        try:
+            self.client.set_voice_activation_stop_delay(ms)
+        except Exception:
+            pass
 
     def set_mic_gain(self, db: int) -> None:
-        pass
+        try:
+            level = max(0, min(32000, int(10000 * (10 ** (db / 20.0)))))
+            self.client.set_sound_input_gain(level)
+        except Exception:
+            pass
 
     def set_out_gain(self, db: int) -> None:
-        pass
+        try:
+            level = max(0, min(32000, int(10000 * (10 ** (db / 20.0)))))
+            self.client.set_sound_output_volume(level)
+        except Exception:
+            pass
 
     def install_loopback(self) -> None:
         self.set_status("BlackHole-Installation: nur auf macOS verfügbar")
@@ -888,10 +931,26 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def start_recording(self, path: str, fmt: str = "wav") -> None:
-        self.set_status(f"Aufnahme gestartet: {path}")
+        try:
+            # AudioFileFormat: 1=wav, 2=ogg
+            fmt_id = 2 if fmt.lower() == "ogg" else 1
+            ok = self.client.start_recording_muxed(path, fmt_id)
+            if ok:
+                self._recording_active = True
+                self._recording_path = path
+                self.set_status(f"Aufnahme gestartet: {path}")
+            else:
+                self.set_status("Aufnahme konnte nicht gestartet werden")
+        except Exception as exc:
+            self.set_status(f"Aufnahme-Fehler: {exc}")
 
     def stop_recording(self) -> None:
-        self.set_status("Aufnahme gestoppt")
+        try:
+            self.client.stop_recording_muxed()
+            self._recording_active = False
+            self.set_status("Aufnahme gestoppt")
+        except Exception as exc:
+            self.set_status(f"Aufnahme-Stopp-Fehler: {exc}")
 
     def start_media_stream(self, url: str) -> None:
         try:
@@ -1027,7 +1086,7 @@ class MainWindow(QMainWindow):
 
     def import_tt_file(self, path: str) -> None:
         try:
-            from ui_wx.tt_file_parser import parse_teamtalk_file
+            from ui.tt_file_parser import parse_teamtalk_file
             result = parse_teamtalk_file(path)
             if result:
                 self.set_status(f"TT-Datei importiert: {path}")
@@ -1180,10 +1239,14 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def on_menu_online_users(self) -> None:
-        self.set_status("Online-Nutzer: nicht implementiert")
+        from ui_qt.dialogs import OnlineUsersDialog
+        dlg = OnlineUsersDialog(self, self.client, self.tt_str)
+        dlg.exec()
 
     def on_menu_server_stats(self) -> None:
-        self.set_status("Server-Statistiken: nicht implementiert")
+        from ui_qt.dialogs import ServerStatisticsDialog
+        dlg = ServerStatisticsDialog(self, self.client)
+        dlg.exec()
 
     def on_menu_ban_list(self) -> None:
         idx = self.notebook.indexOf(self.admin_tab)
@@ -1191,7 +1254,9 @@ class MainWindow(QMainWindow):
             self.notebook.setCurrentIndex(idx)
 
     def on_menu_macros(self) -> None:
-        self.set_status("Makro-Manager: nicht implementiert")
+        from ui_qt.dialogs import MacroManagerDialog
+        dlg = MacroManagerDialog(self, self._macros)
+        dlg.exec()
 
     def on_menu_manual(self) -> None:
         try:
@@ -1235,12 +1300,17 @@ class MainWindow(QMainWindow):
     def force_close(self) -> None:
         self._closing = True
         self._tt_event_timer.stop()
+        self._reconnect_timer.stop()
         try:
             self.tray.hide()
         except Exception:
             pass
         try:
             self.client.disconnect()
+        except Exception:
+            pass
+        try:
+            self.client.close()
         except Exception:
             pass
         try:
@@ -1251,7 +1321,13 @@ class MainWindow(QMainWindow):
             self._async_bridge.stop()
         except Exception:
             pass
+        try:
+            self._mute_scheduler.stop()
+        except Exception:
+            pass
         QApplication.quit()
+        import os as _os
+        _os._exit(0)
 
 
 class App(QApplication):

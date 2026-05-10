@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QListWidget,
-    QPushButton, QLineEdit, QDialogButtonBox, QMessageBox,
+    QPushButton, QLineEdit, QDialogButtonBox, QMessageBox, QTextEdit,
 )
 from PySide6.QtCore import Qt
 
@@ -253,5 +253,173 @@ class ServerAudioProfileDialog(QDialog):
         try:
             self._store.save()
             self.accept()
+        except Exception as exc:
+            QMessageBox.warning(self, "Fehler", str(exc))
+
+
+class OnlineUsersDialog(QDialog):
+    """Online-Nutzer auf dem Server anzeigen."""
+
+    def __init__(self, parent, client, tt_str) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Online-Nutzer")
+        self.resize(520, 420)
+        self._client = client
+        self._tt_str = tt_str
+        self._all_items: list = []
+
+        layout = QVBoxLayout(self)
+
+        search_row = QHBoxLayout()
+        search_row.addWidget(QLabel("Suche:"))
+        self._search = QLineEdit()
+        self._search.setPlaceholderText("Name oder Benutzername...")
+        self._search.textChanged.connect(self._apply_filter)
+        search_row.addWidget(self._search, 1)
+        layout.addLayout(search_row)
+
+        self._list = QListWidget()
+        layout.addWidget(self._list, 1)
+
+        self._count_label = QLabel("")
+        layout.addWidget(self._count_label)
+
+        btn_row = QHBoxLayout()
+        refresh_btn = QPushButton("&Aktualisieren")
+        refresh_btn.clicked.connect(self._fill)
+        close_btn = QPushButton("&Schließen")
+        close_btn.clicked.connect(self.accept)
+        btn_row.addWidget(refresh_btn)
+        btn_row.addStretch()
+        btn_row.addWidget(close_btn)
+        layout.addLayout(btn_row)
+
+        self._fill()
+
+    def _fill(self) -> None:
+        self._all_items = []
+        try:
+            users = list(self._client.get_server_users() or [])
+            for u in users:
+                nick = self._tt_str(u.szNickname) or self._tt_str(u.szUsername) or f"User#{u.nUserID}"
+                username = self._tt_str(u.szUsername)
+                ch_id = int(u.nChannelID)
+                self._all_items.append((nick, username, ch_id))
+        except Exception as exc:
+            self._all_items = [(f"Fehler: {exc}", "", 0)]
+        self._apply_filter(self._search.text())
+
+    def _apply_filter(self, text: str) -> None:
+        self._list.clear()
+        q = text.strip().lower()
+        shown = 0
+        for nick, username, ch_id in self._all_items:
+            if not q or q in nick.lower() or q in username.lower():
+                suffix = f" ({username})" if username and username != nick else ""
+                self._list.addItem(f"{nick}{suffix} — Kanal {ch_id}")
+                shown += 1
+        total = len(self._all_items)
+        self._count_label.setText(f"{shown} von {total} Nutzern angezeigt")
+
+
+class ServerStatisticsDialog(QDialog):
+    """Server-Statistiken anzeigen."""
+
+    def __init__(self, parent, client) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Server-Statistiken")
+        self.resize(420, 350)
+        self._client = client
+
+        layout = QVBoxLayout(self)
+        self._text = QTextEdit()
+        self._text.setReadOnly(True)
+        layout.addWidget(self._text, 1)
+
+        btn_row = QHBoxLayout()
+        refresh_btn = QPushButton("&Aktualisieren")
+        refresh_btn.clicked.connect(self._fill)
+        close_btn = QPushButton("&Schließen")
+        close_btn.clicked.connect(self.accept)
+        btn_row.addWidget(refresh_btn)
+        btn_row.addStretch()
+        btn_row.addWidget(close_btn)
+        layout.addLayout(btn_row)
+
+        self._fill()
+
+    def _fill(self) -> None:
+        try:
+            self._client.do_query_server_stats()
+        except Exception:
+            pass
+        try:
+            stats = self._client.get_client_statistics()
+            lines = []
+            for attr in sorted(dir(stats)):
+                if attr.startswith("_"):
+                    continue
+                try:
+                    val = getattr(stats, attr)
+                    if not callable(val):
+                        lines.append(f"{attr}: {val}")
+                except Exception:
+                    pass
+            self._text.setPlainText("\n".join(lines) if lines else "Keine Statistiken verfügbar")
+        except Exception as exc:
+            self._text.setPlainText(f"Fehler: {exc}")
+
+
+class MacroManagerDialog(QDialog):
+    """Makros anzeigen und ausführen."""
+
+    def __init__(self, parent, macro_manager) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Makro-Manager")
+        self.resize(500, 400)
+        self._mgr = macro_manager
+        self._macros: list = []
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel("Verfügbare Makros:"))
+
+        self._list = QListWidget()
+        layout.addWidget(self._list, 1)
+
+        btn_row = QHBoxLayout()
+        run_btn = QPushButton("&Ausführen")
+        run_btn.clicked.connect(self._on_run)
+        refresh_btn = QPushButton("&Aktualisieren")
+        refresh_btn.clicked.connect(self._fill)
+        close_btn = QPushButton("&Schließen")
+        close_btn.clicked.connect(self.accept)
+        btn_row.addWidget(run_btn)
+        btn_row.addWidget(refresh_btn)
+        btn_row.addStretch()
+        btn_row.addWidget(close_btn)
+        layout.addLayout(btn_row)
+
+        self._fill()
+
+    def _fill(self) -> None:
+        self._list.clear()
+        self._macros = []
+        try:
+            self._macros = list(self._mgr.get_macros() or [])
+            for m in self._macros:
+                name = getattr(m, "name", str(m))
+                trigger = getattr(m, "trigger", "")
+                self._list.addItem(f"{name} [{trigger}]" if trigger else name)
+            if not self._macros:
+                self._list.addItem("(Keine Makros definiert)")
+        except Exception as exc:
+            self._list.addItem(f"Fehler: {exc}")
+
+    def _on_run(self) -> None:
+        row = self._list.currentRow()
+        if row < 0 or row >= len(self._macros):
+            return
+        try:
+            self._mgr.execute(self._macros[row])
         except Exception as exc:
             QMessageBox.warning(self, "Fehler", str(exc))
