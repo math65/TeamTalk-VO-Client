@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.7.0"
+APP_VERSION = "6.7.1"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -8588,7 +8588,7 @@ class MainFrame(wx.Frame):
                     self.bus.emit("channel_joined", channel_id=channel_id)
                     # v6.7.0 – Auto-Kanal-Zusammenfassung
                     if getattr(self.settings_store.settings, "auto_channel_summary", False):
-                        wx.CallLater(500, self._auto_channel_summary)
+                        wx.CallAfter(self._auto_channel_summary)
                     # v2.8.0 – Letzte Kanäle
                     try:
                         ch = self.client.get_channel(channel_id)

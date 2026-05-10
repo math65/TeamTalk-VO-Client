@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2026-05-11 (v6.7.1)
+- Fix: Auto-Kanal-Zusammenfassung rief wx.CallLater() aus dem Worker-Thread
+  auf (join_channel läuft in einem Hintergrundthread). wx.CallLater ist nicht
+  thread-sicher; ersetzt durch wx.CallAfter.
+
 2026-05-11 (v6.7.0)
 - Neu: Auto-Kanal-Zusammenfassung (Automation → Auto-Kanal-Zusammenfassung) –
   beim Betreten eines Kanals wird automatisch eine KI-Zusammenfassung der
