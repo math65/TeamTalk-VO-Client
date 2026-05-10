@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2026-05-10 (v6.4.2)
+- Fix: Toolbar-Desktop-Schaltfläche las client.is_desktop_sharing_active() aus
+  (existiert nicht, nur per hasattr abgesichert → immer False). Jetzt wird der
+  tatsächliche Zustand von desktop_tab.share_toggle gelesen.
+
 2026-05-10 (v6.4.1)
 - Fix: _companion_send() übergab Parameter in falscher Reihenfolge an
   send_channel_message(text, channel_id) statt (channel_id, text) – Companion-

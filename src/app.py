@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.4.1"
+APP_VERSION = "6.4.2"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -964,7 +964,8 @@ class MainFrame(wx.Frame):
     def _on_tb_desktop(self, event):
         self.on_menu_desktop_sharing(event)
         try:
-            val = bool(self.client.is_desktop_sharing_active() if hasattr(self.client, 'is_desktop_sharing_active') else False)
+            tab = self.desktop_tab
+            val = bool(tab.share_toggle.GetValue()) if tab is not None else False
             self.tb_desktop.SetValue(val)
         except Exception:
             pass
