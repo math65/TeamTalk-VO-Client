@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-05-11 (v6.7.2)
+Windows-Darstellung verbessert:
+- Neu: app.manifest mit Common-Controls-6.0-Dependency und PerMonitorV2-DPI-
+  Bewusstsein. Controls (Buttons, Checkboxen, Scrollbars, Tabs) sehen jetzt
+  nativ Windows-10/11-themed aus statt Windows-XP-Style.
+- Neu: Automatische dunkle Titelleiste auf Windows 10 (1809+) / 11 wenn das
+  System im Dark-Mode ist (DwmSetWindowAttribute DWMWA_USE_IMMERSIVE_DARK_MODE).
+- Neu: SetDoubleBuffered(True) für alle Panels auf Windows; reduziert Flimmern
+  beim Scrollen und Tab-Wechsel.
+- Neu: Segoe-UI-Schrift wird auf Windows explizit als Standard gesetzt.
+- Fix: App.OnInit rief macOS-Accessibility-Patches auf allen Plattformen auf;
+  wird jetzt nur noch unter darwin ausgeführt.
+
 2026-05-11 (v6.7.1)
 - Fix: Auto-Kanal-Zusammenfassung rief wx.CallLater() aus dem Worker-Thread
   auf (join_channel läuft in einem Hintergrundthread). wx.CallLater ist nicht

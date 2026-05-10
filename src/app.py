@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.7.1"
+APP_VERSION = "6.7.2"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -187,6 +187,17 @@ def _localize_menu(menu: wx.Menu) -> None:
             submenu = None
         if submenu:
             _localize_menu(submenu)
+
+
+def _win_set_double_buffered_recursive(window: wx.Window) -> None:
+    """Setzt SetDoubleBuffered(True) für alle Panels in einem Fenster (Windows-only)."""
+    try:
+        if isinstance(window, wx.Panel):
+            window.SetDoubleBuffered(True)
+        for child in window.GetChildren():
+            _win_set_double_buffered_recursive(child)
+    except Exception:
+        pass
 
 
 def _localize_window_tree(window: wx.Window) -> None:
@@ -674,6 +685,8 @@ class MainFrame(wx.Frame):
         # --- Notebook ---
         panel = wx.Panel(self)
         panel.SetName("Hauptfenster")
+        if sys.platform == "win32":
+            panel.SetDoubleBuffered(True)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
         # --- Multi-Server Switcher (v2.0.1) ---
@@ -764,6 +777,8 @@ class MainFrame(wx.Frame):
         # --- Panel switcher (replaces wx.Notebook to avoid dual-navigation in VoiceOver) ---
         self.content_panel = wx.Panel(panel)
         self.content_panel.SetName("Hauptinhalt")
+        if sys.platform == "win32":
+            self.content_panel.SetDoubleBuffered(True)
         self.content_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.connection_window = ConnectionWindow(self)
@@ -10042,20 +10057,79 @@ class MainFrame(wx.Frame):
 
 class App(wx.App):
     def OnInit(self) -> bool:
-        from ui.a11y import patch_button_accessibility, patch_list_row_accessibility, patch_control_accessibility
-        patch_button_accessibility()
-        patch_list_row_accessibility()
-        patch_control_accessibility()
+        if sys.platform == "darwin":
+            from ui.a11y import patch_button_accessibility, patch_list_row_accessibility, patch_control_accessibility
+            patch_button_accessibility()
+            patch_list_row_accessibility()
+            patch_control_accessibility()
+        elif sys.platform == "win32":
+            self._apply_windows_polish()
         self.Bind(wx.EVT_WINDOW_CREATE, self._on_window_create)
         frame = MainFrame()
         frame.Show()
         return True
 
+    def _apply_windows_polish(self) -> None:
+        """Verbessert Darstellung auf Windows 10/11."""
+        # Segoe UI als System-Standard erzwingen (wxPython wählt sonst manchmal MS Shell Dlg)
+        try:
+            default_font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+            target_face = "Segoe UI"
+            if default_font.GetFaceName() != target_face:
+                better = wx.Font(9, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL,
+                                 wx.FONTWEIGHT_NORMAL, faceName=target_face)
+                if better.IsOk():
+                    wx.SystemOptions.SetOption("wx.font", better.GetNativeFontInfoDesc())
+        except Exception:
+            pass
+        # wxMSW: verhindert unnötiges Farb-Remap das Controls blass/falsch färbt
+        wx.SystemOptions.SetOption("msw.remap", 0)
+        # Windows 10 (1809+) / 11 Dark-Mode für Titelleiste wenn System im Dark-Mode ist
+        try:
+            import ctypes
+            hwnd_func = ctypes.windll.user32.GetForegroundWindow
+            _ = hwnd_func  # prüfen ob verfügbar
+            self._win_dark_pending = True
+        except Exception:
+            self._win_dark_pending = False
+
     def _on_window_create(self, event) -> None:
         window = event.GetWindow()
         if isinstance(window, (wx.Dialog, wx.Frame)):
             wx.CallAfter(_localize_window_tree, window)
+            if sys.platform == "win32":
+                wx.CallAfter(self._win_apply_dark_titlebar, window)
+                wx.CallAfter(_win_set_double_buffered_recursive, window)
         event.Skip()
+
+    def _win_apply_dark_titlebar(self, window) -> None:
+        """Aktiviert dunkle Titelleiste auf Windows 10 (1809+) / 11 wenn System-Dark-Mode."""
+        try:
+            import ctypes
+            import ctypes.wintypes
+            hwnd = window.GetHandle()
+            if not hwnd:
+                return
+            # Prüfen ob System im Dark-Mode ist
+            try:
+                import winreg
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                    r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+                val, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+                winreg.CloseKey(key)
+                dark = (val == 0)
+            except Exception:
+                dark = False
+            # DWMWA_USE_IMMERSIVE_DARK_MODE = 20 (Win 10 2004+); 19 für ältere 1809–2004
+            attr = ctypes.c_int(int(dark))
+            try:
+                ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                    hwnd, 20, ctypes.byref(attr), ctypes.sizeof(attr))
+            except Exception:
+                ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                    hwnd, 19, ctypes.byref(attr), ctypes.sizeof(attr))
+        except Exception:
+            pass
 
     def OnExit(self) -> int:
         # Force-terminate the process after all windows are destroyed.
@@ -10181,6 +10255,8 @@ if __name__ == "__main__":
         if "--probe-server" in sys.argv:
             raise SystemExit(_run_probe_server_once(sys.argv))
         app = App(False)
+        app.SetAppName("TeamTalk VO Client")
+        app.SetVendorName("Flarion")
         app.MainLoop()
     except Exception:
         from platform_paths import log_dir as _log_dir
