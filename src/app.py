@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.6.1"
+APP_VERSION = "6.7.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -1212,6 +1212,23 @@ class MainFrame(wx.Frame):
             _wx.CallAfter(self.tts.speak, text, kind="system")
         _threading.Thread(target=_work, daemon=True).start()
 
+    def _auto_channel_summary(self) -> None:
+        """v6.7.0 – Automatische KI-Zusammenfassung nach Kanal-Beitritt."""
+        if self._ai_summary is None:
+            return
+        import time as _time
+        import threading as _threading
+        server_key = getattr(self, "_current_server_key", "")
+        if not server_key:
+            return
+        since = _time.time() - 1800  # letzte 30 Minuten
+        def _work():
+            text = self._ai_summary.summarize_missed(server_key, since)
+            import wx as _wx
+            if text and text != "Keine neuen Nachrichten.":
+                _wx.CallAfter(self.tts.speak, f"Zusammenfassung: {text}", kind="system")
+        _threading.Thread(target=_work, daemon=True).start()
+
     def _on_vu_timer(self, _event):
         if self._closing:
             return
@@ -2017,6 +2034,7 @@ class MainFrame(wx.Frame):
         auto_trigger_editor = auto_menu.Append(wx.ID_ANY, _("Trigger-Regeln..."))
         auto_menu.AppendSeparator()
         auto_translate = auto_menu.AppendCheckItem(wx.ID_ANY, "Chat-Übersetzung aktivieren")
+        auto_channel_sum = auto_menu.AppendCheckItem(wx.ID_ANY, "Auto-Kanal-Zusammenfassung")
         auto_menu.AppendSeparator()
         auto_user_watcher = auto_menu.Append(wx.ID_ANY, "Nutzerwatcher...")
         auto_chat_search = auto_menu.Append(wx.ID_ANY, "Chat-Verlauf durchsuchen...")
@@ -2193,6 +2211,9 @@ class MainFrame(wx.Frame):
         self._auto_translate_menu_item = auto_translate
         auto_translate.Check(bool(getattr(self.settings_store.settings, "translate_chat_enabled", False)))
         self.Bind(wx.EVT_MENU, self._on_menu_toggle_translation, auto_translate)
+        self._auto_channel_sum_item = auto_channel_sum
+        auto_channel_sum.Check(bool(getattr(self.settings_store.settings, "auto_channel_summary", False)))
+        self.Bind(wx.EVT_MENU, self._on_menu_toggle_channel_summary, auto_channel_sum)
         self.Bind(wx.EVT_MENU, self.on_menu_user_watcher, auto_user_watcher)
         self.Bind(wx.EVT_MENU, self.on_menu_chat_search, auto_chat_search)
         self.Bind(wx.EVT_MENU, self.on_menu_tts_transcript, auto_tts_transcript)
@@ -4683,7 +4704,8 @@ class MainFrame(wx.Frame):
 
         right.Add(wx.StaticText(dlg, label="Aktionen (eine pro Zeile, Format: type=value):"), 0, wx.BOTTOM, 4)
         right.Add(wx.StaticText(dlg, label="  speak=Text | channel=Kanalname | status=Status"), 0, wx.BOTTOM, 2)
-        right.Add(wx.StaticText(dlg, label="  ptt_on | ptt_off | mute_toggle | wait=Sekunden"), 0, wx.BOTTOM, 8)
+        right.Add(wx.StaticText(dlg, label="  ptt_on | ptt_off | mute_toggle | wait=Sekunden"), 0, wx.BOTTOM, 2)
+        right.Add(wx.StaticText(dlg, label="  reply_last_private=Nachricht"), 0, wx.BOTTOM, 8)
         actions_field = wx.TextCtrl(dlg, style=wx.TE_MULTILINE, size=(350, 200))
         actions_field.SetName("Makro Aktionen")
         right.Add(actions_field, 1, wx.EXPAND | wx.BOTTOM, 8)
@@ -4915,6 +4937,13 @@ class MainFrame(wx.Frame):
         self.set_status(f"Chat-Übersetzung {status}")
         if enabled:
             self.tts.speak(f"Chat-Übersetzung aktiviert, Zielsprache: {self._translator.target_language()}", kind="system")
+
+    def _on_menu_toggle_channel_summary(self, _event) -> None:
+        enabled = self._auto_channel_sum_item.IsChecked()
+        self.settings_store.settings.auto_channel_summary = enabled
+        self.settings_store.save()
+        status = "aktiviert" if enabled else "deaktiviert"
+        self.set_status(f"Auto-Kanal-Zusammenfassung {status}")
 
     def on_menu_trigger_editor(self, _event):
         """v3.5.0 – Trigger-Regeln: Makros automatisch bei Ereignissen ausführen."""
@@ -8557,6 +8586,9 @@ class MainFrame(wx.Frame):
                     self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
                     self.bus.emit("channel_joined", channel_id=channel_id)
+                    # v6.7.0 – Auto-Kanal-Zusammenfassung
+                    if getattr(self.settings_store.settings, "auto_channel_summary", False):
+                        wx.CallLater(500, self._auto_channel_summary)
                     # v2.8.0 – Letzte Kanäle
                     try:
                         ch = self.client.get_channel(channel_id)

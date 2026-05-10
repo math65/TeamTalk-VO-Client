@@ -17,7 +17,7 @@ Python-Umgebung liegt in `.venv/` (Python 3.9, PyInstaller).
 ## Versionierung
 
 `APP_VERSION` in `src/app.py` (einzige Quelle).
-Aktueller Stand: `6.6.1`
+Aktueller Stand: `6.7.0`
 Schema: `6.x.y` – Patch-Releases bei Fehlerbehebungen und UI-/Dokumentationsanpassungen,
 Minor-Releases bei neuen Feature-Blöcken.
 `TeamTalk VO Client.spec` und `version_info.txt` müssen immer auf dieselbe Versionsnummer

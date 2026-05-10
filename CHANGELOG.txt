@@ -1,7 +1,15 @@
 Changelog
 =========
 
-2026-05-10 (v6.6.1)
+2026-05-11 (v6.7.0)
+- Neu: Auto-Kanal-Zusammenfassung (Automation → Auto-Kanal-Zusammenfassung) –
+  beim Betreten eines Kanals wird automatisch eine KI-Zusammenfassung der
+  letzten 30 Minuten Kanal-Chat via TTS angesagt (erfordert KI-API-Key).
+- Neu: Makro-Aktionstyp reply_last_private=Nachricht – sendet eine Nachricht
+  an den zuletzt gehörten Privatnachricht-Absender; nützlich als Auto-Antwort
+  in Trigger-Makros. Im Makro-Editor als Hilfetext dokumentiert.
+
+2026-05-11 (v6.6.1)
 - Fix: _apply_server_audio_profile() rief fälschlicherweise apply_audio_prefs()
   auf Sound-Event-Profilen auf (die kein "prefs"-Schlüssel haben). Korrektur:
   setzt jetzt active_sound_profile direkt (wie _cycle_sound_profile); wird

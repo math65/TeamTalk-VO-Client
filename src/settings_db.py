@@ -355,6 +355,8 @@ class SQLiteSettingsStore:
         s.watched_users = _list("watched_users")
         # v6.6.0
         s.server_audio_profiles = _dict("server_audio_profiles")
+        # v6.7.0
+        s.auto_channel_summary = _bool("auto_channel_summary", False)
 
     def save(self) -> None:
         s = self.settings
@@ -520,6 +522,8 @@ class SQLiteSettingsStore:
         _set("watched_users", list(getattr(s, "watched_users", []) or []))
         # v6.6.0
         _set("server_audio_profiles", dict(getattr(s, "server_audio_profiles", {}) or {}))
+        # v6.7.0
+        _set("auto_channel_summary", bool(getattr(s, "auto_channel_summary", False)))
 
         db.commit()
 

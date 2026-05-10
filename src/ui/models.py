@@ -285,6 +285,8 @@ class AppSettings:
     watched_users: List[str] = field(default_factory=list)
     # v6.6.0 features
     server_audio_profiles: Dict[str, str] = field(default_factory=dict)
+    # v6.7.0 features
+    auto_channel_summary: bool = False
 
 
 class SettingsStore:

@@ -8,6 +8,8 @@ Makro-Format in AppSettings.macros:
       {"type": "ptt_off"},
       {"type": "mute_toggle"},
       {"type": "status", "value": "Kurz weg"},
+      {"type": "wait", "value": "2"},
+      {"type": "reply_last_private", "value": "Bin gleich wieder da!"},
   ]}]
 """
 from __future__ import annotations
@@ -67,6 +69,8 @@ class MacroManager:
                     wx.CallAfter(self._frame.client.change_status, 0, value)
                 elif atype == "wait":
                     time.sleep(max(0.0, float(value or 0)))
+                elif atype == "reply_last_private":
+                    wx.CallAfter(self._reply_last_private, value)
             except Exception as exc:
                 print(f"[Macro:{name}] Aktion {atype!r} fehlgeschlagen: {exc}")
 
@@ -93,6 +97,16 @@ class MacroManager:
             new_val = not self._frame._mute_all
             self._frame._mute_all = new_val
             self._frame.client.set_sound_output_mute(new_val)
+        except Exception:
+            pass
+
+    def _reply_last_private(self, message: str) -> None:
+        uid = getattr(self._frame, "_last_private_sender_id", None)
+        if not uid:
+            return
+        try:
+            if message and self._frame.client.is_connected():
+                self._frame.client.send_user_message(uid, message)
         except Exception:
             pass
 
