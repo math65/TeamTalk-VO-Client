@@ -14,7 +14,7 @@ import wx.adv
 import wx.dataview as dv
 
 from teamtalk_client.client import TeamTalkClient, ConnectResult
-from ui.models import (
+from ui_wx.models import (
     FileLogger,
     ParsedTeamTalkFile,
     ServerStore,
@@ -25,19 +25,19 @@ from server_session import ServerManager
 from braille_output import BrailleOutputManager
 from ai_summary import ChatSummaryManager
 from gemini_auth import GeminiAuthManager
-from ui.tray import TrayIcon
-from ui.tt_file_parser import parse_teamtalk_file
-from ui.tabs.connection import ConnectionTab
-from ui.tabs.channels_chat import ChannelsChatTab
-from ui.tabs.media import MediaTab
-from ui.tabs.files import FilesTab
-from ui.tabs.admin import AdminTab
-from ui.tabs.speak import SpeakTab
-from ui.tabs.settings import SettingsTab
-from ui.tabs.desktop import DesktopTab
-from ui.server_tools import BroadcastMessageDialog, OnlineUsersDialog, ServerStatisticsDialog, BanListDialog
-from ui.user_status import ChangeStatusDialog
-from ui.client_stats import ClientStatisticsDialog
+from ui_wx.tray import TrayIcon
+from ui_wx.tt_file_parser import parse_teamtalk_file
+from ui_wx.tabs.connection import ConnectionTab
+from ui_wx.tabs.channels_chat import ChannelsChatTab
+from ui_wx.tabs.media import MediaTab
+from ui_wx.tabs.files import FilesTab
+from ui_wx.tabs.admin import AdminTab
+from ui_wx.tabs.speak import SpeakTab
+from ui_wx.tabs.settings import SettingsTab
+from ui_wx.tabs.desktop import DesktopTab
+from ui_wx.server_tools import BroadcastMessageDialog, OnlineUsersDialog, ServerStatisticsDialog, BanListDialog
+from ui_wx.user_status import ChangeStatusDialog
+from ui_wx.client_stats import ClientStatisticsDialog
 from tts import TTSManager
 from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
@@ -1180,7 +1180,7 @@ class MainFrame(wx.Frame):
 
         lb = wx.ListBox(dlg)
         lb.SetName("Antwortvorschläge")
-        from ui.a11y import setup_list_accessible
+        from ui_wx.a11y import setup_list_accessible
         setup_list_accessible(lb)
         for s in suggestions:
             lb.Append(s)
@@ -1576,7 +1576,7 @@ class MainFrame(wx.Frame):
 
     def on_menu_scheduled_recordings(self, _event) -> None:
         """Öffnet den Dialog für geplante Aufnahmen."""
-        from ui.scheduled_recordings_dialog import ScheduledRecordingsDialog
+        from ui_wx.scheduled_recordings_dialog import ScheduledRecordingsDialog
         dlg = ScheduledRecordingsDialog(self, self._scheduled_rec_manager)
         dlg.ShowModal()
         dlg.Destroy()
@@ -3506,7 +3506,7 @@ class MainFrame(wx.Frame):
                 channel_path = self.tt_str(self.client.get_channel_path(int(channel_id)))
             except Exception:
                 channel_path = None
-        from ui.tt_file_parser import build_teamtalk_url
+        from ui_wx.tt_file_parser import build_teamtalk_url
         url = build_teamtalk_url(profile, channel_path=channel_path or None)
         if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(wx.TextDataObject(url))
@@ -3618,7 +3618,7 @@ class MainFrame(wx.Frame):
             root.Add(lbl, 0, wx.ALL, 8)
             lb = wx.ListBox(dlg)
             lb.SetName("Kanalverlauf Liste")
-            from ui.a11y import setup_list_accessible
+            from ui_wx.a11y import setup_list_accessible
             setup_list_accessible(lb)
             for entry in channels:
                 name = entry.get("name", "") or str(entry.get("channel_id", "?"))
@@ -4887,7 +4887,7 @@ class MainFrame(wx.Frame):
 
     def on_menu_plugin_manager(self, _event) -> None:
         """v4.0.0 – Plugin-Manager Dialog."""
-        from ui.plugin_manager import PluginManagerDialog
+        from ui_wx.plugin_manager import PluginManagerDialog
         dlg = PluginManagerDialog(self)
         dlg.ShowModal()
         dlg.Destroy()
@@ -4897,13 +4897,13 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
 
     def on_menu_user_watcher(self, _event) -> None:
-        from ui.user_watcher_dialog import UserWatcherDialog
+        from ui_wx.user_watcher_dialog import UserWatcherDialog
         dlg = UserWatcherDialog(self, self.settings_store)
         dlg.ShowModal()
         dlg.Destroy()
 
     def on_menu_chat_search(self, _event) -> None:
-        from ui.chat_search_dialog import ChatSearchDialog
+        from ui_wx.chat_search_dialog import ChatSearchDialog
         server_key = getattr(self, "_current_server_key", "")
         if not server_key:
             keys = self._chat_history.list_server_keys()
@@ -4924,19 +4924,19 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
 
     def on_menu_tts_transcript(self, _event) -> None:
-        from ui.tts_transcript_dialog import TTSTranscriptDialog
+        from ui_wx.tts_transcript_dialog import TTSTranscriptDialog
         dlg = TTSTranscriptDialog(self, self.tts)
         dlg.ShowModal()
         dlg.Destroy()
 
     def on_menu_offline_queue(self, _event) -> None:
-        from ui.offline_queue_dialog import OfflineQueueDialog
+        from ui_wx.offline_queue_dialog import OfflineQueueDialog
         dlg = OfflineQueueDialog(self, self._offline_queue)
         dlg.ShowModal()
         dlg.Destroy()
 
     def on_menu_server_audio_profiles(self, _event) -> None:
-        from ui.server_audio_profile_dialog import ServerAudioProfileDialog
+        from ui_wx.server_audio_profile_dialog import ServerAudioProfileDialog
         dlg = ServerAudioProfileDialog(self, self.settings_store)
         if dlg.ShowModal() == wx.ID_OK and getattr(self, "_current_server_key", ""):
             self._apply_server_audio_profile()
@@ -7893,7 +7893,7 @@ class MainFrame(wx.Frame):
             root.Add(lbl, 0, wx.ALL, 8)
             lb = wx.ListBox(dlg)
             lb.SetName("Gespeicherte Nachrichten Liste")
-            from ui.a11y import setup_list_accessible
+            from ui_wx.a11y import setup_list_accessible
             setup_list_accessible(lb)
             for m in items:
                 srv = f" [{m.server}]" if m.server else ""
@@ -9851,7 +9851,7 @@ class MainFrame(wx.Frame):
                 self._last_private_message_text = str(content or "")
             # v3.3.0 – VoiceOver-Ankündigung + Makro-Trigger für eingehende Privatnachrichten
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and not is_own:
-                from ui.a11y import post_voiceover_announcement
+                from ui_wx.a11y import post_voiceover_announcement
                 wx.CallAfter(post_voiceover_announcement, f"Privatnachricht von {from_user}: {content}")
                 self._macros.fire_event("private_msg", user=from_user or "", text=content or "")
             # v3.9.0 – Echtzeit-Übersetzung (Hintergrundthread, nur fremde Nachrichten)
@@ -10058,7 +10058,7 @@ class MainFrame(wx.Frame):
 class App(wx.App):
     def OnInit(self) -> bool:
         if sys.platform == "darwin":
-            from ui.a11y import patch_button_accessibility, patch_list_row_accessibility, patch_control_accessibility
+            from ui_wx.a11y import patch_button_accessibility, patch_list_row_accessibility, patch_control_accessibility
             patch_button_accessibility()
             patch_list_row_accessibility()
             patch_control_accessibility()
@@ -10251,26 +10251,24 @@ def _run_probe_server_once(argv: List[str]) -> int:
 
 
 if __name__ == "__main__":
-    # Platform router: macOS → wxPython (app_wx), Windows/Linux → PySide6 (app_qt)
-    if sys.platform == "darwin":
+    try:
+        if "--probe-server" in sys.argv:
+            raise SystemExit(_run_probe_server_once(sys.argv))
+        app = App(False)
+        app.SetAppName("TeamTalk VO Client")
+        app.SetVendorName("Flarion")
+        app.MainLoop()
+    except Exception:
+        from platform_paths import log_dir as _log_dir
+        crash_dir = _log_dir()
         try:
-            if "--probe-server" in sys.argv:
-                raise SystemExit(_run_probe_server_once(sys.argv))
-            app = App(False)
-            app.SetAppName("TeamTalk VO Client")
-            app.SetVendorName("Flarion")
-            app.MainLoop()
+            crash_dir.mkdir(parents=True, exist_ok=True)
         except Exception:
-            from platform_paths import log_dir as _log_dir
-            crash_dir = _log_dir()
-            try:
-                crash_dir.mkdir(parents=True, exist_ok=True)
-            except Exception:
+            if sys.platform == "win32":
+                crash_dir = Path(os.environ.get("TEMP", "C:\\Temp")) / "TeamTalkVOClient"
+            else:
                 crash_dir = Path("/tmp") / "TeamTalkVOClient"
-                crash_dir.mkdir(parents=True, exist_ok=True)
-            crash_log = crash_dir / "last_crash.txt"
-            crash_log.write_text(traceback.format_exc(), encoding="utf-8")
-            raise
-    else:
-        from app_qt import run_app
-        run_app()
+            crash_dir.mkdir(parents=True, exist_ok=True)
+        crash_log = crash_dir / "last_crash.txt"
+        crash_log.write_text(traceback.format_exc(), encoding="utf-8")
+        raise

@@ -7,8 +7,6 @@ import threading
 from pathlib import Path
 from typing import Optional
 
-import wx
-
 # Pfad zum eingebetteten Sound-Pack (relativ zu dieser Datei bzw. _MEIPASS)
 def _sounds_dir() -> Path:
     if getattr(sys, "frozen", False):
@@ -102,13 +100,22 @@ class SoundManager:
                         stderr=subprocess.DEVNULL,
                     )
                     proc.wait()
+                elif sys.platform == "win32":
+                    import winsound  # noqa: PLC0415
+                    winsound.PlaySound(path, winsound.SND_FILENAME | winsound.SND_ASYNC)
                 else:
-                    import wx.adv  # noqa: PLC0415
-                    sound = wx.adv.Sound(path)
-                    if sound.IsOk():
-                        # Pass sound as argument so wx.CallAfter holds a reference
-                        # and the object is not garbage-collected before Play() runs.
-                        wx.CallAfter(lambda s=sound: s.Play(wx.adv.SOUND_ASYNC))
+                    # Linux: try paplay (PulseAudio) then aplay (ALSA)
+                    for player in ("paplay", "aplay"):
+                        try:
+                            proc = subprocess.Popen(
+                                [player, path],
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL,
+                            )
+                            proc.wait()
+                            break
+                        except FileNotFoundError:
+                            continue
             except Exception:
                 pass
 
