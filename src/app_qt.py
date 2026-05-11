@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QTabWidget, QStatusBar, QMenuBar, QMenu, QLabel, QComboBox,
     QPushButton, QMessageBox, QDialog, QTextEdit, QDialogButtonBox,
-    QInputDialog, QLineEdit,
+    QInputDialog, QLineEdit, QSlider,
 )
 from PySide6.QtCore import QTimer, Qt, Signal, QObject
 from PySide6.QtGui import QAction, QKeySequence, QFont, QCloseEvent
@@ -250,6 +250,65 @@ class MainWindow(QMainWindow):
         status_bar.addWidget(self._conn_label, 1)
         status_bar.addWidget(self._srv_disconnect_btn)
         root.addLayout(status_bar)
+
+        # Quick-action toolbar
+        tb_layout = QHBoxLayout()
+
+        # PTT toggle
+        self._tb_ptt = QPushButton("PTT")
+        self._tb_ptt.setCheckable(True)
+        self._tb_ptt.setFixedWidth(50)
+        self._tb_ptt.toggled.connect(self._on_toggle_ptt)
+        tb_layout.addWidget(self._tb_ptt)
+
+        # Voice activation
+        self._tb_va = QPushButton("VA")
+        self._tb_va.setCheckable(True)
+        self._tb_va.setFixedWidth(50)
+        self._tb_va.toggled.connect(self._on_toggle_va)
+        tb_layout.addWidget(self._tb_va)
+
+        # Mute all
+        self._tb_mute = QPushButton("Stumm")
+        self._tb_mute.setCheckable(True)
+        self._tb_mute.setFixedWidth(60)
+        self._tb_mute.toggled.connect(self._on_toggle_mute_all)
+        tb_layout.addWidget(self._tb_mute)
+
+        # Record
+        self._tb_record = QPushButton("Aufn.")
+        self._tb_record.setCheckable(True)
+        self._tb_record.setFixedWidth(55)
+        self._tb_record.toggled.connect(self._on_tb_record)
+        tb_layout.addWidget(self._tb_record)
+
+        # Question mode
+        self._tb_question = QPushButton("Frage")
+        self._tb_question.setCheckable(True)
+        self._tb_question.setFixedWidth(60)
+        self._tb_question.toggled.connect(self._on_toggle_question_mode)
+        tb_layout.addWidget(self._tb_question)
+
+        # Volume label + slider
+        tb_layout.addWidget(QLabel("Vol:"))
+        self._vol_slider = QSlider(Qt.Orientation.Horizontal)
+        self._vol_slider.setRange(0, 200)
+        self._vol_slider.setValue(100)
+        self._vol_slider.setFixedWidth(80)
+        self._vol_slider.valueChanged.connect(self._on_master_volume)
+        tb_layout.addWidget(self._vol_slider)
+
+        # Mic gain label + slider
+        tb_layout.addWidget(QLabel("Mic:"))
+        self._mic_slider = QSlider(Qt.Orientation.Horizontal)
+        self._mic_slider.setRange(0, 200)
+        self._mic_slider.setValue(100)
+        self._mic_slider.setFixedWidth(80)
+        self._mic_slider.valueChanged.connect(self._on_mic_gain)
+        tb_layout.addWidget(self._mic_slider)
+
+        tb_layout.addStretch()
+        root.addLayout(tb_layout)
 
         # Tab widget — no connection tab, starts with channels
         self.notebook = QTabWidget()
@@ -1556,6 +1615,42 @@ class MainWindow(QMainWindow):
         self.set_voice_activation(checked)
         try:
             self.settings_store.settings.voice_activation = checked
+            self.settings_store.save()
+        except Exception:
+            pass
+
+    def _on_tb_record(self, checked: bool) -> None:
+        if checked:
+            from PySide6.QtWidgets import QFileDialog
+            path, _ = QFileDialog.getSaveFileName(self, "Aufnahme", "", "WAV (*.wav);;MP3 (*.mp3)")
+            if path:
+                fmt = "mp3" if path.lower().endswith(".mp3") else "wav"
+                self.start_recording(path, fmt)
+                self.set_status("Aufnahme gestartet")
+            else:
+                self._tb_record.setChecked(False)
+        else:
+            self.stop_recording()
+            self.set_status("Aufnahme gestoppt")
+
+    def _on_master_volume(self, value: int) -> None:
+        try:
+            self.client.set_sound_output_volume(value)
+        except Exception:
+            pass
+        try:
+            self.settings_store.settings.master_volume = value
+            self.settings_store.save()
+        except Exception:
+            pass
+
+    def _on_mic_gain(self, value: int) -> None:
+        try:
+            self.client.set_sound_input_gain(value)
+        except Exception:
+            pass
+        try:
+            self.settings_store.settings.mic_gain = value
             self.settings_store.save()
         except Exception:
             pass
