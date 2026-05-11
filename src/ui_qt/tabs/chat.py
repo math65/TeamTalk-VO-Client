@@ -98,6 +98,11 @@ class ChatTab(QWidget):
         self.chat_log = QTextEdit()
         self.chat_log.setReadOnly(True)
         self.chat_log.setObjectName("Chatverlauf")
+        self.chat_log.setAccessibleName("Chatverlauf")
+        self.chat_log.setAccessibleDescription(
+            "Lese-only Bereich. Strg+C kopiert markierten Text. "
+            "F6 wechselt zur Eingabe."
+        )
         root.addWidget(self.chat_log, 1)
 
         # --- History action buttons ---
@@ -124,12 +129,22 @@ class ChatTab(QWidget):
         root.addWidget(QLabel("Nachricht"))
         self.chat_input = QLineEdit()
         self.chat_input.setObjectName("Nachricht eingeben")
+        self.chat_input.setAccessibleName("Nachricht eingeben")
+        self.chat_input.setAccessibleDescription(
+            "Nachricht tippen und Enter drücken oder Senden klicken. "
+            "F6 springt zum Chatverlauf."
+        )
         self.chat_input.setPlaceholderText("Nachricht eingeben …")
         self.chat_input.returnPressed.connect(self._on_send)
         root.addWidget(self.chat_input)
 
+        # F6 toggles focus between chat log and input
+        f6 = QShortcut(QKeySequence("F6"), self)
+        f6.activated.connect(self._toggle_focus)
+
         send_row = QHBoxLayout()
         self.send_btn = QPushButton("&Senden")
+        self.send_btn.setAccessibleName("Nachricht senden")
         self.send_btn.clicked.connect(self._on_send)
         self.char_count_label = QLabel("0 Zeichen")
         self.char_count_label.setObjectName("Zeichenanzahl")
@@ -146,6 +161,12 @@ class ChatTab(QWidget):
     # ------------------------------------------------------------------
     # Input helpers
     # ------------------------------------------------------------------
+
+    def _toggle_focus(self) -> None:
+        if self.chat_input.hasFocus():
+            self.chat_log.setFocus()
+        else:
+            self.chat_input.setFocus()
 
     def _on_input_changed(self, text: str) -> None:
         self.char_count_label.setText(f"{len(text)} Zeichen")

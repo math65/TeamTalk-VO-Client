@@ -44,6 +44,10 @@ class ChannelsTab(QWidget):
         search_row.addWidget(QLabel("Suche:"))
         self._channel_search = QLineEdit()
         self._channel_search.setObjectName("Kanal suchen")
+        self._channel_search.setAccessibleName("Kanal suchen")
+        self._channel_search.setAccessibleDescription(
+            "Eingabe filtert die Kanalliste. Leer lassen für alle Kanäle."
+        )
         self._channel_search.setPlaceholderText("Kanalnamen filtern …")
         self._channel_search.textChanged.connect(self._on_channel_search)
         search_row.addWidget(self._channel_search)
@@ -51,6 +55,12 @@ class ChannelsTab(QWidget):
 
         self.channel_list = QListWidget()
         self.channel_list.setObjectName("Kanalliste")
+        self.channel_list.setAccessibleName("Kanäle und Benutzer")
+        self.channel_list.setAccessibleDescription(
+            "Liste aller Kanäle und verbundenen Benutzer. "
+            "Enter: Kanal beitreten oder privaten Chat öffnen. "
+            "Shift+F10 oder Kontextmenü-Taste: Aktionen."
+        )
         self.channel_list.currentRowChanged.connect(self._on_list_sel)
         self.channel_list.itemActivated.connect(self._on_list_activate)
         self.channel_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -59,6 +69,7 @@ class ChannelsTab(QWidget):
         root.addWidget(self.channel_list, 1)
 
         self.join_btn = QPushButton("&Kanal beitreten")
+        self.join_btn.setAccessibleName("Ausgewählten Kanal beitreten")
         self.join_btn.clicked.connect(self._on_join_btn)
         root.addWidget(self.join_btn)
 

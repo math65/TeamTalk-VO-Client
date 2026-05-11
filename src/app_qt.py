@@ -227,9 +227,63 @@ class MainWindow(QMainWindow):
         self.bus.on("user_left", lambda **kw: self._macros.fire_event("user_leave", **kw))
         self.bus.on("channel_joined", lambda **kw: self._macros.fire_event("channel_join", **kw))
 
+        # Windows dark mode detection
+        self._apply_windows_dark_mode()
+
+        # Accessible name for main window (NVDA announces this)
+        self.setAccessibleName(f"TeamTalk VoiceOver Client {APP_VERSION}")
+        self.notebook.setAccessibleName("Registerkarten")
+        self.notebook.setAccessibleDescription(
+            "Hauptnavigation. Tab/Shift+Tab wechselt zwischen Registerkarten."
+        )
+
         # Show
         if not bool(getattr(_ts, "start_minimized", False)):
             self.show()
+
+    # ------------------------------------------------------------------
+    # Windows Dark Mode
+    # ------------------------------------------------------------------
+
+    def _apply_windows_dark_mode(self) -> None:
+        """Detect Windows dark mode via registry and apply a dark Qt palette."""
+        if sys.platform != "win32":
+            return
+        try:
+            import winreg
+            key = winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+            )
+            value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+            winreg.CloseKey(key)
+            is_dark = value == 0
+        except Exception:
+            return
+        if not is_dark:
+            return
+        from PySide6.QtGui import QPalette, QColor
+        p = QPalette()
+        dark   = QColor(30, 30, 30)
+        darker = QColor(20, 20, 20)
+        mid    = QColor(45, 45, 45)
+        light  = QColor(220, 220, 220)
+        highlight = QColor(0, 120, 212)
+        p.setColor(QPalette.ColorRole.Window,          dark)
+        p.setColor(QPalette.ColorRole.WindowText,      light)
+        p.setColor(QPalette.ColorRole.Base,            darker)
+        p.setColor(QPalette.ColorRole.AlternateBase,   mid)
+        p.setColor(QPalette.ColorRole.Text,            light)
+        p.setColor(QPalette.ColorRole.Button,          mid)
+        p.setColor(QPalette.ColorRole.ButtonText,      light)
+        p.setColor(QPalette.ColorRole.Highlight,       highlight)
+        p.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
+        p.setColor(QPalette.ColorRole.ToolTipBase,     mid)
+        p.setColor(QPalette.ColorRole.ToolTipText,     light)
+        p.setColor(QPalette.ColorRole.PlaceholderText, QColor(120, 120, 120))
+        from PySide6.QtWidgets import QApplication
+        QApplication.instance().setPalette(p)
+        self.logger.write("Windows dark mode erkannt — dunkles Farbschema aktiv")
 
     # ------------------------------------------------------------------
     # UI Construction
@@ -241,69 +295,81 @@ class MainWindow(QMainWindow):
         root = QVBoxLayout(central)
         root.setContentsMargins(4, 4, 4, 4)
 
-        # Connection status bar (shows current server + quick disconnect)
+        # Connection status bar
         status_bar = QHBoxLayout()
         self._conn_label = QLabel("Nicht verbunden")
+        self._conn_label.setAccessibleName("Verbindungsstatus")
         self._srv_disconnect_btn = QPushButton("&Trennen")
+        self._srv_disconnect_btn.setAccessibleName("Vom Server trennen")
         self._srv_disconnect_btn.clicked.connect(self.on_menu_disconnect)
         self._srv_disconnect_btn.setEnabled(False)
         status_bar.addWidget(self._conn_label, 1)
         status_bar.addWidget(self._srv_disconnect_btn)
         root.addLayout(status_bar)
 
-        # Quick-action toolbar
+        # Quick-action toolbar (NVDA-accessible toggle buttons)
         tb_layout = QHBoxLayout()
 
-        # PTT toggle
         self._tb_ptt = QPushButton("PTT")
         self._tb_ptt.setCheckable(True)
         self._tb_ptt.setFixedWidth(50)
+        self._tb_ptt.setAccessibleName("Push-to-Talk umschalten")
+        self._tb_ptt.setAccessibleDescription("Aktiviert oder deaktiviert Push-to-Talk")
         self._tb_ptt.toggled.connect(self._on_toggle_ptt)
         tb_layout.addWidget(self._tb_ptt)
 
-        # Voice activation
         self._tb_va = QPushButton("VA")
         self._tb_va.setCheckable(True)
         self._tb_va.setFixedWidth(50)
+        self._tb_va.setAccessibleName("Sprachaktivierung umschalten")
+        self._tb_va.setAccessibleDescription("Aktiviert oder deaktiviert die Sprachaktivierung")
         self._tb_va.toggled.connect(self._on_toggle_va)
         tb_layout.addWidget(self._tb_va)
 
-        # Mute all
         self._tb_mute = QPushButton("Stumm")
         self._tb_mute.setCheckable(True)
         self._tb_mute.setFixedWidth(60)
+        self._tb_mute.setAccessibleName("Alle stummschalten")
+        self._tb_mute.setAccessibleDescription("Schaltet alle Audioausgaben stumm")
         self._tb_mute.toggled.connect(self._on_toggle_mute_all)
         tb_layout.addWidget(self._tb_mute)
 
-        # Record
         self._tb_record = QPushButton("Aufn.")
         self._tb_record.setCheckable(True)
         self._tb_record.setFixedWidth(55)
+        self._tb_record.setAccessibleName("Aufnahme starten oder stoppen")
         self._tb_record.toggled.connect(self._on_tb_record)
         tb_layout.addWidget(self._tb_record)
 
-        # Question mode
         self._tb_question = QPushButton("Frage")
         self._tb_question.setCheckable(True)
         self._tb_question.setFixedWidth(60)
+        self._tb_question.setAccessibleName("Fragenmodus umschalten")
+        self._tb_question.setAccessibleDescription("Hebt die Hand im Kanal")
         self._tb_question.toggled.connect(self._on_toggle_question_mode)
         tb_layout.addWidget(self._tb_question)
 
-        # Volume label + slider
-        tb_layout.addWidget(QLabel("Vol:"))
+        vol_lbl = QLabel("Vol:")
+        vol_lbl.setAccessibleName("Lautstärke")
+        tb_layout.addWidget(vol_lbl)
         self._vol_slider = QSlider(Qt.Orientation.Horizontal)
         self._vol_slider.setRange(0, 200)
         self._vol_slider.setValue(100)
         self._vol_slider.setFixedWidth(80)
+        self._vol_slider.setAccessibleName("Hauptlautstärke")
+        self._vol_slider.setAccessibleDescription("Ausgabelautstärke, 0 bis 200 Prozent")
         self._vol_slider.valueChanged.connect(self._on_master_volume)
         tb_layout.addWidget(self._vol_slider)
 
-        # Mic gain label + slider
-        tb_layout.addWidget(QLabel("Mic:"))
+        mic_lbl = QLabel("Mic:")
+        mic_lbl.setAccessibleName("Mikrofon")
+        tb_layout.addWidget(mic_lbl)
         self._mic_slider = QSlider(Qt.Orientation.Horizontal)
         self._mic_slider.setRange(0, 200)
         self._mic_slider.setValue(100)
         self._mic_slider.setFixedWidth(80)
+        self._mic_slider.setAccessibleName("Mikrofonverstärkung")
+        self._mic_slider.setAccessibleDescription("Mikrofonverstärkung, 0 bis 200 Prozent")
         self._mic_slider.valueChanged.connect(self._on_mic_gain)
         tb_layout.addWidget(self._mic_slider)
 
@@ -722,6 +788,15 @@ class MainWindow(QMainWindow):
                     own=is_own,
                     kind=kind,
                 )
+
+                # Route private messages to the dedicated dialog if open
+                if kind == "private" and not is_own:
+                    try:
+                        from ui_qt.private_chat_dialog import _open_dialogs
+                        if from_id in _open_dialogs:
+                            _open_dialogs[from_id].append_message(from_user, content, own=False)
+                    except Exception:
+                        pass
 
                 if not is_own:
                     speak_text = f"{from_user}: {content}"
@@ -1212,7 +1287,7 @@ class MainWindow(QMainWindow):
         profiles = self.store.items()
         if 0 <= idx < len(profiles):
             self.store.remove(idx)
-            self.connection_tab.reload_server_list()
+            pass  # ConnectDialog reloads from store on open
 
     def enter_join_code(self) -> None:
         code, ok = QInputDialog.getText(self, "Beitrittscode", "Code eingeben:")
@@ -1238,14 +1313,16 @@ class MainWindow(QMainWindow):
         self.set_status("TT-Datei exportieren: nicht implementiert")
 
     def open_private_chat(self, user_id: int) -> None:
-        self.notebook.setCurrentIndex(1)
+        """Open a dedicated private chat dialog for user_id (non-modal)."""
+        from ui_qt.private_chat_dialog import open_private_chat as _open
+        nick = ""
         try:
-            self.chat_tab.private_chat.setChecked(True)
-            uid_list = self.chat_tab._private_user_ids
-            if user_id in uid_list:
-                self.chat_tab.private_user.setCurrentIndex(uid_list.index(user_id))
+            u = self.client.get_user(user_id)
+            if u:
+                nick = self.tt_str(u.szNickname) or self.tt_str(u.szUsername)
         except Exception:
             pass
+        _open(self, user_id, nick)
 
     def kick_user(self, user_id: int) -> None:
         try:
