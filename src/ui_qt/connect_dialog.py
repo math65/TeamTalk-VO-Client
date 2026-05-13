@@ -1,6 +1,9 @@
 """Verbindungs-Dialog für Qt — ersetzt den Verbindungs-Tab."""
 from __future__ import annotations
 
+import socket
+import threading
+from pathlib import Path
 from typing import Optional, TYPE_CHECKING
 
 from PySide6.QtWidgets import (
@@ -8,7 +11,7 @@ from PySide6.QtWidgets import (
     QLabel, QListWidget, QLineEdit, QCheckBox, QSpinBox,
     QPushButton, QMessageBox, QFileDialog,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 
 if TYPE_CHECKING:
     from app_qt import MainWindow
@@ -21,14 +24,27 @@ class ConnectDialog(QDialog):
         super().__init__(parent)
         self.window = parent
         self.setWindowTitle("Verbinden")
-        self.resize(680, 520)
+        self.resize(740, 620)
         self._profiles: list = []
+        self._filter_text: str = ""
+        self._filtered_indices: list = []
+        self._server_status: dict = {}
 
         layout = QVBoxLayout(self)
 
-        # Server list
+        # ── Server list ───────────────────────────────────────────────────
         list_group = QGroupBox("Gespeicherte Server")
         list_inner = QVBoxLayout(list_group)
+
+        # Filter
+        filter_row = QHBoxLayout()
+        filter_row.addWidget(QLabel("Filter:"))
+        self.filter_field = QLineEdit()
+        self.filter_field.setPlaceholderText("Servername filtern …")
+        self.filter_field.textChanged.connect(self._on_filter_changed)
+        filter_row.addWidget(self.filter_field, 1)
+        list_inner.addLayout(filter_row)
+
         self.server_list = QListWidget()
         self.server_list.currentRowChanged.connect(self._on_select)
         self.server_list.itemActivated.connect(lambda _: self.on_connect())
@@ -40,16 +56,21 @@ class ConnectDialog(QDialog):
             ("&Speichern", self._on_save),
             ("&Entfernen", self._on_delete),
             (".tt &importieren", self._on_import),
+            (".tt e&xportieren", self._on_export_tt),
+            ("TT-&Datei speichern", self._on_save_tt_file),
             ("TT-&URL kopieren", self._on_copy_url),
         ]:
             btn = QPushButton(label)
             btn.clicked.connect(slot)
             btn_row.addWidget(btn)
+        self._status_check_btn = QPushButton("Status &prüfen")
+        self._status_check_btn.clicked.connect(self._on_check_status)
+        btn_row.addWidget(self._status_check_btn)
         btn_row.addStretch()
         list_inner.addLayout(btn_row)
         layout.addWidget(list_group)
 
-        # Connection form
+        # ── Connection form ───────────────────────────────────────────────
         form_group = QGroupBox("Verbindungsdetails")
         form = QFormLayout(form_group)
 
@@ -84,6 +105,10 @@ class ConnectDialog(QDialog):
         self.pass_field.setEchoMode(QLineEdit.EchoMode.Password)
         form.addRow("Passwort", self.pass_field)
 
+        self.client_name_field = QLineEdit()
+        self.client_name_field.setPlaceholderText("TeamTalk VO Client")
+        form.addRow("Client-Name", self.client_name_field)
+
         self.channel_field = QLineEdit()
         self.channel_field.setPlaceholderText("/kanalname (optional)")
         form.addRow("Kanal", self.channel_field)
@@ -97,19 +122,63 @@ class ConnectDialog(QDialog):
 
         layout.addWidget(form_group)
 
-        # Buttons
-        action_row = QHBoxLayout()
+        # ── Action buttons ────────────────────────────────────────────────
+        action_group = QGroupBox("Aktionen")
+        action_layout = QVBoxLayout(action_group)
+
+        action_row1 = QHBoxLayout()
         self.connect_btn = QPushButton("&Verbinden")
         self.connect_btn.setDefault(True)
         self.connect_btn.clicked.connect(self.on_connect)
-        cancel_btn = QPushButton("&Schließen")
-        cancel_btn.clicked.connect(self.reject)
-        action_row.addWidget(self.connect_btn)
-        action_row.addStretch()
-        action_row.addWidget(cancel_btn)
-        layout.addLayout(action_row)
+        action_row1.addWidget(self.connect_btn)
+
+        self._reconnect_btn = QPushButton("Neu verbin&den")
+        self._reconnect_btn.clicked.connect(self._on_reconnect)
+        action_row1.addWidget(self._reconnect_btn)
+
+        self._server_check_btn = QPushButton("&Server prüfen")
+        self._server_check_btn.clicked.connect(self._on_server_check)
+        action_row1.addWidget(self._server_check_btn)
+
+        self._join_root_btn = QPushButton("&Root-Kanal beitreten")
+        self._join_root_btn.clicked.connect(self._on_join_root)
+        action_row1.addWidget(self._join_root_btn)
+
+        self._leave_btn = QPushButton("Kanal &verlassen")
+        self._leave_btn.clicked.connect(self._on_leave_channel)
+        action_row1.addWidget(self._leave_btn)
+
+        self._logout_btn = QPushButton("&Abmelden")
+        self._logout_btn.clicked.connect(self._on_logout)
+        action_row1.addWidget(self._logout_btn)
+
+        self._auto_reconnect_cb = QCheckBox("Automatisch neu verbinden")
+        self._auto_reconnect_cb.setChecked(
+            bool(getattr(self.window.settings_store.settings, "auto_reconnect_enabled", True))
+        )
+        self._auto_reconnect_cb.stateChanged.connect(self._on_auto_reconnect_changed)
+        action_row1.addWidget(self._auto_reconnect_cb)
+        action_row1.addStretch()
+
+        close_btn = QPushButton("&Schließen")
+        close_btn.clicked.connect(self.reject)
+        action_row1.addWidget(close_btn)
+        action_layout.addLayout(action_row1)
+
+        # Ping stats
+        self._stats_label = QLabel("UDP Ping: –– ms  |  TCP Ping: –– ms")
+        action_layout.addWidget(self._stats_label)
+        layout.addWidget(action_group)
+
+        # ── Ping timer ────────────────────────────────────────────────────
+        self._ping_timer = QTimer(self)
+        self._ping_timer.setInterval(2000)
+        self._ping_timer.timeout.connect(self._update_stats)
+        self._ping_timer.start()
 
         self._load_profiles()
+        self._update_stats()
+
         # Pre-fill with last connected profile
         try:
             last = getattr(self.window, "_last_profile", None)
@@ -121,20 +190,44 @@ class ConnectDialog(QDialog):
         except Exception:
             pass
 
-    # ------------------------------------------------------------------
+    # ── Server list helpers ───────────────────────────────────────────────
 
     def _load_profiles(self) -> None:
         self._profiles = list(self.window.store.items())
+        self._apply_filter()
+
+    def _apply_filter(self) -> None:
+        filt = self._filter_text.lower()
+        self._filtered_indices = [
+            i for i, p in enumerate(self._profiles)
+            if filt in (getattr(p, "name", "") or "").lower()
+            or filt in (getattr(p, "host", "") or "").lower()
+        ]
         self.server_list.clear()
-        for p in self._profiles:
+        for idx in self._filtered_indices:
+            p = self._profiles[idx]
             label = getattr(p, "name", "") or getattr(p, "host", "") or str(p)
+            # Show reachability indicator if available
+            if idx in self._server_status:
+                indicator = "✓ " if self._server_status[idx] else "✗ "
+                label = indicator + label
             self.server_list.addItem(label)
-        if self._profiles and self.server_list.currentRow() < 0:
+        if self.server_list.count() > 0 and self.server_list.currentRow() < 0:
             self.server_list.setCurrentRow(0)
 
+    def _on_filter_changed(self, text: str) -> None:
+        self._filter_text = text
+        self._apply_filter()
+
+    def _real_index(self, list_row: int) -> Optional[int]:
+        if 0 <= list_row < len(self._filtered_indices):
+            return self._filtered_indices[list_row]
+        return None
+
     def _on_select(self, row: int) -> None:
-        if 0 <= row < len(self._profiles):
-            p = self._profiles[row]
+        real = self._real_index(row)
+        if real is not None:
+            p = self._profiles[real]
             self.name_field.setText(getattr(p, "name", "") or "")
             self.host_field.setText(getattr(p, "host", "") or "")
             self.tcp_field.setValue(int(getattr(p, "tcp_port", 10333) or 10333))
@@ -142,6 +235,7 @@ class ConnectDialog(QDialog):
             self.nick_field.setText(getattr(p, "nickname", "") or "")
             self.user_field.setText(getattr(p, "username", "") or "")
             self.pass_field.setText(getattr(p, "password", "") or "")
+            self.client_name_field.setText(getattr(p, "client_name", "") or "")
             self.channel_field.setText(getattr(p, "channel", "") or "")
             self.ch_pass_field.setText(getattr(p, "channel_password", "") or "")
             self.encrypted_check.setChecked(bool(getattr(p, "encrypted", False)))
@@ -157,14 +251,18 @@ class ConnectDialog(QDialog):
             nickname=self.nick_field.text().strip() or "Gast",
             username=self.user_field.text().strip(),
             password=self.pass_field.text(),
+            client_name=self.client_name_field.text().strip() or "TeamTalk VO Client",
             channel=self.channel_field.text().strip(),
             encrypted=self.encrypted_check.isChecked(),
         )
 
+    # ── Server list CRUD ──────────────────────────────────────────────────
+
     def _on_new(self) -> None:
         self.server_list.clearSelection()
         for field in (self.name_field, self.host_field, self.nick_field,
-                      self.user_field, self.pass_field, self.channel_field, self.ch_pass_field):
+                      self.user_field, self.pass_field, self.client_name_field,
+                      self.channel_field, self.ch_pass_field):
             field.clear()
         self.tcp_field.setValue(10333)
         self.udp_field.setValue(10333)
@@ -177,9 +275,10 @@ class ConnectDialog(QDialog):
             QMessageBox.warning(self, "Speichern", "Bitte Server-Adresse eingeben.")
             return
         row = self.server_list.currentRow()
+        real = self._real_index(row)
         try:
-            if 0 <= row < len(self._profiles):
-                self.window.store.update(row, p)
+            if real is not None:
+                self.window.store.update(real, p)
             else:
                 self.window.store.add(p)
             self._load_profiles()
@@ -193,16 +292,23 @@ class ConnectDialog(QDialog):
 
     def _on_delete(self) -> None:
         row = self.server_list.currentRow()
-        if row < 0:
+        real = self._real_index(row)
+        if real is None:
             return
-        name = self._profiles[row].name if self._profiles else "?"
+        name = self._profiles[real].name if self._profiles else "?"
         if QMessageBox.question(self, "Entfernen", f"Server '{name}' wirklich entfernen?") \
                 == QMessageBox.StandardButton.Yes:
             try:
-                self.window.store.remove(row)
+                self.window.store.remove(real)
                 self._load_profiles()
+                try:
+                    self.window._rebuild_favorites_menu()
+                except Exception:
+                    pass
             except Exception as exc:
                 QMessageBox.warning(self, "Fehler", str(exc))
+
+    # ── Import / Export ───────────────────────────────────────────────────
 
     def _on_import(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
@@ -215,27 +321,191 @@ class ConnectDialog(QDialog):
             from ui.tt_file_parser import parse_teamtalk_file
             result = parse_teamtalk_file(path)
             if result:
-                self.window.store.add(result)
+                profile = result.profile if hasattr(result, "profile") else result
+                if not profile.name:
+                    profile.name = Path(path).stem
+                self.window.store.add(profile)
                 self._load_profiles()
-                self.window.set_status(f"Importiert: {path}")
+                self.window.set_status(f"Importiert: {Path(path).name}")
         except Exception as exc:
             QMessageBox.warning(self, "Import fehlgeschlagen", str(exc))
 
+    def _on_export_tt(self) -> None:
+        row = self.server_list.currentRow()
+        real = self._real_index(row)
+        if real is None:
+            QMessageBox.warning(self, "Exportieren", "Bitte einen Server auswählen.")
+            return
+        profile = self._profiles[real]
+        default_name = f"{profile.name or profile.host}.tt"
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Server als TT-Datei exportieren", default_name,
+            "TeamTalk-Dateien (*.tt);;Alle Dateien (*.*)"
+        )
+        if not path:
+            return
+        try:
+            from ui.tt_file_parser import build_teamtalk_xml
+            xml_text = build_teamtalk_xml(profile)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(xml_text)
+            self.window.set_status("TT-Datei exportiert")
+        except Exception as exc:
+            self.window.set_status(f"Export fehlgeschlagen: {exc}")
+
+    def _on_save_tt_file(self) -> None:
+        p = self._profile_from_form()
+        if not p.host:
+            QMessageBox.warning(self, "Speichern", "Bitte Server-Adresse eingeben.")
+            return
+        channel_path = self._get_channel_path()
+        default_name = f"{p.name or p.host}.tt"
+        path, _ = QFileDialog.getSaveFileName(
+            self, "TT-Datei speichern", default_name,
+            "TeamTalk-Dateien (*.tt);;Alle Dateien (*.*)"
+        )
+        if not path:
+            return
+        try:
+            from ui.tt_file_parser import build_teamtalk_xml
+            xml_text = build_teamtalk_xml(p, channel_path=channel_path)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(xml_text)
+            self.window.set_status("TT-Datei gespeichert")
+        except Exception as exc:
+            self.window.set_status(f"TT-Datei speichern fehlgeschlagen: {exc}")
+
     def _on_copy_url(self) -> None:
         row = self.server_list.currentRow()
-        p = self._profiles[row] if 0 <= row < len(self._profiles) else self._profile_from_form()
+        real = self._real_index(row)
+        p = self._profiles[real] if real is not None else self._profile_from_form()
+        channel_path = self._get_channel_path()
         try:
             from ui.tt_file_parser import build_teamtalk_url
             from PySide6.QtWidgets import QApplication
-            QApplication.clipboard().setText(build_teamtalk_url(p))
+            url = build_teamtalk_url(p, channel_path=channel_path)
+            QApplication.clipboard().setText(url)
             self.window.set_status("TT-URL kopiert")
         except Exception:
             pass
+
+    def _get_channel_path(self) -> Optional[str]:
+        try:
+            if not self.window.client.is_connected():
+                return None
+            ch_id = self.window.client.get_my_channel_id()
+            if not ch_id:
+                return None
+            path = self.window.client.get_channel_path(int(ch_id))
+            return self.window.tt_str(path) if path else None
+        except Exception:
+            return None
+
+    # ── Status prüfen (TCP) ───────────────────────────────────────────────
+
+    def _on_check_status(self) -> None:
+        profiles = self._profiles
+        if not profiles:
+            return
+        self._server_status = {}
+        self._status_check_btn.setEnabled(False)
+        self.window.set_status("Server-Status wird geprüft…")
+
+        def worker():
+            for i, profile in enumerate(profiles):
+                try:
+                    conn = socket.create_connection(
+                        (profile.host, int(profile.tcp_port or 10333)), timeout=3
+                    )
+                    conn.close()
+                    self._server_status[i] = True
+                except Exception:
+                    self._server_status[i] = False
+            reachable = sum(1 for v in self._server_status.values() if v)
+            total = len(self._server_status)
+            from ui_qt.call_after import call_after
+            call_after(self._finish_status_check, f"Server-Status: {reachable}/{total} erreichbar")
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _finish_status_check(self, msg: str) -> None:
+        self._apply_filter()
+        self._status_check_btn.setEnabled(True)
+        self.window.set_status(msg)
+
+    # ── Action handlers ───────────────────────────────────────────────────
+
+    def _on_reconnect(self) -> None:
+        self.accept()
+        try:
+            self.window.reconnect()
+        except Exception:
+            pass
+
+    def _on_server_check(self) -> None:
+        self.accept()
+        try:
+            self.window.on_menu_server_check()
+        except Exception:
+            pass
+
+    def _on_join_root(self) -> None:
+        self.accept()
+        try:
+            self.window.join_root_channel()
+        except Exception:
+            pass
+
+    def _on_leave_channel(self) -> None:
+        self.accept()
+        try:
+            self.window.leave_channel()
+        except Exception:
+            pass
+
+    def _on_logout(self) -> None:
+        self.accept()
+        try:
+            self.window.logout()
+        except Exception:
+            pass
+
+    def _on_auto_reconnect_changed(self, state: int) -> None:
+        checked = bool(state)
+        try:
+            self.window._auto_reconnect = checked
+            self.window.settings_store.settings.auto_reconnect_enabled = checked
+            self.window.settings_store.save()
+            if hasattr(self.window, "_auto_reconnect_action"):
+                self.window._auto_reconnect_action.setChecked(checked)
+        except Exception:
+            pass
+
+    def _update_stats(self) -> None:
+        try:
+            if not self.window.client.is_connected():
+                self._stats_label.setText("UDP Ping: –– ms  |  TCP Ping: –– ms")
+                return
+            stats = self.window.client.get_client_statistics()
+            if stats is None:
+                return
+            udp_ms = int(stats.nUdpPingTimeMs)
+            tcp_ms = int(stats.nTcpPingTimeMs)
+            self._stats_label.setText(f"UDP Ping: {udp_ms} ms  |  TCP Ping: {tcp_ms} ms")
+        except Exception:
+            pass
+
+    # ── Connect ───────────────────────────────────────────────────────────
 
     def on_connect(self) -> None:
         p = self._profile_from_form()
         if not p.host:
             QMessageBox.warning(self, "Verbinden", "Bitte Server-Adresse eingeben.")
             return
+        self._ping_timer.stop()
         self.window.connect_to_server(p)
         self.accept()
+
+    def reject(self) -> None:
+        self._ping_timer.stop()
+        super().reject()
