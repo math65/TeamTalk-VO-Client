@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QListWidget, QFormLayout, QTimeEdit,
 )
 from PySide6.QtCore import QTimer, Qt, Signal, QObject, QTime
-from PySide6.QtGui import QAction, QKeySequence, QFont, QCloseEvent
+from PySide6.QtGui import QAction, QKeySequence, QFont, QCloseEvent, QShortcut
 
 from teamtalk_client.client import TeamTalkClient, ConnectResult
 from ui.models import (
@@ -209,6 +209,7 @@ class MainWindow(QMainWindow):
         # Build UI
         self._build_ui()
         self._build_menu()
+        self._setup_tab_shortcuts()
         self.tray = TrayIcon(self)
         # Show Sprechen tab only when ElevenLabs API key is configured
         _eleven_key = getattr(self.settings_store.settings, "elevenlabs_api_key", "") or ""
@@ -447,8 +448,8 @@ class MainWindow(QMainWindow):
         # --- Datei ---
         datei = mb.addMenu("&Datei")
         self._add_action(datei, "&Verbinden...", self.on_menu_connect, "Ctrl+Return")
-        self._add_action(datei, "&Trennen", self.on_menu_disconnect)
-        self._add_action(datei, "Neu &verbinden", self.reconnect)
+        self._add_action(datei, "&Trennen", self.on_menu_disconnect, "Ctrl+W")
+        self._add_action(datei, "Neu &verbinden", self.reconnect, "Ctrl+Shift+R")
         self._auto_reconnect_action = self._add_checkable(datei, "Auto-&Reconnect",
             self._on_toggle_auto_reconnect,
             bool(getattr(self.settings_store.settings, "auto_reconnect_enabled", True)))
@@ -473,17 +474,17 @@ class MainWindow(QMainWindow):
 
         # --- Kanal ---
         kanal = mb.addMenu("&Kanal")
-        self._add_action(kanal, "Kanal &beitreten", self.on_menu_join_channel)
+        self._add_action(kanal, "Kanal &beitreten", self.on_menu_join_channel, "Ctrl+J")
         self._add_action(kanal, "&Root-Kanal beitreten", self.on_menu_join_root)
-        self._add_action(kanal, "Kanal &verlassen", self.on_menu_leave_channel)
+        self._add_action(kanal, "Kanal &verlassen", self.on_menu_leave_channel, "Ctrl+L")
         kanal.addSeparator()
-        self._add_action(kanal, "Kanal &erstellen...", self.on_menu_create_channel)
+        self._add_action(kanal, "Kanal &erstellen...", self.on_menu_create_channel, "Ctrl+Shift+N")
         self._add_action(kanal, "Kanal &bearbeiten...", self.on_menu_edit_channel)
         self._add_action(kanal, "Kanal &löschen", self.on_menu_delete_channel)
         kanal.addSeparator()
-        self._add_action(kanal, "Kanal&info vorlesen", self.on_menu_channel_info)
+        self._add_action(kanal, "Kanal&info vorlesen", self.on_menu_channel_info, "Ctrl+S")
         self._add_action(kanal, "Kanal-&Notiz bearbeiten...", self.on_menu_channel_note)
-        self._add_action(kanal, "Kanal&nachricht senden...", self.on_menu_send_channel_msg)
+        self._add_action(kanal, "Kanal&nachricht senden...", self.on_menu_send_channel_msg, "F3")
         kanal.addSeparator()
         self._add_action(kanal, "&Datei hochladen...", self.on_menu_upload_file)
         self._add_action(kanal, "Datei &herunterladen", self.on_menu_download_file)
@@ -507,14 +508,14 @@ class MainWindow(QMainWindow):
 
         # --- Benutzer ---
         benutzer = mb.addMenu("&Benutzer")
-        self._add_action(benutzer, "&Benutzerinfo vorlesen", self.on_menu_user_info)
-        self._add_action(benutzer, "&Private Nachricht...", self.on_menu_private_msg)
+        self._add_action(benutzer, "&Benutzerinfo vorlesen", self.on_menu_user_info, "Ctrl+I")
+        self._add_action(benutzer, "&Private Nachricht...", self.on_menu_private_msg, "Ctrl+T")
         benutzer.addSeparator()
-        self._add_action(benutzer, "S&tummschalten (Sprache)", self.on_menu_mute_voice)
+        self._add_action(benutzer, "S&tummschalten (Sprache)", self.on_menu_mute_voice, "Ctrl+M")
         self._add_action(benutzer, "Lautstärke &einstellen...", self.on_menu_user_volume)
         benutzer.addSeparator()
-        self._add_action(benutzer, "Aus Kanal &kicken", self.on_menu_kick)
-        self._add_action(benutzer, "Kicken + &Sperren", self.on_menu_kick_ban)
+        self._add_action(benutzer, "Aus Kanal &kicken", self.on_menu_kick, "Ctrl+K")
+        self._add_action(benutzer, "Kicken + &Sperren", self.on_menu_kick_ban, "Ctrl+Shift+K")
         self._add_action(benutzer, "Vom &Server kicken", self.on_menu_kick_server)
         benutzer.addSeparator()
         self._add_action(benutzer, "Benutzer &verschieben", self.on_menu_move_user)
@@ -527,7 +528,7 @@ class MainWindow(QMainWindow):
         self._add_action(adv_m, "&Medienstream weiterleiten", self.on_menu_relay_media)
         benutzer.addSeparator()
         self._all_mute_action = self._add_checkable(benutzer, "Alle &stummschalten",
-            self._on_toggle_mute_all, self._mute_all)
+            self._on_toggle_mute_all, self._mute_all, "F7")
         benutzer.addSeparator()
         tx_m = benutzer.addMenu("&Sendekontrolle")
         for _tx_label, _stype in [
@@ -541,12 +542,12 @@ class MainWindow(QMainWindow):
 
         # --- Profil ---
         profil = mb.addMenu("&Profil")
-        self._add_action(profil, "&Nickname ändern...", self.on_menu_change_nick)
+        self._add_action(profil, "&Nickname ändern...", self.on_menu_change_nick, "Ctrl+R")
         self._add_action(profil, "&Status setzen...", self.on_menu_status)
         profil.addSeparator()
         self._self_hear_action = self._add_checkable(profil, "Mich selbst &hören",
             self._on_toggle_self_hear,
-            bool(getattr(self.settings_store.settings, "self_hear", False)))
+            bool(getattr(self.settings_store.settings, "self_hear", False)), "F6")
         self._question_mode_action = self._add_checkable(profil, "&Frage-Modus",
             self._on_toggle_question_mode, False)
         profil.addSeparator()
@@ -560,10 +561,10 @@ class MainWindow(QMainWindow):
         audio_m = mb.addMenu("&Audio")
         self._ptt_action = self._add_checkable(audio_m, "&Push-to-Talk",
             self._on_toggle_ptt,
-            bool(getattr(self.settings_store.settings, "ptt_enabled", False)))
+            bool(getattr(self.settings_store.settings, "ptt_enabled", False)), "F5")
         self._va_action = self._add_checkable(audio_m, "&Sprachaktivierung",
             self._on_toggle_va,
-            bool(getattr(self.settings_store.settings, "voice_activation", False)))
+            bool(getattr(self.settings_store.settings, "voice_activation", False)), "F4")
         audio_m.addSeparator()
         self._agc_action = self._add_checkable(audio_m, "&AGC",
             self._on_toggle_agc,
@@ -596,12 +597,12 @@ class MainWindow(QMainWindow):
 
         # --- Server ---
         server_m = mb.addMenu("&Server")
-        self._add_action(server_m, "&Online-Nutzer...", self.on_menu_online_users)
+        self._add_action(server_m, "&Online-Nutzer...", self.on_menu_online_users, "Ctrl+U")
         self._add_action(server_m, "Server&nachricht senden...", self.on_menu_server_message)
         self._add_action(server_m, "Server-&Statistiken...", self.on_menu_server_stats)
         server_m.addSeparator()
-        self._add_action(server_m, "&Sperrliste...", self.on_menu_ban_list)
-        self._add_action(server_m, "&Administration...", self.on_menu_admin)
+        self._add_action(server_m, "&Sperrliste...", self.on_menu_ban_list, "Ctrl+B")
+        self._add_action(server_m, "&Administration...", self.on_menu_admin, "Ctrl+A")
         self._add_action(server_m, "Server&eigenschaften...", self.on_menu_server_properties)
         server_m.addSeparator()
         self._add_action(server_m, "&Wer-spricht-Protokoll...", self.on_menu_speaking_log)
@@ -609,12 +610,12 @@ class MainWindow(QMainWindow):
 
         # --- Automation ---
         auto_m = mb.addMenu("A&utomation")
-        self._add_action(auto_m, "&Makro-Manager...", self.on_menu_macros)
+        self._add_action(auto_m, "&Makro-Manager...", self.on_menu_macros, "Ctrl+Shift+M")
         self._add_action(auto_m, "Geplante &Makros...", self.on_menu_scheduled_macros)
         auto_m.addSeparator()
         self._add_action(auto_m, "&Trigger-Regeln...", self.on_menu_trigger_editor)
         auto_m.addSeparator()
-        self._add_action(auto_m, "&Chat-Suche...", self.on_menu_chat_search)
+        self._add_action(auto_m, "&Chat-Suche...", self.on_menu_chat_search, "Ctrl+F")
         self._add_action(auto_m, "&Nutzerwatcher...", self.on_menu_user_watcher)
         self._add_action(auto_m, "&Offline-Warteschlange...", self.on_menu_offline_queue)
         auto_m.addSeparator()
@@ -634,15 +635,17 @@ class MainWindow(QMainWindow):
         self._add_action(hlp, "&Gespeicherte Nachrichten...", self.on_menu_saved_messages)
         self._add_action(hlp, "Auf &Updates prüfen...", self.on_menu_check_updates)
         hlp.addSeparator()
-        self._add_action(hlp, "&Handbuch...", self.on_menu_manual)
+        self._add_action(hlp, "&Handbuch...", self.on_menu_manual, "F1")
         self._add_action(hlp, "&Changelog...", self.on_menu_changelog)
         hlp.addSeparator()
         self._add_action(hlp, "&Info...", self.on_menu_about)
 
-    def _add_checkable(self, menu: QMenu, label: str, slot, checked: bool = False) -> QAction:
+    def _add_checkable(self, menu: QMenu, label: str, slot, checked: bool = False, shortcut: str = "") -> QAction:
         action = QAction(label, self)
         action.setCheckable(True)
         action.setChecked(checked)
+        if shortcut:
+            action.setShortcut(QKeySequence(shortcut))
         action.triggered.connect(slot)
         menu.addAction(action)
         return action
@@ -654,6 +657,12 @@ class MainWindow(QMainWindow):
         action.triggered.connect(slot)
         menu.addAction(action)
         return action
+
+    def _setup_tab_shortcuts(self) -> None:
+        for i in range(1, 10):
+            sc = QShortcut(QKeySequence(f"Alt+{i}"), self)
+            tab_idx = i - 1
+            sc.activated.connect(lambda idx=tab_idx: self.tabs.setCurrentIndex(idx))
 
     # ------------------------------------------------------------------
     # tt_str helper
