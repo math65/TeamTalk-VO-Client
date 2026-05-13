@@ -1,6 +1,27 @@
 Changelog
 =========
 
+2026-05-13 (v6.7.9)
+Windows Qt-UI – Server-Browser, Stubs implementiert, TTS-Verbesserungen:
+
+Neue Features:
+- Öffentliche Serverliste (bearware.dk): Fenster zum Durchsuchen, Verbinden und Speichern
+- Server-Gruppen-Dialog: Server in Gruppen einteilen und verwalten
+- Dateiübertragungsverlauf jetzt zugänglich
+- Konten im Admin-Tab per Menü anlegen (navigiert zum Admin-Tab)
+- TT-Datei exportieren aus dem Verbindungsdialog
+
+Tastenkürzel:
+- Ctrl+P: Ping via TTS ansagen (UDP + TCP ms)
+
+TTS-Verbesserungen:
+- Dateitransfer-Abschluss per TTS angekündigt
+- Kanalinfo-Ansage (Ctrl+S) enthält jetzt Nutzeranzahl
+- Schlüsselwort-Erkennung im Chat (spricht „Stichwort: X" wenn Treffer)
+
+Kontextmenüs:
+- Sperrliste im Kanal-Kontextmenü jetzt funktionsfähig
+
 2026-05-13 (v6.7.8)
 Windows Qt-UI – BearWare-Tastenkürzel, Barrierefreiheit, UI-Aufräumung:
 
