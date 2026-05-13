@@ -17,11 +17,11 @@ VSVersionInfo(
           [
             StringStruct('CompanyName', 'Flarion'),
             StringStruct('FileDescription', 'TeamTalk VoiceOver Client'),
-            StringStruct('FileVersion', '6.7.7'),
+            StringStruct('FileVersion', '6.7.8'),
             StringStruct('InternalName', 'TeamTalk VO Client'),
             StringStruct('OriginalFilename', 'TeamTalk VO Client.exe'),
             StringStruct('ProductName', 'TeamTalk VoiceOver Client'),
-            StringStruct('ProductVersion', '6.7.7')
+            StringStruct('ProductVersion', '6.7.8')
           ]
         )
       ]

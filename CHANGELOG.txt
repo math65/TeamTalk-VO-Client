@@ -1,6 +1,33 @@
 Changelog
 =========
 
+2026-05-13 (v6.7.8)
+Windows Qt-UI – BearWare-Tastenkürzel, Barrierefreiheit, UI-Aufräumung:
+
+Tastenkürzel (BearWare-kompatibel):
+- Kanal: Ctrl+J (Beitreten), Ctrl+L (Verlassen), Ctrl+Shift+N (Erstellen),
+  Ctrl+S (Kanalinfo), F3 (Kanalnachricht)
+- Benutzer: Ctrl+I (Info), Ctrl+T (Privatnachricht), Ctrl+M (Stummschalten),
+  Ctrl+K (Kicken), Ctrl+Shift+K (Kicken+Sperren), F7 (Alle stummschalten)
+- Profil: Ctrl+R (Nickname), F6 (Mich selbst hören)
+- Audio: F5 (Push-to-Talk), F4 (Sprachaktivierung)
+- Datei: Ctrl+W (Trennen), Ctrl+Shift+R (Neu verbinden)
+- Server: Ctrl+U (Online-Nutzer), Ctrl+B (Sperrliste), Ctrl+A (Administration)
+- Automation: Ctrl+Shift+M (Makros), Ctrl+F (Chat-Suche)
+- Hilfe: F1 (Handbuch)
+- Alt+1–9 wechseln direkt zu den jeweiligen Tabs
+
+Barrierefreiheit (NVDA/Windows):
+- setAccessibleName in allen Tabs, Dialogen und dem Hauptfenster konsequent gesetzt
+  (audio, files, settings, admin, channels, chat, video, desktop, shortcuts, system, dialogs)
+- Sound-Ereignis-Felder und Browse-Buttons mit beschreibenden accessible names
+- Spinboxes und ComboBoxes in QFormLayout-Zeilen mit setAccessibleName versehen
+- Tab-Wechsel kündigt Reiter-Namen per TTS an
+
+Kontextmenüs erweitert:
+- Kanal-Kontextmenü: Kanal erstellen, bearbeiten, löschen
+- Benutzer-Kontextmenü: Benutzer verschieben
+
 2026-05-13 (v6.7.7)
 Windows Qt-UI – vollständige Feature-Parität mit macOS-Fassung (Kategorien 1–4):
 
