@@ -24,9 +24,12 @@ a = Analysis(
         ('third_party/yt-dlp', 'yt-dlp'),
         ('third_party/espeak-ng', 'espeak-ng'),
         ('src/sounds', 'sounds'),
+        ('src/screen_reader.py', '.'),
+        ('third_party/tolk', 'tolk'),
     ],
     hiddenimports=[
         'app_qt',
+        'screen_reader',
         'teamtalk_client', 'teamtalk_client.tt', 'teamtalk_client.client',
         'ui.tabs.system', 'ui_qt.tabs.system', 'platform_paths', 'sound_manager',
         'chat_history', 'global_hotkeys', 'i18n',

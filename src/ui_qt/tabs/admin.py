@@ -209,14 +209,30 @@ class AdminTab(QWidget):
 
         def worker():
             try:
-                self.window.client.do_list_user_accounts()
-                call_after(self._set_status, "Konten geladen — Warte auf Serverdaten...")
+                cmdid = self.window.client.do_list_user_accounts()
+                if cmdid <= 0:
+                    call_after(self._set_status,
+                               "Kein Zugriff auf Benutzerkonten (keine Admin-Rechte?)")
+                    return
+                import time
+                time.sleep(1.5)
+                call_after(self._finish_load_accounts)
             except Exception as exc:
                 call_after(self._set_status, f"Fehler beim Laden der Konten: {exc}")
             finally:
                 call_after(self.load_accounts_btn.setEnabled, True)
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _finish_load_accounts(self) -> None:
+        count = len(self._accounts)
+        if count == 0:
+            self._set_status(
+                "Keine Benutzerkonten empfangen – "
+                "prüfe Admin-Rechte und 'Nutzerkonten anzeigen'-Berechtigung."
+            )
+        else:
+            self._set_status(f"{count} Benutzerkonto(en) geladen")
 
     def add_account_to_list(self, account) -> None:
         """Called by MainWindow when a CMD_USERACCOUNT event arrives."""

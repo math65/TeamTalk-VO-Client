@@ -2,6 +2,21 @@ Changelog
 =========
 
 2026-05-13 (v6.7.5)
+Windows Qt-UI – Screen Reader & UI-Aufräumen:
+- Neu: screen_reader.py – Windows-Screen-Reader-Integration über tolk.dll,
+  nvdaControllerClient64.dll oder SAPI5-Fallback; unterstützt NVDA, JAWS,
+  ZoomText, SuperNova u. a. Statusmeldungen werden automatisch an den aktiven
+  Screen Reader weitergeleitet (set_status → ScreenReaderAnnouncer.speak).
+- Neu: third_party/tolk/ – Ablageort für tolk.dll und nvdaControllerClient64.dll
+  inkl. README mit Installationsanleitung.
+- UI: Tab "Einstellungen" aus dem Hauptfenster entfernt; Einstellungen öffnen
+  sich nun als separater Dialog (Menü → Einstellungen / Strg+,).
+- UI: Ungenutzten Tab "Verbinden" / connection.py aus Qt-UI entfernt (war totes
+  Code – Verbindung läuft bereits als Dialog).
+- Fix (Qt/Windows): Administration – Benutzerkonten laden zeigt jetzt Feedback
+  wenn 0 Konten empfangen wurden (identische Lösung wie macOS-Fix).
+- Build: Windows-Spec bindet screen_reader.py und third_party/tolk/* ein.
+
 macOS Bugfixes (Fehlerbericht 2026-05-11):
 - Fix: Mikrofon-Loopback-Test stürzte ab mit "TTType has no attribute
   SoundDeviceEffects" – fehlender try/except-Schutz in start_sound_loopback_test

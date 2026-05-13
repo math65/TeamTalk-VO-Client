@@ -67,6 +67,7 @@ from tls_verify import CertPinStore
 from analytics import UsageAnalytics
 from health_check import HealthChecker, check_disk_space, check_event_bus, check_settings_db
 from platform_info import platform_info
+from screen_reader import ScreenReaderAnnouncer
 
 APP_VERSION = "6.7.5"
 
@@ -184,6 +185,8 @@ class MainWindow(QMainWindow):
         self.tts.settings.speak_file_transfer = _ts.tts_speak_file_transfer
         self.tts.settings.speak_channel_topic = _ts.tts_speak_channel_topic
         self.tts.settings.connect_announce = _ts.tts_connect_announce
+
+        self._screen_reader = ScreenReaderAnnouncer()
 
         self.sound_manager = SoundManager()
         self._pronunciation = PronunciationManager(dict(getattr(_ts, "pronunciation_dict", {}) or {}))
@@ -418,13 +421,21 @@ class MainWindow(QMainWindow):
         self.desktop_tab = DesktopTab(self.notebook, self)
         self.notebook.addTab(self.desktop_tab, "Desktop")
 
-        # Settings
-        self.settings_tab_widget = SettingsTab(self.notebook, self)
+        # Settings — kein Tab mehr, sondern eigenständiges Fenster (Strg+,)
+        self.settings_tab_widget = SettingsTab(self, self)
         self.audio_tab = self.settings_tab_widget.audio_tab
         self.video_tab = self.settings_tab_widget.video_tab
         self.shortcuts_tab = self.settings_tab_widget.shortcuts_tab
         self.system_tab = self.settings_tab_widget.system_tab
-        self.notebook.addTab(self.settings_tab_widget, "Einstellungen")
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QDialogButtonBox
+        self._settings_dialog = QDialog(self)
+        self._settings_dialog.setWindowTitle("Einstellungen")
+        self._settings_dialog.resize(860, 640)
+        _sdlg_layout = QVBoxLayout(self._settings_dialog)
+        _sdlg_layout.addWidget(self.settings_tab_widget, 1)
+        _sdlg_close = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        _sdlg_close.rejected.connect(self._settings_dialog.hide)
+        _sdlg_layout.addWidget(_sdlg_close)
 
     def _build_menu(self) -> None:
         mb = self.menuBar()
@@ -615,6 +626,8 @@ class MainWindow(QMainWindow):
         self._status_bar.showMessage(text)
         if hasattr(self, "system_tab"):
             self.system_tab.append_system(text)
+        if hasattr(self, "_screen_reader"):
+            self._screen_reader.speak(text)
 
     # ------------------------------------------------------------------
     # TeamTalk Event Loop (driven by client.start_event_loop)
@@ -1826,10 +1839,8 @@ class MainWindow(QMainWindow):
             pass
 
     def on_menu_audio_settings(self) -> None:
-        idx = self.notebook.indexOf(self.settings_tab_widget)
-        if idx >= 0:
-            self.notebook.setCurrentIndex(idx)
-            self.settings_tab_widget.inner.setCurrentWidget(self.settings_tab_widget.audio_tab)
+        self.settings_tab_widget.inner.setCurrentWidget(self.settings_tab_widget.audio_tab)
+        self.on_menu_settings()
 
     def on_menu_equalizer(self) -> None:
         self.set_status("Equalizer-Voreinstellungen: Einstellungen → Audio")
@@ -1949,9 +1960,9 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def on_menu_settings(self) -> None:
-        idx = self.notebook.indexOf(self.settings_tab_widget)
-        if idx >= 0:
-            self.notebook.setCurrentIndex(idx)
+        self._settings_dialog.show()
+        self._settings_dialog.raise_()
+        self._settings_dialog.activateWindow()
 
     def on_menu_connection_window(self) -> None:
         self.on_menu_connect()
