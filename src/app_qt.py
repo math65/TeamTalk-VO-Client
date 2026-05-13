@@ -607,6 +607,8 @@ class MainWindow(QMainWindow):
         server_m.addSeparator()
         self._add_action(server_m, "&Wer-spricht-Protokoll...", self.on_menu_speaking_log)
         self._add_action(server_m, "&Sitzungsübersicht...", self.on_menu_session_overview)
+        server_m.addSeparator()
+        self._add_action(server_m, "&Ping ansagen", self.on_menu_announce_ping, "Ctrl+P")
 
         # --- Automation ---
         auto_m = mb.addMenu("A&utomation")
@@ -948,6 +950,15 @@ class MainWindow(QMainWindow):
                         self.sound_manager.play("msg_private_rx")
                     else:
                         self.sound_manager.play("msg_channel_rx")
+                        # Keyword detection
+                        kw_str = getattr(self.settings_store.settings, "highlight_keywords", "") or ""
+                        if kw_str:
+                            content_lower = content.lower()
+                            for kw in kw_str.split(","):
+                                kw = kw.strip().lower()
+                                if kw and kw in content_lower:
+                                    self.tts.speak(f"Stichwort: {kw}", kind="system")
+                                    break
                     self.tts.speak(speak_text, kind=kind)
                 else:
                     if kind == "private":
@@ -985,6 +996,8 @@ class MainWindow(QMainWindow):
             self.files_tab.update_transfer_progress(name, pct)
             if pct >= 100:
                 self.sound_manager.play("file_transfer")
+                if getattr(self.tts.settings, "speak_file_transfer", True):
+                    self.tts.speak(f"Dateitransfer abgeschlossen: {name}", kind="system")
         except Exception:
             pass
 
@@ -1212,7 +1225,8 @@ class MainWindow(QMainWindow):
         self._refresh_files()
 
     def show_file_history(self) -> None:
-        self.set_status("Dateiübertragungsverlauf: nicht implementiert")
+        if hasattr(self, "files_tab"):
+            self.files_tab.on_history()
 
     # ------------------------------------------------------------------
     # Audio
@@ -1345,7 +1359,11 @@ class MainWindow(QMainWindow):
             self.set_status(f"Konten laden fehlgeschlagen: {exc}")
 
     def add_user_account(self) -> None:
-        self.set_status("Konto hinzufügen: nicht implementiert")
+        idx = self.notebook.indexOf(self.admin_tab)
+        if idx >= 0:
+            self.notebook.setCurrentIndex(idx)
+        if hasattr(self, "admin_tab"):
+            self.admin_tab.on_new_account()
 
     def delete_user_account(self, account) -> None:
         try:
@@ -1478,10 +1496,14 @@ class MainWindow(QMainWindow):
             self.set_status(f"Beitrittscode: {code}")
 
     def open_server_browser(self) -> None:
-        self.set_status("Öffentliche Serverliste: nicht implementiert")
+        from ui_qt.server_browser import ServerBrowserDialog
+        dlg = ServerBrowserDialog(self)
+        dlg.exec()
 
     def manage_server_groups(self) -> None:
-        self.set_status("Server-Gruppen verwalten: nicht implementiert")
+        from ui_qt.server_groups_dialog import ServerGroupsDialog
+        dlg = ServerGroupsDialog(self)
+        dlg.exec()
 
     def import_tt_file(self, path: str) -> None:
         try:
@@ -1493,7 +1515,26 @@ class MainWindow(QMainWindow):
             self.set_status(f"Import fehlgeschlagen: {exc}")
 
     def export_tt_file(self, idx: int) -> None:
-        self.set_status("TT-Datei exportieren: nicht implementiert")
+        try:
+            items = self.server_store.items()
+            if idx < 0 or idx >= len(items):
+                self.set_status("Kein Server ausgewählt")
+                return
+            profile = items[idx]
+            from ui.tt_file_parser import build_teamtalk_xml
+            default_name = f"{profile.name or profile.host}.tt"
+            path, _ = QFileDialog.getSaveFileName(
+                self, "Server als TT-Datei exportieren", default_name,
+                "TeamTalk Datei (*.tt);;Alle Dateien (*.*)"
+            )
+            if not path:
+                return
+            xml_text = build_teamtalk_xml(profile)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(xml_text)
+            self.set_status(f"Exportiert: {path}")
+        except Exception as exc:
+            self.set_status(f"Export fehlgeschlagen: {exc}")
 
     def open_private_chat(self, user_id: int) -> None:
         """Open a dedicated private chat dialog for user_id (non-modal)."""
@@ -1984,9 +2025,15 @@ class MainWindow(QMainWindow):
             if ch:
                 name = self.tt_str(ch.szName)
                 topic = self.tt_str(ch.szTopic)
+                try:
+                    users = list(self.client.get_channel_users(ch_id) or [])
+                    user_count = len(users)
+                except Exception:
+                    user_count = 0
                 info = f"Kanal: {name}"
                 if topic:
                     info += f"  Thema: {topic}"
+                info += f"  Nutzer: {user_count}"
                 self.tts.speak(info, kind="system")
                 self.set_status(info)
         except Exception as exc:
@@ -2794,6 +2841,17 @@ class MainWindow(QMainWindow):
         bb.rejected.connect(dlg.reject)
         layout.addWidget(bb)
         dlg.exec()
+
+    def on_menu_announce_ping(self) -> None:
+        try:
+            stats = self.client.get_client_statistics()
+            udp_ms = int(stats.nUdpPingTimeMs)
+            tcp_ms = int(stats.nTcpPingTimeMs)
+            text = f"Ping: UDP {udp_ms} ms, TCP {tcp_ms} ms"
+        except Exception:
+            text = "Ping nicht verfügbar"
+        self.tts.speak(text, kind="system")
+        self.set_status(text)
 
     def on_menu_ban_list(self) -> None:
         idx = self.notebook.indexOf(self.admin_tab)

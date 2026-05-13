@@ -454,7 +454,7 @@ class ChannelsTab(QWidget):
         elif action == speak_info_action:
             self._speak_channel_info(channel_id)
         elif action == ban_list_action:
-            QMessageBox.information(self, "Sperrliste", "Sperrliste: nicht implementiert")
+            self.window.on_menu_channel_bans()
 
     def _show_channel_info(self, channel_id: int) -> None:
         tt_str = self.window.tt_str
