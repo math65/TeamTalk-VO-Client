@@ -834,7 +834,8 @@ class MainWindow(QMainWindow):
             pass
 
     def _on_user_update(self, msg) -> None:
-        self._refresh_channels()
+        # USER_UPDATE fires on every voice state change — no channel refresh here (too expensive).
+        pass
 
     def _on_user_statechange(self, msg) -> None:
         try:
