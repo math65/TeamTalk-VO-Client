@@ -1119,6 +1119,8 @@ class MainWindow(QMainWindow):
                 pass
             if hasattr(self, "shortcuts_tab"):
                 self.shortcuts_tab.set_capture_label(target, False)
+            if target == "ptt_key" and hasattr(self, "audio_tab"):
+                self.audio_tab.update_ptt_hotkey_label()
             self.set_status("Tastenkürzel gespeichert")
             return
         ptt_key = getattr(self.settings_store.settings, "ptt_key", None)
@@ -2306,8 +2308,7 @@ class MainWindow(QMainWindow):
 
     def on_menu_audio_effects(self) -> None:
         try:
-            self.audio_tab._on_preprocess_changed()
-            self.set_status("Audio-Effekte angewendet")
+            self.audio_tab.on_apply_effects()
         except Exception as exc:
             self.set_status(f"Effekte anwenden Fehler: {exc}")
 
