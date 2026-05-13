@@ -1,6 +1,49 @@
 Changelog
 =========
 
+2026-05-13 (v6.7.7)
+Windows Qt-UI – vollständige Feature-Parität mit macOS-Fassung (Kategorien 1–4):
+
+Menüs (Kategorie 1):
+- Datei: Neuen Client starten, Server prüfen, Serverliste importieren/exportieren,
+  Einstellungen sichern/wiederherstellen
+- Kanal: Sperren anzeigen, Kanalnachrichten anzeigen, Kanalverlauf
+- Benutzer: Abonnements, Benutzer positionieren, Relay-Aktionen (Sprache/Medien)
+- Profil: TTS aktiv (Toggle)
+- Audio: AGC/Denoise/Echo/Loopback als Menü-Toggles, Geräte aktualisieren,
+  Effekte anwenden
+- Aufnahmen: Geplante Aufnahmen
+- Server: Sitzungsübersicht
+- Automation: Geplante Makros, Trigger-Regeln, Plugin-Manager
+
+Einstellungen (Kategorie 2):
+- Neuer Tab „Audio-Extras": Noise Gate, PTT-Zeitlimit, VU-Pegel-Alarm
+- Neuer Tab „Nutzer-Lautstärken": Lautstärke-Profile verwalten
+- Verbindung: BearWare-Login-Felder ergänzt
+- Aufnahmen: Segmentierung und Stille-Erkennung konfigurierbar
+
+Verbindungsdialog (Kategorie 3):
+- Filterfeld mit Live-Suche in der Serverliste
+- Client-Name-Feld im Formular
+- „.tt exportieren" und „TT-Datei speichern"-Schaltflächen
+- Server-Status-Prüfung (TCP-Check) mit ✓/✗-Anzeige
+- Aktionsbereich: Neu verbinden, Root-Kanal beitreten, Kanal verlassen, Abmelden
+- Auto-Reconnect-Checkbox synchron mit Hauptfenster
+- Live-Ping-Statistik (UDP/TCP) alle 2 Sekunden
+
+Audio-Tab (Kategorie 4):
+- Duplex-Modus, PTT-Toggle und Mikrofontest in Aktionsgruppe gebündelt
+- Ausgabe-Stummschaltung
+- Expliziter Apply-Button für Geräteeffekte
+- Vorverarbeitungs-Modus-Auswahl (Keine / SpeexDSP / WebRTC)
+- Mikrofon-Verarbeitung: Noise Gate, Expander, Limiter, Kombination mit Vorschau
+- PTT-Hotkey: Anzeige und Aufnahme des Tastenkürzels
+- Audioeinstellungen speichern / wiederherstellen / löschen
+- Auto-Apply bei Start und bei Gerätewechsel
+- Lokale Wiedergabe: Datei-Auswahl, Abspielen / Pause / Stopp
+- Geräte-Poll-Timer (alle 5 s) mit Auto-Apply bei Gerätewechsel
+- QScrollArea für langen Tab-Inhalt
+
 2026-05-13 (v6.7.6)
 Bump version für Windows-Release mit allen Qt-UI-Verbesserungen seit v6.7.5.
 Alle Änderungen dieser Version sind unter v6.7.5 dokumentiert.
