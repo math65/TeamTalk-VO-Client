@@ -1241,6 +1241,15 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
+    def _apply_noise_gate(self) -> None:
+        try:
+            enabled = bool(getattr(self.settings_store.settings, "noise_gate_enabled", False))
+            fn = getattr(self.client, "enable_denoiser", None)
+            if fn is not None:
+                fn(enabled)
+        except Exception:
+            pass
+
     def set_mic_gain(self, db: int) -> None:
         try:
             level = max(0, min(32000, int(10000 * (10 ** (db / 20.0)))))

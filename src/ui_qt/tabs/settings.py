@@ -72,11 +72,13 @@ class SettingsTab(QWidget):
         self.inner.addTab(self._build_sound_events_tab(), "Sound-Ereignisse")
         self.inner.addTab(self._build_recording_tab(), "Aufnahmen")
         self.inner.addTab(self.audio_tab, "Audio")
+        self.inner.addTab(self._build_audio_extras_tab(), "Audio-Extras")
         self.inner.addTab(self.video_tab, "Video")
         self.inner.addTab(self.shortcuts_tab, "Tastenkürzel")
         self.inner.addTab(self.system_tab, "TTS")
         self.inner.addTab(self._build_chat_tab(), "Chat & Automation")
         self.inner.addTab(self._build_ki_tab(), "KI & Integration")
+        self.inner.addTab(self._build_user_volumes_tab(), "Nutzer-Lautstärken")
         self.inner.addTab(self._build_braille_tab(), "Braille")
 
     # ------------------------------------------------------------------
@@ -253,6 +255,27 @@ class SettingsTab(QWidget):
         self.ping_threshold.valueChanged.connect(lambda v: self._save_int("ping_threshold_ms", v))
         quality_form.addRow("Ping-Schwellwert", self.ping_threshold)
         layout.addWidget(quality_group)
+
+        # BearWare Web-Login
+        bw_group = QGroupBox("BearWare Web-Login")
+        bw_form = QFormLayout(bw_group)
+
+        self.bearware_enabled = QCheckBox("BearWare Web-Login verwenden")
+        self.bearware_enabled.setChecked(bool(getattr(s, "bearware_login", False)))
+        self.bearware_enabled.stateChanged.connect(lambda v: self._save_bool("bearware_login", v))
+        bw_form.addRow("", self.bearware_enabled)
+
+        self.bearware_username = QLineEdit(getattr(s, "bearware_username", "") or "")
+        self.bearware_username.setPlaceholderText("BearWare-Benutzername")
+        self.bearware_username.textChanged.connect(lambda v: self._save_str("bearware_username", v))
+        bw_form.addRow("Benutzername", self.bearware_username)
+
+        self.bearware_password = QLineEdit(getattr(s, "bearware_password", "") or "")
+        self.bearware_password.setEchoMode(QLineEdit.EchoMode.Password)
+        self.bearware_password.setPlaceholderText("BearWare-Passwort")
+        self.bearware_password.textChanged.connect(lambda v: self._save_str("bearware_password", v))
+        bw_form.addRow("Passwort", self.bearware_password)
+        layout.addWidget(bw_group)
 
         layout.addStretch()
         scroll.setWidget(inner)
@@ -499,6 +522,56 @@ class SettingsTab(QWidget):
         form.addRow("", self.rec_skip_silence)
 
         layout.addWidget(grp)
+
+        # Segmentierung
+        seg_grp = QGroupBox("Aufnahme-Segmentierung (0 = deaktiviert)")
+        seg_form = QFormLayout(seg_grp)
+
+        self.rec_max_size = QSpinBox()
+        self.rec_max_size.setRange(0, 10000)
+        self.rec_max_size.setSuffix(" MB (0 = aus)")
+        self.rec_max_size.setValue(int(getattr(s, "recording_max_size_mb", 0) or 0))
+        self.rec_max_size.valueChanged.connect(lambda v: self._save_int("recording_max_size_mb", v))
+        seg_form.addRow("Max. Dateigröße", self.rec_max_size)
+
+        self.rec_max_minutes = QSpinBox()
+        self.rec_max_minutes.setRange(0, 600)
+        self.rec_max_minutes.setSuffix(" min (0 = aus)")
+        self.rec_max_minutes.setValue(int(getattr(s, "recording_max_minutes", 0) or 0))
+        self.rec_max_minutes.valueChanged.connect(lambda v: self._save_int("recording_max_minutes", v))
+        seg_form.addRow("Max. Dauer", self.rec_max_minutes)
+        layout.addWidget(seg_grp)
+
+        # Stille-Erkennung
+        sil_grp = QGroupBox("Stille-Erkennung")
+        sil_form = QFormLayout(sil_grp)
+
+        self.silence_detection_enabled = QCheckBox("Stille-Erkennung aktivieren")
+        self.silence_detection_enabled.setChecked(bool(getattr(s, "silence_detection_enabled", False)))
+        self.silence_detection_enabled.stateChanged.connect(
+            lambda v: self._save_bool("silence_detection_enabled", v)
+        )
+        sil_form.addRow("", self.silence_detection_enabled)
+
+        self.silence_threshold = QSpinBox()
+        self.silence_threshold.setRange(0, 100)
+        self.silence_threshold.setSuffix(" %")
+        self.silence_threshold.setValue(int(getattr(s, "silence_detection_threshold_pct", 5) or 5))
+        self.silence_threshold.valueChanged.connect(
+            lambda v: self._save_int("silence_detection_threshold_pct", v)
+        )
+        sil_form.addRow("Schwellenwert", self.silence_threshold)
+
+        self.silence_timeout = QSpinBox()
+        self.silence_timeout.setRange(0, 300)
+        self.silence_timeout.setSuffix(" s")
+        self.silence_timeout.setValue(int(getattr(s, "silence_detection_timeout_sec", 3) or 3))
+        self.silence_timeout.valueChanged.connect(
+            lambda v: self._save_int("silence_detection_timeout_sec", v)
+        )
+        sil_form.addRow("Timeout", self.silence_timeout)
+        layout.addWidget(sil_grp)
+
         layout.addStretch()
         scroll.setWidget(inner)
         return scroll
@@ -507,6 +580,147 @@ class SettingsTab(QWidget):
         path = QFileDialog.getExistingDirectory(self, "Aufnahmeverzeichnis wählen", "")
         if path:
             self.rec_directory.setText(path)
+
+    # ------------------------------------------------------------------
+    # Audio-Extras (Noise Gate, PTT-Limit, VU-Alarm)
+    # ------------------------------------------------------------------
+
+    def _build_audio_extras_tab(self) -> QWidget:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        inner = QWidget()
+        layout = QVBoxLayout(inner)
+        s = self.window.settings_store.settings
+
+        # Noise Gate
+        ng_grp = QGroupBox("Noise Gate / Rauschunterdrückung")
+        ng_form = QFormLayout(ng_grp)
+
+        self.noise_gate_enabled = QCheckBox("Noise Gate aktivieren")
+        self.noise_gate_enabled.setChecked(bool(getattr(s, "noise_gate_enabled", False)))
+        self.noise_gate_enabled.stateChanged.connect(self._on_noise_gate_changed)
+        ng_form.addRow("", self.noise_gate_enabled)
+
+        self.noise_gate_threshold = QSpinBox()
+        self.noise_gate_threshold.setRange(0, 10000)
+        self.noise_gate_threshold.setValue(int(getattr(s, "noise_gate_threshold", 0) or 0))
+        self.noise_gate_threshold.valueChanged.connect(self._on_noise_gate_changed)
+        ng_form.addRow("Schwellenwert (0–10000)", self.noise_gate_threshold)
+        layout.addWidget(ng_grp)
+
+        # PTT-Zeitlimit
+        ptt_grp = QGroupBox("PTT-Zeitlimit")
+        ptt_form = QFormLayout(ptt_grp)
+
+        self.ptt_max_seconds = QSpinBox()
+        self.ptt_max_seconds.setRange(0, 600)
+        self.ptt_max_seconds.setSuffix(" s (0 = aus)")
+        self.ptt_max_seconds.setValue(int(getattr(s, "ptt_max_seconds", 0) or 0))
+        self.ptt_max_seconds.valueChanged.connect(lambda v: self._save_int("ptt_max_seconds", v))
+        ptt_form.addRow("PTT-Zeitlimit", self.ptt_max_seconds)
+        layout.addWidget(ptt_grp)
+
+        # VU-Pegel-Alarm
+        vu_grp = QGroupBox("VU-Pegel-Alarm")
+        vu_form = QFormLayout(vu_grp)
+
+        self.vu_alert_enabled = QCheckBox("VU-Alarm aktivieren (bei zu hohem Eingangspegel)")
+        self.vu_alert_enabled.setChecked(bool(getattr(s, "vu_alert_enabled", False)))
+        self.vu_alert_enabled.stateChanged.connect(lambda v: self._save_bool("vu_alert_enabled", v))
+        vu_form.addRow("", self.vu_alert_enabled)
+
+        self.vu_alert_threshold = QSpinBox()
+        self.vu_alert_threshold.setRange(0, 100)
+        self.vu_alert_threshold.setSuffix(" %")
+        self.vu_alert_threshold.setValue(int(getattr(s, "vu_alert_threshold", 90) or 90))
+        self.vu_alert_threshold.valueChanged.connect(lambda v: self._save_int("vu_alert_threshold", v))
+        vu_form.addRow("Schwellenwert", self.vu_alert_threshold)
+        layout.addWidget(vu_grp)
+
+        layout.addStretch()
+        scroll.setWidget(inner)
+        return scroll
+
+    def _on_noise_gate_changed(self) -> None:
+        enabled = self.noise_gate_enabled.isChecked()
+        threshold = self.noise_gate_threshold.value()
+        self._save_bool("noise_gate_enabled", enabled)
+        self._save_int("noise_gate_threshold", threshold)
+        try:
+            self.window._apply_noise_gate()
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------------
+    # Nutzer-Lautstärken
+    # ------------------------------------------------------------------
+
+    def _build_user_volumes_tab(self) -> QWidget:
+        from PySide6.QtWidgets import QListWidget
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        inner = QWidget()
+        layout = QVBoxLayout(inner)
+        s = self.window.settings_store.settings
+
+        grp = QGroupBox("Gespeicherte Nutzer-Lautstärken")
+        grp_layout = QVBoxLayout(grp)
+
+        self._vol_preset_list = QListWidget()
+        self._vol_preset_list.setMinimumHeight(180)
+        grp_layout.addWidget(self._vol_preset_list, 1)
+
+        self._vol_preset_usernames: list = []
+        self._refresh_volume_presets_list()
+
+        btn_row = QHBoxLayout()
+        del_btn = QPushButton("&Entfernen")
+        del_btn.clicked.connect(self._on_del_volume_preset)
+        clear_btn = QPushButton("&Alle löschen")
+        clear_btn.clicked.connect(self._on_clear_volume_presets)
+        btn_row.addWidget(del_btn)
+        btn_row.addWidget(clear_btn)
+        btn_row.addStretch()
+        grp_layout.addLayout(btn_row)
+        layout.addWidget(grp)
+
+        layout.addStretch()
+        scroll.setWidget(inner)
+        return scroll
+
+    def _refresh_volume_presets_list(self) -> None:
+        try:
+            presets = getattr(self.window.settings_store.settings, "user_volume_presets", {}) or {}
+            self._vol_preset_usernames = sorted(presets.keys())
+            self._vol_preset_list.clear()
+            for user in self._vol_preset_usernames:
+                self._vol_preset_list.addItem(f"{user}: {presets[user]}")
+        except Exception:
+            pass
+
+    def _on_del_volume_preset(self) -> None:
+        row = self._vol_preset_list.currentRow()
+        if row < 0 or row >= len(self._vol_preset_usernames):
+            self.window.set_status("Bitte einen Eintrag auswählen")
+            return
+        username = self._vol_preset_usernames[row]
+        presets = getattr(self.window.settings_store.settings, "user_volume_presets", {}) or {}
+        presets.pop(username, None)
+        self.window.settings_store.settings.user_volume_presets = presets
+        self.window.settings_store.save()
+        self._refresh_volume_presets_list()
+        self.window.set_status(f"Lautstärke-Vorlage für {username} gelöscht")
+
+    def _on_clear_volume_presets(self) -> None:
+        from PySide6.QtWidgets import QMessageBox
+        answer = QMessageBox.question(
+            self, "Alle löschen", "Alle gespeicherten Nutzer-Lautstärken löschen?"
+        )
+        if answer == QMessageBox.StandardButton.Yes:
+            self.window.settings_store.settings.user_volume_presets = {}
+            self.window.settings_store.save()
+            self._refresh_volume_presets_list()
+            self.window.set_status("Alle Lautstärke-Vorlagen gelöscht")
 
     # ------------------------------------------------------------------
     # Braille
