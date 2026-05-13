@@ -1370,7 +1370,18 @@ class MainWindow(QMainWindow):
                 self.set_status(f"Bannen fehlgeschlagen: {exc}")
 
     def edit_server_properties(self) -> None:
-        self.set_status("Servereigenschaften bearbeiten: nicht implementiert")
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        idx = self.notebook.indexOf(self.admin_tab)
+        if idx >= 0:
+            self.notebook.setCurrentIndex(idx)
+            try:
+                self.admin_tab.srv_name.setFocus()
+            except Exception:
+                pass
+        else:
+            self.set_status("Administration-Tab nicht verfügbar")
 
     # ------------------------------------------------------------------
     # Desktop / Video
@@ -1718,6 +1729,62 @@ class MainWindow(QMainWindow):
     # Kanal-Menü
     # ------------------------------------------------------------------
 
+    def _get_selected_channel_id(self) -> int:
+        try:
+            return self.channels_tab.get_selected_channel_id() or 0
+        except Exception:
+            return 0
+
+    def _build_codec_from_data(self, data: dict, parent_channel=None):
+        codec_mode = data.get("audio_codec_mode", "inherit")
+        if codec_mode == "keep":
+            return None
+        if codec_mode == "inherit" and parent_channel is not None:
+            return getattr(parent_channel, "audiocodec", None)
+        if codec_mode == "opus":
+            codec = self.client.build_default_opus_codec()
+            try:
+                codec.opus.nSampleRate = int(data.get("opus_samplerate", 48000))
+                codec.opus.nChannels = int(data.get("opus_channels", 1))
+                codec.opus.nBitRate = int(data.get("opus_bitrate", 64)) * 1000
+                codec.opus.bVBR = bool(data.get("opus_vbr", True))
+                codec.opus.bDTX = bool(data.get("opus_dtx", False))
+                codec.opus.nTxIntervalMSec = int(data.get("opus_tx_interval", 40))
+                codec.opus.nFrameSizeMSec = int(data.get("opus_frame_size", 0))
+                tt_mod = self.client.tt
+                codec.opus.nApplication = int(
+                    tt_mod.OPUS_APPLICATION_VOIP if data.get("opus_app", 0) == 0
+                    else tt_mod.OPUS_APPLICATION_MUSIC
+                )
+            except Exception:
+                pass
+            return codec
+        if codec_mode == "speex":
+            codec = self.client.build_default_speex_codec()
+            try:
+                sr = int(data.get("speex_samplerate", 16000))
+                codec.speex.nBandmode = {8000: 0, 16000: 1, 32000: 2}.get(sr, 1)
+                codec.speex.nQuality = int(data.get("speex_quality", 4))
+                codec.speex.nTxIntervalMSec = int(data.get("speex_tx_interval", 40))
+            except Exception:
+                pass
+            return codec
+        if codec_mode == "speex_vbr":
+            codec = self.client.build_default_speex_vbr_codec()
+            try:
+                sr = int(data.get("speex_samplerate", 16000))
+                codec.speex_vbr.nBandmode = {8000: 0, 16000: 1, 32000: 2}.get(sr, 1)
+                codec.speex_vbr.nQuality = int(data.get("speex_quality", 4))
+                codec.speex_vbr.nTxIntervalMSec = int(data.get("speex_tx_interval", 40))
+                codec.speex_vbr.nMaxBitRate = int(data.get("speex_max_bitrate", 0))
+                codec.speex_vbr.bDTX = bool(data.get("speex_dtx", True))
+            except Exception:
+                pass
+            return codec
+        if codec_mode == "none":
+            return self.client.build_no_audio_codec()
+        return None
+
     def on_menu_join_channel(self) -> None:
         try:
             self.channels_tab._on_join_btn()
@@ -1731,13 +1798,170 @@ class MainWindow(QMainWindow):
         self.leave_channel()
 
     def on_menu_create_channel(self) -> None:
-        self.set_status("Kanal erstellen: nicht implementiert")
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        from ui_qt.channel_dialog import ChannelDialog
+        parent_id = self._get_selected_channel_id() or int(self.client.get_root_channel_id() or 0)
+        parent_ch = self.client.get_channel(parent_id) if parent_id else None
+        default_codec = "opus"
+        perm = False
+        ch_type = 0
+        quota = 0
+        max_u = 0
+        if parent_ch is not None:
+            try:
+                perm = bool(parent_ch.uChannelType & int(self.client.tt.ChannelType.CHANNEL_PERMANENT))
+                ch_type = int(parent_ch.uChannelType or 0)
+                quota = int(getattr(parent_ch, "nDiskQuota", 0) or 0) // (1024 * 1024)
+                max_u = int(getattr(parent_ch, "nMaxUsers", 0) or 0)
+                default_codec = "inherit"
+            except Exception:
+                pass
+        dlg = ChannelDialog(
+            self, title="Kanal erstellen",
+            allow_password=True, permanent=perm,
+            channel_type=ch_type, disk_quota_mb=quota, max_users=max_u,
+            audio_codec_mode=default_codec,
+        )
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        data = dlg.get_data()
+        if not data["name"]:
+            self.set_status("Kanalname fehlt")
+            return
+        try:
+            rights = int(self.client.get_my_user_rights() or 0)
+            can_modify = bool(rights & int(self.client.tt.UserRight.USERRIGHT_MODIFY_CHANNELS))
+        except Exception:
+            can_modify = False
+        channel_type = int(data.get("channel_type", 0) or 0)
+        if data.get("permanent") and can_modify:
+            channel_type |= int(self.client.tt.ChannelType.CHANNEL_PERMANENT)
+        audio_codec = self._build_codec_from_data(data, parent_ch)
+        try:
+            if can_modify:
+                result = self.client.make_channel(
+                    name=data["name"], parent_id=parent_id,
+                    topic=data.get("topic", ""),
+                    password=data.get("password", "") if data.get("set_password") else "",
+                    permanent=bool(data.get("permanent") and can_modify),
+                    channel_type=channel_type,
+                    audio_codec=audio_codec,
+                    disk_quota=int(data.get("disk_quota_mb", 0)) * 1024 * 1024,
+                    max_users=int(data.get("max_users", 0)),
+                    op_password=str(data.get("op_password", "")),
+                )
+            else:
+                result = self.client.make_temporary_channel(
+                    name=data["name"], parent_id=parent_id,
+                    topic=data.get("topic", ""),
+                    password=data.get("password", "") if data.get("set_password") else "",
+                    channel_type=channel_type,
+                    audio_codec=audio_codec,
+                )
+            self.set_status(result.message)
+            if result.ok:
+                self.channels_tab.refresh_channels_and_users()
+        except Exception as exc:
+            self.set_status(f"Kanal erstellen fehlgeschlagen: {exc}")
 
     def on_menu_edit_channel(self) -> None:
-        self.set_status("Kanal bearbeiten: nicht implementiert")
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        chan_id = self._get_selected_channel_id()
+        if not chan_id:
+            self.set_status("Kein Kanal ausgewählt")
+            return
+        channel = self.client.get_channel(chan_id)
+        if not channel:
+            self.set_status("Kanal nicht gefunden")
+            return
+        try:
+            rights = int(self.client.get_my_user_rights() or 0)
+            can_modify = bool(rights & int(self.client.tt.UserRight.USERRIGHT_MODIFY_CHANNELS))
+        except Exception:
+            can_modify = False
+        try:
+            users_in_channel = list(self.client.get_channel_users(chan_id))
+        except Exception:
+            users_in_channel = []
+        from ui_qt.channel_dialog import ChannelDialog
+        dlg = ChannelDialog(
+            self, title="Kanal bearbeiten",
+            name=self.tt_str(channel.szName),
+            topic=self.tt_str(channel.szTopic),
+            permanent=bool(channel.uChannelType & int(self.client.tt.ChannelType.CHANNEL_PERMANENT)),
+            allow_password=True,
+            channel_type=int(channel.uChannelType or 0),
+            disk_quota_mb=int(getattr(channel, "nDiskQuota", 0) or 0) // (1024 * 1024),
+            max_users=int(getattr(channel, "nMaxUsers", 0) or 0),
+            op_password=self.tt_str(getattr(channel, "szOpPassword", "")),
+            audio_codec_mode="keep",
+            audio_codec_locked=bool(users_in_channel),
+            edit_mode=True,
+        )
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        data = dlg.get_data()
+        if not data["name"]:
+            self.set_status("Kanalname fehlt")
+            return
+        try:
+            channel.szName = self.client.tt.ttstr(data["name"])
+            channel.szTopic = self.client.tt.ttstr(data.get("topic", ""))
+            if data.get("set_password"):
+                pw = data.get("password", "")
+                channel.szPassword = self.client.tt.ttstr(pw)
+                channel.bPassword = bool(pw)
+            if can_modify:
+                channel_type = int(data.get("channel_type", 0) or 0)
+                if data.get("permanent"):
+                    channel_type |= int(self.client.tt.ChannelType.CHANNEL_PERMANENT)
+                channel.uChannelType = channel_type
+                channel.nDiskQuota = int(data.get("disk_quota_mb", 0)) * 1024 * 1024
+                channel.nMaxUsers = int(data.get("max_users", 0))
+                op_pw = str(data.get("op_password", "")).strip()
+                if op_pw:
+                    channel.szOpPassword = self.client.tt.ttstr(op_pw)
+                codec_mode = data.get("audio_codec_mode")
+                if not users_in_channel and codec_mode and codec_mode != "keep":
+                    new_codec = self._build_codec_from_data(data, None)
+                    if new_codec is not None:
+                        channel.audiocodec = new_codec
+            result = self.client.update_channel(channel)
+            self.set_status(result.message)
+            if result.ok:
+                self.channels_tab.refresh_channels_and_users()
+        except Exception as exc:
+            self.set_status(f"Kanal bearbeiten fehlgeschlagen: {exc}")
 
     def on_menu_delete_channel(self) -> None:
-        self.set_status("Kanal löschen: nicht implementiert")
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        chan_id = self._get_selected_channel_id()
+        if not chan_id:
+            self.set_status("Kein Kanal ausgewählt")
+            return
+        channel = self.client.get_channel(chan_id)
+        name = self.tt_str(channel.szName) if channel else str(chan_id)
+        reply = QMessageBox.question(
+            self, "Kanal löschen",
+            f'Kanal "{name}" wirklich löschen?',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            result = self.client.remove_channel(chan_id)
+            self.set_status(result.message)
+            if result.ok:
+                self.channels_tab.refresh_channels_and_users()
+        except Exception as exc:
+            self.set_status(f"Kanal löschen fehlgeschlagen: {exc}")
 
     def on_menu_channel_info(self) -> None:
         try:
@@ -1986,7 +2210,30 @@ class MainWindow(QMainWindow):
             self.set_status(f"Kick Fehler: {exc}")
 
     def on_menu_move_user(self) -> None:
-        self.set_status("Benutzer verschieben: Kanal aus Kanalliste wählen")
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Kein Benutzer ausgewählt")
+            return
+        from ui_qt.channel_dialog import MoveUserDialog
+        dlg = MoveUserDialog(self)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        target_id = dlg.get_channel_id()
+        if not target_id:
+            return
+        try:
+            cmdid = self.client.do_move_user(uid, target_id)
+            if cmdid < 0:
+                self.set_status("Benutzer verschieben fehlgeschlagen")
+            else:
+                ch = self.client.get_channel(target_id)
+                ch_name = self.tt_str(ch.szName) if ch else str(target_id)
+                self.set_status(f'Benutzer in Kanal "{ch_name}" verschoben')
+        except Exception as exc:
+            self.set_status(f"Verschieben fehlgeschlagen: {exc}")
 
     def on_menu_toggle_operator(self) -> None:
         uid = self._get_selected_user_id()
