@@ -14,9 +14,10 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QTabWidget, QStatusBar, QMenuBar, QMenu, QLabel, QComboBox,
     QPushButton, QMessageBox, QDialog, QTextEdit, QDialogButtonBox,
-    QInputDialog, QLineEdit, QSlider,
+    QInputDialog, QLineEdit, QSlider, QCheckBox, QScrollArea,
+    QListWidget, QFormLayout, QTimeEdit,
 )
-from PySide6.QtCore import QTimer, Qt, Signal, QObject
+from PySide6.QtCore import QTimer, Qt, Signal, QObject, QTime
 from PySide6.QtGui import QAction, QKeySequence, QFont, QCloseEvent
 
 from teamtalk_client.client import TeamTalkClient, ConnectResult
@@ -458,6 +459,16 @@ class MainWindow(QMainWindow):
         self._add_action(datei, "&TT-Datei öffnen...", self.on_menu_open_tt_file)
         self._add_action(datei, "TT-&URL kopieren", self.copy_tt_url)
         datei.addSeparator()
+        self._add_action(datei, "Neuen Client &starten", self.on_menu_new_client)
+        datei.addSeparator()
+        self._add_action(datei, "Server &prüfen", self.on_menu_server_check)
+        datei.addSeparator()
+        self._add_action(datei, "Serverliste &importieren...", self.on_menu_import_servers)
+        self._add_action(datei, "Serverliste &exportieren...", self.on_menu_export_servers)
+        datei.addSeparator()
+        self._add_action(datei, "Einstellungen &sichern (Backup)...", self.on_menu_settings_backup)
+        self._add_action(datei, "Einstellungen &wiederherstellen...", self.on_menu_settings_restore)
+        datei.addSeparator()
         self._add_action(datei, "&Beenden", self.force_close, "Ctrl+Q")
 
         # --- Kanal ---
@@ -476,6 +487,10 @@ class MainWindow(QMainWindow):
         kanal.addSeparator()
         self._add_action(kanal, "&Datei hochladen...", self.on_menu_upload_file)
         self._add_action(kanal, "Datei &herunterladen", self.on_menu_download_file)
+        kanal.addSeparator()
+        self._add_action(kanal, "Sperren im Kanal anzeigen...", self.on_menu_channel_bans)
+        self._add_action(kanal, "Kanal&nachrichten anzeigen...", self.on_menu_channel_view_msgs)
+        self._add_action(kanal, "Kanal&verlauf...", self.on_menu_channel_history)
         kanal.addSeparator()
         stream_m = kanal.addMenu("&Streamen")
         for _label, _mode in [
@@ -505,6 +520,12 @@ class MainWindow(QMainWindow):
         self._add_action(benutzer, "Benutzer &verschieben", self.on_menu_move_user)
         self._add_action(benutzer, "&Operator geben/nehmen", self.on_menu_toggle_operator)
         benutzer.addSeparator()
+        self._add_action(benutzer, "&Abonnements...", self.on_menu_subscriptions)
+        self._add_action(benutzer, "Benutzer &positionieren...", self.on_menu_user_position)
+        adv_m = benutzer.addMenu("Er&weitert")
+        self._add_action(adv_m, "&Sprachstream weiterleiten", self.on_menu_relay_voice)
+        self._add_action(adv_m, "&Medienstream weiterleiten", self.on_menu_relay_media)
+        benutzer.addSeparator()
         self._all_mute_action = self._add_checkable(benutzer, "Alle &stummschalten",
             self._on_toggle_mute_all, self._mute_all)
         benutzer.addSeparator()
@@ -529,6 +550,10 @@ class MainWindow(QMainWindow):
         self._question_mode_action = self._add_checkable(profil, "&Frage-Modus",
             self._on_toggle_question_mode, False)
         profil.addSeparator()
+        self._tts_active_action = self._add_checkable(profil, "&TTS aktiv",
+            self._on_toggle_tts,
+            bool(getattr(self.settings_store.settings, "tts_enabled", True)))
+        profil.addSeparator()
         self._add_action(profil, "TTS-&Mitschrift...", self.on_menu_tts_transcript)
 
         # --- Audio ---
@@ -540,8 +565,22 @@ class MainWindow(QMainWindow):
             self._on_toggle_va,
             bool(getattr(self.settings_store.settings, "voice_activation", False)))
         audio_m.addSeparator()
+        self._agc_action = self._add_checkable(audio_m, "&AGC",
+            self._on_toggle_agc,
+            bool(getattr(self.settings_store.settings, "agc", False)))
+        self._denoise_action = self._add_checkable(audio_m, "&Rauschunterdrückung",
+            self._on_toggle_denoise,
+            bool(getattr(self.settings_store.settings, "denoise", False)))
+        self._echo_action = self._add_checkable(audio_m, "&Echounterdrückung",
+            self._on_toggle_echo,
+            bool(getattr(self.settings_store.settings, "echo_cancel", False)))
+        self._loopback_action = self._add_checkable(audio_m, "&Mikrofontest",
+            self._on_toggle_loopback_menu, False)
+        audio_m.addSeparator()
         self._add_action(audio_m, "Audio-Einstellungen...", self.on_menu_audio_settings)
         self._add_action(audio_m, "Audio &anwenden", self.apply_audio_prefs)
+        self._add_action(audio_m, "Geräte a&ktualisieren", self.on_menu_audio_refresh)
+        self._add_action(audio_m, "Effekte &anwenden", self.on_menu_audio_effects)
         audio_m.addSeparator()
         self._add_action(audio_m, "&Equalizer-Voreinstellungen...", self.on_menu_equalizer)
         self._add_action(audio_m, "&Per-Server-Soundprofile...", self.on_menu_server_audio_profiles)
@@ -552,6 +591,8 @@ class MainWindow(QMainWindow):
         self._add_action(aufn, "Aufnahme &stoppen", self.on_menu_stop_recording)
         aufn.addSeparator()
         self._add_action(aufn, "Konversationen au&fzeichnen...", self.on_menu_user_recording)
+        aufn.addSeparator()
+        self._add_action(aufn, "Geplante &Aufnahmen...", self.on_menu_scheduled_recordings)
 
         # --- Server ---
         server_m = mb.addMenu("&Server")
@@ -564,10 +605,15 @@ class MainWindow(QMainWindow):
         self._add_action(server_m, "Server&eigenschaften...", self.on_menu_server_properties)
         server_m.addSeparator()
         self._add_action(server_m, "&Wer-spricht-Protokoll...", self.on_menu_speaking_log)
+        self._add_action(server_m, "&Sitzungsübersicht...", self.on_menu_session_overview)
 
         # --- Automation ---
         auto_m = mb.addMenu("A&utomation")
         self._add_action(auto_m, "&Makro-Manager...", self.on_menu_macros)
+        self._add_action(auto_m, "Geplante &Makros...", self.on_menu_scheduled_macros)
+        auto_m.addSeparator()
+        self._add_action(auto_m, "&Trigger-Regeln...", self.on_menu_trigger_editor)
+        auto_m.addSeparator()
         self._add_action(auto_m, "&Chat-Suche...", self.on_menu_chat_search)
         self._add_action(auto_m, "&Nutzerwatcher...", self.on_menu_user_watcher)
         self._add_action(auto_m, "&Offline-Warteschlange...", self.on_menu_offline_queue)
@@ -575,6 +621,8 @@ class MainWindow(QMainWindow):
         self._translation_action = self._add_checkable(auto_m, "Chat-&Übersetzung",
             self._on_toggle_translation,
             bool(getattr(self.settings_store.settings, "translation_enabled", False)))
+        auto_m.addSeparator()
+        self._add_action(auto_m, "&Plugin-Manager...", self.on_menu_plugin_manager)
         auto_m.addSeparator()
         self._add_action(auto_m, "&Einstellungen...", self.on_menu_settings, "Ctrl+,")
 
@@ -1547,6 +1595,106 @@ class MainWindow(QMainWindow):
         if path:
             self.import_tt_file(path)
 
+    def on_menu_new_client(self) -> None:
+        try:
+            if getattr(sys, "frozen", False):
+                cmd = [sys.executable]
+                cwd = None
+            else:
+                cmd = [sys.executable, os.path.abspath(__file__)]
+                cwd = os.path.dirname(os.path.abspath(__file__))
+            import subprocess
+            subprocess.Popen(cmd, cwd=cwd)
+            self.set_status("Neuer Client gestartet")
+        except Exception as exc:
+            self.set_status(f"Neuer Client konnte nicht gestartet werden: {exc}")
+
+    def on_menu_server_check(self) -> None:
+        dlg = ConnectDialog(self)
+        dlg.exec()
+
+    def on_menu_import_servers(self) -> None:
+        from PySide6.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Serverliste importieren", "", "JSON (*.json);;Alle Dateien (*.*)"
+        )
+        if not path:
+            return
+        try:
+            self.store.import_from(Path(path))
+            self._rebuild_favorites_menu()
+            self.set_status("Serverliste importiert")
+        except Exception as exc:
+            self.set_status(f"Import fehlgeschlagen: {exc}")
+
+    def on_menu_export_servers(self) -> None:
+        from PySide6.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Serverliste exportieren", "servers.json", "JSON (*.json);;Alle Dateien (*.*)"
+        )
+        if not path:
+            return
+        try:
+            self.store.export_to(Path(path))
+            self.set_status("Serverliste exportiert")
+        except Exception as exc:
+            self.set_status(f"Export fehlgeschlagen: {exc}")
+
+    def on_menu_settings_backup(self) -> None:
+        import zipfile as _zip
+        import time as _time
+        from platform_paths import app_data_dir as _app_data_dir
+        from PySide6.QtWidgets import QFileDialog
+        app_dir = _app_data_dir()
+        default_name = f"teamtalk_backup_{_time.strftime('%Y%m%d_%H%M%S')}.zip"
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Einstellungen sichern", default_name, "ZIP-Backup (*.zip);;Alle Dateien (*.*)"
+        )
+        if not path:
+            return
+        try:
+            _BACKUP_EXTENSIONS = {".db", ".json", ".txt"}
+            with _zip.ZipFile(path, "w", _zip.ZIP_DEFLATED) as zf:
+                for f in app_dir.iterdir():
+                    if f.is_file() and f.suffix.lower() in _BACKUP_EXTENSIONS:
+                        zf.write(f, f.name)
+            self.set_status(f"Backup erstellt: {Path(path).name}")
+        except Exception as exc:
+            self.set_status(f"Backup fehlgeschlagen: {exc}")
+
+    def on_menu_settings_restore(self) -> None:
+        import zipfile as _zip
+        from platform_paths import app_data_dir as _app_data_dir
+        from PySide6.QtWidgets import QFileDialog
+        app_dir = _app_data_dir()
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Backup wiederherstellen", "", "ZIP-Backup (*.zip);;Alle Dateien (*.*)"
+        )
+        if not path:
+            return
+        answer = QMessageBox.warning(
+            self,
+            "Backup wiederherstellen",
+            "Achtung: Die aktuellen Einstellungen werden überschrieben.\n"
+            "Die App wird danach neu gestartet.\n\nFortfahren?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            with _zip.ZipFile(path, "r") as zf:
+                zf.extractall(app_dir)
+            self.set_status("Backup wiederhergestellt – App wird neu gestartet…")
+            QTimer.singleShot(1500, self._restart_app)
+        except Exception as exc:
+            self.set_status(f"Wiederherstellung fehlgeschlagen: {exc}")
+
+    def _restart_app(self) -> None:
+        import subprocess
+        subprocess.Popen([sys.executable] + sys.argv)
+        self.force_close()
+
     def _on_toggle_auto_reconnect(self, checked: bool) -> None:
         self._auto_reconnect = checked
         try:
@@ -1627,6 +1775,110 @@ class MainWindow(QMainWindow):
             self.files_tab._on_download()
         except Exception:
             self.set_status("Datei herunterladen: Dateien-Tab öffnen")
+
+    def on_menu_channel_bans(self) -> None:
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        try:
+            ch_id = int(self.client.get_my_channel_id() or 0)
+        except Exception:
+            ch_id = 0
+        if not ch_id:
+            self.set_status("Kein Kanal ausgewählt")
+            return
+        try:
+            from ui_qt.dialogs import BanListDialog
+            dlg = BanListDialog(self, self)
+            dlg.setWindowTitle("Sperren im Kanal")
+            self.ban_dialog = dlg
+            dlg.clear()
+            def worker():
+                try:
+                    self.client.do_list_bans(int(ch_id))
+                except Exception as exc:
+                    call_after(lambda: self.set_status(f"Sperren laden fehlgeschlagen: {exc}"))
+            threading.Thread(target=worker, daemon=True).start()
+            dlg.exec()
+            self.ban_dialog = None
+        except ImportError:
+            self.set_status("Sperren im Kanal: Dialog nicht verfügbar")
+
+    def on_menu_channel_view_msgs(self) -> None:
+        if not self._channel_message_log:
+            QMessageBox.information(self, "Kanalnachrichten", "Keine Kanalnachrichten gespeichert.")
+            return
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Kanalnachrichten")
+        dlg.resize(640, 420)
+        layout = QVBoxLayout(dlg)
+        te = QTextEdit()
+        te.setReadOnly(True)
+        te.setPlainText("\n".join(self._channel_message_log))
+        layout.addWidget(te, 1)
+        btn_layout = QHBoxLayout()
+        clear_btn = QPushButton("&Leeren")
+        close_btn = QPushButton("&Schließen")
+        btn_layout.addWidget(clear_btn)
+        btn_layout.addStretch()
+        btn_layout.addWidget(close_btn)
+        layout.addLayout(btn_layout)
+        clear_btn.clicked.connect(lambda: (self._channel_message_log.clear(), te.clear()))
+        close_btn.clicked.connect(dlg.accept)
+        dlg.exec()
+
+    def on_menu_channel_history(self) -> None:
+        s = self.settings_store.settings
+        channels = list(getattr(s, "recent_channels", []) or [])
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Kanalverlauf")
+        dlg.resize(560, 380)
+        layout = QVBoxLayout(dlg)
+        if not channels:
+            layout.addWidget(QLabel("Noch keine Kanäle besucht."))
+        else:
+            layout.addWidget(QLabel(f"{len(channels)} zuletzt besuchte Kanal/Kanäle:"))
+            lw = QListWidget()
+            for entry in channels:
+                name = entry.get("name", "") or str(entry.get("channel_id", "?"))
+                server = entry.get("server_key", "")
+                label = f"{name}  [{server}]" if server else name
+                lw.addItem(label)
+            layout.addWidget(lw, 1)
+            btn_layout = QHBoxLayout()
+            join_btn = QPushButton("&Beitreten")
+            clear_btn = QPushButton("&Verlauf leeren")
+            btn_layout.addWidget(join_btn)
+            btn_layout.addWidget(clear_btn)
+            layout.addLayout(btn_layout)
+
+            def _on_join():
+                idx = lw.currentRow()
+                if 0 <= idx < len(channels):
+                    entry = channels[idx]
+                    ch_id = entry.get("channel_id")
+                    if ch_id and self.client.is_connected():
+                        dlg.accept()
+                        self.join_channel(int(ch_id))
+                    else:
+                        self.set_status("Nicht verbunden oder keine Kanal-ID")
+
+            def _on_clear():
+                answer = QMessageBox.question(dlg, "Verlauf leeren", "Kanalverlauf wirklich leeren?")
+                if answer == QMessageBox.StandardButton.Yes:
+                    self.settings_store.settings.recent_channels = []
+                    self.settings_store.save()
+                    lw.clear()
+                    channels.clear()
+
+            join_btn.clicked.connect(_on_join)
+            clear_btn.clicked.connect(_on_clear)
+            lw.itemDoubleClicked.connect(lambda _: _on_join())
+
+        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        bb.rejected.connect(dlg.reject)
+        layout.addWidget(bb)
+        dlg.exec()
 
     # ------------------------------------------------------------------
     # Benutzer-Menü
@@ -1745,6 +1997,166 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
+    def on_menu_subscriptions(self) -> None:
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Kein Benutzer ausgewählt")
+            return
+        try:
+            tt = self.client.tt
+            user = self.client.get_user(uid)
+            flags = [
+                ("Sprache", tt.Subscription.SUBSCRIBE_VOICE),
+                ("Video", tt.Subscription.SUBSCRIBE_VIDEOCAPTURE),
+                ("Mediendatei", tt.Subscription.SUBSCRIBE_MEDIAFILE),
+                ("Benutzernachrichten", tt.Subscription.SUBSCRIBE_USER_MSG),
+                ("Kanalnachrichten", tt.Subscription.SUBSCRIBE_CHANNEL_MSG),
+                ("Rundnachricht", tt.Subscription.SUBSCRIBE_BROADCAST_MSG),
+                ("Desktop", tt.Subscription.SUBSCRIBE_DESKTOP),
+                ("Desktopzugriff", tt.Subscription.SUBSCRIBE_DESKTOPINPUT),
+                ("Benutzernachrichten abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_USER_MSG),
+                ("Kanalnachrichten abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_CHANNEL_MSG),
+                ("Sprache abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_VOICE),
+                ("Video abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_VIDEOCAPTURE),
+                ("Desktop abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_DESKTOP),
+                ("Mediendatei abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_MEDIAFILE),
+            ]
+            current = int(getattr(user, "uLocalSubscriptions", 0) or 0)
+            dlg = QDialog(self)
+            dlg.setWindowTitle("Abonnements")
+            layout = QVBoxLayout(dlg)
+            checks = []
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            inner = QWidget()
+            inner_layout = QVBoxLayout(inner)
+            for label, flag in flags:
+                cb = QCheckBox(label)
+                cb.setChecked(bool(current & int(flag)))
+                checks.append((cb, int(flag)))
+                inner_layout.addWidget(cb)
+            scroll.setWidget(inner)
+            layout.addWidget(scroll)
+            bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            bb.accepted.connect(dlg.accept)
+            bb.rejected.connect(dlg.reject)
+            layout.addWidget(bb)
+            dlg.resize(360, 450)
+            if dlg.exec() == QDialog.DialogCode.Accepted:
+                for cb, flag in checks:
+                    want = cb.isChecked()
+                    have = bool(current & flag)
+                    if want and not have:
+                        self.client.do_subscribe(uid, flag)
+                    elif not want and have:
+                        self.client.do_unsubscribe(uid, flag)
+                self.set_status("Abonnements geändert")
+        except Exception as exc:
+            self.set_status(f"Abonnements Fehler: {exc}")
+
+    def on_menu_user_position(self) -> None:
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Kein Benutzer ausgewählt")
+            return
+        try:
+            from PySide6.QtWidgets import QDoubleSpinBox
+            tt = self.client.tt
+            choices = [("Sprache", int(tt.StreamType.STREAMTYPE_VOICE))]
+            media_st = getattr(tt.StreamType, "STREAMTYPE_MEDIAFILE", None) or \
+                       getattr(tt.StreamType, "STREAMTYPE_MEDIAFILE_AUDIO", None)
+            if media_st is not None:
+                choices.append(("Mediendatei", int(media_st)))
+            choices.append(("Sprache + Medien", 0))
+
+            dlg = QDialog(self)
+            dlg.setWindowTitle("Benutzer positionieren")
+            layout = QVBoxLayout(dlg)
+            form = QFormLayout()
+            stream_combo = QComboBox()
+            for label, _ in choices:
+                stream_combo.addItem(label)
+            form.addRow("Stream-Typ:", stream_combo)
+            x_spin = QDoubleSpinBox()
+            x_spin.setRange(-1000.0, 1000.0)
+            x_spin.setSingleStep(0.1)
+            y_spin = QDoubleSpinBox()
+            y_spin.setRange(-1000.0, 1000.0)
+            y_spin.setSingleStep(0.1)
+            z_spin = QDoubleSpinBox()
+            z_spin.setRange(-1000.0, 1000.0)
+            z_spin.setSingleStep(0.1)
+            form.addRow("X:", x_spin)
+            form.addRow("Y:", y_spin)
+            form.addRow("Z:", z_spin)
+            layout.addLayout(form)
+            bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            bb.accepted.connect(dlg.accept)
+            bb.rejected.connect(dlg.reject)
+            layout.addWidget(bb)
+            if dlg.exec() == QDialog.DialogCode.Accepted:
+                idx = stream_combo.currentIndex()
+                st = choices[idx][1]
+                x, y, z = x_spin.value(), y_spin.value(), z_spin.value()
+                if st == 0:
+                    for _, stype in choices[:-1]:
+                        self.client.set_user_position(uid, stype, x, y, z)
+                else:
+                    self.client.set_user_position(uid, st, x, y, z)
+                self.set_status(f"Benutzer #{uid} positioniert: ({x:.1f}, {y:.1f}, {z:.1f})")
+        except Exception as exc:
+            self.set_status(f"Positionieren Fehler: {exc}")
+
+    def on_menu_relay_voice(self) -> None:
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Kein Benutzer ausgewählt")
+            return
+        try:
+            tt = self.client.tt
+            user = self.client.get_user(uid)
+            current = int(getattr(user, "uLocalSubscriptions", 0) or 0)
+            flag = int(tt.Subscription.SUBSCRIBE_INTERCEPT_VOICE)
+            if current & flag:
+                self.client.do_unsubscribe(uid, flag)
+                self.set_status("Sprachstream-Weiterleitung deaktiviert")
+            else:
+                self.client.do_subscribe(uid, flag)
+                self.set_status("Sprachstream wird weitergeleitet")
+        except Exception as exc:
+            self.set_status(f"Relay Fehler: {exc}")
+
+    def on_menu_relay_media(self) -> None:
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Kein Benutzer ausgewählt")
+            return
+        try:
+            tt = self.client.tt
+            user = self.client.get_user(uid)
+            current = int(getattr(user, "uLocalSubscriptions", 0) or 0)
+            flag = int(tt.Subscription.SUBSCRIBE_INTERCEPT_MEDIAFILE)
+            if current & flag:
+                self.client.do_unsubscribe(uid, flag)
+                self.set_status("Medienstream-Weiterleitung deaktiviert")
+            else:
+                self.client.do_subscribe(uid, flag)
+                self.set_status("Medienstream wird weitergeleitet")
+        except Exception as exc:
+            self.set_status(f"Relay Fehler: {exc}")
+
     # ------------------------------------------------------------------
     # Profil-Menü
     # ------------------------------------------------------------------
@@ -1797,6 +2209,14 @@ class MainWindow(QMainWindow):
                 self.client.change_status(mode, self._status_message)
         except Exception:
             pass
+
+    def _on_toggle_tts(self, checked: bool) -> None:
+        try:
+            self.settings_store.settings.tts_enabled = checked
+            self.settings_store.save()
+        except Exception:
+            pass
+        self.set_status("TTS aktiviert" if checked else "TTS deaktiviert")
 
     # ------------------------------------------------------------------
     # Audio-Menü
@@ -1868,6 +2288,47 @@ class MainWindow(QMainWindow):
         self.set_status("Equalizer-Voreinstellungen: Einstellungen → Audio")
         self.on_menu_audio_settings()
 
+    def on_menu_audio_refresh(self) -> None:
+        try:
+            self.audio_tab.refresh_devices()
+            self.set_status("Audio-Geräte aktualisiert")
+        except Exception as exc:
+            self.set_status(f"Geräte aktualisieren Fehler: {exc}")
+
+    def on_menu_audio_effects(self) -> None:
+        try:
+            self.audio_tab._on_preprocess_changed()
+            self.set_status("Audio-Effekte angewendet")
+        except Exception as exc:
+            self.set_status(f"Effekte anwenden Fehler: {exc}")
+
+    def _on_toggle_agc(self, checked: bool) -> None:
+        try:
+            self.audio_tab.agc_check.setChecked(checked)
+            self.audio_tab._on_preprocess_changed()
+        except Exception:
+            pass
+
+    def _on_toggle_denoise(self, checked: bool) -> None:
+        try:
+            self.audio_tab.denoise_check.setChecked(checked)
+            self.audio_tab._on_preprocess_changed()
+        except Exception:
+            pass
+
+    def _on_toggle_echo(self, checked: bool) -> None:
+        try:
+            self.audio_tab.echo_check.setChecked(checked)
+            self.audio_tab._on_preprocess_changed()
+        except Exception:
+            pass
+
+    def _on_toggle_loopback_menu(self, checked: bool) -> None:
+        try:
+            self.audio_tab.loopback_check.setChecked(checked)
+        except Exception:
+            pass
+
     # ------------------------------------------------------------------
     # Aufnahmen-Menü
     # ------------------------------------------------------------------
@@ -1888,6 +2349,14 @@ class MainWindow(QMainWindow):
         idx = self.notebook.indexOf(self.media_tab)
         if idx >= 0:
             self.notebook.setCurrentIndex(idx)
+
+    def on_menu_scheduled_recordings(self) -> None:
+        try:
+            from ui_qt.scheduled_recordings_dialog import ScheduledRecordingsDialog
+            dlg = ScheduledRecordingsDialog(self, getattr(self, "_scheduled_rec_manager", None))
+            dlg.exec()
+        except ImportError:
+            self.set_status("Geplante Aufnahmen: Dialog nicht verfügbar")
 
     # ------------------------------------------------------------------
     # Server-Menü
@@ -2033,6 +2502,31 @@ class MainWindow(QMainWindow):
         dlg = SpeakingLogDialog(self, self._speaking_log)
         dlg.exec()
 
+    def on_menu_session_overview(self) -> None:
+        try:
+            data = self.server_manager.per_session_stats()
+        except Exception:
+            data = {}
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Sitzungsübersicht")
+        dlg.resize(640, 420)
+        layout = QVBoxLayout(dlg)
+        te = QTextEdit()
+        te.setReadOnly(True)
+        if data:
+            lines = []
+            for sid, info in data.items():
+                active = "aktiv" if info.get("is_active") else "inaktiv"
+                lines.append(f"{info.get('profile', '?')} | {info.get('state', '?')} | {active} | {sid}")
+            te.setPlainText("\n".join(lines))
+        else:
+            te.setPlainText("Keine Sitzungen vorhanden.")
+        layout.addWidget(te, 1)
+        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        bb.rejected.connect(dlg.reject)
+        layout.addWidget(bb)
+        dlg.exec()
+
     def on_menu_ban_list(self) -> None:
         idx = self.notebook.indexOf(self.admin_tab)
         if idx >= 0:
@@ -2042,6 +2536,142 @@ class MainWindow(QMainWindow):
         from ui_qt.dialogs import MacroManagerDialog
         dlg = MacroManagerDialog(self, self._macros)
         dlg.exec()
+
+    def on_menu_scheduled_macros(self) -> None:
+        s = self.settings_store.settings
+        scheduled = list(s.scheduled_macros or [])
+        macro_names = [m.get("name", "?") for m in (s.macros or [])]
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Geplante Makros")
+        layout = QVBoxLayout(dlg)
+        layout.addWidget(QLabel("Format HH:MM – täglich ausführen"))
+        lw = QListWidget()
+        for e in scheduled:
+            lw.addItem(f"{e.get('time', '?')}, Makro: {e.get('macro', '?')}")
+        lw.setMinimumHeight(160)
+        layout.addWidget(lw, 1)
+        form = QFormLayout()
+        time_edit = QTimeEdit()
+        time_edit.setDisplayFormat("HH:mm")
+        form.addRow("Zeit:", time_edit)
+        macro_combo = QComboBox()
+        for name in macro_names:
+            macro_combo.addItem(name)
+        form.addRow("Makro:", macro_combo)
+        layout.addLayout(form)
+        btn_row = QHBoxLayout()
+        add_btn = QPushButton("&Hinzufügen")
+        del_btn = QPushButton("&Entfernen")
+        btn_row.addWidget(add_btn)
+        btn_row.addWidget(del_btn)
+        layout.addLayout(btn_row)
+        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        bb.accepted.connect(dlg.accept)
+        bb.rejected.connect(dlg.reject)
+        layout.addWidget(bb)
+
+        def _add():
+            t = time_edit.time().toString("HH:mm")
+            m = macro_combo.currentText() if macro_names else ""
+            if not m:
+                return
+            entry = {"time": t, "macro": m}
+            scheduled.append(entry)
+            lw.addItem(f"{t}, Makro: {m}")
+
+        def _del():
+            row = lw.currentRow()
+            if 0 <= row < len(scheduled):
+                scheduled.pop(row)
+                lw.takeItem(row)
+
+        add_btn.clicked.connect(_add)
+        del_btn.clicked.connect(_del)
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            try:
+                self.settings_store.settings.scheduled_macros = scheduled
+                self.settings_store.save()
+                self.set_status("Geplante Makros gespeichert")
+            except Exception as exc:
+                self.set_status(f"Speichern fehlgeschlagen: {exc}")
+
+    def on_menu_trigger_editor(self) -> None:
+        s = self.settings_store.settings
+        triggers = list(s.macro_triggers or [])
+        macro_names = [m.get("name", "?") for m in (s.macros or [])]
+        _EVENTS = ["user_join", "user_leave", "chat_message", "private_msg", "channel_join"]
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Trigger-Regeln")
+        layout = QVBoxLayout(dlg)
+        layout.addWidget(QLabel("Makro automatisch ausführen wenn Ereignis eintritt:"))
+        lw = QListWidget()
+        for t in triggers:
+            filt = t.get("filter", "") or ""
+            filt_str = f" (Filter: {filt})" if filt else ""
+            lw.addItem(f"{t.get('event','?')}{filt_str} → {t.get('macro','?')}")
+        lw.setMinimumHeight(160)
+        layout.addWidget(lw, 1)
+        form = QFormLayout()
+        event_combo = QComboBox()
+        for ev in _EVENTS:
+            event_combo.addItem(ev)
+        form.addRow("Ereignis:", event_combo)
+        filter_edit = QLineEdit()
+        form.addRow("Filter (Name, leer=alle):", filter_edit)
+        macro_combo = QComboBox()
+        for name in macro_names:
+            macro_combo.addItem(name)
+        form.addRow("Makro:", macro_combo)
+        layout.addLayout(form)
+        btn_row = QHBoxLayout()
+        add_btn = QPushButton("&Hinzufügen")
+        del_btn = QPushButton("&Entfernen")
+        btn_row.addWidget(add_btn)
+        btn_row.addWidget(del_btn)
+        layout.addLayout(btn_row)
+        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        bb.accepted.connect(dlg.accept)
+        bb.rejected.connect(dlg.reject)
+        layout.addWidget(bb)
+
+        def _add():
+            ev = event_combo.currentText()
+            filt = filter_edit.text().strip()
+            m = macro_combo.currentText() if macro_names else ""
+            if not m:
+                return
+            entry = {"event": ev, "macro": m}
+            if filt:
+                entry["filter"] = filt
+            triggers.append(entry)
+            filt_str = f" (Filter: {filt})" if filt else ""
+            lw.addItem(f"{ev}{filt_str} → {m}")
+
+        def _del():
+            row = lw.currentRow()
+            if 0 <= row < len(triggers):
+                triggers.pop(row)
+                lw.takeItem(row)
+
+        add_btn.clicked.connect(_add)
+        del_btn.clicked.connect(_del)
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            try:
+                self.settings_store.settings.macro_triggers = triggers
+                self.settings_store.save()
+                self.set_status("Trigger-Regeln gespeichert")
+            except Exception as exc:
+                self.set_status(f"Speichern fehlgeschlagen: {exc}")
+
+    def on_menu_plugin_manager(self) -> None:
+        try:
+            from ui_qt.plugin_manager import PluginManagerDialog
+            dlg = PluginManagerDialog(self)
+            dlg.exec()
+        except ImportError:
+            self.set_status("Plugin-Manager: Dialog nicht verfügbar")
 
     def on_menu_manual(self) -> None:
         try:
@@ -2099,7 +2729,6 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Gesundheitsbericht", report)
 
     def on_menu_client_stats(self) -> None:
-        from PySide6.QtWidgets import QDialogButtonBox
         try:
             stats = self.client.get_client_statistics()
             lines = []
@@ -2126,7 +2755,6 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def on_menu_saved_messages(self) -> None:
-        from PySide6.QtWidgets import QListWidget, QDialogButtonBox
         try:
             msgs = self._saved_messages.get_all()
         except Exception:
