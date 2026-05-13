@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.7.4"
+APP_VERSION = "6.7.5"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -795,7 +795,7 @@ class MainFrame(wx.Frame):
         self.server_stats_dialog: Optional[ServerStatisticsDialog] = None
         self.online_users_dialog: Optional[OnlineUsersDialog] = None
         self.ban_dialog: Optional[BanListDialog] = None
-        media_placeholder = LazyTabPlaceholder(self.content_panel, "Aufnahme & Medien")
+        media_placeholder = LazyTabPlaceholder(self.content_panel, "Aufnahme und Medien")
         desktop_placeholder = LazyTabPlaceholder(self.content_panel, "Desktop")
         files_placeholder = LazyTabPlaceholder(self.content_panel, "Dateien")
         admin_placeholder = LazyTabPlaceholder(self.content_panel, "Administration")
@@ -808,14 +808,14 @@ class MainFrame(wx.Frame):
 
         self._tab_info_map = {
             "Kanäle und Chat": "Kanalliste, Nutzerliste, Chat und Privatnachrichten.",
-            "Aufnahme & Medien": "Aufnahmen, Webradio/YouTube/Twitch-Streams.",
+            "Aufnahme und Medien": "Aufnahmen, Webradio/YouTube/Twitch-Streams.",
             "Desktop": "Desktopfreigabe senden/Status anzeigen.",
             "Dateien": "Kanaldateien hoch-/runterladen und verwalten.",
             "Administration": "Benutzerkonten, Sperren, Servereigenschaften.",
         }
         self._panels: Dict[str, wx.Panel] = {
             "Kanäle und Chat": self.channels_chat_tab,
-            "Aufnahme & Medien": media_placeholder,
+            "Aufnahme und Medien": media_placeholder,
             "Desktop": desktop_placeholder,
             "Dateien": files_placeholder,
             "Administration": admin_placeholder,
@@ -2313,9 +2313,9 @@ class MainFrame(wx.Frame):
         return self.files_tab
 
     def _open_media_tab(self, mode_idx: Optional[int] = None):
-        if not self._select_tab_by_label("Aufnahme & Medien"):
+        if not self._select_tab_by_label("Aufnahme und Medien"):
             self._replace_lazy_tab("media", MediaTab)
-            self._select_tab_by_label("Aufnahme & Medien")
+            self._select_tab_by_label("Aufnahme und Medien")
         if self.media_tab is None:
             return None
         if mode_idx is not None:
@@ -5041,9 +5041,9 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
 
     def on_menu_record_conversations(self, _event):
-        if not self._select_tab_by_label("Aufnahme & Medien"):
+        if not self._select_tab_by_label("Aufnahme und Medien"):
             self._replace_lazy_tab("media", MediaTab)
-            self._select_tab_by_label("Aufnahme & Medien")
+            self._select_tab_by_label("Aufnahme und Medien")
         if self.media_tab is not None:
             wx.CallAfter(self.media_tab.user_rec_enable.SetFocus)
 
@@ -5239,7 +5239,7 @@ class MainFrame(wx.Frame):
             " 4. Tab Kanäle\n"
             " 5. Tab Chat\n"
             " 6. Tab Audio\n"
-            " 7. Tab Aufnahme & Medien\n"
+            " 7. Tab Aufnahme und Medien\n"
             " 8. Tab Dateien\n"
             " 9. Tab Administration\n"
             "10. Tab ElevenLabs TTS (Sprechen)\n"
@@ -5455,7 +5455,7 @@ class MainFrame(wx.Frame):
             "  Stopp:        Wiedergabe beenden.\n"
             "\n"
             "\n"
-            "7. Tab Aufnahme & Medien\n"
+            "7. Tab Aufnahme und Medien\n"
             "========================\n"
             "\n"
             "Bereich 'Aufnahme'\n"
@@ -9418,7 +9418,7 @@ class MainFrame(wx.Frame):
         """Show the panel for *label* and hide all others."""
         # Lazy-load if needed
         lazy_map = {
-            "Aufnahme & Medien": ("media", MediaTab),
+            "Aufnahme und Medien": ("media", MediaTab),
             "Desktop": ("desktop", DesktopTab),
             "Dateien": ("files", FilesTab),
             "Administration": ("admin", AdminTab),
@@ -9454,7 +9454,7 @@ class MainFrame(wx.Frame):
         if placeholder is None:
             return
         label_map = {
-            "media": "Aufnahme & Medien",
+            "media": "Aufnahme und Medien",
             "desktop": "Desktop",
             "files": "Dateien",
             "admin": "Administration",

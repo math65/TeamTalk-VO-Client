@@ -916,7 +916,10 @@ class TeamTalkClient:
     def start_sound_loopback_test(self, indev_id: int, outdev_id: int, sample_rate: int = 48000, channels: int = 1) -> int:
         ap = self.tt.AudioPreprocessor()
         ap.nPreprocessor = self.tt.AudioPreprocessorType.NO_AUDIOPREPROCESSOR
-        effects = self.tt.SoundDeviceEffects()
+        try:
+            effects = self.tt.SoundDeviceEffects()
+        except (AttributeError, AssertionError):
+            return 0
         handle = self.tt._StartSoundLoopbackTestEx(indev_id, outdev_id, sample_rate, channels, False, ctypes.byref(ap), ctypes.byref(effects))
         return handle
 

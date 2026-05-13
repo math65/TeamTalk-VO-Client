@@ -75,7 +75,7 @@ _YT_SOURCES = [
 
 
 class MediaTab(QWidget):
-    """Tab 5: Aufnahme & Medien."""
+    """Tab 5: Aufnahme und Medien."""
 
     def __init__(self, parent: QWidget, window: "MainWindow") -> None:
         super().__init__(parent)

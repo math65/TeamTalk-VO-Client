@@ -1,6 +1,23 @@
 Changelog
 =========
 
+2026-05-13 (v6.7.5)
+macOS Bugfixes (Fehlerbericht 2026-05-11):
+- Fix: Mikrofon-Loopback-Test stürzte ab mit "TTType has no attribute
+  SoundDeviceEffects" – fehlender try/except-Schutz in start_sound_loopback_test
+  (betrifft bestimmte TeamTalk-SDK-Versionen ohne SoundDeviceEffects-Unterstützung).
+- Fix: Serverliste zeigte nach Auswahl einer Servergruppe oder nach Öffnen des
+  Gruppen-Verwaltungsdialogs 0 Einträge – reload_server_list ignorierte den aktiven
+  Gruppenfilter; _on_manage_groups rief _apply_combined_filter nicht auf.
+- Fix: Status-Prefix (✓/✗) verschwand nach Gruppenfilter-Wechsel aus der Serverliste.
+- VoiceOver: Tab-Name "Aufnahme & Medien" in "Aufnahme und Medien" umbenannt –
+  VoiceOver las das &-Zeichen als "kaufmännisches Und" vor.
+- VoiceOver: NSStepper-Patch in a11y.py – SpinCtrl-Lautstärkeregler sagen jetzt
+  den tatsächlichen Zahlenwert statt "50% Regler" an (macOS).
+- Administration/Benutzer laden: Klarere Statusmeldung wenn 0 Konten empfangen
+  wurden, inkl. Hinweis auf fehlende Admin-Rechte / Serverberechtigung.
+- i18n: Übersetzungsschlüssel für "Aufnahme und Medien" aktualisiert.
+
 2026-05-11 (v6.7.4)
 Windows Qt-UI: ElevenLabs TTS und vollständiges Medien-Streaming implementiert:
 - Neu: ElevenLabs-Tab — Stimmen/Modelle per API laden, normales TTS und

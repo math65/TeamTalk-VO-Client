@@ -68,7 +68,7 @@ from analytics import UsageAnalytics
 from health_check import HealthChecker, check_disk_space, check_event_bus, check_settings_db
 from platform_info import platform_info
 
-APP_VERSION = "6.7.4"
+APP_VERSION = "6.7.5"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF

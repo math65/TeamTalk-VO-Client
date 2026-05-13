@@ -297,6 +297,37 @@ def patch_button_accessibility() -> None:
         objc.classAddMethod(cls_combo, b"accessibilityRole", _combo_role)
         objc.classAddMethod(cls_combo, b"accessibilityRoleDescription", _combo_role_desc)
 
+        # --- NSStepper (wxSpinCtrl): numerischen Wert statt "X% Stepper" ansagen ---
+        # VoiceOver berechnet den Prozentwert aus dem internen NSStepper-Bereich (oft 0-100 mit
+        # Standardwert 50), nicht aus dem SpinCtrl-Bereich.  Wir ersetzen accessibilityValue durch
+        # den echten numerischen Wert aus dem gepaarten NSTextField.
+        try:
+            cls_stepper = objc.lookUpClass("NSStepper")
+
+            @objc.typedSelector(b"@@:")
+            def _stepper_value(self):
+                try:
+                    # Suche das begleitende NSTextField im selben Elternelement
+                    parent = self.superview()
+                    if parent is not None:
+                        for sib in parent.subviews():
+                            if sib.__class__.__name__ in ("NSTextField", "wxNSTextField"):
+                                txt = sib.stringValue()
+                                if txt:
+                                    return txt
+                except Exception:
+                    pass
+                return str(int(self.doubleValue()))
+
+            @objc.typedSelector(b"@@:")
+            def _stepper_role_desc(self):
+                return "Regler"
+
+            objc.classAddMethod(cls_stepper, b"accessibilityValue", _stepper_value)
+            objc.classAddMethod(cls_stepper, b"accessibilityRoleDescription", _stepper_role_desc)
+        except Exception:
+            pass
+
     except Exception:
         pass
 

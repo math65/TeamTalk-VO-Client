@@ -250,17 +250,7 @@ class ConnectionTab(wx.Panel):
 
     def reload_server_list(self):
         self._all_server_names = [p.name for p in self.frame.store.items()]
-        self._filtered_indices = list(range(len(self._all_server_names)))
-        filt = self.server_filter.GetValue().strip().lower() if hasattr(self, "server_filter") else ""
-        if filt:
-            self._filtered_indices = [i for i, n in enumerate(self._all_server_names) if filt in n.lower()]
-
-        def _label(i: int) -> str:
-            st = self._server_status.get(i)
-            prefix = "✓ " if st is True else "✗ " if st is False else ""
-            return prefix + self._all_server_names[i]
-
-        self.server_list.Set([_label(i) for i in self._filtered_indices])
+        self._apply_combined_filter()
 
     def _on_tls_fingerprint(self, _event) -> None:
         host = self.host.GetValue().strip()
@@ -735,11 +725,10 @@ class ConnectionTab(wx.Panel):
         self._apply_combined_filter()
 
     def _apply_combined_filter(self) -> None:
-        filt = self.server_filter.GetValue().strip().lower()
+        filt = self.server_filter.GetValue().strip().lower() if hasattr(self, "server_filter") else ""
         all_names = self._all_server_names
-        sel = self.server_group_choice.GetSelection()
-        group_name = self._group_choices[sel] if sel >= 0 else "(Alle)"
-        # Group filter
+        sel = self.server_group_choice.GetSelection() if hasattr(self, "server_group_choice") else -1
+        group_name = self._group_choices[sel] if sel >= 0 and hasattr(self, "_group_choices") and sel < len(self._group_choices) else "(Alle)"
         if group_name != "(Alle)":
             try:
                 groups = getattr(self.frame.settings_store.settings, "server_groups", {}) or {}
@@ -754,13 +743,20 @@ class ConnectionTab(wx.Panel):
             self._filtered_indices = [i for i, n in enumerate(all_names) if filt in n.lower() and i in allowed]
         else:
             self._filtered_indices = [i for i in range(len(all_names)) if i in allowed]
-        self.server_list.Set([all_names[i] for i in self._filtered_indices])
+
+        def _label(i: int) -> str:
+            st = self._server_status.get(i)
+            prefix = "✓ " if st is True else "✗ " if st is False else ""
+            return prefix + all_names[i]
+
+        self.server_list.Set([_label(i) for i in self._filtered_indices])
 
     def _on_manage_groups(self, _event) -> None:
         dlg = _ServerGroupsDialog(self, self.frame)
         dlg.ShowModal()
         dlg.Destroy()
         self._refresh_group_choices()
+        self._apply_combined_filter()
 
     def _on_filter_changed(self, _event):
         self._apply_combined_filter()

@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 
 class MediaTab(wx.Panel):
-    """Tab 5: Aufnahme & Medien -- recording and media file streaming."""
+    """Tab 5: Aufnahme und Medien -- recording and media file streaming."""
 
     # yt-dlp sources: (display name, search prefix or None)
     # Sources with a search prefix support "prefix10:query" search via yt-dlp.
@@ -100,7 +100,7 @@ class MediaTab(wx.Panel):
     def __init__(self, parent: wx.Window, frame: MainFrame) -> None:
         super().__init__(parent)
         self.frame = frame
-        self.SetName("Aufnahme & Medien")
+        self.SetName("Aufnahme und Medien")
         self._recording = False
         self._streaming = False
         self._stream_duration_ms = 0

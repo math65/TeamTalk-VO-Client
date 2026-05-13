@@ -148,8 +148,14 @@ class AdminTab(wx.Panel):
 
         def worker():
             try:
-                self.frame.client.do_list_user_accounts() # This is the blocking call
-                wx.CallAfter(self.frame.set_status, "Benutzerkonten geladen")
+                cmdid = self.frame.client.do_list_user_accounts()
+                if cmdid <= 0:
+                    wx.CallAfter(self.frame.set_status, "Benutzerkonten konnten nicht abgerufen werden (keine Admin-Rechte?)")
+                    return
+                # Kurz warten, damit der Server die Kontoliste schicken kann
+                import time
+                time.sleep(1.5)
+                wx.CallAfter(self._finish_load_accounts)
             except Exception as e:
                 wx.CallAfter(self.frame.set_status, f"Fehler beim Laden der Konten: {e}")
             finally:
@@ -158,6 +164,16 @@ class AdminTab(wx.Panel):
                 wx.CallAfter(self.del_account_btn.Enable)
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _finish_load_accounts(self) -> None:
+        count = len(self._accounts)
+        if count == 0:
+            self.frame.set_status(
+                "Keine Benutzerkonten empfangen – "
+                "prüfe ob du Admin-Rechte und 'Nutzerkonten anzeigen'-Berechtigung hast."
+            )
+        else:
+            self.frame.set_status(f"{count} Benutzerkonto(en) geladen")
 
     def add_account_to_list(self, account):
         tt_str = self.frame.tt_str
