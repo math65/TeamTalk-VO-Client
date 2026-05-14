@@ -1,6 +1,18 @@
 Changelog
 =========
 
+2026-05-14 (v6.8.2)
+Medienstream-Stummschalten und Lautstärke im Rechtsklick-Menü:
+
+- Rechtsklick auf Nutzer → „Medienstream stummschalten/entstummen": Medienstream
+  (YouTube, Radio, Datei-Streaming etc.) eines Nutzers separat stummschalten
+- Rechtsklick auf Nutzer → „Medienstream-Lautstärke...": Lautstärke des Medienstreams
+  unabhängig von der Sprach-Lautstärke einstellen (0–32000)
+- Fallback: USERSTATE_MUTE_MEDIAFILE fehlt in einigen SDK-Versionen → Mute-Zustand
+  wird lokal in der App nachgeführt
+- Medien-Mute-Zustand wird jetzt konsistent zwischen Menü (Benutzer) und
+  Kontextmenü synchronisiert
+
 2026-05-14 (v6.8.1)
 Bugfixes und Feature-Parität:
 

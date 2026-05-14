@@ -557,6 +557,17 @@ class ChannelsTab(QWidget):
             pass
         mute_label = "Mikrofon &entstummen" if voice_muted else "Mikrofon &stummschalten"
         mute_action = menu.addAction(mute_label)
+
+        # Media mute state
+        media_muted = False
+        try:
+            if tt:
+                media_muted = bool(user.uUserState & tt.UserState.USERSTATE_MUTE_MEDIAFILE)
+        except Exception:
+            media_muted = self.window._user_media_muted.get(user_id, False)
+        media_mute_label = "Medienstream &entstummen" if media_muted else "Medienstream &stummschalten"
+        media_mute_action = menu.addAction(media_mute_label)
+        media_vol_action = menu.addAction("Medienstream-&Lautstärke...")
         menu.addSeparator()
 
         # Subscription submenu
@@ -627,6 +638,12 @@ class ChannelsTab(QWidget):
 
         elif action == mute_action:
             self._toggle_user_mute(user_id, not voice_muted)
+
+        elif action == media_mute_action:
+            self._toggle_media_mute(user_id, not media_muted)
+
+        elif action == media_vol_action:
+            self._set_media_volume_dialog(user_id)
 
         elif action == op_action:
             self._toggle_channel_op(user_id, my_ch, not is_op)
@@ -703,6 +720,35 @@ class ChannelsTab(QWidget):
             self.window.set_status("Stummgeschaltet" if mute else "Entstummt")
         except Exception as exc:
             self.window.set_status(f"Stummschalten fehlgeschlagen: {exc}")
+
+    def _toggle_media_mute(self, user_id: int, mute: bool) -> None:
+        try:
+            tt = self.window.client.tt
+            stream_type = int(tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO)
+            self.window.client.set_user_mute(user_id, stream_type, mute)
+            self.window._user_media_muted[user_id] = mute
+            self.window.set_status("Medienstream stummgeschaltet" if mute else "Medienstream entstummt")
+        except Exception as exc:
+            self.window.set_status(f"Medien-Stummschalten fehlgeschlagen: {exc}")
+
+    def _set_media_volume_dialog(self, user_id: int) -> None:
+        try:
+            tt = self.window.client.tt
+            stream_type = int(tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO)
+        except Exception:
+            self.window.set_status("Medien-Lautstärke: SDK nicht verfügbar")
+            return
+        current = self.window._user_media_volumes.get(user_id, 16384)
+        vol, ok = QInputDialog.getInt(
+            self, "Medienstream-Lautstärke", "Lautstärke (0–32000):", current, 0, 32000, 500
+        )
+        if ok:
+            try:
+                self.window.client.set_user_volume(user_id, stream_type, vol)
+                self.window._user_media_volumes[user_id] = vol
+                self.window.set_status(f"Medien-Lautstärke auf {vol} gesetzt")
+            except Exception as exc:
+                self.window.set_status(f"Medien-Lautstärke fehlgeschlagen: {exc}")
 
     def _toggle_channel_op(self, user_id: int, channel_id: int, make_op: bool) -> None:
         if not channel_id:

@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "6.8.1"
+APP_VERSION = "6.8.2"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -111,6 +111,8 @@ class MainWindow(QMainWindow):
         self._status_message = ""
         self._capture_hotkey_target: Optional[str] = None
         self._user_volume_levels: Dict[int, int] = {}
+        self._user_media_muted: Dict[int, bool] = {}
+        self._user_media_volumes: Dict[int, int] = {}
         self._speaking_log: List[dict] = []  # {"nick": ..., "ts": ..., "seconds": ...}
         self._speaking_start: Dict[int, float] = {}  # user_id -> start_time
         self._channel_message_log: List[str] = []
@@ -2270,9 +2272,13 @@ class MainWindow(QMainWindow):
         try:
             tt = self.client.tt
             user = self.client.get_user(uid)
-            muted = bool(int(user.uUserState) & int(tt.UserState.USERSTATE_MUTE_MEDIAFILE))
+            try:
+                muted = bool(int(user.uUserState) & int(tt.UserState.USERSTATE_MUTE_MEDIAFILE))
+            except AttributeError:
+                muted = self._user_media_muted.get(uid, False)
             self.client.set_user_mute(uid, int(tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO), not muted)
-            self.set_status("Mediendatei entstummt" if muted else "Mediendatei stummgeschaltet")
+            self._user_media_muted[uid] = not muted
+            self.set_status("Medienstream entstummt" if muted else "Medienstream stummgeschaltet")
         except Exception as exc:
             self.set_status(f"Medienstumm Fehler: {exc}")
 
