@@ -18,9 +18,9 @@ def _collect_recordings(settings_store) -> List[Path]:
     from platform_paths import app_data_dir
     dirs = []
 
-    last_rec = getattr(settings_store.settings, "_last_recording_dir", "") or ""
-    if last_rec:
-        dirs.append(Path(last_rec))
+    rec_dir = getattr(settings_store.settings, "rec_directory", "") or ""
+    if rec_dir:
+        dirs.append(Path(rec_dir))
 
     dirs.append(app_data_dir() / "Aufnahmen")
     dirs.append(Path.home() / "Downloads")

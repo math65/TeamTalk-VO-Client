@@ -1,6 +1,18 @@
 Changelog
 =========
 
+2026-05-14 (v6.8.1)
+Bugfixes und Feature-Parität:
+
+Bugfixes:
+- Aufnahmen-Browser: Einstellung „rec_directory" wurde nicht gelesen (falsches Attribut _last_recording_dir)
+- Server-Konfiguration speichern: robusterer Guard bei fehlendem do_save_config im SDK
+- Zuletzt-besuchte-Kanäle-Menü: Guard gegen Datenbankfehler beim Startup
+
+Neue Features (Qt-Parität mit macOS):
+- Mediendatei-Stummschalten: Medienstream eines Nutzers separat von Sprache stummschalten (Menü Benutzer)
+- Nutzungsbericht: Verbindungs- und Nutzungsstatistiken anzeigen und als JSON exportieren (Menü Hilfe)
+
 2026-05-13 (v6.8.0)
 Windows Qt-UI – Lautstärkekürzel, Kanalstatistiken, Server-Config, Aufnahmen-Browser, Zuletzt besuchte Kanäle:
 

@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "6.8.0"
+APP_VERSION = "6.8.1"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -516,6 +516,7 @@ class MainWindow(QMainWindow):
         self._add_action(benutzer, "&Private Nachricht...", self.on_menu_private_msg, "Ctrl+T")
         benutzer.addSeparator()
         self._add_action(benutzer, "S&tummschalten (Sprache)", self.on_menu_mute_voice, "Ctrl+M")
+        self._add_action(benutzer, "Stummschalten (&Mediendatei)", self.on_menu_mute_media)
         self._add_action(benutzer, "Lautstärke &einstellen...", self.on_menu_user_volume)
         self._add_action(benutzer, "Lautstärke &hoch", self.on_menu_user_volume_up, "Ctrl+Shift+Up")
         self._add_action(benutzer, "Lautstärke &runter", self.on_menu_user_volume_down, "Ctrl+Shift+Down")
@@ -649,6 +650,7 @@ class MainWindow(QMainWindow):
         self._add_action(hlp, "&Handbuch...", self.on_menu_manual, "F1")
         self._add_action(hlp, "&Changelog...", self.on_menu_changelog)
         hlp.addSeparator()
+        self._add_action(hlp, "&Nutzungsbericht...", self.on_menu_analytics_report)
         self._add_action(hlp, "&Info...", self.on_menu_about)
 
     def _add_checkable(self, menu: QMenu, label: str, slot, checked: bool = False, shortcut: str = "") -> QAction:
@@ -2260,6 +2262,20 @@ class MainWindow(QMainWindow):
         if uid:
             self.mute_user(uid)
 
+    def on_menu_mute_media(self) -> None:
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Bitte Benutzer auswählen")
+            return
+        try:
+            tt = self.client.tt
+            user = self.client.get_user(uid)
+            muted = bool(int(user.uUserState) & int(tt.UserState.USERSTATE_MUTE_MEDIAFILE))
+            self.client.set_user_mute(uid, int(tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO), not muted)
+            self.set_status("Mediendatei entstummt" if muted else "Mediendatei stummgeschaltet")
+        except Exception as exc:
+            self.set_status(f"Medienstumm Fehler: {exc}")
+
     def on_menu_user_volume(self) -> None:
         uid = self._get_selected_user_id()
         if not uid:
@@ -2768,8 +2784,12 @@ class MainWindow(QMainWindow):
                 self.set_status(f"Servernachricht fehlgeschlagen: {exc}")
 
     def on_menu_server_save_config(self) -> None:
+        fn = getattr(self.client, "do_save_config", None)
+        if fn is None:
+            self.set_status("Server-Konfiguration speichern: nicht unterstützt")
+            return
         try:
-            result = self.client.do_save_config()
+            result = fn()
             if result >= 0:
                 self.set_status("Server-Konfiguration gespeichert")
             else:
@@ -2807,9 +2827,12 @@ class MainWindow(QMainWindow):
     def _refresh_recent_channels_menu(self) -> None:
         if not hasattr(self, "_recent_ch_menu"):
             return
+        try:
+            s = self.settings_store.settings
+            recent = list(getattr(s, "recent_channels", []) or [])
+        except Exception:
+            return
         self._recent_ch_menu.clear()
-        s = self.settings_store.settings
-        recent = list(getattr(s, "recent_channels", []) or [])
         if not recent:
             act = self._recent_ch_menu.addAction("(Leer)")
             act.setEnabled(False)
@@ -3150,6 +3173,49 @@ class MainWindow(QMainWindow):
                 webbrowser.open(str(cl_path))
         except Exception:
             pass
+
+    def on_menu_analytics_report(self) -> None:
+        try:
+            report_text = self._analytics.text_report()
+        except Exception as exc:
+            report_text = f"Bericht konnte nicht erstellt werden: {exc}"
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Nutzungsbericht")
+        dlg.resize(720, 460)
+        layout = QVBoxLayout(dlg)
+        te = QTextEdit()
+        te.setReadOnly(True)
+        te.setAccessibleName("Nutzungsbericht")
+        te.setPlainText(report_text)
+        layout.addWidget(te, 1)
+        btn_row = QHBoxLayout()
+        export_btn = QPushButton("&Exportieren")
+        export_btn.setAccessibleName("Nutzungsbericht exportieren")
+        btn_row.addWidget(export_btn)
+        btn_row.addStretch()
+        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        bb.rejected.connect(dlg.reject)
+        btn_row.addWidget(bb)
+        layout.addLayout(btn_row)
+
+        def _on_export():
+            from PySide6.QtWidgets import QFileDialog
+            import time as _time
+            default_name = f"analytics_{_time.strftime('%Y%m%d_%H%M%S')}.json"
+            path, _ = QFileDialog.getSaveFileName(
+                dlg, "Nutzungsbericht exportieren", default_name,
+                "JSON-Dateien (*.json);;Alle Dateien (*.*)"
+            )
+            if not path:
+                return
+            try:
+                self._analytics.export(path)
+                dlg.setWindowTitle(f"Nutzungsbericht — exportiert: {Path(path).name}")
+            except Exception as exc2:
+                QMessageBox.warning(dlg, "Export fehlgeschlagen", str(exc2))
+
+        export_btn.clicked.connect(_on_export)
+        dlg.exec()
 
     def on_menu_about(self) -> None:
         QMessageBox.information(
