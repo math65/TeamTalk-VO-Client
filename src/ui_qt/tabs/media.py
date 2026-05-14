@@ -93,15 +93,16 @@ class MediaTab(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(4, 4, 4, 4)
 
-        inner = QTabWidget()
-        root.addWidget(inner)
+        self._inner_tabs = QTabWidget()
+        root.addWidget(self._inner_tabs)
 
-        inner.addTab(self._build_recording_tab(), "Aufnahme")
-        inner.addTab(self._build_file_tab(), "Datei")
-        inner.addTab(self._build_ytdlp_tab(), "YouTube/yt-dlp")
-        inner.addTab(self._build_radio_tab(), "Webradio")
-        inner.addTab(self._build_podcast_tab(), "Podcasts")
-        inner.addTab(self._build_playlist_tab(), "Playlist")
+        self._inner_tabs.addTab(self._build_recording_tab(), "Aufnahme")   # 0
+        self._inner_tabs.addTab(self._build_file_tab(), "Datei")            # 1
+        self._inner_tabs.addTab(self._build_ytdlp_tab(), "YouTube/yt-dlp") # 2
+        self._inner_tabs.addTab(self._build_radio_tab(), "Webradio")        # 3
+        self._inner_tabs.addTab(self._build_podcast_tab(), "Podcasts")      # 4
+        self._inner_tabs.addTab(self._build_playlist_tab(), "Playlist")     # 5
+        inner = self._inner_tabs  # alias kept for legacy uses in this file
 
     # ------------------------------------------------------------------
     # Tab builders
@@ -1032,6 +1033,31 @@ class MediaTab(QWidget):
                 return resp.status, resp.read(), url
         except urllib.error.HTTPError as exc:
             return exc.code, exc.read(), url
+
+    # ------------------------------------------------------------------
+    # Mode switching (called from main window menu)
+    # ------------------------------------------------------------------
+
+    def switch_to_mode(self, mode: str) -> None:
+        _yt_source_map = {
+            "url": 0, "youtube": 0,
+            "soundcloud": 1,
+            "twitch": 2,
+            "bandcamp": 3,
+            "vimeo": 4,
+            "mixcloud": 5,
+        }
+        _tab_map = {
+            "file": 1,
+            "radio": 3,
+            "podcast": 4,
+            "playlist": 5,
+        }
+        if mode in _yt_source_map:
+            self._inner_tabs.setCurrentIndex(2)
+            self.yt_source.setCurrentIndex(_yt_source_map[mode])
+        elif mode in _tab_map:
+            self._inner_tabs.setCurrentIndex(_tab_map[mode])
 
     # ------------------------------------------------------------------
     # Lifecycle

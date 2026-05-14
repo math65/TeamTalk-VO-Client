@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "6.9.1"
+APP_VERSION = "6.9.2"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -115,6 +115,7 @@ class MainWindow(QMainWindow):
         self._recording_path: Optional[str] = None
         self._video_tx_enabled = False
         self._mute_all = False
+        self._move_target_channel_id: int = 0
         self._last_private_sender_id: Optional[int] = None
         self._last_private_message_text: str = ""
         self._status_message = ""
@@ -526,6 +527,9 @@ class MainWindow(QMainWindow):
             ("&YouTube/URL...", "url"),
             ("&SoundCloud...", "soundcloud"),
             ("&Twitch...", "twitch"),
+            ("&Bandcamp...", "bandcamp"),
+            ("&Vimeo...", "vimeo"),
+            ("M&ixcloud...", "mixcloud"),
             ("&Webradio...", "radio"),
             ("&Podcast...", "podcast"),
             ("&Datei...", "file"),
@@ -533,6 +537,8 @@ class MainWindow(QMainWindow):
         ]:
             self._add_action(stream_m, _label,
                 lambda checked=False, m=_mode: self._on_channel_stream_mode(m))
+        stream_m.addSeparator()
+        self._add_action(stream_m, "Audio-&Datei direkt streamen...", self.on_menu_stream_audio_file)
 
         # --- Benutzer ---
         benutzer = mb.addMenu("&Benutzer")
@@ -550,8 +556,11 @@ class MainWindow(QMainWindow):
         self._add_action(benutzer, "Aus Kanal &kicken", self.on_menu_kick, "Ctrl+K")
         self._add_action(benutzer, "Kicken + &Sperren", self.on_menu_kick_ban, "Ctrl+Shift+K")
         self._add_action(benutzer, "Vom &Server kicken", self.on_menu_kick_server)
+        self._add_action(benutzer, "Vom Server kicken + &Bannen", self.on_menu_kick_ban_server)
         benutzer.addSeparator()
         self._add_action(benutzer, "Benutzer &verschieben", self.on_menu_move_user)
+        self._add_action(benutzer, "Verschiebe-&Ziel merken", self.on_menu_store_move_target)
+        self._add_action(benutzer, "Zum &Ziel verschieben", self.on_menu_move_to_target)
         self._add_action(benutzer, "&Operator geben/nehmen", self.on_menu_toggle_operator)
         benutzer.addSeparator()
         self._add_action(benutzer, "&Abonnements...", self.on_menu_subscriptions)
@@ -587,6 +596,19 @@ class MainWindow(QMainWindow):
         self._tts_active_action = self._add_checkable(profil, "&TTS aktiv",
             self._on_toggle_tts,
             bool(getattr(self.settings_store.settings, "tts_enabled", True)))
+        _s = self.settings_store.settings
+        self._tts_flag_chat = self._add_checkable(profil, "TTS: &Chat vorlesen",
+            lambda checked: self._on_toggle_tts_flag("chat", checked),
+            bool(getattr(_s, "tts_speak_chat", True)))
+        self._tts_flag_private = self._add_checkable(profil, "TTS: &Privat vorlesen",
+            lambda checked: self._on_toggle_tts_flag("private", checked),
+            bool(getattr(_s, "tts_speak_private", True)))
+        self._tts_flag_system = self._add_checkable(profil, "TTS: &System vorlesen",
+            lambda checked: self._on_toggle_tts_flag("system", checked),
+            bool(getattr(_s, "tts_speak_system", True)))
+        self._tts_flag_own = self._add_checkable(profil, "TTS: &Eigene vorlesen",
+            lambda checked: self._on_toggle_tts_flag("own", checked),
+            bool(getattr(_s, "tts_speak_own", False)))
         profil.addSeparator()
         self._add_action(profil, "TTS-&Mitschrift...", self.on_menu_tts_transcript)
 
@@ -2209,7 +2231,7 @@ class MainWindow(QMainWindow):
 
     def on_menu_channel_info(self) -> None:
         try:
-            ch_id = int(self.client.get_my_channel_id() or 0)
+            ch_id = self._get_selected_channel_id() or int(self.client.get_my_channel_id() or 0)
             if not ch_id:
                 self.set_status("Kein Kanal")
                 return
@@ -2217,15 +2239,16 @@ class MainWindow(QMainWindow):
             if ch:
                 name = self.tt_str(ch.szName)
                 topic = self.tt_str(ch.szTopic)
+                max_users = int(getattr(ch, "nMaxUsers", 0) or 0)
+                disk_mb = int(getattr(ch, "nDiskQuota", 0) or 0) // (1024 * 1024)
                 try:
                     users = list(self.client.get_channel_users(ch_id) or [])
                     user_count = len(users)
                 except Exception:
                     user_count = 0
-                info = f"Kanal: {name}"
+                info = f"Kanal: {name}, {user_count} Nutzer, maximal {max_users}, Diskquota {disk_mb} MB"
                 if topic:
-                    info += f"  Thema: {topic}"
-                info += f"  Nutzer: {user_count}"
+                    info += f", Thema: {topic}"
                 self.tts.speak(info, kind="system")
                 self.set_status(info)
         except Exception as exc:
@@ -2296,6 +2319,25 @@ class MainWindow(QMainWindow):
             self.files_tab._on_download()
         except Exception:
             self.set_status("Datei herunterladen: Dateien-Tab öffnen")
+
+    def on_menu_stream_audio_file(self) -> None:
+        if not self._require_connected("Audio-Datei streamen"):
+            return
+        from PySide6.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Audio-Datei auswählen", "",
+            "Audio-Dateien (*.wav *.mp3 *.ogg *.flac *.aac *.m4a);;Alle Dateien (*.*)")
+        if not path:
+            return
+        try:
+            fn = getattr(self.client, "start_media_file_stream", None)
+            if fn:
+                fn(path)
+                self.set_status(f"Streaming: {path}")
+            else:
+                self.set_status("Audio-Streaming nicht verfügbar (SDK)")
+        except Exception as exc:
+            self.set_status(f"Stream-Fehler: {exc}")
 
     def on_menu_channel_bans(self) -> None:
         if not self.client.is_connected():
@@ -2422,9 +2464,14 @@ class MainWindow(QMainWindow):
         try:
             user = self.client.get_user(uid)
             if user:
-                nick = self.tt_str(user.szNickname) or self.tt_str(user.szUsername)
-                ch_id = int(user.nChannelID)
-                info = f"Benutzer: {nick}, Kanal-ID: {ch_id}"
+                nick = self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or "Benutzer"
+                ch_id = int(getattr(user, "nChannelID", 0) or 0)
+                channel_name = ""
+                if ch_id:
+                    ch = self.client.get_channel(ch_id)
+                    if ch is not None:
+                        channel_name = self.tt_str(ch.szName)
+                info = f"{nick} in Kanal {channel_name or ch_id}"
                 self.tts.speak(info, kind="system")
                 self.set_status(info)
         except Exception as exc:
@@ -2574,6 +2621,56 @@ class MainWindow(QMainWindow):
             self.set_status(f"User#{uid} vom Server gekickt")
         except Exception as exc:
             self.set_status(f"Kick Fehler: {exc}")
+
+    def on_menu_kick_ban_server(self) -> None:
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Bitte Benutzer auswählen")
+            return
+        btn = QMessageBox.question(self, "Vom Server kicken + Bannen",
+            "Benutzer wirklich vom Server kicken und bannen?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No)
+        if btn != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            tt = self.client.tt
+            ban_types = int(tt.BanType.BANTYPE_USERNAME)
+            self.client.do_ban_user_ex(uid, ban_types)
+            self.client.do_kick_user(uid, 0)
+            self.set_status(f"User#{uid} vom Server gekickt und gebannt")
+        except Exception as exc:
+            self.set_status(f"Kick+Ban Server Fehler: {exc}")
+
+    def on_menu_store_move_target(self) -> None:
+        ch_id = self._get_selected_channel_id()
+        if not ch_id:
+            self.set_status("Kein Kanal ausgewählt")
+            return
+        self._move_target_channel_id = ch_id
+        try:
+            ch = self.client.get_channel(ch_id)
+            name = self.tt_str(getattr(ch, "szName", "")) if ch else str(ch_id)
+        except Exception:
+            name = str(ch_id)
+        self.set_status(f"Zielkanal gespeichert: {name}")
+
+    def on_menu_move_to_target(self) -> None:
+        if not self._move_target_channel_id:
+            self.set_status("Kein Zielkanal gespeichert — erst 'Ziel merken' ausführen")
+            return
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Bitte Benutzer auswählen")
+            return
+        try:
+            cmdid = self.client.do_move_user(uid, self._move_target_channel_id)
+            if cmdid < 0:
+                self.set_status("Benutzer verschieben fehlgeschlagen")
+            else:
+                self.set_status("Benutzer verschoben")
+        except Exception as exc:
+            self.set_status(f"Verschieben Fehler: {exc}")
 
     def on_menu_move_user(self) -> None:
         if not self.client.is_connected():
@@ -2883,6 +2980,38 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
         self.set_status("TTS aktiviert" if checked else "TTS deaktiviert")
+
+    def _on_toggle_tts_flag(self, flag: str, checked: bool) -> None:
+        try:
+            attr_map = {
+                "chat": "tts_speak_chat",
+                "private": "tts_speak_private",
+                "system": "tts_speak_system",
+                "own": "tts_speak_own",
+            }
+            attr = attr_map.get(flag)
+            if attr:
+                setattr(self.settings_store.settings, attr, checked)
+                setattr(self.tts.settings, f"speak_{flag}" if flag != "own" else "speak_own", checked)
+                self.settings_store.save()
+            try:
+                tab = self.system_tab
+                widget_map = {
+                    "chat": tab.tts_chat,
+                    "private": tab.tts_private,
+                    "system": tab.tts_system,
+                    "own": tab.tts_own,
+                }
+                w = widget_map.get(flag)
+                if w and w.isChecked() != checked:
+                    w.blockSignals(True)
+                    w.setChecked(checked)
+                    w.blockSignals(False)
+            except Exception:
+                pass
+            self.set_status("Benachrichtigung gespeichert")
+        except Exception:
+            self.set_status("Benachrichtigung konnte nicht umgestellt werden")
 
     # ------------------------------------------------------------------
     # Audio-Menü

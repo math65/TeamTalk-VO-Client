@@ -1,6 +1,26 @@
 Changelog
 =========
 
+2026-05-14 (v6.9.2)
+Qt UI Parität: Kick+Ban Server, Ziel-verschieben, Streaming-Dienste, TTS-Flags, Audio-Datei-Streaming:
+
+Neue Features (Qt / Windows):
+- Vom Server kicken + Bannen: neuer Menüpunkt im Benutzer-Menü (mit Sicherheitsabfrage)
+- Verschiebe-Ziel merken / Zum Ziel verschieben: zwei neue Menüpunkte für das schnelle
+  Verschieben von Nutzern in einen gespeicherten Kanal
+- Kanalinfo vorlesen (Ctrl+S): liest jetzt den AUSGEWÄHLTEN Kanal (nicht nur den eigenen);
+  zeigt Nutzerzahl, Maximum, Diskquota und Thema
+- Benutzerinfo vorlesen (Ctrl+I): zeigt Kanalname statt Kanal-ID
+- TTS-Benachrichtigungs-Flags im Profil-Menü: Chat, Privat, System, Eigene als
+  einzelne umschaltbare Häkchen direkt im Menü (synchronisiert mit System-Tab)
+- Audio-Datei direkt streamen: Kanal → Streamen → Audio-Datei direkt streamen...
+  öffnet Datei-Dialog und startet das Streamen ohne den Media-Tab
+- Streaming-Menü erweitert: Bandcamp, Vimeo, Mixcloud als eigene Einträge in
+  Kanal → Streamen
+- Media-Tab: switch_to_mode implementiert; alle Kanal-Menü-Streaming-Einträge
+  (YouTube, SoundCloud, Twitch, Bandcamp, Vimeo, Mixcloud, Webradio, Podcast,
+  Datei, Playlist) wechseln jetzt korrekt zum richtigen Tab und ggf. zur richtigen Quelle
+
 2026-05-14 (v6.9.1)
 Qt UI Parität: TTS-Kontexteinstellungen, Status-Dialog, Auto-Kanal-Zusammenfassung, weitere Menüpunkte:
 
