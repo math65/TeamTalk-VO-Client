@@ -1,6 +1,25 @@
 Changelog
 =========
 
+2026-05-17 (v6.10.3)
+Vier weitere ttaccessible-Ideen: AVSpeechSynthesizer-Backend, TTS-Rate/Lautstärke für macOS, Benachrichtigungsmodus pro Typ, Root-Kanal-Auto-Join
+
+- AVSpeechSynthesizer (PyObjC) — neues TTS-Backend "AVSpeechSynthesizer (PyObjC)".
+  Nutzt Apples AVFoundation direkt via PyObjC — zuverlässiger als der say-Prozess,
+  unterstützt Rate und Lautstärke pro Äußerung.
+- TTS-Sprechtempo & Lautstärke für macOS-Backends — zwei neue Schieberegler im
+  TTS-Bereich (nur macOS): "Sprechtempo (0–100)" und "Lautstärke (0–100)".
+  Bei "macOS say" wird das Sprechtempo in WPM (50–400) umgerechnet; bei
+  "AVSpeechSynthesizer" werden beide Parameter direkt gesetzt.
+- Benachrichtigungsmodus pro Nachrichtentyp — die drei Häkchen für Hintergrund-
+  Benachrichtigungen (Privatnachrichten / Kanalnachrichten / Rundnachrichten) sind
+  nun Auswahlmenüs mit vier Modi: "Aus", "Benachrichtigung", "TTS", "VoiceOver".
+  TTS und VoiceOver geben die Nachricht per Sprachausgabe aus, wenn die App nicht
+  im Vordergrund ist.
+- Root-Kanal-Auto-Join — neue Einstellung "Nach Anmeldung automatisch Root-Kanal
+  beitreten" (Allgemein-Tab). Wenn aktiviert, wird nach jedem erfolgreichen Login
+  automatisch der Root-Kanal betreten.
+
 2026-05-17 (v6.10.2)
 Vier neue Features von ttaccessible abgeleitet: granulare TTS-Toggles, macOS-Stimme, Jitter-Buffer, Aufnahmemodus
 

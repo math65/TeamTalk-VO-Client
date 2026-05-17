@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.10.2"
+APP_VERSION = "6.10.3"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -631,6 +631,8 @@ class MainFrame(wx.Frame):
         self.tts.settings.speak_user_login = bool(getattr(_ts, "tts_speak_user_login", True))
         self.tts.settings.speak_file_event = bool(getattr(_ts, "tts_speak_file_event", True))
         self.tts.settings.macos_voice = str(getattr(_ts, "tts_macos_voice", "") or "")
+        self.tts.settings.macos_rate = float(getattr(_ts, "tts_macos_rate", 0.5) or 0.5)
+        self.tts.settings.macos_volume = float(getattr(_ts, "tts_macos_volume", 1.0) or 1.0)
         # v2.2.0 per-context TTS rates
         self.tts.settings.chat_rate = int(getattr(_ts, "tts_chat_rate", 0) or 0)
         self.tts.settings.system_rate = int(getattr(_ts, "tts_system_rate", 0) or 0)
@@ -9470,14 +9472,31 @@ class MainFrame(wx.Frame):
         if not getattr(self.settings_store.settings, "notifications_enabled", True):
             return
         s = self.settings_store.settings
-        if kind == "private" and not bool(getattr(s, "notify_background_private", True)):
+        # Determine per-kind mode ("off"|"notification"|"tts"|"voiceover")
+        if kind == "private":
+            mode = str(getattr(s, "notify_background_private_mode", "notification") or "notification")
+        elif kind == "channel":
+            mode = str(getattr(s, "notify_background_channel_mode", "off") or "off")
+        elif kind == "broadcast":
+            mode = str(getattr(s, "notify_background_broadcast_mode", "notification") or "notification")
+        else:
+            mode = "notification"
+        if mode == "off":
             return
-        if kind == "channel" and not bool(getattr(s, "notify_background_channel", False)):
-            return
-        if kind == "broadcast" and not bool(getattr(s, "notify_background_broadcast", True)):
-            return
+        # All background modes only fire when the window is not in the foreground
         if self._window_focused and self.IsShown():
             return
+        if mode == "tts":
+            self.tts.speak(f"{title}: {message}", kind="system")
+            return
+        if mode == "voiceover":
+            _esc = f"{title}: {message}".replace("\\", "\\\\").replace('"', '\\"')
+            subprocess.Popen(
+                ["osascript", "-e", f'tell application "VoiceOver" to output "{_esc}"'],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+            return
+        # mode == "notification": system OS notification
         if sys.platform == "darwin":
             try:
                 script = (
@@ -9731,6 +9750,8 @@ class MainFrame(wx.Frame):
                 self._handle_user_recording_event(msg, tt)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN:
             wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
+            if getattr(self.settings_store.settings, "auto_join_root_channel", False):
+                wx.CallAfter(self.connection_tab.on_join_root, None)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_TEXTMSG:
             self._handle_text_message(msg, tt)
         elif event == tt.ClientEvent.CLIENTEVENT_STREAM_MEDIAFILE:

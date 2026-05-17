@@ -311,6 +311,13 @@ class AppSettings:
     tts_speak_file_event: bool = True
     tts_macos_voice: str = ""
     recording_mode: str = "muxed"  # "muxed" | "separate" | "both"
+    # v6.10.3 (ttaccessible-inspired)
+    tts_macos_rate: float = 0.5
+    tts_macos_volume: float = 1.0
+    notify_background_private_mode: str = "notification"   # "off"|"notification"|"tts"|"voiceover"
+    notify_background_channel_mode: str = "off"
+    notify_background_broadcast_mode: str = "notification"
+    auto_join_root_channel: bool = False
 
 
 class SettingsStore:
@@ -512,6 +519,22 @@ class SettingsStore:
             self.settings.tts_speak_file_event = bool(data.get("tts_speak_file_event", True))
             self.settings.tts_macos_voice = str(data.get("tts_macos_voice", "") or "")
             self.settings.recording_mode = str(data.get("recording_mode", "muxed") or "muxed")
+            # v6.10.3
+            self.settings.tts_macos_rate = float(data.get("tts_macos_rate", 0.5) or 0.5)
+            self.settings.tts_macos_volume = float(data.get("tts_macos_volume", 1.0) or 1.0)
+            _old_priv = bool(data.get("notify_background_private", True))
+            self.settings.notify_background_private_mode = str(
+                data.get("notify_background_private_mode", "notification" if _old_priv else "off") or "notification"
+            )
+            _old_chan = bool(data.get("notify_background_channel", False))
+            self.settings.notify_background_channel_mode = str(
+                data.get("notify_background_channel_mode", "notification" if _old_chan else "off") or "off"
+            )
+            _old_bc = bool(data.get("notify_background_broadcast", True))
+            self.settings.notify_background_broadcast_mode = str(
+                data.get("notify_background_broadcast_mode", "notification" if _old_bc else "off") or "notification"
+            )
+            self.settings.auto_join_root_channel = bool(data.get("auto_join_root_channel", False))
             # v3.5.0
             raw_mt = data.get("macro_triggers", [])
             self.settings.macro_triggers = raw_mt if isinstance(raw_mt, list) else []
@@ -694,5 +717,12 @@ class SettingsStore:
             "tts_speak_file_event": bool(self.settings.tts_speak_file_event),
             "tts_macos_voice": str(self.settings.tts_macos_voice or ""),
             "recording_mode": str(self.settings.recording_mode or "muxed"),
+            # v6.10.3
+            "tts_macos_rate": float(self.settings.tts_macos_rate if self.settings.tts_macos_rate is not None else 0.5),
+            "tts_macos_volume": float(self.settings.tts_macos_volume if self.settings.tts_macos_volume is not None else 1.0),
+            "notify_background_private_mode": str(self.settings.notify_background_private_mode or "notification"),
+            "notify_background_channel_mode": str(self.settings.notify_background_channel_mode or "off"),
+            "notify_background_broadcast_mode": str(self.settings.notify_background_broadcast_mode or "notification"),
+            "auto_join_root_channel": bool(self.settings.auto_join_root_channel),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

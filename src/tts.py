@@ -35,8 +35,10 @@ class TTSSettings:
     rate: int = 175
     volume: int = 100
     espeak_path: str = ""
-    backend: str = "espeak"  # "espeak" | "voiceover" | "macos_say" (macOS only)
-    macos_voice: str = ""   # voice name for macos_say backend (empty = system default)
+    backend: str = "espeak"  # "espeak" | "voiceover" | "macos_say" | "macos_avs" (macOS only)
+    macos_voice: str = ""   # voice name for macos_say/macos_avs (empty = system default)
+    macos_rate: float = 0.5  # 0.0–1.0; converted to WPM for say, used directly for AVS
+    macos_volume: float = 1.0  # 0.0–1.0; only applied for macos_avs
     speak_user_login: bool = True
     speak_file_event: bool = True
     # v2.2.0 per-context overrides (0 / "" = use global)
@@ -424,12 +426,37 @@ class TTSManager:
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 )
                 continue
+            if self.settings.backend == "macos_avs" and sys.platform == "darwin":
+                try:
+                    import objc
+                    AVSpeechSynthesizer = objc.lookUpClass("AVSpeechSynthesizer")
+                    AVSpeechUtterance = objc.lookUpClass("AVSpeechUtterance")
+                    AVSpeechSynthesisVoice = objc.lookUpClass("AVSpeechSynthesisVoice")
+                    synth = AVSpeechSynthesizer.alloc().init()
+                    utterance = AVSpeechUtterance.speechUtteranceWithString_(text)
+                    utterance.setRate_(float(self.settings.macos_rate))
+                    utterance.setVolume_(float(self.settings.macos_volume))
+                    voice_name = self.settings.macos_voice.strip()
+                    if voice_name:
+                        for _v in (AVSpeechSynthesisVoice.speechVoices() or []):
+                            if str(_v.name()) == voice_name:
+                                utterance.setVoice_(_v)
+                                break
+                    synth.speakUtterance_(utterance)
+                    while synth.isSpeaking() and not self._stop.is_set():
+                        time.sleep(0.05)
+                    if synth.isSpeaking():
+                        synth.stopSpeakingAtBoundary_(0)
+                except Exception:
+                    pass
+                continue
             if self.settings.backend == "macos_say" and sys.platform == "darwin":
                 cmd = ["say"]
                 voice = self.settings.macos_voice.strip()
                 if voice:
                     cmd += ["-v", voice]
-                cmd += ["--", text]
+                wpm = max(50, min(400, int(50 + self.settings.macos_rate * 350)))
+                cmd += ["-r", str(wpm), "--", text]
                 proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 self._current_proc = proc
                 proc.wait()

@@ -47,21 +47,38 @@ class SystemTab(wx.Panel):
         if _sys.platform == "darwin":
             backend_row = wx.BoxSizer(wx.HORIZONTAL)
             backend_row.Add(wx.StaticText(self, label="TTS-Engine:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-            self.tts_backend = wx.Choice(self, choices=["espeak-ng", "VoiceOver (macOS)", "macOS say (Stimme wählen)"])
+            self.tts_backend = wx.Choice(self, choices=[
+                "espeak-ng", "VoiceOver (macOS)", "macOS say (Stimme wählen)", "AVSpeechSynthesizer (PyObjC)"
+            ])
             self.tts_backend.SetName("TTS-Engine")
             backend_row.Add(self.tts_backend, 0)
             tts_sizer.Add(backend_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
-            # macOS say voice picker (only visible when macos_say backend selected)
+            # macOS voice picker (for say / AVS backends)
             macos_voice_row = wx.BoxSizer(wx.HORIZONTAL)
-            macos_voice_row.Add(wx.StaticText(self, label="Stimme (say):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+            macos_voice_row.Add(wx.StaticText(self, label="Stimme (macOS):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
             self.tts_macos_voice = wx.Choice(self, choices=[])
             self.tts_macos_voice.SetName("macOS TTS-Stimme")
             macos_voice_row.Add(self.tts_macos_voice, 1, wx.EXPAND)
             tts_sizer.Add(macos_voice_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 6)
             self._populate_macos_voices()
+            # macOS TTS rate/volume sliders
+            macos_rate_row = wx.BoxSizer(wx.HORIZONTAL)
+            macos_rate_row.Add(wx.StaticText(self, label="Sprechtempo (0–100):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+            self.tts_macos_rate = wx.Slider(self, value=50, minValue=0, maxValue=100)
+            self.tts_macos_rate.SetName("macOS TTS-Sprechtempo")
+            macos_rate_row.Add(self.tts_macos_rate, 1, wx.EXPAND)
+            tts_sizer.Add(macos_rate_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 6)
+            macos_vol_row = wx.BoxSizer(wx.HORIZONTAL)
+            macos_vol_row.Add(wx.StaticText(self, label="Lautstärke (0–100):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+            self.tts_macos_volume = wx.Slider(self, value=100, minValue=0, maxValue=100)
+            self.tts_macos_volume.SetName("macOS TTS-Lautstärke")
+            macos_vol_row.Add(self.tts_macos_volume, 1, wx.EXPAND)
+            tts_sizer.Add(macos_vol_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 6)
         else:
             self.tts_backend = None
             self.tts_macos_voice = None
+            self.tts_macos_rate = None
+            self.tts_macos_volume = None
 
         row2 = wx.BoxSizer(wx.HORIZONTAL)
         self.tts_chat = wx.CheckBox(self, label="&Chat vorlesen")
@@ -189,6 +206,10 @@ class SystemTab(wx.Panel):
             self.tts_backend.Bind(wx.EVT_CHOICE, self._on_backend_changed)
         if self.tts_macos_voice is not None:
             self.tts_macos_voice.Bind(wx.EVT_CHOICE, self._apply_settings)
+        if self.tts_macos_rate is not None:
+            self.tts_macos_rate.Bind(wx.EVT_SLIDER, self._apply_settings)
+        if self.tts_macos_volume is not None:
+            self.tts_macos_volume.Bind(wx.EVT_SLIDER, self._apply_settings)
         self.tts_refresh.Bind(wx.EVT_BUTTON, lambda e: self._refresh_voices(e, force=True))
         self.tts_test.Bind(wx.EVT_BUTTON, self._on_test)
 
@@ -211,10 +232,14 @@ class SystemTab(wx.Panel):
         self.tts_user_login.SetValue(s.speak_user_login)
         self.tts_file_event.SetValue(s.speak_file_event)
         if self.tts_backend is not None:
-            idx = {"voiceover": 1, "macos_say": 2}.get(s.backend, 0)
+            idx = {"voiceover": 1, "macos_say": 2, "macos_avs": 3}.get(s.backend, 0)
             self.tts_backend.SetSelection(idx)
         if self.tts_macos_voice is not None:
             self._set_macos_voice_value(s.macos_voice)
+        if self.tts_macos_rate is not None:
+            self.tts_macos_rate.SetValue(int(s.macos_rate * 100))
+        if self.tts_macos_volume is not None:
+            self.tts_macos_volume.SetValue(int(s.macos_volume * 100))
         if s.enabled:
             self._refresh_languages(force=True)
             # Default to "Alle" if language not set
@@ -250,9 +275,13 @@ class SystemTab(wx.Panel):
         s.speak_file_event = self.tts_file_event.GetValue()
         if self.tts_backend is not None:
             sel = self.tts_backend.GetSelection()
-            s.backend = {1: "voiceover", 2: "macos_say"}.get(sel, "espeak")
+            s.backend = {1: "voiceover", 2: "macos_say", 3: "macos_avs"}.get(sel, "espeak")
         if self.tts_macos_voice is not None:
             s.macos_voice = self._get_macos_voice_value()
+        if self.tts_macos_rate is not None:
+            s.macos_rate = self.tts_macos_rate.GetValue() / 100.0
+        if self.tts_macos_volume is not None:
+            s.macos_volume = self.tts_macos_volume.GetValue() / 100.0
         s.language = self._get_language_value() or "de"
         s.voice = self._get_voice_value()
         s.rate = self.tts_rate.GetValue()
@@ -283,6 +312,8 @@ class SystemTab(wx.Panel):
         app.tts_speak_user_login = s.speak_user_login
         app.tts_speak_file_event = s.speak_file_event
         app.tts_macos_voice = s.macos_voice
+        app.tts_macos_rate = s.macos_rate
+        app.tts_macos_volume = s.macos_volume
         self.frame.settings_store.save()
 
     def _refresh_voices(self, _event, force: bool = False):
