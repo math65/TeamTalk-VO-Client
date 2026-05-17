@@ -266,6 +266,8 @@ class SQLiteSettingsStore:
         s.sound_profiles = _list("sound_profiles")
         s.active_sound_profile = _str("active_sound_profile", "Standard")
         s.hotkey_cycle_sound_profile = _int("hotkey_cycle_sound_profile", 0)
+        s.sound_pack_dir = _str("sound_pack_dir", "")
+        s.user_stereo_settings = _dict("user_stereo_settings")
         # v2.0.0
         s.claude_api_key = _str("claude_api_key", "")
         s.voice_control_enabled = _bool("voice_control_enabled", False)
@@ -458,6 +460,8 @@ class SQLiteSettingsStore:
         _set("sound_profiles", s.sound_profiles or [])
         _set("active_sound_profile", str(s.active_sound_profile or "Standard"))
         _set("hotkey_cycle_sound_profile", int(s.hotkey_cycle_sound_profile or 0))
+        _set("sound_pack_dir", str(getattr(s, "sound_pack_dir", "") or ""))
+        _set("user_stereo_settings", dict(getattr(s, "user_stereo_settings", {}) or {}))
         # v2.0.0
         _set("claude_api_key", str(getattr(s, "claude_api_key", "") or ""))
         _set("voice_control_enabled", bool(getattr(s, "voice_control_enabled", False)))

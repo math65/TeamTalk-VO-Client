@@ -28,6 +28,7 @@ _SOUND_EVENTS = [
     ("Kanalnachricht empfangen", "msg_channel_rx"),
     ("Kanalnachricht gesendet", "msg_channel_tx"),
     ("PTT aktiviert", "ptt_on"),
+    ("Kanal aktiv (Sprache beginnt)", "channel_active"),
     ("Kanal-Stille (letzter Sprecher)", "channel_silent"),
     ("Dateitransfer abgeschlossen", "file_transfer"),
     ("Video-Session gestartet", "video_session"),
@@ -334,9 +335,30 @@ class SettingsTab(QWidget):
         layout = QVBoxLayout(inner)
         s = self.window.settings_store.settings
 
-        evt_group = QGroupBox("Sound-Ereignisse (WAV-Dateipfade)")
+        # Sound-Pack-Ordner
+        pack_group = QGroupBox("Sound-Pack-Ordner")
+        pack_layout = QVBoxLayout(pack_group)
+        pack_layout.addWidget(QLabel(
+            "Ordner mit .wav-Dateien (Dateinamen wie Standard-Pack): "
+            "überschreibt alle Einzel-Einstellungen."
+        ))
+        pack_row = QHBoxLayout()
+        self.sound_pack_dir = QLineEdit(getattr(s, "sound_pack_dir", "") or "")
+        self.sound_pack_dir.setPlaceholderText("Leer = eingebettetes Standard-Pack")
+        self.sound_pack_dir.setAccessibleName("Sound-Pack-Ordner")
+        self.sound_pack_dir.textChanged.connect(self._on_sound_pack_dir_changed)
+        pack_browse = QPushButton("&Ordner…")
+        pack_browse.clicked.connect(self._browse_sound_pack_dir)
+        pack_row.addWidget(self.sound_pack_dir, 1)
+        pack_row.addWidget(pack_browse)
+        pack_layout.addLayout(pack_row)
+        layout.addWidget(pack_group)
+
+        # Individuelle Ereignis-Sounds
+        evt_group = QGroupBox("Einzelne Ereignis-Sounds (überschreiben Sound-Pack)")
         evt_layout = QVBoxLayout(evt_group)
         self._sound_event_rows: dict = {}
+        sound_events = getattr(s, "sound_events", {}) or {}
 
         for label, key in _SOUND_EVENTS:
             row = QHBoxLayout()
@@ -344,16 +366,20 @@ class SettingsTab(QWidget):
             lbl.setMinimumWidth(230)
             row.addWidget(lbl)
             field = QLineEdit()
-            saved = getattr(s, f"sound_{key}", "") or ""
-            field.setText(saved)
+            field.setText(sound_events.get(key, "") or "")
             field.setPlaceholderText("Leer = Standard")
             field.setAccessibleName(f"Sound-Datei: {label}")
-            field.textChanged.connect(lambda v, k=key: self._save_str(f"sound_{k}", v))
+            field.textChanged.connect(lambda v, k=key: self._save_sound_event(k, v))
+            test_btn = QPushButton("▶")
+            test_btn.setFixedWidth(28)
+            test_btn.setAccessibleName(f"Testen: {label}")
+            test_btn.clicked.connect(lambda _, k=key: self.window.sound_manager.play(k))
             browse_btn = QPushButton("…")
             browse_btn.setFixedWidth(30)
             browse_btn.setAccessibleName(f"Datei wählen: {label}")
             browse_btn.clicked.connect(lambda _, f=field: self._browse_sound(f))
             row.addWidget(field, 1)
+            row.addWidget(test_btn)
             row.addWidget(browse_btn)
             evt_layout.addLayout(row)
             self._sound_event_rows[key] = field
@@ -362,6 +388,33 @@ class SettingsTab(QWidget):
         layout.addStretch()
         scroll.setWidget(inner)
         return scroll
+
+    def _on_sound_pack_dir_changed(self, value: str) -> None:
+        try:
+            self.window.settings_store.settings.sound_pack_dir = value
+            self.window.settings_store.save()
+            self.window.sound_manager.set_pack_dir(value)
+        except Exception:
+            pass
+
+    def _browse_sound_pack_dir(self) -> None:
+        from PySide6.QtWidgets import QFileDialog
+        directory = QFileDialog.getExistingDirectory(self, "Sound-Pack-Ordner wählen")
+        if directory:
+            self.sound_pack_dir.setText(directory)
+
+    def _save_sound_event(self, key: str, value: str) -> None:
+        try:
+            s = self.window.settings_store.settings
+            events = dict(getattr(s, "sound_events", {}) or {})
+            if value:
+                events[key] = value
+            else:
+                events.pop(key, None)
+            s.sound_events = events
+            self.window.settings_store.save()
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Chat & Automation

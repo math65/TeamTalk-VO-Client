@@ -1,6 +1,23 @@
 Changelog
 =========
 
+2026-05-17 (v6.9.3)
+Sound-Pack-Manager, Stereo-Position, Audio-Hotplug (inspiriert von ttaccessible):
+
+Neue Features (Qt / Windows):
+- Sound-Pack-Ordner: Im Einstellungen → Sound-Ereignisse kann ein Ordner mit .wav-Dateien
+  als komplettes Sound-Pack hinterlegt werden (Dateinamen wie Standard-Pack).
+  Priorität: Einzeldateipfad > Pack-Ordner > eingebettetes Standard-Pack
+- Test-Schaltfläche (▶) für jeden Ereignis-Sound direkt im Einstellungen-Tab
+- Sound-Ereignisse: Qt nutzt jetzt korrekt das sound_events-Dict (wie wx) statt
+  individueller Attribute — Einzel-Sounds werden jetzt tatsächlich abgespielt
+- Neues Sound-Ereignis: "Kanal aktiv" (voiceact_on.wav — war bereits im Bundle,
+  fehlte aber in der Zuordnungstabelle)
+- Stereo-Position pro Nutzer: Benutzer-Menü → Stereo-Position... (Links / Beide / Rechts),
+  gespeichert persistiert pro Benutzername
+- Audio-Hotplug: Geräteliste wird automatisch aktualisiert wenn ein Audio-Gerät
+  angesteckt oder entfernt wird (5-Sekunden-Überwachung)
+
 2026-05-14 (v6.9.2)
 Qt UI Parität: Kick+Ban Server, Ziel-verschieben, Streaming-Dienste, TTS-Flags, Audio-Datei-Streaming:
 

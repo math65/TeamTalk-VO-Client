@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "6.9.2"
+APP_VERSION = "6.9.3"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -124,6 +124,8 @@ class MainWindow(QMainWindow):
         self._user_volume_levels: Dict[int, int] = {}
         self._user_media_muted: Dict[int, bool] = {}
         self._user_media_volumes: Dict[int, int] = {}
+        self._user_stereo: Dict[str, str] = {}  # username -> "left"/"both"/"right"
+        self._known_audio_devices: List[str] = []
         self._speaking_log: List[dict] = []  # {"nick": ..., "ts": ..., "seconds": ...}
         self._speaking_start: Dict[int, float] = {}  # user_id -> start_time
         self._channel_message_log: List[str] = []
@@ -208,6 +210,8 @@ class MainWindow(QMainWindow):
         self._screen_reader = ScreenReaderAnnouncer()
 
         self.sound_manager = SoundManager()
+        self.sound_manager.set_pack_dir(getattr(_ts, "sound_pack_dir", "") or "")
+        self._user_stereo = dict(getattr(_ts, "user_stereo_settings", {}) or {})
         self._pronunciation = PronunciationManager(dict(getattr(_ts, "pronunciation_dict", {}) or {}))
         self._bookmarks = BookmarkManager(self.settings_store)
         self._mute_scheduler = MuteScheduler(self)
@@ -269,6 +273,13 @@ class MainWindow(QMainWindow):
 
         # Windows dark mode detection
         self._apply_windows_dark_mode()
+
+        # Audio device hotplug monitoring (5 s interval)
+        self._audio_hotplug_timer = QTimer(self)
+        self._audio_hotplug_timer.setInterval(5000)
+        self._audio_hotplug_timer.timeout.connect(self._check_audio_hotplug)
+        self._audio_hotplug_timer.start()
+        self._known_audio_devices = self._get_audio_device_names()
 
         # Accessible name for main window (NVDA announces this)
         self.setAccessibleName(f"TeamTalk VoiceOver Client {APP_VERSION}")
@@ -548,6 +559,7 @@ class MainWindow(QMainWindow):
         self._add_action(benutzer, "S&tummschalten (Sprache)", self.on_menu_mute_voice, "Ctrl+M")
         self._add_action(benutzer, "Stummschalten (&Mediendatei)", self.on_menu_mute_media)
         self._add_action(benutzer, "Lautstärke &einstellen...", self.on_menu_user_volume)
+        self._add_action(benutzer, "Stereo-&Position...", self.on_menu_user_stereo)
         self._add_action(benutzer, "Lautstärke &hoch", self.on_menu_user_volume_up, "Ctrl+Shift+Up")
         self._add_action(benutzer, "Lautstärke &runter", self.on_menu_user_volume_down, "Ctrl+Shift+Down")
         self._add_action(benutzer, "Medien-Lautstärke h&och", self.on_menu_user_media_volume_up, "Ctrl+Alt+Up")
@@ -821,7 +833,7 @@ class MainWindow(QMainWindow):
         self._update_conn_bar("Verbindung verloren")
         self.set_status("Verbindung verloren")
         self.tts.speak("Verbindung verloren", kind="system")
-        self.sound_manager.play("server_disconnect")
+        self.sound_manager.play("server_disconnect", self.settings_store.settings.sound_events.get("server_disconnect"))
         call_after(self._refresh_channels)
         if self._auto_reconnect:
             self._schedule_reconnect()
@@ -836,7 +848,7 @@ class MainWindow(QMainWindow):
             self._update_conn_bar(f"Verbunden: {server_name}  |  Nickname: {nick}", connected=True)
             self.set_status(f"Angemeldet an {server_name}")
             self.tts.speak("Angemeldet", kind="system")
-            self.sound_manager.play("server_connect")
+            self.sound_manager.play("server_connect", self.settings_store.settings.sound_events.get("server_connect"))
             self._audit_log.log(A_SERVER_CONNECT)
             self._drain_offline_queue()
             self._refresh_channels()
@@ -886,7 +898,7 @@ class MainWindow(QMainWindow):
             if ch_id == my_ch:
                 if self.tts.settings.speak_user_join:
                     self.tts.speak(f"{name} hat den Kanal betreten", kind="system")
-                self.sound_manager.play("user_join")
+                self.sound_manager.play("user_join", self.settings_store.settings.sound_events.get("user_join"))
                 self._refresh_channels()
         except Exception:
             pass
@@ -901,7 +913,7 @@ class MainWindow(QMainWindow):
             name = self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or f"User#{uid}"
             if self.tts.settings.speak_user_leave:
                 self.tts.speak(f"{name} hat den Kanal verlassen", kind="system")
-            self.sound_manager.play("user_leave")
+            self.sound_manager.play("user_leave", self.settings_store.settings.sound_events.get("user_leave"))
             self._refresh_channels()
         except Exception:
             pass
@@ -1024,9 +1036,9 @@ class MainWindow(QMainWindow):
                         speak_text = f"Privat von {from_user}: {content}"
                         self._last_private_sender_id = from_id
                         self._last_private_message_text = str(content or "")
-                        self.sound_manager.play("msg_private_rx")
+                        self.sound_manager.play("msg_private_rx", self.settings_store.settings.sound_events.get("msg_private_rx"))
                     else:
-                        self.sound_manager.play("msg_channel_rx")
+                        self.sound_manager.play("msg_channel_rx", self.settings_store.settings.sound_events.get("msg_channel_rx"))
                         # Keyword detection
                         kw_str = getattr(self.settings_store.settings, "highlight_keywords", "") or ""
                         if kw_str:
@@ -1039,9 +1051,9 @@ class MainWindow(QMainWindow):
                     self.tts.speak(speak_text, kind=kind)
                 else:
                     if kind == "private":
-                        self.sound_manager.play("msg_private_tx")
+                        self.sound_manager.play("msg_private_tx", self.settings_store.settings.sound_events.get("msg_private_tx"))
                     else:
-                        self.sound_manager.play("msg_channel_tx")
+                        self.sound_manager.play("msg_channel_tx", self.settings_store.settings.sound_events.get("msg_channel_tx"))
 
                 if kind == "chat":
                     ts = time.strftime("%H:%M:%S")
@@ -1072,7 +1084,7 @@ class MainWindow(QMainWindow):
             name = self.tt_str(ft.szRemoteFileName)
             self.files_tab.update_transfer_progress(name, pct)
             if pct >= 100:
-                self.sound_manager.play("file_transfer")
+                self.sound_manager.play("file_transfer", self.settings_store.settings.sound_events.get("file_transfer"))
                 if getattr(self.tts.settings, "speak_file_transfer", True):
                     self.tts.speak(f"Dateitransfer abgeschlossen: {name}", kind="system")
         except Exception:
@@ -1385,10 +1397,10 @@ class MainWindow(QMainWindow):
         try:
             if private and target_id:
                 self.client.send_user_message(target_id, text)
-                self.sound_manager.play("msg_private_tx")
+                self.sound_manager.play("msg_private_tx", self.settings_store.settings.sound_events.get("msg_private_tx"))
             else:
                 self.client.send_channel_message(text)
-                self.sound_manager.play("msg_channel_tx")
+                self.sound_manager.play("msg_channel_tx", self.settings_store.settings.sound_events.get("msg_channel_tx"))
         except Exception as exc:
             self.set_status(f"Senden fehlgeschlagen: {exc}")
 
@@ -2584,6 +2596,42 @@ class MainWindow(QMainWindow):
         except Exception as exc:
             self.set_status(f"Medien-Lautstärke Fehler: {exc}")
 
+    def on_menu_user_stereo(self) -> None:
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Bitte Benutzer auswählen")
+            return
+        try:
+            user = self.client.get_user(uid)
+            username = self.tt_str(getattr(user, "szUsername", "")) if user else str(uid)
+        except Exception:
+            username = str(uid)
+        current = self._user_stereo.get(username, "both")
+        options = ["Links", "Beide", "Rechts"]
+        idx_map = {"left": 0, "both": 1, "right": 2}
+        cur_idx = idx_map.get(current, 1)
+        item, ok = QInputDialog.getItem(self, "Stereo-Position",
+            f"Wo soll {username or uid} zu hören sein?",
+            options, cur_idx, False)
+        if not ok:
+            return
+        pos_map = {"Links": "left", "Beide": "both", "Rechts": "right"}
+        pos = pos_map.get(item, "both")
+        self._user_stereo[username] = pos
+        self.settings_store.settings.user_stereo_settings[username] = pos
+        self.settings_store.save()
+        try:
+            from TeamTalkPy import TeamTalk5 as _tt5
+            left = pos in ("left", "both")
+            right = pos in ("right", "both")
+            st_voice = int(self.client.tt.StreamType.STREAMTYPE_VOICE)
+            st_media = int(self.client.tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO)
+            _tt5._SetUserStereo(self.client.tt._tt, uid, st_voice, left, right)
+            _tt5._SetUserStereo(self.client.tt._tt, uid, st_media, left, right)
+            self.set_status(f"Stereo-Position {username}: {item}")
+        except Exception as exc:
+            self.set_status(f"Stereo Fehler: {exc}")
+
     def on_menu_kick(self) -> None:
         uid = self._get_selected_user_id()
         if not uid:
@@ -3089,6 +3137,23 @@ class MainWindow(QMainWindow):
             self.set_status("Audio-Geräte aktualisiert")
         except Exception as exc:
             self.set_status(f"Geräte aktualisieren Fehler: {exc}")
+
+    def _get_audio_device_names(self) -> List[str]:
+        try:
+            devs = list(self.client.get_sound_devices() or [])
+            return [str(getattr(d, "szDeviceName", "")) for d in devs]
+        except Exception:
+            return []
+
+    def _check_audio_hotplug(self) -> None:
+        current = self._get_audio_device_names()
+        if current != self._known_audio_devices:
+            self._known_audio_devices = current
+            try:
+                self.audio_tab.refresh_devices()
+                self.set_status("Audio-Gerät geändert — Geräteliste aktualisiert")
+            except Exception:
+                pass
 
     def on_menu_audio_effects(self) -> None:
         try:
