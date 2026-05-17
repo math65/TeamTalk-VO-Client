@@ -42,6 +42,7 @@ from tts import TTSManager
 from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 from chat_history import ChatHistoryManager
+from session_history import SessionHistoryStore
 from pronunciation import PronunciationManager
 from bookmark_manager import BookmarkManager
 from mute_scheduler import MuteScheduler
@@ -59,6 +60,7 @@ from startup_profiler import StartupProfiler
 from eq_presets import EqPresetsManager
 from audit_log import AuditLog, A_SERVER_CONNECT, A_SERVER_DISCONNECT, A_API_KEY_SAVED, A_API_KEY_DELETED, A_SAVED_MSG_EXPIRED
 from offline_queue import OfflineMessageQueue
+import system_audio as sa
 from tls_verify import CertPinStore
 from plugin_package import PluginPackage, read_package, install_package, PluginManifestError
 from plugin_marketplace import PluginMarketplace
@@ -71,7 +73,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.10.3"
+APP_VERSION = "6.10.4"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -498,6 +500,7 @@ class MainFrame(wx.Frame):
         from platform_paths import app_data_dir
         app_dir = app_data_dir()
         app_dir.mkdir(parents=True, exist_ok=True)
+        self._session_history = SessionHistoryStore(app_dir / "session_history.jsonl")
 
         # v2.0.0: SQLite-Datenbank (migriert automatisch aus JSON)
         self._settings_db = SettingsDB(app_dir / "settings.db")
@@ -1886,6 +1889,7 @@ class MainFrame(wx.Frame):
         file_menu.AppendSeparator()
         settings_backup = file_menu.Append(wx.ID_ANY, "Einstellungen sichern (Backup)...")
         settings_restore = file_menu.Append(wx.ID_ANY, "Einstellungen wiederherstellen...")
+        history_export = file_menu.Append(wx.ID_ANY, "Sitzungsverlauf exportieren...")
         file_menu.AppendSeparator()
         quit_item = file_menu.Append(wx.ID_EXIT, _("Beenden") + "\tCtrl+Q")
 
@@ -1947,6 +1951,11 @@ class MainFrame(wx.Frame):
         user_mute_media = user_mute_menu.Append(wx.ID_ANY, "Mediendatei stummschalten")
         user_menu.AppendSubMenu(user_mute_menu, "Stummschalten")
         user_volume = user_menu.Append(wx.ID_ANY, "Benutzerlautstärke...")
+        user_stereo_menu = wx.Menu()
+        user_stereo_normal = user_stereo_menu.Append(wx.ID_ANY, "Normal (beide)")
+        user_stereo_left = user_stereo_menu.Append(wx.ID_ANY, "Nur links")
+        user_stereo_right = user_stereo_menu.Append(wx.ID_ANY, "Nur rechts")
+        user_menu.AppendSubMenu(user_stereo_menu, "Stereo-Kanal")
         user_note = user_menu.Append(wx.ID_ANY, "Notiz &bearbeiten...")
         user_adv = wx.Menu()
         user_vol_up = user_adv.Append(wx.ID_ANY, "Lauter\tCtrl+Right")
@@ -2122,6 +2131,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_export_servers, export_servers)
         self.Bind(wx.EVT_MENU, self.on_menu_settings_backup, settings_backup)
         self.Bind(wx.EVT_MENU, self.on_menu_settings_restore, settings_restore)
+        self.Bind(wx.EVT_MENU, self.on_menu_history_export, history_export)
         self.Bind(wx.EVT_MENU, self.on_menu_quit, quit_item)
 
         self.Bind(wx.EVT_MENU, self.on_menu_connect, con_connect)
@@ -2169,6 +2179,9 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_user_mute_voice, user_mute_voice)
         self.Bind(wx.EVT_MENU, self.on_menu_user_mute_media, user_mute_media)
         self.Bind(wx.EVT_MENU, self.on_menu_user_volume, user_volume)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_stereo_normal, user_stereo_normal)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_stereo_left, user_stereo_left)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_stereo_right, user_stereo_right)
         self.Bind(wx.EVT_MENU, self.on_menu_user_note, user_note)
         self.Bind(wx.EVT_MENU, self.on_menu_user_volume_up, user_vol_up)
         self.Bind(wx.EVT_MENU, self.on_menu_user_volume_down, user_vol_down)
@@ -3952,6 +3965,80 @@ class MainFrame(wx.Frame):
         else:
             self.client.do_subscribe(int(user.nUserID), flag)
             self.set_status("Medienstream wird weitergeleitet")
+
+    def _apply_user_stereo(self, user_id: int, mode: str) -> None:
+        left = mode != "right"
+        right = mode != "left"
+        try:
+            stream_type = int(self.client.tt.StreamType.STREAMTYPE_VOICE)
+            self.client.set_user_stereo(user_id, stream_type, left, right)
+        except Exception:
+            pass
+
+    def on_menu_user_stereo_normal(self, _event):
+        if not self._require_connected("Stereo-Kanal"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewählt")
+            return
+        uname = self.tt_str(getattr(user, "szNickname", "") or getattr(user, "szUsername", ""))
+        self._apply_user_stereo(int(user.nUserID), "normal")
+        prefs = dict(self.settings_store.settings.user_stereo_prefs or {})
+        prefs.pop(uname, None)
+        self.settings_store.settings.user_stereo_prefs = prefs
+        self.settings_store.save()
+        self.set_status(f"Stereo: Normal ({uname})")
+
+    def on_menu_user_stereo_left(self, _event):
+        if not self._require_connected("Stereo-Kanal"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewählt")
+            return
+        uname = self.tt_str(getattr(user, "szNickname", "") or getattr(user, "szUsername", ""))
+        self._apply_user_stereo(int(user.nUserID), "left")
+        prefs = dict(self.settings_store.settings.user_stereo_prefs or {})
+        prefs[uname] = "left"
+        self.settings_store.settings.user_stereo_prefs = prefs
+        self.settings_store.save()
+        self.set_status(f"Stereo: Nur links ({uname})")
+
+    def on_menu_user_stereo_right(self, _event):
+        if not self._require_connected("Stereo-Kanal"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewählt")
+            return
+        uname = self.tt_str(getattr(user, "szNickname", "") or getattr(user, "szUsername", ""))
+        self._apply_user_stereo(int(user.nUserID), "right")
+        prefs = dict(self.settings_store.settings.user_stereo_prefs or {})
+        prefs[uname] = "right"
+        self.settings_store.settings.user_stereo_prefs = prefs
+        self.settings_store.save()
+        self.set_status(f"Stereo: Nur rechts ({uname})")
+
+    def on_menu_history_export(self, _event):
+        text = self._session_history.export_text()
+        if not text:
+            wx.MessageBox("Keine Sitzungshistorie vorhanden.", "Verlauf", wx.OK | wx.ICON_INFORMATION, self)
+            return
+        with wx.FileDialog(
+            self, "Sitzungsverlauf exportieren",
+            wildcard="Textdateien (*.txt)|*.txt|Alle Dateien|*.*",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+            defaultFile="sitzungsverlauf.txt",
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        try:
+            Path(path).write_text(text, encoding="utf-8")
+            self.set_status(f"Verlauf exportiert: {path}")
+        except Exception as exc:
+            self.set_status(f"Exportfehler: {exc}")
 
     def on_menu_user_volume(self, _event):
         if not self._require_connected("Benutzerlautstärke"):
@@ -8247,6 +8334,7 @@ class MainFrame(wx.Frame):
         if result.ok:
             self._audit_log.log(A_SERVER_CONNECT, detail=self._get_server_key())
             self._analytics.on_connect(self._get_server_key())
+            self._session_history.log("connect", f"Verbunden mit {self._get_server_key()}", server=self._get_server_key())
         if result.ok:
             wx.CallAfter(self.connection_window.Hide)
             wx.CallAfter(self.Raise)
@@ -8735,6 +8823,7 @@ class MainFrame(wx.Frame):
                         ch = self.client.get_channel(channel_id)
                         ch_name = self.tt_str(getattr(ch, "szName", "")) if ch else str(channel_id)
                         wx.CallAfter(self._add_to_recent_channels, channel_id, ch_name or str(channel_id))
+                        self._session_history.log("channel_join", f"Kanal betreten: {ch_name or channel_id}", server=self._current_server_key, channel=ch_name or str(channel_id))
                         # v3.0.0 – Kanal-Thema beim Betreten vorlesen
                         if getattr(self.settings_store.settings, "tts_speak_channel_topic_on_join", True):
                             topic = self.tt_str(getattr(ch, "szTopic", "") or "") if ch else ""
@@ -8836,10 +8925,17 @@ class MainFrame(wx.Frame):
                 self._speak_tab_added = False
 
     def _auto_init_sound_devices(self):
-        """Initialize default sound devices after successful login."""
+        """Initialize sound devices after successful login; prefers built-in hardware for input."""
         try:
-            indev, outdev = self.client.get_default_sound_devices()
-            indev_id = int(getattr(indev, "value", indev))
+            devices = list(self.client.get_sound_devices() or [])
+            raw_inputs = [d for d in devices if getattr(d, "nMaxInputChannels", 0) > 0]
+            best_in = sa.preferred_input_device(raw_inputs, self.tt_str)
+            _, outdev = self.client.get_default_sound_devices()
+            if best_in is not None:
+                indev_id = int(getattr(best_in, "nDeviceID", getattr(best_in, "value", best_in)))
+            else:
+                _def_in, _ = self.client.get_default_sound_devices()
+                indev_id = int(getattr(_def_in, "value", _def_in))
             outdev_id = int(getattr(outdev, "value", outdev))
             input_ok = self.client.init_sound_input_device(indev_id)
             output_ok = self.client.init_sound_output_device(outdev_id)
@@ -9674,6 +9770,7 @@ class MainFrame(wx.Frame):
             wx.CallAfter(self.set_status, "Verbindung verloren")
             self._analytics.on_error()
             self._analytics.on_disconnect()
+            self._session_history.log("disconnect", f"Verbindung verloren: {self._current_server_key}", server=self._current_server_key)
             self._offline_buffering = True
             wx.CallAfter(self.schedule_reconnect)
             self.sound_manager.play("server_disconnect", self.settings_store.settings.sound_events.get("server_disconnect"))
@@ -9843,9 +9940,11 @@ class MainFrame(wx.Frame):
         if event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN:
             text = f"* {name} hat sich angemeldet"
             tts_kind = "user_login"
+            self._session_history.log("user_login", f"{name} hat sich angemeldet", server=self._current_server_key, user=name)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDOUT:
             text = f"* {name} hat sich abgemeldet"
             tts_kind = "user_login"
+            self._session_history.log("user_logout", f"{name} hat sich abgemeldet", server=self._current_server_key, user=name)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED:
             text = f"* {name} hat Kanal {channel_name or channel_id} betreten"
             # v2.8.0 – Nutzer-Notiz anhängen
@@ -9859,6 +9958,10 @@ class MainFrame(wx.Frame):
             if user_id:
                 wx.CallAfter(self._apply_saved_user_volume, user_id)
                 wx.CallAfter(self._apply_jitter_buffer_to_user, user_id)
+                # v6.10.4 – Gespeicherte Stereo-Einstellung anwenden
+                _stereo_mode = (self.settings_store.settings.user_stereo_prefs or {}).get(name)
+                if _stereo_mode:
+                    wx.CallAfter(self._apply_user_stereo, user_id, _stereo_mode)
             # v2.7.0 – Webhook
             self._webhook.emit("user_join", {"user": name, "channel": channel_name})
             # v6.5.0 – Nutzerwatcher

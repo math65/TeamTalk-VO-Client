@@ -940,6 +940,12 @@ class TeamTalkClient:
     def set_user_volume(self, user_id: int, stream_type: int, volume: int) -> bool:
         return self.tt._SetUserVolume(self.client._tt, user_id, stream_type, volume)
 
+    def set_user_stereo(self, user_id: int, stream_type: int, left: bool, right: bool) -> bool:
+        try:
+            return bool(self.tt._SetUserStereo(self.client._tt, user_id, stream_type, left, right))
+        except Exception:
+            return False
+
     def set_user_mute(self, user_id: int, stream_type: int, mute: bool) -> bool:
         return self.tt._SetUserMute(self.client._tt, user_id, stream_type, mute, 0)
 

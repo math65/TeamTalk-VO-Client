@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-05-18 (v6.10.4)
+Vier weitere ttaccessible-Ideen: Per-Nutzer-Stereo-Balance, persistente Sitzungshistorie, Smart-Audio-Resolver
+
+- Per-Nutzer-Stereo-Balance — über das Nutzermenü (Kanäle-Tab) kann für jeden Teilnehmer
+  die Stereo-Position auf "Normal", "Nur links" oder "Nur rechts" gesetzt werden.
+  Die Einstellung wird per Nutzername gespeichert und bei erneutem Beitritt automatisch angewandt.
+- Persistente Sitzungshistorie — Verbindungen, Kanalwechsel sowie An- und Abmeldungen werden
+  in einer JSONL-Datei (session_history.jsonl im App-Datenverzeichnis) dauerhaft protokolliert.
+  Export als Textdatei über Datei → "Sitzungsverlauf exportieren…".
+- Smart Audio Device Resolver — beim Auto-Initialisieren der Audiogeräte nach dem Login wird
+  nun eingebaute Hardware (Built-in, Mikrofon, MacBook-Mikrofon) gegenüber virtuellen
+  Loopback-Geräten bevorzugt, um versehentliche Stille zu vermeiden.
+
 2026-05-17 (v6.10.3)
 Vier weitere ttaccessible-Ideen: AVSpeechSynthesizer-Backend, TTS-Rate/Lautstärke für macOS, Benachrichtigungsmodus pro Typ, Root-Kanal-Auto-Join
 

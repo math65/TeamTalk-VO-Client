@@ -318,6 +318,7 @@ class AppSettings:
     notify_background_channel_mode: str = "off"
     notify_background_broadcast_mode: str = "notification"
     auto_join_root_channel: bool = False
+    user_stereo_prefs: Dict[str, str] = field(default_factory=dict)  # username → "normal"|"left"|"right"
 
 
 class SettingsStore:
@@ -535,6 +536,8 @@ class SettingsStore:
                 data.get("notify_background_broadcast_mode", "notification" if _old_bc else "off") or "notification"
             )
             self.settings.auto_join_root_channel = bool(data.get("auto_join_root_channel", False))
+            raw_usp = data.get("user_stereo_prefs", {})
+            self.settings.user_stereo_prefs = {str(k): str(v) for k, v in raw_usp.items()} if isinstance(raw_usp, dict) else {}
             # v3.5.0
             raw_mt = data.get("macro_triggers", [])
             self.settings.macro_triggers = raw_mt if isinstance(raw_mt, list) else []
@@ -724,5 +727,6 @@ class SettingsStore:
             "notify_background_channel_mode": str(self.settings.notify_background_channel_mode or "off"),
             "notify_background_broadcast_mode": str(self.settings.notify_background_broadcast_mode or "notification"),
             "auto_join_root_channel": bool(self.settings.auto_join_root_channel),
+            "user_stereo_prefs": dict(self.settings.user_stereo_prefs or {}),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

@@ -57,6 +57,10 @@ class DeviceEntry:
     is_loopback: bool       # True wenn Loopback/Monitor-Gerät erkannt
 
 
+# Namensbestandteile die auf echte eingebaute Hardware hinweisen
+_PREFER_KEYWORDS = ("built-in", "internal", "macbook", "eingebaut", "mikrofon", "microphone", "headset")
+
+
 # ---------------------------------------------------------------------------
 # Geräteklassifikation
 # ---------------------------------------------------------------------------
@@ -81,6 +85,24 @@ def classify_devices(
         label = f"[Systemton] {name}" if loopback else name
         result.append(DeviceEntry(device=dev, label=label, is_loopback=loopback))
     return result
+
+
+def preferred_input_device(devices: list, tt_str: Callable[[object], str]):
+    """Wählt das beste echte Eingabegerät; bevorzugt eingebaute Hardware vor virtuellen.
+
+    Gibt das erste Gerät zurück das nicht in _LOOPBACK_KEYWORDS ist und
+    möglichst _PREFER_KEYWORDS enthält. Wenn alle Geräte virtuell sind,
+    wird das erste zurückgegeben.
+    """
+    if not devices:
+        return None
+    non_loopback = [d for d in devices if not _is_loopback_name(tt_str(d.szDeviceName))]
+    candidates = non_loopback if non_loopback else devices
+    for d in candidates:
+        name = tt_str(d.szDeviceName).lower()
+        if any(kw in name for kw in _PREFER_KEYWORDS):
+            return d
+    return candidates[0]
 
 
 def _is_loopback_name(name: str) -> bool:
