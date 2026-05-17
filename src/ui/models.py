@@ -295,6 +295,7 @@ class AppSettings:
     tts_speak_broadcast: bool = True
     tts_speak_user_away: bool = False
     tts_backend: str = "espeak"
+    tts_muted_channels: List[int] = field(default_factory=list)
     chat_relative_timestamps: bool = False
     server_list_sort: str = "manual"
     skip_kick_confirmation: bool = False
@@ -488,6 +489,8 @@ class SettingsStore:
             self.settings.tts_speak_broadcast = bool(data.get("tts_speak_broadcast", True))
             self.settings.tts_speak_user_away = bool(data.get("tts_speak_user_away", False))
             self.settings.tts_backend = str(data.get("tts_backend", "espeak") or "espeak")
+            raw_tmc = data.get("tts_muted_channels", [])
+            self.settings.tts_muted_channels = [int(x) for x in raw_tmc if isinstance(x, (int, float))] if isinstance(raw_tmc, list) else []
             self.settings.chat_relative_timestamps = bool(data.get("chat_relative_timestamps", False))
             self.settings.server_list_sort = str(data.get("server_list_sort", "manual") or "manual")
             self.settings.skip_kick_confirmation = bool(data.get("skip_kick_confirmation", False))
@@ -665,6 +668,7 @@ class SettingsStore:
             "tts_speak_broadcast": bool(self.settings.tts_speak_broadcast),
             "tts_speak_user_away": bool(self.settings.tts_speak_user_away),
             "tts_backend": str(self.settings.tts_backend or "espeak"),
+            "tts_muted_channels": list(self.settings.tts_muted_channels or []),
             "chat_relative_timestamps": bool(self.settings.chat_relative_timestamps),
             "server_list_sort": str(self.settings.server_list_sort or "manual"),
             "skip_kick_confirmation": bool(self.settings.skip_kick_confirmation),

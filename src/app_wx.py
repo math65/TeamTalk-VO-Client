@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.10.0"
+APP_VERSION = "6.10.1"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -906,6 +906,8 @@ class MainFrame(wx.Frame):
             self.Bind(wx.EVT_MENU, lambda _e: self._toggle_mic_accel(), id=int(_id_mic))
             _id_ch_search = wx.NewIdRef()
             self.Bind(wx.EVT_MENU, lambda _e: self._open_channel_switcher(), id=int(_id_ch_search))
+            _id_media_mute = wx.NewIdRef()
+            self.Bind(wx.EVT_MENU, lambda _e: self._toggle_selected_user_media_mute(), id=int(_id_media_mute))
             accel = wx.AcceleratorTable(
                 [
                     (wx.ACCEL_CMD, ord(","), wx.ID_PREFERENCES),
@@ -917,6 +919,7 @@ class MainFrame(wx.Frame):
                     (wx.ACCEL_CMD, ord("L"), int(_id_leave)),
                     (wx.ACCEL_CMD | wx.ACCEL_SHIFT, ord("A"), int(_id_mic)),
                     (wx.ACCEL_CMD, ord("K"), int(_id_ch_search)),
+                    (wx.ACCEL_CMD | wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("M"), int(_id_media_mute)),
                 ]
             )
             self.SetAcceleratorTable(accel)
@@ -3879,6 +3882,21 @@ class MainFrame(wx.Frame):
         muted = bool(user.uUserState & tt.UserState.USERSTATE_MUTE_MEDIAFILE)
         self.client.set_user_mute(int(user.nUserID), int(tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO), not muted)
         self.set_status("Mediendatei stummgeschaltet" if not muted else "Mediendatei entstummt")
+
+    def _toggle_selected_user_media_mute(self) -> None:
+        """⌘Ctrl⇧M — Mediendatei-Stream des ausgewählten Nutzers stummschalten/entstummen."""
+        if not self.client or not self.client.is_connected():
+            return
+        user = self._get_selected_user()
+        if not user:
+            return
+        tt = self.client.tt
+        muted = bool(int(getattr(user, "uUserState", 0) or 0) & int(tt.UserState.USERSTATE_MUTE_MEDIAFILE))
+        self.client.set_user_mute(int(user.nUserID), int(tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO), not muted)
+        name = self.tt_str(getattr(user, "szNickname", "")) or self.tt_str(getattr(user, "szUsername", "")) or "Benutzer"
+        status = "stummgeschaltet" if not muted else "entstummt"
+        self.set_status(f"Mediendatei {name}: {status}")
+        self.tts.speak(f"Mediendatei {name} {status}", kind="system")
 
     def on_menu_user_mute_all(self, _event):
         self._mute_all = not self._mute_all
@@ -9795,11 +9813,15 @@ class MainFrame(wx.Frame):
             return
 
         # v6.9.7: per-Nutzer TTS-Stummschaltung für Beitritt/Verlassen
+        # v6.10.1: per-Kanal TTS-Stummschaltung
         _tts_join_muted = False
         if tts_kind in ("user_join", "user_leave"):
             _muted_raw = str(getattr(self.settings_store.settings, "tts_muted_join_users", "") or "")
             _muted_list = [u.strip().lower() for u in _muted_raw.split(",") if u.strip()]
             _tts_join_muted = name.lower() in _muted_list if _muted_list else False
+            if not _tts_join_muted and channel_id:
+                _muted_chs = list(getattr(self.settings_store.settings, "tts_muted_channels", []) or [])
+                _tts_join_muted = channel_id in _muted_chs
         self.chat_tab.append_chat(text, kind="system", speak=False)
         if not _tts_join_muted:
             self.tts.speak(text, kind=tts_kind)

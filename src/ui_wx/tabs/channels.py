@@ -598,9 +598,27 @@ class ChannelsTab(wx.Panel):
         def _note(_e):
             self.frame.on_menu_channel_note(None)
 
+        # TTS-Stummschaltung für diesen Kanal
+        tts_muted_chs = list(getattr(self.frame.settings_store.settings, "tts_muted_channels", []) or [])
+        tts_ch_muted = channel_id in tts_muted_chs
+        tts_ch_label = _("TTS-Meldungen entstummen") if tts_ch_muted else _("TTS-Meldungen stummschalten")
+        tts_ch_item = menu.Append(wx.ID_ANY, tts_ch_label)
+
+        def _toggle_tts_ch(_e):
+            chs = list(getattr(self.frame.settings_store.settings, "tts_muted_channels", []) or [])
+            if channel_id in chs:
+                chs.remove(channel_id)
+                self.frame.set_status("Kanal-TTS entstummt")
+            else:
+                chs.append(channel_id)
+                self.frame.set_status("Kanal-TTS stummgeschaltet")
+            self.frame.settings_store.settings.tts_muted_channels = chs
+            self.frame.settings_store.save()
+
         menu.Bind(wx.EVT_MENU, _join, join_item)
         menu.Bind(wx.EVT_MENU, _toggle_fav, fav_item)
         menu.Bind(wx.EVT_MENU, _note, note_item)
+        menu.Bind(wx.EVT_MENU, _toggle_tts_ch, tts_ch_item)
         self.PopupMenu(menu)
         menu.Destroy()
 

@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-05-17 (v6.10.1)
+Zwei neue Features: Mediendatei-Stummschaltung (⌘Ctrl⇧M), Kanal-TTS-Stummschaltung
+
+- Mediendatei-Stummschaltung (⌘Ctrl⇧M): Der ausgewählte Nutzer in der Nutzerliste kann
+  mit diesem Tastenkürzel bezüglich seines Mediendatei-Audio-Streams stummgeschaltet oder
+  entstummt werden. Status wird per TTS und Statusleiste bestätigt.
+- Per-Kanal TTS-Stummschaltung: Im Kanalkontext-Menü (Rechtsklick auf Kanal) erscheint
+  "TTS-Meldungen stummschalten" bzw. "TTS-Meldungen entstummen". Stummgeschaltete Kanäle
+  unterdrücken TTS-Ankündigungen für Beitritt und Verlassen von Nutzern.
+  Die Einstellung wird dauerhaft gespeichert.
+
 2026-05-17 (v6.10.0)
 Drei neue Features: VoiceOver-TTS, Abwesend-Ankündigungen, ⌘K Schnellkanal-Wechsler
 
