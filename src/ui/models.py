@@ -287,6 +287,17 @@ class AppSettings:
     server_audio_profiles: Dict[str, str] = field(default_factory=dict)
     # v6.7.0 features
     auto_channel_summary: bool = False
+    # v6.10.0 (ttaccessible-inspired)
+    away_status_message: str = ""
+    tts_speak_kicked: bool = True
+    tts_speak_broadcast: bool = True
+    chat_relative_timestamps: bool = False
+    server_list_sort: str = "manual"
+    skip_kick_confirmation: bool = False
+    adaptive_jitter_buffer: bool = False
+    notify_background_private: bool = True
+    notify_background_channel: bool = False
+    notify_background_broadcast: bool = True
 
 
 class SettingsStore:
@@ -462,6 +473,17 @@ class SettingsStore:
             self.settings.tts_speak_channel_topic_on_join = bool(data.get("tts_speak_channel_topic_on_join", True))
             raw_dp = data.get("disabled_plugins", [])
             self.settings.disabled_plugins = raw_dp if isinstance(raw_dp, list) else []
+            # v6.10.0
+            self.settings.away_status_message = str(data.get("away_status_message", "") or "")
+            self.settings.tts_speak_kicked = bool(data.get("tts_speak_kicked", True))
+            self.settings.tts_speak_broadcast = bool(data.get("tts_speak_broadcast", True))
+            self.settings.chat_relative_timestamps = bool(data.get("chat_relative_timestamps", False))
+            self.settings.server_list_sort = str(data.get("server_list_sort", "manual") or "manual")
+            self.settings.skip_kick_confirmation = bool(data.get("skip_kick_confirmation", False))
+            self.settings.adaptive_jitter_buffer = bool(data.get("adaptive_jitter_buffer", False))
+            self.settings.notify_background_private = bool(data.get("notify_background_private", True))
+            self.settings.notify_background_channel = bool(data.get("notify_background_channel", False))
+            self.settings.notify_background_broadcast = bool(data.get("notify_background_broadcast", True))
             # v3.5.0
             raw_mt = data.get("macro_triggers", [])
             self.settings.macro_triggers = raw_mt if isinstance(raw_mt, list) else []
@@ -620,5 +642,16 @@ class SettingsStore:
             "server_groups": dict(self.settings.server_groups or {}),
             "tts_speak_channel_topic_on_join": bool(self.settings.tts_speak_channel_topic_on_join),
             "disabled_plugins": list(self.settings.disabled_plugins or []),
+            # v6.10.0
+            "away_status_message": str(self.settings.away_status_message or ""),
+            "tts_speak_kicked": bool(self.settings.tts_speak_kicked),
+            "tts_speak_broadcast": bool(self.settings.tts_speak_broadcast),
+            "chat_relative_timestamps": bool(self.settings.chat_relative_timestamps),
+            "server_list_sort": str(self.settings.server_list_sort or "manual"),
+            "skip_kick_confirmation": bool(self.settings.skip_kick_confirmation),
+            "adaptive_jitter_buffer": bool(self.settings.adaptive_jitter_buffer),
+            "notify_background_private": bool(self.settings.notify_background_private),
+            "notify_background_channel": bool(self.settings.notify_background_channel),
+            "notify_background_broadcast": bool(self.settings.notify_background_broadcast),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

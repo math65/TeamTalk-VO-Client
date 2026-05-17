@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "6.9.5"
+APP_VERSION = "6.9.6"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -251,7 +251,7 @@ class MainWindow(QMainWindow):
         self._away_timer.timeout.connect(self._on_away_check)
         self._away_active = False
         self._activity_time = time.time()
-        _away_min = int(getattr(_ts, "away_timer", 0) or 0)
+        _away_min = int(getattr(_ts, "away_timer_min", 0) or 0)
         if _away_min > 0:
             self._away_timer.start(_away_min * 60 * 1000)
 

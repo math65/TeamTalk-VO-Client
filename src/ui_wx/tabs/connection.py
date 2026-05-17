@@ -249,7 +249,13 @@ class ConnectionTab(wx.Panel):
         )
 
     def reload_server_list(self):
-        self._all_server_names = [p.name for p in self.frame.store.items()]
+        profiles = self.frame.store.items()
+        sort_by = str(getattr(self.frame.settings_store.settings, "server_list_sort", "manual") or "manual")
+        if sort_by == "name":
+            profiles = sorted(profiles, key=lambda p: (p.name or "").lower())
+        elif sort_by == "host":
+            profiles = sorted(profiles, key=lambda p: (p.host or "").lower())
+        self._all_server_names = [p.name for p in profiles]
         self._apply_combined_filter()
 
     def _on_tls_fingerprint(self, _event) -> None:

@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.9.5"
+APP_VERSION = "6.9.6"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -623,6 +623,8 @@ class MainFrame(wx.Frame):
         self.tts.settings.speak_who_speaks = _ts.tts_speak_who_speaks
         self.tts.settings.speak_channel_topic = _ts.tts_speak_channel_topic
         self.tts.settings.connect_announce = _ts.tts_connect_announce
+        self.tts.settings.speak_broadcast = bool(getattr(_ts, "tts_speak_broadcast", True))
+        self.tts.settings.speak_kicked = bool(getattr(_ts, "tts_speak_kicked", True))
         # v2.2.0 per-context TTS rates
         self.tts.settings.chat_rate = int(getattr(_ts, "tts_chat_rate", 0) or 0)
         self.tts.settings.system_rate = int(getattr(_ts, "tts_system_rate", 0) or 0)
@@ -3978,12 +3980,13 @@ class MainFrame(wx.Frame):
         if not my_ch:
             self.set_status("Kein eigener Kanal")
             return
-        dlg = wx.MessageDialog(self, "Benutzer wirklich kicken?", "Kicken", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
-        dlg.SetYesNoLabels("Ja", "Nein")
-        if dlg.ShowModal() != wx.ID_YES:
+        if not bool(getattr(self.settings_store.settings, "skip_kick_confirmation", False)):
+            dlg = wx.MessageDialog(self, "Benutzer wirklich kicken?", "Kicken", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+            dlg.SetYesNoLabels("Ja", "Nein")
+            if dlg.ShowModal() != wx.ID_YES:
+                dlg.Destroy()
+                return
             dlg.Destroy()
-            return
-        dlg.Destroy()
         self.client.do_kick_user(int(user.nUserID), int(my_ch))
         self.set_status("Benutzer gekickt")
 
@@ -9331,7 +9334,8 @@ class MainFrame(wx.Frame):
             self._away_set_by_timer = True
             self._status_mode = 1
             try:
-                self.client.change_status(1, self._status_message)
+                away_msg = str(getattr(self.settings_store.settings, "away_status_message", "") or "") or self._status_message
+                self.client.change_status(1, away_msg)
             except Exception:
                 pass
 
@@ -9349,8 +9353,15 @@ class MainFrame(wx.Frame):
                 self.desktop_tab.set_active(True)
         event.Skip()
 
-    def _send_notification(self, title: str, message: str):
+    def _send_notification(self, title: str, message: str, kind: str = ""):
         if not getattr(self.settings_store.settings, "notifications_enabled", True):
+            return
+        s = self.settings_store.settings
+        if kind == "private" and not bool(getattr(s, "notify_background_private", True)):
+            return
+        if kind == "channel" and not bool(getattr(s, "notify_background_channel", False)):
+            return
+        if kind == "broadcast" and not bool(getattr(s, "notify_background_broadcast", True)):
             return
         if self._window_focused and self.IsShown():
             return
@@ -9847,7 +9858,7 @@ class MainFrame(wx.Frame):
             elif msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL):
                 kind = "chat"
             elif msg_type == int(tt.TextMsgType.MSGTYPE_BROADCAST):
-                kind = "system"
+                kind = "broadcast"
             else:
                 kind = "chat"
             if msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL):
@@ -9922,11 +9933,11 @@ class MainFrame(wx.Frame):
                 self.sound_manager.play(sound_key, se.get(sound_key))
             # Push notification
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER):
-                wx.CallAfter(self._send_notification, "Privatnachricht", f"{from_user}: {content}")
+                wx.CallAfter(self._send_notification, "Privatnachricht", f"{from_user}: {content}", "private")
             elif msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL):
-                wx.CallAfter(self._send_notification, "Kanalnachricht", f"{from_user}: {content}")
+                wx.CallAfter(self._send_notification, "Kanalnachricht", f"{from_user}: {content}", "channel")
             elif msg_type == int(tt.TextMsgType.MSGTYPE_BROADCAST):
-                wx.CallAfter(self._send_notification, "Rundnachricht", f"{from_user}: {content}")
+                wx.CallAfter(self._send_notification, "Rundnachricht", f"{from_user}: {content}", "broadcast")
             # v2.5.0 – Auto-Antwort
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and not is_own and from_id:
                 self._auto_reply.handle_private_message(from_id, from_user)

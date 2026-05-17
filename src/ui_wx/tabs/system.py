@@ -69,11 +69,17 @@ class SystemTab(wx.Panel):
         self.tts_channel_topic.SetName("Kanal-Thema ansagen")
         self.tts_connect_announce = wx.CheckBox(self, label="&Verbindung")
         self.tts_connect_announce.SetName("Verbindungsansage")
+        self.tts_broadcast = wx.CheckBox(self, label="&Rundnachricht")
+        self.tts_broadcast.SetName("Rundnachrichten ansagen")
+        self.tts_kicked = wx.CheckBox(self, label="&Gekickt")
+        self.tts_kicked.SetName("Kick-Ereignis ansagen")
         row3.Add(self.tts_user_join, 0, wx.RIGHT, 12)
         row3.Add(self.tts_user_leave, 0, wx.RIGHT, 12)
         row3.Add(self.tts_file_transfer, 0, wx.RIGHT, 12)
         row3.Add(self.tts_channel_topic, 0, wx.RIGHT, 12)
-        row3.Add(self.tts_connect_announce, 0)
+        row3.Add(self.tts_connect_announce, 0, wx.RIGHT, 12)
+        row3.Add(self.tts_broadcast, 0, wx.RIGHT, 12)
+        row3.Add(self.tts_kicked, 0)
         tts_sizer.Add(row3, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
 
         grid = wx.FlexGridSizer(cols=2, vgap=6, hgap=8)
@@ -163,6 +169,8 @@ class SystemTab(wx.Panel):
         self.tts_file_transfer.SetValue(s.speak_file_transfer)
         self.tts_channel_topic.SetValue(s.speak_channel_topic)
         self.tts_connect_announce.SetValue(s.connect_announce)
+        self.tts_broadcast.SetValue(s.speak_broadcast)
+        self.tts_kicked.SetValue(s.speak_kicked)
         if s.enabled:
             self._refresh_languages(force=True)
             # Default to "Alle" if language not set
@@ -191,6 +199,8 @@ class SystemTab(wx.Panel):
         s.speak_file_transfer = self.tts_file_transfer.GetValue()
         s.speak_channel_topic = self.tts_channel_topic.GetValue()
         s.connect_announce = self.tts_connect_announce.GetValue()
+        s.speak_broadcast = self.tts_broadcast.GetValue()
+        s.speak_kicked = self.tts_kicked.GetValue()
         s.language = self._get_language_value() or "de"
         s.voice = self._get_voice_value()
         s.rate = self.tts_rate.GetValue()
@@ -214,6 +224,8 @@ class SystemTab(wx.Panel):
         app.tts_speak_file_transfer = s.speak_file_transfer
         app.tts_speak_channel_topic = s.speak_channel_topic
         app.tts_connect_announce = s.connect_announce
+        app.tts_speak_broadcast = s.speak_broadcast
+        app.tts_speak_kicked = s.speak_kicked
         self.frame.settings_store.save()
 
     def _refresh_voices(self, _event, force: bool = False):

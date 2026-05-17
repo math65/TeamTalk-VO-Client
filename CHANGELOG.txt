@@ -1,6 +1,35 @@
 Changelog
 =========
 
+2026-05-17 (v6.9.6)
+Alle ttaccessible-Blöcke integriert — Settings, TTS, Verbindung, Notifications:
+
+Block 1 — Granulare TTS-Ereignisse:
+- Neue TTS-Checkboxen: "Rundnachricht" und "Gekickt" separat schaltbar
+- Rundnachrichten (Broadcast) jetzt eigene TTS-Art "broadcast" (war "system")
+
+Block 2 — Auto-Reconnect + Kanal (bereits in 6.9.x, jetzt vollständig):
+- Qt: Bugfix away_timer_min-Attributname (war away_timer_minutes → Einstellung wurde nicht gespeichert)
+
+Block 3 — Auto-Abwesend:
+- Neues Einstellungsfeld: eigene Abwesenheitsstatus-Nachricht
+- wx: Bei Auto-Away wird jetzt die konfigurierte Nachricht gesetzt
+
+Block 5 — Hintergrund-Benachrichtigungen pro Typ:
+- Neue Einstellungen: Privatnachrichten / Kanalnachrichten / Rundnachrichten im
+  Hintergrund separat aktivierbar
+
+Block 6 — Serverlisten-Sortierung:
+- Neue Einstellung: Serverliste nach Name, Host oder manuell sortieren
+
+Block 7 — Relative Zeitstempel als Toggle:
+- Neue Checkbox "Relative Zeitstempel" (gerade eben / vor X Min. / HH:MM)
+- In beiden UIs (wx + Qt)
+
+Block 8 — Kick-Bestätigung + Adaptiver Jitter-Buffer:
+- Neue Einstellung: Kick-Bestätigung überspringen (direkt kicken)
+- Neue Einstellung: Adaptiver Jitter-Buffer (Qt/Windows)
+
 2026-05-17 (v6.9.5)
 UI-Verbesserungen inspiriert von ttaccessible:
 

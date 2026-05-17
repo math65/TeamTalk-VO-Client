@@ -117,6 +117,11 @@ class SettingsTab(QWidget):
         self.show_timestamps.stateChanged.connect(lambda v: self._save_bool("show_timestamps", v))
         disp_form.addRow("", self.show_timestamps)
 
+        self.relative_timestamps = QCheckBox("Relative Zeitstempel (gerade eben / vor X Min.)")
+        self.relative_timestamps.setChecked(bool(getattr(s, "chat_relative_timestamps", False)))
+        self.relative_timestamps.stateChanged.connect(lambda v: self._save_bool("chat_relative_timestamps", v))
+        disp_form.addRow("", self.relative_timestamps)
+
         self.desktop_notifications = QCheckBox("Desktop-Benachrichtigungen")
         self.desktop_notifications.setChecked(bool(getattr(s, "desktop_notifications", True)))
         self.desktop_notifications.stateChanged.connect(lambda v: self._save_bool("desktop_notifications", v))
@@ -148,9 +153,9 @@ class SettingsTab(QWidget):
         self.away_timer = QSpinBox()
         self.away_timer.setRange(0, 120)
         self.away_timer.setSuffix(" min (0 = aus)")
-        self.away_timer.setValue(int(getattr(s, "away_timer_minutes", 0) or 0))
+        self.away_timer.setValue(int(getattr(s, "away_timer_min", 0) or 0))
         self.away_timer.setAccessibleName("Weg-Modus nach (Minuten)")
-        self.away_timer.valueChanged.connect(lambda v: self._save_int("away_timer_minutes", v))
+        self.away_timer.valueChanged.connect(lambda v: self._save_int("away_timer_min", v))
         away_form.addRow("Weg-Modus nach", self.away_timer)
 
         self.away_status = QLineEdit(getattr(s, "away_status_message", "Bin kurz weg") or "Bin kurz weg")
@@ -288,6 +293,44 @@ class SettingsTab(QWidget):
         bw_form.addRow("Passwort", self.bearware_password)
         layout.addWidget(bw_group)
 
+        # Serverliste & Verhalten
+        misc_group = QGroupBox("Serverliste & Verhalten")
+        misc_form = QFormLayout(misc_group)
+        from PySide6.QtWidgets import QComboBox as _QComboBox
+        self.server_sort_combo = _QComboBox()
+        self.server_sort_combo.addItems(["Manuell", "Name", "Host"])
+        _sort_idx = {"manual": 0, "name": 1, "host": 2}.get(str(getattr(s, "server_list_sort", "manual") or "manual"), 0)
+        self.server_sort_combo.setCurrentIndex(_sort_idx)
+        self.server_sort_combo.setAccessibleName("Serverliste sortieren nach")
+        self.server_sort_combo.currentIndexChanged.connect(self._on_server_sort_changed)
+        misc_form.addRow("Sortierung", self.server_sort_combo)
+        self.skip_kick_cb = QCheckBox("Kick-Bestätigung überspringen")
+        self.skip_kick_cb.setChecked(bool(getattr(s, "skip_kick_confirmation", False)))
+        self.skip_kick_cb.stateChanged.connect(lambda v: self._save_bool("skip_kick_confirmation", v))
+        misc_form.addRow("", self.skip_kick_cb)
+        self.jitter_cb = QCheckBox("Adaptiver Jitter-Buffer")
+        self.jitter_cb.setChecked(bool(getattr(s, "adaptive_jitter_buffer", False)))
+        self.jitter_cb.stateChanged.connect(lambda v: self._save_bool("adaptive_jitter_buffer", v))
+        misc_form.addRow("", self.jitter_cb)
+        layout.addWidget(misc_group)
+
+        # Hintergrund-Benachrichtigungen
+        bg_notif_group = QGroupBox("Hintergrund-Benachrichtigungen")
+        bg_notif_form = QFormLayout(bg_notif_group)
+        self.notify_bg_private = QCheckBox("Privatnachrichten")
+        self.notify_bg_private.setChecked(bool(getattr(s, "notify_background_private", True)))
+        self.notify_bg_private.stateChanged.connect(lambda v: self._save_bool("notify_background_private", v))
+        bg_notif_form.addRow("", self.notify_bg_private)
+        self.notify_bg_channel = QCheckBox("Kanalnachrichten")
+        self.notify_bg_channel.setChecked(bool(getattr(s, "notify_background_channel", False)))
+        self.notify_bg_channel.stateChanged.connect(lambda v: self._save_bool("notify_background_channel", v))
+        bg_notif_form.addRow("", self.notify_bg_channel)
+        self.notify_bg_broadcast = QCheckBox("Rundnachrichten")
+        self.notify_bg_broadcast.setChecked(bool(getattr(s, "notify_background_broadcast", True)))
+        self.notify_bg_broadcast.stateChanged.connect(lambda v: self._save_bool("notify_background_broadcast", v))
+        bg_notif_form.addRow("", self.notify_bg_broadcast)
+        layout.addWidget(bg_notif_group)
+
         # Auto-Kanal per Server-Schlüssel
         ac_group = QGroupBox("Automatisch beitreten (pro Server)")
         ac_form = QFormLayout(ac_group)
@@ -310,6 +353,11 @@ class SettingsTab(QWidget):
         layout.addStretch()
         scroll.setWidget(inner)
         return scroll
+
+    def _on_server_sort_changed(self, idx: int) -> None:
+        _choices = ["manual", "name", "host"]
+        val = _choices[idx] if 0 <= idx < len(_choices) else "manual"
+        self._save_str("server_list_sort", val)
 
     def _on_auto_join_channel_changed(self, text: str) -> None:
         s = self.window.settings_store.settings

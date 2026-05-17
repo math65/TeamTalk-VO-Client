@@ -27,6 +27,8 @@ class TTSSettings:
     speak_who_speaks: bool = False
     speak_channel_topic: bool = False
     connect_announce: bool = True
+    speak_broadcast: bool = True
+    speak_kicked: bool = True
     language: str = "de"
     voice: str = ""
     rate: int = 175
@@ -328,6 +330,10 @@ class TTSManager:
         if kind == "channel_topic" and not self.settings.speak_channel_topic:
             return
         if kind == "connect" and not self.settings.connect_announce:
+            return
+        if kind == "broadcast" and not self.settings.speak_broadcast:
+            return
+        if kind == "kicked" and not self.settings.speak_kicked:
             return
 
         if self.settings.interrupt:

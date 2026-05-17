@@ -187,7 +187,7 @@ class SettingsTab(wx.Panel):
             self._gender_radio.SetSelection(2)
         gen_sizer.Add(self._gender_radio, 0, wx.ALL | wx.EXPAND, 8)
 
-        # Away timer
+        # Away timer + custom message
         away_row = wx.BoxSizer(wx.HORIZONTAL)
         away_lbl = wx.StaticText(panel, label="Abwesenheits-Timer (Min., 0=aus)")
         self._away_timer = wx.SpinCtrl(panel, min=0, max=120, initial=int(s.away_timer_min or 0))
@@ -195,6 +195,12 @@ class SettingsTab(wx.Panel):
         away_row.Add(away_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         away_row.Add(self._away_timer, 0)
         gen_sizer.Add(away_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        away_msg_row = wx.BoxSizer(wx.HORIZONTAL)
+        away_msg_row.Add(wx.StaticText(panel, label="Abwesenheitsstatus-Nachricht:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._away_status_message = wx.TextCtrl(panel, value=str(getattr(s, "away_status_message", "") or ""))
+        self._away_status_message.SetName("Abwesenheitsstatus-Nachricht")
+        away_msg_row.Add(self._away_status_message, 1, wx.EXPAND)
+        gen_sizer.Add(away_msg_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # BearWare
         bearware_box = wx.StaticBox(panel, label="BearWare Web-Login")
@@ -242,6 +248,11 @@ class SettingsTab(wx.Panel):
         self._chat_show_timestamps.SetName("Zeitstempel im Chat anzeigen")
         self._chat_show_timestamps.SetValue(bool(getattr(s, "chat_show_timestamps", False)))
         gen_sizer.Add(self._chat_show_timestamps, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._chat_relative_timestamps = wx.CheckBox(panel, label="Zeit&stempel als relative Angabe (gerade eben, vor X Min.)")
+        self._chat_relative_timestamps.SetName("Relative Zeitstempel")
+        self._chat_relative_timestamps.SetValue(bool(getattr(s, "chat_relative_timestamps", False)))
+        gen_sizer.Add(self._chat_relative_timestamps, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         self._braille_compact = wx.CheckBox(panel, label="&Braillezeilen-Kompaktmodus (kürzere Labels)")
         self._braille_compact.SetName("Braillezeilen-Kompaktmodus")
@@ -328,6 +339,23 @@ class SettingsTab(wx.Panel):
         self._notifications_enabled.SetValue(bool(getattr(s, "notifications_enabled", True)))
         disp_sizer.Add(self._notifications_enabled, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+        # Background notification types
+        notif_bg_box = wx.StaticBox(panel, label="Hintergrund-Benachrichtigungen (wenn App nicht im Vordergrund)")
+        notif_bg_sizer = wx.StaticBoxSizer(notif_bg_box, wx.VERTICAL)
+        self._notify_bg_private = wx.CheckBox(panel, label="&Privatnachrichten")
+        self._notify_bg_private.SetName("Privatnachrichten im Hintergrund")
+        self._notify_bg_private.SetValue(bool(getattr(s, "notify_background_private", True)))
+        notif_bg_sizer.Add(self._notify_bg_private, 0, wx.ALL, 4)
+        self._notify_bg_channel = wx.CheckBox(panel, label="&Kanalnachrichten")
+        self._notify_bg_channel.SetName("Kanalnachrichten im Hintergrund")
+        self._notify_bg_channel.SetValue(bool(getattr(s, "notify_background_channel", False)))
+        notif_bg_sizer.Add(self._notify_bg_channel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
+        self._notify_bg_broadcast = wx.CheckBox(panel, label="&Rundnachrichten")
+        self._notify_bg_broadcast.SetName("Rundnachrichten im Hintergrund")
+        self._notify_bg_broadcast.SetValue(bool(getattr(s, "notify_background_broadcast", True)))
+        notif_bg_sizer.Add(self._notify_bg_broadcast, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
+        disp_sizer.Add(notif_bg_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         sizer.Add(disp_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # Single save button
@@ -396,6 +424,27 @@ class SettingsTab(wx.Panel):
         port_form.Add(self._udp_bind_port, 0)
         ports_sizer.Add(port_form, 0, wx.ALL | wx.EXPAND, 8)
         conn_sizer.Add(ports_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # Server list sort
+        sort_row = wx.BoxSizer(wx.HORIZONTAL)
+        sort_row.Add(wx.StaticText(panel, label="Serverliste sortieren nach:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._server_sort = wx.Choice(panel, choices=["Manuell", "Name", "Host"])
+        self._server_sort.SetName("Serverliste Sortierung")
+        _sort_map = {"manual": 0, "name": 1, "host": 2}
+        self._server_sort.SetSelection(_sort_map.get(str(getattr(s, "server_list_sort", "manual") or "manual"), 0))
+        sort_row.Add(self._server_sort, 0)
+        conn_sizer.Add(sort_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        # Kick confirmation + jitter buffer
+        self._skip_kick_confirmation = wx.CheckBox(panel, label="&Kick-Bestätigung überspringen")
+        self._skip_kick_confirmation.SetName("Kick-Bestätigung überspringen")
+        self._skip_kick_confirmation.SetValue(bool(getattr(s, "skip_kick_confirmation", False)))
+        conn_sizer.Add(self._skip_kick_confirmation, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._adaptive_jitter = wx.CheckBox(panel, label="&Adaptiver Jitter-Buffer")
+        self._adaptive_jitter.SetName("Adaptiver Jitter-Buffer")
+        self._adaptive_jitter.SetValue(bool(getattr(s, "adaptive_jitter_buffer", False)))
+        conn_sizer.Add(self._adaptive_jitter, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         sizer.Add(conn_sizer, 0, wx.ALL | wx.EXPAND, 8)
 
@@ -1198,6 +1247,7 @@ class SettingsTab(wx.Panel):
         sel = self._gender_radio.GetSelection()
         s.gender = gender_choices[sel] if 0 <= sel < len(gender_choices) else ""
         s.away_timer_min = int(self._away_timer.GetValue())
+        s.away_status_message = self._away_status_message.GetValue().strip()
         s.bearware_username = self._bearware_user.GetValue().strip()
         s.bearware_password = self._bearware_pass.GetValue()
         s.bearware_login = self._bearware_enable.GetValue()
@@ -1206,6 +1256,7 @@ class SettingsTab(wx.Panel):
         s.save_private_chat_history = self._save_private_history.GetValue()
         s.update_check_on_start = self._update_check.GetValue()
         s.chat_show_timestamps = self._chat_show_timestamps.GetValue()
+        s.chat_relative_timestamps = self._chat_relative_timestamps.GetValue()
         s.braille_compact_mode = self._braille_compact.GetValue()
         s.save_channel_passwords = self._save_channel_passwords.GetValue()
         s.chat_highlight_keywords = self._highlight_keywords.GetValue().strip()
@@ -1243,6 +1294,9 @@ class SettingsTab(wx.Panel):
         s.show_event_log = self._show_event_log.GetValue()
         s.show_vu_meter = self._show_vu_meter.GetValue()
         s.notifications_enabled = self._notifications_enabled.GetValue()
+        s.notify_background_private = self._notify_bg_private.GetValue()
+        s.notify_background_channel = self._notify_bg_channel.GetValue()
+        s.notify_background_broadcast = self._notify_bg_broadcast.GetValue()
         self.frame.settings_store.save()
         self.frame.apply_display_settings()
         self._on_vu_meter_changed(None)
@@ -1297,6 +1351,11 @@ class SettingsTab(wx.Panel):
         s.default_subscriptions = total
         s.tcp_bind_port = int(self._tcp_bind_port.GetValue())
         s.udp_bind_port = int(self._udp_bind_port.GetValue())
+        _sort_choices = ["manual", "name", "host"]
+        sel = self._server_sort.GetSelection()
+        s.server_list_sort = _sort_choices[sel] if 0 <= sel < len(_sort_choices) else "manual"
+        s.skip_kick_confirmation = self._skip_kick_confirmation.GetValue()
+        s.adaptive_jitter_buffer = self._adaptive_jitter.GetValue()
         self.frame.settings_store.save()
         self.frame.set_status("Verbindungseinstellungen gespeichert")
 
