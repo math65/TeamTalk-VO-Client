@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.9.9"
+APP_VERSION = "6.10.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -476,6 +476,7 @@ class MainFrame(wx.Frame):
         self._capture_hotkey_target: Optional[str] = None
         self._user_volume_levels: Dict[int, int] = {}
         self._user_media_volume_levels: Dict[int, int] = {}
+        self._user_status_cache: Dict[int, int] = {}
         self._channel_message_log: List[str] = []
         self._offline_event_log: List[Tuple[str, str, str]] = []  # (ts, text, kind)
         self._offline_buffering = False
@@ -625,6 +626,8 @@ class MainFrame(wx.Frame):
         self.tts.settings.connect_announce = _ts.tts_connect_announce
         self.tts.settings.speak_broadcast = bool(getattr(_ts, "tts_speak_broadcast", True))
         self.tts.settings.speak_kicked = bool(getattr(_ts, "tts_speak_kicked", True))
+        self.tts.settings.speak_user_away = bool(getattr(_ts, "tts_speak_user_away", False))
+        self.tts.settings.backend = str(getattr(_ts, "tts_backend", "espeak") or "espeak")
         # v2.2.0 per-context TTS rates
         self.tts.settings.chat_rate = int(getattr(_ts, "tts_chat_rate", 0) or 0)
         self.tts.settings.system_rate = int(getattr(_ts, "tts_system_rate", 0) or 0)
@@ -901,6 +904,8 @@ class MainFrame(wx.Frame):
             self.Bind(wx.EVT_MENU, lambda _e: self.on_menu_channel_join(None), id=int(_id_join))
             self.Bind(wx.EVT_MENU, lambda _e: self.on_menu_channel_leave(None), id=int(_id_leave))
             self.Bind(wx.EVT_MENU, lambda _e: self._toggle_mic_accel(), id=int(_id_mic))
+            _id_ch_search = wx.NewIdRef()
+            self.Bind(wx.EVT_MENU, lambda _e: self._open_channel_switcher(), id=int(_id_ch_search))
             accel = wx.AcceleratorTable(
                 [
                     (wx.ACCEL_CMD, ord(","), wx.ID_PREFERENCES),
@@ -911,6 +916,7 @@ class MainFrame(wx.Frame):
                     (wx.ACCEL_CMD, ord("J"), int(_id_join)),
                     (wx.ACCEL_CMD, ord("L"), int(_id_leave)),
                     (wx.ACCEL_CMD | wx.ACCEL_SHIFT, ord("A"), int(_id_mic)),
+                    (wx.ACCEL_CMD, ord("K"), int(_id_ch_search)),
                 ]
             )
             self.SetAcceleratorTable(accel)
@@ -5237,6 +5243,13 @@ class MainFrame(wx.Frame):
             self.settings_tab._export_logs_zip()
         except Exception:
             self.set_status("Log-Export fehlgeschlagen")
+
+    def _open_channel_switcher(self) -> None:
+        if not self.client or not self.client.is_connected():
+            return
+        dlg = ChannelSwitcherDialog(self)
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def on_menu_settings(self, _event):
         if not self.settings_window.IsShown():
@@ -9764,6 +9777,20 @@ class MainFrame(wx.Frame):
             self.bus.emit("user_left", user=name, user_id=user_id, channel_id=channel_id, channel_name=channel_name)
             # v2.7.0 – Webhook
             self._webhook.emit("user_leave", {"user": name, "channel": channel_name})
+        elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE:
+            user_id = int(getattr(user, "nUserID", 0) or 0)
+            new_mode = int(getattr(user, "nStatusMode", 0) or 0)
+            old_mode = self._user_status_cache.get(user_id, -1)
+            self._user_status_cache[user_id] = new_mode
+            if old_mode == -1 or old_mode == new_mode:
+                return
+            is_away = bool(new_mode & 1)
+            was_away = bool(old_mode & 1)
+            if is_away and not was_away:
+                self.tts.speak(f"{name} ist jetzt abwesend", kind="user_away")
+            elif not is_away and was_away:
+                self.tts.speak(f"{name} ist wieder verfügbar", kind="user_away")
+            return
         else:
             return
 
@@ -10334,6 +10361,89 @@ def _run_probe_server_once(argv: List[str]) -> int:
     except Exception:
         return 3
     return 0
+
+
+class ChannelSwitcherDialog(wx.Dialog):
+    """⌘K – Schnellkanal-Wechsler: Tippen → filtern → Enter zum Beitreten."""
+
+    def __init__(self, frame):
+        super().__init__(frame, title="Kanal wechseln (⌘K)",
+                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self._frame = frame
+        self._all_channels: list[tuple[int, str]] = []  # (channel_id, label)
+
+        accel = wx.AcceleratorTable([(wx.ACCEL_NORMAL, wx.WXK_ESCAPE, wx.ID_CANCEL)])
+        self.SetAcceleratorTable(accel)
+        self.Bind(wx.EVT_MENU, lambda e: self.EndModal(wx.ID_CANCEL), id=wx.ID_CANCEL)
+
+        root = wx.BoxSizer(wx.VERTICAL)
+        self._search = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self._search.SetName("Kanal suchen")
+        root.Add(self._search, 0, wx.ALL | wx.EXPAND, 8)
+
+        self._list = wx.ListBox(self, style=wx.LB_SINGLE)
+        self._list.SetName("Kanäle")
+        self._list.SetMinSize((400, 260))
+        root.Add(self._list, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        btn_sizer = wx.StdDialogButtonSizer()
+        ok_btn = wx.Button(self, wx.ID_OK, "Beitreten")
+        ok_btn.SetDefault()
+        btn_sizer.AddButton(ok_btn)
+        cancel_btn = wx.Button(self, wx.ID_CANCEL)
+        btn_sizer.AddButton(cancel_btn)
+        btn_sizer.Realize()
+        root.Add(btn_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        self.SetSizerAndFit(root)
+
+        self._search.Bind(wx.EVT_TEXT, self._on_search)
+        self._search.Bind(wx.EVT_TEXT_ENTER, self._on_join)
+        self._list.Bind(wx.EVT_LISTBOX_DCLICK, self._on_join)
+        self.Bind(wx.EVT_BUTTON, self._on_join, id=wx.ID_OK)
+
+        self._load_channels()
+        self._search.SetFocus()
+
+    def _load_channels(self) -> None:
+        try:
+            channels = list(self._frame.client.get_server_channels() or [])
+        except Exception:
+            channels = []
+        my_ch = int(self._frame.client.get_my_channel_id() or 0)
+        items = []
+        for ch in channels:
+            ch_id = int(getattr(ch, "nChannelID", 0) or 0)
+            if not ch_id or ch_id == my_ch:
+                continue
+            path = self._frame.tt_str(getattr(ch, "szName", "")) or str(ch_id)
+            items.append((ch_id, path))
+        items.sort(key=lambda x: x[1].lower())
+        self._all_channels = items
+        self._list.Set([label for _, label in items])
+        if items:
+            self._list.SetSelection(0)
+
+    def _on_search(self, _event) -> None:
+        query = self._search.GetValue().lower().strip()
+        if not query:
+            filtered = self._all_channels
+        else:
+            filtered = [(cid, label) for cid, label in self._all_channels
+                        if query in label.lower()]
+        self._list.Set([label for _, label in filtered])
+        self._filtered = filtered
+        if filtered:
+            self._list.SetSelection(0)
+
+    def _on_join(self, _event) -> None:
+        source = getattr(self, "_filtered", self._all_channels)
+        sel = self._list.GetSelection()
+        if sel == wx.NOT_FOUND or sel >= len(source):
+            return
+        ch_id, _ = source[sel]
+        self.EndModal(wx.ID_OK)
+        wx.CallAfter(self._frame.join_channel, ch_id)
 
 
 def run_app():

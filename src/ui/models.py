@@ -293,6 +293,8 @@ class AppSettings:
     away_status_message: str = ""
     tts_speak_kicked: bool = True
     tts_speak_broadcast: bool = True
+    tts_speak_user_away: bool = False
+    tts_backend: str = "espeak"
     chat_relative_timestamps: bool = False
     server_list_sort: str = "manual"
     skip_kick_confirmation: bool = False
@@ -484,6 +486,8 @@ class SettingsStore:
             self.settings.away_status_message = str(data.get("away_status_message", "") or "")
             self.settings.tts_speak_kicked = bool(data.get("tts_speak_kicked", True))
             self.settings.tts_speak_broadcast = bool(data.get("tts_speak_broadcast", True))
+            self.settings.tts_speak_user_away = bool(data.get("tts_speak_user_away", False))
+            self.settings.tts_backend = str(data.get("tts_backend", "espeak") or "espeak")
             self.settings.chat_relative_timestamps = bool(data.get("chat_relative_timestamps", False))
             self.settings.server_list_sort = str(data.get("server_list_sort", "manual") or "manual")
             self.settings.skip_kick_confirmation = bool(data.get("skip_kick_confirmation", False))
@@ -659,6 +663,8 @@ class SettingsStore:
             "away_status_message": str(self.settings.away_status_message or ""),
             "tts_speak_kicked": bool(self.settings.tts_speak_kicked),
             "tts_speak_broadcast": bool(self.settings.tts_speak_broadcast),
+            "tts_speak_user_away": bool(self.settings.tts_speak_user_away),
+            "tts_backend": str(self.settings.tts_backend or "espeak"),
             "chat_relative_timestamps": bool(self.settings.chat_relative_timestamps),
             "server_list_sort": str(self.settings.server_list_sort or "manual"),
             "skip_kick_confirmation": bool(self.settings.skip_kick_confirmation),

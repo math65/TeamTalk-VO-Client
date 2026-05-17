@@ -29,11 +29,13 @@ class TTSSettings:
     connect_announce: bool = True
     speak_broadcast: bool = True
     speak_kicked: bool = True
+    speak_user_away: bool = False
     language: str = "de"
     voice: str = ""
     rate: int = 175
     volume: int = 100
     espeak_path: str = ""
+    backend: str = "espeak"  # "espeak" | "voiceover" (macOS only)
     # v2.2.0 per-context overrides (0 / "" = use global)
     chat_rate: int = 0
     system_rate: int = 0
@@ -335,6 +337,8 @@ class TTSManager:
             return
         if kind == "kicked" and not self.settings.speak_kicked:
             return
+        if kind == "user_away" and not self.settings.speak_user_away:
+            return
 
         if self.settings.interrupt:
             self._stop_current()
@@ -405,6 +409,13 @@ class TTSManager:
             else:
                 text, ctx_rate, ctx_voice = item, 0, ""
             if not text:
+                continue
+            if self.settings.backend == "voiceover" and sys.platform == "darwin":
+                escaped = text.replace("\\", "\\\\").replace('"', '\\"')
+                subprocess.run(
+                    ["osascript", "-e", f'tell application "VoiceOver" to output "{escaped}"'],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                )
                 continue
             binary = self._resolve_binary()
             if not binary:

@@ -34,6 +34,7 @@ class SystemTab(wx.Panel):
         tts_box = wx.StaticBox(self, label="Sprachausgabe (espeak-ng)")
         tts_sizer = wx.StaticBoxSizer(tts_box, wx.VERTICAL)
 
+        import sys as _sys
         row1 = wx.BoxSizer(wx.HORIZONTAL)
         self.tts_enabled = wx.CheckBox(self, label="&TTS aktiv")
         self.tts_enabled.SetName("TTS aktiv")
@@ -42,6 +43,16 @@ class SystemTab(wx.Panel):
         row1.Add(self.tts_enabled, 0, wx.RIGHT, 12)
         row1.Add(self.tts_interrupt, 0)
         tts_sizer.Add(row1, 0, wx.ALL, 6)
+
+        if _sys.platform == "darwin":
+            backend_row = wx.BoxSizer(wx.HORIZONTAL)
+            backend_row.Add(wx.StaticText(self, label="TTS-Engine:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+            self.tts_backend = wx.Choice(self, choices=["espeak-ng", "VoiceOver (macOS)"])
+            self.tts_backend.SetName("TTS-Engine")
+            backend_row.Add(self.tts_backend, 0)
+            tts_sizer.Add(backend_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
+        else:
+            self.tts_backend = None
 
         row2 = wx.BoxSizer(wx.HORIZONTAL)
         self.tts_chat = wx.CheckBox(self, label="&Chat vorlesen")
@@ -73,13 +84,16 @@ class SystemTab(wx.Panel):
         self.tts_broadcast.SetName("Rundnachrichten ansagen")
         self.tts_kicked = wx.CheckBox(self, label="&Gekickt")
         self.tts_kicked.SetName("Kick-Ereignis ansagen")
+        self.tts_user_away = wx.CheckBox(self, label="A&bwesend/Zurück")
+        self.tts_user_away.SetName("Abwesend/Zurück ansagen")
         row3.Add(self.tts_user_join, 0, wx.RIGHT, 12)
         row3.Add(self.tts_user_leave, 0, wx.RIGHT, 12)
         row3.Add(self.tts_file_transfer, 0, wx.RIGHT, 12)
         row3.Add(self.tts_channel_topic, 0, wx.RIGHT, 12)
         row3.Add(self.tts_connect_announce, 0, wx.RIGHT, 12)
         row3.Add(self.tts_broadcast, 0, wx.RIGHT, 12)
-        row3.Add(self.tts_kicked, 0)
+        row3.Add(self.tts_kicked, 0, wx.RIGHT, 12)
+        row3.Add(self.tts_user_away, 0)
         tts_sizer.Add(row3, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
 
         grid = wx.FlexGridSizer(cols=2, vgap=6, hgap=8)
@@ -153,6 +167,9 @@ class SystemTab(wx.Panel):
         self.tts_rate.Bind(wx.EVT_SPINCTRL, self._apply_settings)
         self.tts_volume.Bind(wx.EVT_SPINCTRL, self._apply_settings)
         self.tts_path.Bind(wx.EVT_TEXT, self._apply_settings)
+        self.tts_user_away.Bind(wx.EVT_CHECKBOX, self._apply_settings)
+        if self.tts_backend is not None:
+            self.tts_backend.Bind(wx.EVT_CHOICE, self._apply_settings)
         self.tts_refresh.Bind(wx.EVT_BUTTON, lambda e: self._refresh_voices(e, force=True))
         self.tts_test.Bind(wx.EVT_BUTTON, self._on_test)
 
@@ -171,6 +188,9 @@ class SystemTab(wx.Panel):
         self.tts_connect_announce.SetValue(s.connect_announce)
         self.tts_broadcast.SetValue(s.speak_broadcast)
         self.tts_kicked.SetValue(s.speak_kicked)
+        self.tts_user_away.SetValue(s.speak_user_away)
+        if self.tts_backend is not None:
+            self.tts_backend.SetSelection(1 if s.backend == "voiceover" else 0)
         if s.enabled:
             self._refresh_languages(force=True)
             # Default to "Alle" if language not set
@@ -201,6 +221,9 @@ class SystemTab(wx.Panel):
         s.connect_announce = self.tts_connect_announce.GetValue()
         s.speak_broadcast = self.tts_broadcast.GetValue()
         s.speak_kicked = self.tts_kicked.GetValue()
+        s.speak_user_away = self.tts_user_away.GetValue()
+        if self.tts_backend is not None:
+            s.backend = "voiceover" if self.tts_backend.GetSelection() == 1 else "espeak"
         s.language = self._get_language_value() or "de"
         s.voice = self._get_voice_value()
         s.rate = self.tts_rate.GetValue()
@@ -226,6 +249,8 @@ class SystemTab(wx.Panel):
         app.tts_connect_announce = s.connect_announce
         app.tts_speak_broadcast = s.speak_broadcast
         app.tts_speak_kicked = s.speak_kicked
+        app.tts_speak_user_away = s.speak_user_away
+        app.tts_backend = s.backend
         self.frame.settings_store.save()
 
     def _refresh_voices(self, _event, force: bool = False):

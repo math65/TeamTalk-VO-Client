@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-05-17 (v6.10.0)
+Drei neue Features: VoiceOver-TTS, Abwesend-Ankündigungen, ⌘K Schnellkanal-Wechsler
+
+- VoiceOver-TTS-Backend (macOS): Im Tab "System & TTS" kann unter "TTS-Engine" zwischen
+  espeak-ng und "VoiceOver (macOS)" gewählt werden. VoiceOver-Modus spricht Text direkt
+  über die macOS-VoiceOver-Stimme (AppleScript-Schnittstelle), ohne espeak-ng.
+- Abwesend/Zurück-TTS: Neues TTS-Ereignis "Abwesend/Zurück ansagen" (Standard: aus).
+  Wenn ein Nutzer in den Abwesenheitsmodus wechselt oder zurückkommt, wird dies via TTS
+  angesagt ("Name ist jetzt abwesend" / "Name ist wieder verfügbar").
+- Schnellkanal-Wechsler (⌘K): Öffnet ein Suchfenster mit allen verfügbaren Kanälen.
+  Tippen filtert die Liste in Echtzeit; Enter tritt dem ausgewählten Kanal bei.
+  Nur aktiv wenn verbunden.
+
 2026-05-17 (v6.9.9)
 Danksagungen und Handbuch: ttaccessible-Referenz ergänzt
 
