@@ -306,6 +306,11 @@ class AppSettings:
     # v6.9.7
     tts_muted_join_users: str = ""
     channel_favorites: List[int] = field(default_factory=list)
+    # v6.10.2 (ttaccessible-inspired)
+    tts_speak_user_login: bool = True
+    tts_speak_file_event: bool = True
+    tts_macos_voice: str = ""
+    recording_mode: str = "muxed"  # "muxed" | "separate" | "both"
 
 
 class SettingsStore:
@@ -502,6 +507,11 @@ class SettingsStore:
             self.settings.tts_muted_join_users = str(data.get("tts_muted_join_users", "") or "")
             raw_cf = data.get("channel_favorites", [])
             self.settings.channel_favorites = [int(x) for x in raw_cf if isinstance(x, (int, float))] if isinstance(raw_cf, list) else []
+            # v6.10.2
+            self.settings.tts_speak_user_login = bool(data.get("tts_speak_user_login", True))
+            self.settings.tts_speak_file_event = bool(data.get("tts_speak_file_event", True))
+            self.settings.tts_macos_voice = str(data.get("tts_macos_voice", "") or "")
+            self.settings.recording_mode = str(data.get("recording_mode", "muxed") or "muxed")
             # v3.5.0
             raw_mt = data.get("macro_triggers", [])
             self.settings.macro_triggers = raw_mt if isinstance(raw_mt, list) else []
@@ -679,5 +689,10 @@ class SettingsStore:
             # v6.9.7
             "tts_muted_join_users": str(self.settings.tts_muted_join_users or ""),
             "channel_favorites": list(self.settings.channel_favorites or []),
+            # v6.10.2
+            "tts_speak_user_login": bool(self.settings.tts_speak_user_login),
+            "tts_speak_file_event": bool(self.settings.tts_speak_file_event),
+            "tts_macos_voice": str(self.settings.tts_macos_voice or ""),
+            "recording_mode": str(self.settings.recording_mode or "muxed"),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

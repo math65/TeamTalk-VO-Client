@@ -943,6 +943,16 @@ class TeamTalkClient:
     def set_user_mute(self, user_id: int, stream_type: int, mute: bool) -> bool:
         return self.tt._SetUserMute(self.client._tt, user_id, stream_type, mute, 0)
 
+    def set_user_jitter_control(self, user_id: int, stream_type: int, adaptive: bool, max_delay_ms: int = 200) -> bool:
+        try:
+            cfg = self.tt.JitterConfig()
+            cfg.bUseAdativeDejitter = 1 if adaptive else 0
+            cfg.nMaxAdaptiveDelayMSec = max_delay_ms if adaptive else 0
+            cfg.nFixedDelayMSec = 0
+            return bool(self.tt._SetUserJitterControl(self.client._tt, user_id, stream_type, ctypes.byref(cfg)))
+        except Exception:
+            return False
+
     def set_user_position(self, user_id: int, stream_type: int, x: float, y: float, z: float) -> bool:
         return self.tt._SetUserPosition(self.client._tt, int(user_id), int(stream_type), float(x), float(y), float(z))
 

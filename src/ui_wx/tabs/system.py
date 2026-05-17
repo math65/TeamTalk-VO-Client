@@ -47,12 +47,21 @@ class SystemTab(wx.Panel):
         if _sys.platform == "darwin":
             backend_row = wx.BoxSizer(wx.HORIZONTAL)
             backend_row.Add(wx.StaticText(self, label="TTS-Engine:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-            self.tts_backend = wx.Choice(self, choices=["espeak-ng", "VoiceOver (macOS)"])
+            self.tts_backend = wx.Choice(self, choices=["espeak-ng", "VoiceOver (macOS)", "macOS say (Stimme wählen)"])
             self.tts_backend.SetName("TTS-Engine")
             backend_row.Add(self.tts_backend, 0)
             tts_sizer.Add(backend_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
+            # macOS say voice picker (only visible when macos_say backend selected)
+            macos_voice_row = wx.BoxSizer(wx.HORIZONTAL)
+            macos_voice_row.Add(wx.StaticText(self, label="Stimme (say):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+            self.tts_macos_voice = wx.Choice(self, choices=[])
+            self.tts_macos_voice.SetName("macOS TTS-Stimme")
+            macos_voice_row.Add(self.tts_macos_voice, 1, wx.EXPAND)
+            tts_sizer.Add(macos_voice_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 6)
+            self._populate_macos_voices()
         else:
             self.tts_backend = None
+            self.tts_macos_voice = None
 
         row2 = wx.BoxSizer(wx.HORIZONTAL)
         self.tts_chat = wx.CheckBox(self, label="&Chat vorlesen")
@@ -86,6 +95,10 @@ class SystemTab(wx.Panel):
         self.tts_kicked.SetName("Kick-Ereignis ansagen")
         self.tts_user_away = wx.CheckBox(self, label="A&bwesend/Zurück")
         self.tts_user_away.SetName("Abwesend/Zurück ansagen")
+        self.tts_user_login = wx.CheckBox(self, label="An&meldung/Abmeldung")
+        self.tts_user_login.SetName("Anmeldung/Abmeldung ansagen")
+        self.tts_file_event = wx.CheckBox(self, label="Datei h&inzugefügt/entfernt")
+        self.tts_file_event.SetName("Kanal-Datei-Ereignis ansagen")
         row3.Add(self.tts_user_join, 0, wx.RIGHT, 12)
         row3.Add(self.tts_user_leave, 0, wx.RIGHT, 12)
         row3.Add(self.tts_file_transfer, 0, wx.RIGHT, 12)
@@ -93,7 +106,9 @@ class SystemTab(wx.Panel):
         row3.Add(self.tts_connect_announce, 0, wx.RIGHT, 12)
         row3.Add(self.tts_broadcast, 0, wx.RIGHT, 12)
         row3.Add(self.tts_kicked, 0, wx.RIGHT, 12)
-        row3.Add(self.tts_user_away, 0)
+        row3.Add(self.tts_user_away, 0, wx.RIGHT, 12)
+        row3.Add(self.tts_user_login, 0, wx.RIGHT, 12)
+        row3.Add(self.tts_file_event, 0)
         tts_sizer.Add(row3, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
 
         grid = wx.FlexGridSizer(cols=2, vgap=6, hgap=8)
@@ -168,8 +183,12 @@ class SystemTab(wx.Panel):
         self.tts_volume.Bind(wx.EVT_SPINCTRL, self._apply_settings)
         self.tts_path.Bind(wx.EVT_TEXT, self._apply_settings)
         self.tts_user_away.Bind(wx.EVT_CHECKBOX, self._apply_settings)
+        self.tts_user_login.Bind(wx.EVT_CHECKBOX, self._apply_settings)
+        self.tts_file_event.Bind(wx.EVT_CHECKBOX, self._apply_settings)
         if self.tts_backend is not None:
-            self.tts_backend.Bind(wx.EVT_CHOICE, self._apply_settings)
+            self.tts_backend.Bind(wx.EVT_CHOICE, self._on_backend_changed)
+        if self.tts_macos_voice is not None:
+            self.tts_macos_voice.Bind(wx.EVT_CHOICE, self._apply_settings)
         self.tts_refresh.Bind(wx.EVT_BUTTON, lambda e: self._refresh_voices(e, force=True))
         self.tts_test.Bind(wx.EVT_BUTTON, self._on_test)
 
@@ -189,8 +208,13 @@ class SystemTab(wx.Panel):
         self.tts_broadcast.SetValue(s.speak_broadcast)
         self.tts_kicked.SetValue(s.speak_kicked)
         self.tts_user_away.SetValue(s.speak_user_away)
+        self.tts_user_login.SetValue(s.speak_user_login)
+        self.tts_file_event.SetValue(s.speak_file_event)
         if self.tts_backend is not None:
-            self.tts_backend.SetSelection(1 if s.backend == "voiceover" else 0)
+            idx = {"voiceover": 1, "macos_say": 2}.get(s.backend, 0)
+            self.tts_backend.SetSelection(idx)
+        if self.tts_macos_voice is not None:
+            self._set_macos_voice_value(s.macos_voice)
         if s.enabled:
             self._refresh_languages(force=True)
             # Default to "Alle" if language not set
@@ -222,8 +246,13 @@ class SystemTab(wx.Panel):
         s.speak_broadcast = self.tts_broadcast.GetValue()
         s.speak_kicked = self.tts_kicked.GetValue()
         s.speak_user_away = self.tts_user_away.GetValue()
+        s.speak_user_login = self.tts_user_login.GetValue()
+        s.speak_file_event = self.tts_file_event.GetValue()
         if self.tts_backend is not None:
-            s.backend = "voiceover" if self.tts_backend.GetSelection() == 1 else "espeak"
+            sel = self.tts_backend.GetSelection()
+            s.backend = {1: "voiceover", 2: "macos_say"}.get(sel, "espeak")
+        if self.tts_macos_voice is not None:
+            s.macos_voice = self._get_macos_voice_value()
         s.language = self._get_language_value() or "de"
         s.voice = self._get_voice_value()
         s.rate = self.tts_rate.GetValue()
@@ -251,6 +280,9 @@ class SystemTab(wx.Panel):
         app.tts_speak_kicked = s.speak_kicked
         app.tts_speak_user_away = s.speak_user_away
         app.tts_backend = s.backend
+        app.tts_speak_user_login = s.speak_user_login
+        app.tts_speak_file_event = s.speak_file_event
+        app.tts_macos_voice = s.macos_voice
         self.frame.settings_store.save()
 
     def _refresh_voices(self, _event, force: bool = False):
@@ -360,6 +392,48 @@ class SystemTab(wx.Panel):
 
     def _on_test(self, _event):
         self.frame.tts.speak("Das ist ein TTS Test", kind="system")
+
+    def _on_backend_changed(self, event):
+        self._apply_settings(event)
+
+    def _populate_macos_voices(self) -> None:
+        import subprocess as _sp, sys as _sys
+        if _sys.platform != "darwin" or self.tts_macos_voice is None:
+            return
+        try:
+            result = _sp.run(["say", "-v", "?"], capture_output=True, text=True, timeout=5)
+            voices = []
+            for line in result.stdout.splitlines():
+                parts = line.split()
+                if parts:
+                    voices.append(parts[0])
+            voices = sorted(set(voices))
+        except Exception:
+            voices = []
+        self._macos_voices = voices
+        self.tts_macos_voice.Set(["(System-Standard)"] + voices)
+        self.tts_macos_voice.SetSelection(0)
+
+    def _get_macos_voice_value(self) -> str:
+        if self.tts_macos_voice is None:
+            return ""
+        idx = self.tts_macos_voice.GetSelection()
+        if idx <= 0 or idx > len(getattr(self, "_macos_voices", [])):
+            return ""
+        return self._macos_voices[idx - 1]
+
+    def _set_macos_voice_value(self, voice: str) -> None:
+        if self.tts_macos_voice is None:
+            return
+        if not voice:
+            self.tts_macos_voice.SetSelection(0)
+            return
+        voices = getattr(self, "_macos_voices", [])
+        for i, v in enumerate(voices):
+            if v == voice:
+                self.tts_macos_voice.SetSelection(i + 1)
+                return
+        self.tts_macos_voice.SetSelection(0)
 
     def append_system(self, text: str) -> None:
         self.system_log.AppendText(text + "\n")

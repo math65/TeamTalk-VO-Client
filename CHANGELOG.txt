@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-05-17 (v6.10.2)
+Vier neue Features von ttaccessible abgeleitet: granulare TTS-Toggles, macOS-Stimme, Jitter-Buffer, Aufnahmemodus
+
+- TTS: Anmeldung/Abmeldung separat steuerbar — neues Häkchen "Anmeldung/Abmeldung" im
+  TTS-Bereich. Server-Login/Logout-Ereignisse werden nun unabhängig von "System vorlesen" gesteuert.
+- TTS: Kanal-Datei-Ereignis — neues Häkchen "Datei hinzugefügt/entfernt". Wenn eine Datei
+  im aktuellen Kanal erscheint oder entfernt wird, wird der Dateiname via TTS angesagt.
+- macOS TTS-Stimme (say-Befehl) — drittes TTS-Backend "macOS say (Stimme wählen)".
+  Benutzt den macOS-`say`-Befehl mit einer wählbaren Stimme (Dropdown mit allen
+  auf dem System verfügbaren Stimmen).
+- Adaptiver Jitter-Buffer (SDK) — die bestehende Einstellung "Adaptiver Jitter-Buffer"
+  (Einstellungen-Tab) wird jetzt tatsächlich auf SDK-Ebene angewendet (TT_SetUserJitterControl)
+  wenn ein Nutzer dem Kanal beitritt.
+- Aufnahmemodus — beim Start einer Aufnahme kann nun zwischen "Zusammengemischt (muxed)",
+  "Pro Nutzer (separate)" und "Beides" gewählt werden. Modus wird gespeichert.
+
 2026-05-17 (v6.10.1)
 Zwei neue Features: Mediendatei-Stummschaltung (⌘Ctrl⇧M), Kanal-TTS-Stummschaltung
 

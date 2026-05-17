@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.10.1"
+APP_VERSION = "6.10.2"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -628,6 +628,9 @@ class MainFrame(wx.Frame):
         self.tts.settings.speak_kicked = bool(getattr(_ts, "tts_speak_kicked", True))
         self.tts.settings.speak_user_away = bool(getattr(_ts, "tts_speak_user_away", False))
         self.tts.settings.backend = str(getattr(_ts, "tts_backend", "espeak") or "espeak")
+        self.tts.settings.speak_user_login = bool(getattr(_ts, "tts_speak_user_login", True))
+        self.tts.settings.speak_file_event = bool(getattr(_ts, "tts_speak_file_event", True))
+        self.tts.settings.macos_voice = str(getattr(_ts, "tts_macos_voice", "") or "")
         # v2.2.0 per-context TTS rates
         self.tts.settings.chat_rate = int(getattr(_ts, "tts_chat_rate", 0) or 0)
         self.tts.settings.system_rate = int(getattr(_ts, "tts_system_rate", 0) or 0)
@@ -2440,6 +2443,16 @@ class MainFrame(wx.Frame):
                 vol = int(presets[username])
                 self._user_volume_levels[int(user_id)] = vol
                 self.client.set_user_volume(int(user_id), int(self.client.tt.StreamType.STREAMTYPE_VOICE), vol)
+        except Exception:
+            pass
+
+    def _apply_jitter_buffer_to_user(self, user_id: int) -> None:
+        if not self.client or not self.client.is_connected():
+            return
+        try:
+            enabled = bool(getattr(self.settings_store.settings, "adaptive_jitter_buffer", False))
+            stream_type = int(self.client.tt.StreamType.STREAMTYPE_VOICE)
+            self.client.set_user_jitter_control(int(user_id), stream_type, enabled)
         except Exception:
             pass
 
@@ -5104,31 +5117,65 @@ class MainFrame(wx.Frame):
         if not fmt:
             return
         label, audio_format = fmt
+        # v6.10.2: recording mode (muxed / separate / both)
+        mode_choices = ["Zusammengemischt (muxed)", "Pro Nutzer (separate)", "Beides"]
+        mode_keys = ["muxed", "separate", "both"]
+        saved_mode = str(getattr(self.settings_store.settings, "recording_mode", "muxed") or "muxed")
+        mode_dlg = wx.SingleChoiceDialog(self, "Aufnahmemodus wählen", "Aufnahme", mode_choices)
+        if saved_mode in mode_keys:
+            mode_dlg.SetSelection(mode_keys.index(saved_mode))
+        if mode_dlg.ShowModal() != wx.ID_OK:
+            mode_dlg.Destroy()
+            return
+        rec_mode = mode_keys[mode_dlg.GetSelection()]
+        mode_dlg.Destroy()
+        self.settings_store.settings.recording_mode = rec_mode
+        self.settings_store.save()
+
         with wx.FileDialog(self, "Aufnahme speichern", wildcard="Audio (*.wav;*.mp3)|*.wav;*.mp3|Alle Dateien|*.*", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as dlg:
             if dlg.ShowModal() != wx.ID_OK:
                 return
             path = dlg.GetPath()
-        ok = self.client.start_recording_muxed(path, int(audio_format))
-        if ok:
-            self._recording_active = True
-            self._recording_path = path
-            self._recording_seg_start = time.time()
-            self.set_status(f"Aufnahme gestartet ({label})")
+
+        started = False
+        if rec_mode in ("muxed", "both"):
+            ok = self.client.start_recording_muxed(path, int(audio_format))
+            if ok:
+                self._recording_active = True
+                self._recording_path = path
+                self._recording_seg_start = time.time()
+                started = True
+        if rec_mode in ("separate", "both"):
+            from platform_paths import app_data_dir
+            import os
+            sep_dir = os.path.join(os.path.dirname(path), "separate")
+            os.makedirs(sep_dir, exist_ok=True)
+            self.configure_user_recording(
+                enabled=True,
+                folder_path=sep_dir,
+                filename_vars="{username}_{date}_{time}",
+                audio_format=int(audio_format),
+                include_self=True,
+            )
+            started = True
+
+        if started:
+            self.set_status(f"Aufnahme gestartet ({label}, {mode_choices[mode_keys.index(rec_mode)]})")
         else:
             self.set_status("Aufnahme konnte nicht gestartet werden")
 
     def on_menu_record_stop(self, _event):
         if not self._require_connected("Aufnahme stoppen"):
             return
-        if not self._recording_active:
+        if not self._recording_active and not self._user_recording_enabled:
             self.set_status("Keine laufende Aufnahme")
             return
-        ok = self.client.stop_recording_muxed()
-        self._recording_active = False
-        if ok:
-            self.set_status("Aufnahme beendet")
-        else:
-            self.set_status("Aufnahme beenden fehlgeschlagen")
+        if self._recording_active:
+            self.client.stop_recording_muxed()
+            self._recording_active = False
+        if self._user_recording_enabled:
+            self.configure_user_recording(enabled=False, folder_path="", filename_vars="", audio_format=self._user_recording_format, include_self=False)
+        self.set_status("Aufnahme beendet")
 
     def on_menu_recording_browser(self, _event):
         """v3.4.0 – Aufnahmen-Browser: durchsuche und spiele vergangene Aufnahmen ab."""
@@ -9692,9 +9739,19 @@ class MainFrame(wx.Frame):
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_FILE_NEW:
             if self.files_tab is not None:
                 wx.CallAfter(self.files_tab.refresh_file_list)
+            try:
+                fname = self.tt_str(getattr(msg.remotefile, "szFileName", "")) or "Datei"
+                wx.CallAfter(self.tts.speak, f"Datei hinzugefügt: {fname}", kind="file_event")
+            except Exception:
+                pass
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_FILE_REMOVE:
             if self.files_tab is not None:
                 wx.CallAfter(self.files_tab.refresh_file_list)
+            try:
+                fname = self.tt_str(getattr(msg.remotefile, "szFileName", "")) or "Datei"
+                wx.CallAfter(self.tts.speak, f"Datei entfernt: {fname}", kind="file_event")
+            except Exception:
+                pass
         elif event == tt.ClientEvent.CLIENTEVENT_FILETRANSFER:
             if self.files_tab is not None:
                 wx.CallAfter(self.files_tab.on_file_transfer_update, int(msg.nSource))
@@ -9764,10 +9821,10 @@ class MainFrame(wx.Frame):
 
         if event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN:
             text = f"* {name} hat sich angemeldet"
-            tts_kind = "system"
+            tts_kind = "user_login"
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDOUT:
             text = f"* {name} hat sich abgemeldet"
-            tts_kind = "system"
+            tts_kind = "user_login"
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED:
             text = f"* {name} hat Kanal {channel_name or channel_id} betreten"
             # v2.8.0 – Nutzer-Notiz anhängen
@@ -9780,6 +9837,7 @@ class MainFrame(wx.Frame):
             # v2.4.0 – Gespeicherte Lautstärke anwenden
             if user_id:
                 wx.CallAfter(self._apply_saved_user_volume, user_id)
+                wx.CallAfter(self._apply_jitter_buffer_to_user, user_id)
             # v2.7.0 – Webhook
             self._webhook.emit("user_join", {"user": name, "channel": channel_name})
             # v6.5.0 – Nutzerwatcher

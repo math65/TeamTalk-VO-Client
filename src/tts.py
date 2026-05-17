@@ -35,7 +35,10 @@ class TTSSettings:
     rate: int = 175
     volume: int = 100
     espeak_path: str = ""
-    backend: str = "espeak"  # "espeak" | "voiceover" (macOS only)
+    backend: str = "espeak"  # "espeak" | "voiceover" | "macos_say" (macOS only)
+    macos_voice: str = ""   # voice name for macos_say backend (empty = system default)
+    speak_user_login: bool = True
+    speak_file_event: bool = True
     # v2.2.0 per-context overrides (0 / "" = use global)
     chat_rate: int = 0
     system_rate: int = 0
@@ -339,6 +342,10 @@ class TTSManager:
             return
         if kind == "user_away" and not self.settings.speak_user_away:
             return
+        if kind == "user_login" and not self.settings.speak_user_login:
+            return
+        if kind == "file_event" and not self.settings.speak_file_event:
+            return
 
         if self.settings.interrupt:
             self._stop_current()
@@ -416,6 +423,17 @@ class TTSManager:
                     ["osascript", "-e", f'tell application "VoiceOver" to output "{escaped}"'],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 )
+                continue
+            if self.settings.backend == "macos_say" and sys.platform == "darwin":
+                cmd = ["say"]
+                voice = self.settings.macos_voice.strip()
+                if voice:
+                    cmd += ["-v", voice]
+                cmd += ["--", text]
+                proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                self._current_proc = proc
+                proc.wait()
+                self._current_proc = None
                 continue
             binary = self._resolve_binary()
             if not binary:
