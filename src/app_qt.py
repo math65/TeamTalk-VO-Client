@@ -72,6 +72,46 @@ from screen_reader import ScreenReaderAnnouncer
 
 APP_VERSION = "6.9.8"
 
+
+def _start_demo_dialog_suppressor() -> None:
+    """Schließt TeamTalk-SDK-Demo-Dialoge automatisch (Windows only)."""
+    import threading
+    import ctypes
+    import ctypes.wintypes
+    import time
+
+    user32 = ctypes.windll.user32
+    EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.wintypes.HWND, ctypes.wintypes.LPARAM)
+
+    def _close_demo_windows(hwnd, _):
+        if not user32.IsWindowVisible(hwnd):
+            return True
+        cls = ctypes.create_unicode_buffer(64)
+        user32.GetClassNameW(hwnd, cls, 64)
+        if cls.value != "#32770":
+            return True
+        length = user32.GetWindowTextLengthW(hwnd)
+        if length == 0:
+            return True
+        title = ctypes.create_unicode_buffer(length + 1)
+        user32.GetWindowTextW(hwnd, title, length + 1)
+        title_lower = title.value.lower()
+        if "teamtalk" in title_lower or "demo" in title_lower or "sdk" in title_lower:
+            user32.PostMessageW(hwnd, 0x0111, 1, 0)  # WM_COMMAND IDOK
+        return True
+
+    def _worker():
+        cb = EnumWindowsProc(_close_demo_windows)
+        while True:
+            time.sleep(1)
+            try:
+                user32.EnumWindows(cb, 0)
+            except Exception:
+                pass
+
+    t = threading.Thread(target=_worker, daemon=True, name="demo-suppressor")
+    t.start()
+
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
 
@@ -464,7 +504,7 @@ class MainWindow(QMainWindow):
         self.video_tab = self.settings_tab_widget.video_tab
         self.shortcuts_tab = self.settings_tab_widget.shortcuts_tab
         self.system_tab = self.settings_tab_widget.system_tab
-        from PySide6.QtWidgets import QDialog, QVBoxLayout, QDialogButtonBox
+        from PySide6.QtWidgets import QDialog, QDialogButtonBox
         self._settings_dialog = QDialog(self)
         self._settings_dialog.setWindowTitle("Einstellungen")
         self._settings_dialog.resize(860, 640)
@@ -514,7 +554,7 @@ class MainWindow(QMainWindow):
         self._add_action(kanal, "&Root-Kanal beitreten", self.on_menu_join_root)
         self._add_action(kanal, "Kanal &verlassen", self.on_menu_leave_channel, "Ctrl+L")
         kanal.addSeparator()
-        self._add_action(kanal, "Kanal &erstellen...", self.on_menu_create_channel, "Ctrl+Shift+N")
+        self._add_action(kanal, "Kanal &erstellen...", self.on_menu_create_channel, "F7")
         self._add_action(kanal, "Kanal &bearbeiten...", self.on_menu_edit_channel)
         self._add_action(kanal, "Kanal &löschen", self.on_menu_delete_channel)
         kanal.addSeparator()
@@ -582,7 +622,7 @@ class MainWindow(QMainWindow):
         self._add_action(adv_m, "&Medienstream weiterleiten", self.on_menu_relay_media)
         benutzer.addSeparator()
         self._all_mute_action = self._add_checkable(benutzer, "Alle &stummschalten",
-            self._on_toggle_mute_all, self._mute_all, "F7")
+            self._on_toggle_mute_all, self._mute_all)
         benutzer.addSeparator()
         tx_m = benutzer.addMenu("&Sendekontrolle")
         for _tx_label, _stype in [
@@ -601,7 +641,7 @@ class MainWindow(QMainWindow):
         profil.addSeparator()
         self._self_hear_action = self._add_checkable(profil, "Mich selbst &hören",
             self._on_toggle_self_hear,
-            bool(getattr(self.settings_store.settings, "self_hear", False)), "F6")
+            bool(getattr(self.settings_store.settings, "self_hear", False)))
         self._question_mode_action = self._add_checkable(profil, "&Frage-Modus",
             self._on_toggle_question_mode, False)
         profil.addSeparator()
@@ -628,10 +668,10 @@ class MainWindow(QMainWindow):
         audio_m = mb.addMenu("&Audio")
         self._ptt_action = self._add_checkable(audio_m, "&Push-to-Talk",
             self._on_toggle_ptt,
-            bool(getattr(self.settings_store.settings, "ptt_enabled", False)), "F5")
+            bool(getattr(self.settings_store.settings, "ptt_enabled", False)), "F9")
         self._va_action = self._add_checkable(audio_m, "&Sprachaktivierung",
             self._on_toggle_va,
-            bool(getattr(self.settings_store.settings, "voice_activation", False)), "F4")
+            bool(getattr(self.settings_store.settings, "voice_activation", False)))
         audio_m.addSeparator()
         self._agc_action = self._add_checkable(audio_m, "&AGC",
             self._on_toggle_agc,
@@ -706,7 +746,7 @@ class MainWindow(QMainWindow):
         self._add_action(auto_m, "&Plugin-Manager...", self.on_menu_plugin_manager)
         self._add_action(auto_m, "Per-Server-&Soundprofile...", self.on_menu_server_audio_profiles)
         auto_m.addSeparator()
-        self._add_action(auto_m, "&Einstellungen...", self.on_menu_settings, "Ctrl+,")
+        self._add_action(auto_m, "&Einstellungen...", self.on_menu_settings, "F4")
 
         # --- Hilfe ---
         hlp = mb.addMenu("&Hilfe")
@@ -718,7 +758,7 @@ class MainWindow(QMainWindow):
         self._add_action(hlp, "Auf &Updates prüfen...", self.on_menu_check_updates)
         hlp.addSeparator()
         self._add_action(hlp, "&Handbuch...", self.on_menu_manual, "F1")
-        self._add_action(hlp, "&Tastenkürzel-Referenz...", self.on_menu_shortcut_reference, "F2")
+        self._add_action(hlp, "&Tastenkürzel-Referenz...", self.on_menu_shortcut_reference)
         self._add_action(hlp, "&Changelog...", self.on_menu_changelog)
         hlp.addSeparator()
         self._add_action(hlp, "&Startup-Profiler...", self.on_menu_startup_profiler)
@@ -1366,14 +1406,75 @@ class MainWindow(QMainWindow):
                 self.apply_global_hotkeys()
                 self.set_status("Globales Tastenkürzel gespeichert")
                 return
+        key = event.key()
+        # Feste F-Tasten (wie wx/math65)
+        if key == Qt.Key.Key_F2:
+            if self.client.is_connected():
+                self.on_menu_disconnect()
+            else:
+                self.on_menu_connect()
+            return
+        if key == Qt.Key.Key_F5:
+            if self.client.is_connected():
+                self._refresh_channels()
+            return
+        if key == Qt.Key.Key_F6:
+            self.on_menu_private_msg()
+            return
+        if key == Qt.Key.Key_F9:
+            new_ptt = not self._ptt_enabled
+            self._ptt_action.setChecked(new_ptt)
+            self._tb_ptt.setChecked(new_ptt)
+            self._on_toggle_ptt(new_ptt)
+            return
+        # Hold-to-Talk PTT-Taste
         ptt_key = getattr(self.settings_store.settings, "ptt_key", None)
-        if ptt_key and event.key() == ptt_key and not event.isAutoRepeat() and not self._ptt_active:
+        if ptt_key and key == ptt_key and not event.isAutoRepeat() and not self._ptt_active:
             self._ptt_active = True
             try:
                 self.client.enable_voice_transmission(True)
             except Exception:
                 pass
             return
+        # Konfigurierbare Hotkeys (nur wenn kein Textfeld fokussiert)
+        fw = self.focusWidget()
+        from PySide6.QtWidgets import QLineEdit, QTextEdit, QPlainTextEdit
+        if not isinstance(fw, (QLineEdit, QTextEdit, QPlainTextEdit)):
+            settings = self.settings_store.settings
+            if key and key == int(getattr(settings, "hotkey_mute_all", 0) or 0):
+                new_mute = not self._mute_all
+                self._all_mute_action.setChecked(new_mute)
+                self._on_toggle_mute_all(new_mute)
+                return
+            if key and key == int(getattr(settings, "hotkey_voice_activation", 0) or 0):
+                new_va = not bool(getattr(settings, "voice_activation", False))
+                self._va_action.setChecked(new_va)
+                self._on_toggle_va(new_va)
+                return
+            if key and key == int(getattr(settings, "hotkey_announce_ping", 0) or 0):
+                self.on_menu_announce_ping()
+                return
+            if key and key == int(getattr(settings, "hotkey_cycle_braille_verbosity", 0) or 0):
+                self.braille.cycle_verbosity()
+                return
+            for idx, hk_attr in enumerate([
+                "hotkey_bookmark_1", "hotkey_bookmark_2", "hotkey_bookmark_3",
+                "hotkey_bookmark_4", "hotkey_bookmark_5", "hotkey_bookmark_6",
+                "hotkey_bookmark_7", "hotkey_bookmark_8", "hotkey_bookmark_9",
+            ]):
+                hk = int(getattr(settings, hk_attr, 0) or 0)
+                if key and key == hk:
+                    self._bookmarks.jump(self, idx)
+                    return
+            macro = self._macros.find_by_hotkey(key)
+            if macro:
+                self._macros.execute(macro)
+                return
+            if key and key == int(getattr(settings, "hotkey_tts_cancel", 0) or 0):
+                self.tts._stop_current()
+                self.tts.clear_queue()
+                self.set_status("TTS abgebrochen")
+                return
         super().keyPressEvent(event)
 
     def keyReleaseEvent(self, event) -> None:
@@ -3707,23 +3808,25 @@ class MainWindow(QMainWindow):
     def on_menu_shortcut_reference(self) -> None:
         _SHORTCUTS = [
             ("VERBINDUNG", [
-                ("Verbinden / Verbindungsdialog", "Ctrl+Return"),
+                ("Verbinden / Trennen (Toggle)",   "F2"),
+                ("Verbindungsdialog öffnen",       "Ctrl+Return"),
                 ("Trennen",                        "Ctrl+W"),
                 ("Neu verbinden",                  "Ctrl+Shift+R"),
                 ("Schnellverbindung 1–9",          "Ctrl+1–9"),
             ]),
             ("KANAL", [
+                ("Kanal erstellen",                "F7"),
                 ("Kanal beitreten",                "Ctrl+J"),
                 ("Kanal verlassen",                "Ctrl+L"),
-                ("Kanal erstellen",                "Ctrl+Shift+N"),
                 ("Kanalinfo vorlesen",             "Ctrl+S"),
                 ("Kanalnachricht senden",          "F3"),
+                ("Kanäle & Nutzer aktualisieren",  "F5"),
                 ("Kanal-Statistiken ansagen",      "(Menü Kanal)"),
                 ("Kanalzustand ansagen",           "(Menü Kanal)"),
             ]),
             ("BENUTZER", [
                 ("Benutzerinfo vorlesen",          "Ctrl+I"),
-                ("Private Nachricht",              "Ctrl+T"),
+                ("Private Nachricht",              "F6 / Ctrl+T"),
                 ("Stummschalten (Sprache)",        "Ctrl+M"),
                 ("Kicken",                         "Ctrl+K"),
                 ("Kicken + Bannen",                "Ctrl+Shift+K"),
@@ -3732,17 +3835,21 @@ class MainWindow(QMainWindow):
                 ("Sprach-Lautstärke runter",       "Ctrl+Shift+Ab"),
                 ("Medien-Lautstärke hoch",         "Ctrl+Alt+Auf"),
                 ("Medien-Lautstärke runter",       "Ctrl+Alt+Ab"),
-                ("Alle stummschalten",             "F7"),
+                ("Alle stummschalten",             "(Menü Benutzer)"),
             ]),
             ("PROFIL", [
                 ("Nickname ändern",                "Ctrl+R"),
-                ("Mich selbst hören",              "F6"),
+                ("Mich selbst hören",              "(Menü Profil)"),
                 ("TTS aktivieren/deaktivieren",    "(Menü Profil)"),
             ]),
             ("AUDIO", [
-                ("Push-to-Talk",                   "F5"),
-                ("Sprachaktivierung",              "F4"),
+                ("Push-to-Talk",                   "F9"),
+                ("Sprachaktivierung",              "(Menü Audio)"),
                 ("Ping ansagen",                   "Ctrl+P"),
+            ]),
+            ("AUTOMATION", [
+                ("Einstellungen",                  "F4"),
+                ("Makro-Manager",                  "Ctrl+Shift+M"),
             ]),
             ("CHAT", [
                 ("Chat-Log exportieren",           "(Menü Chat)"),
@@ -3756,16 +3863,12 @@ class MainWindow(QMainWindow):
                 ("Servernachricht senden",         "(Menü Server)"),
                 ("Konfiguration speichern",        "(Menü Server)"),
             ]),
-            ("AUTOMATION", [
-                ("Makro-Manager",                  "Ctrl+Shift+M"),
-                ("Einstellungen",                  "Ctrl+,"),
-            ]),
             ("TABS", [
                 ("Tab 1–9 direkt",                 "Alt+1–9"),
             ]),
             ("HILFE", [
                 ("Handbuch",                       "F1"),
-                ("Tastenkürzel-Referenz",          "F2"),
+                ("Tastenkürzel-Referenz",          "(Menü Hilfe)"),
             ]),
         ]
         lines = []
@@ -4066,6 +4169,9 @@ class App(QApplication):
             font = QFont("Segoe UI", 10)
             self.setFont(font)
             self._apply_windows_polish()
+
+        if sys.platform == "win32":
+            _start_demo_dialog_suppressor()
 
         self.window = MainWindow()
 
