@@ -73,7 +73,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.10.4"
+APP_VERSION = "6.10.5"
 
 def _upd_tok() -> str:
     import base64 as _b

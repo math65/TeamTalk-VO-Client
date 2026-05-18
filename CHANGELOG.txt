@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-05-18 (v6.10.5)
+Streaming-Lautstärke: Standard von 100 auf 50 gesenkt, Minimum auf 10 erweitert
+
+- Streaming-Lautstärke-Standard für alle Quellen (URL, yt-dlp, Webradio, Podcast, Playlist)
+  von 100 auf 50 gesenkt (Faktor 0,5 = −6 dB). Webradio-Streams sind auf Sendepegel
+  normalisiert und klangen auf Standard 100 % zu laut.
+- Minimum von 25 auf 10 gesenkt für feinere Abschwächung sehr lauter Streams.
+- Bereich-Anzeige aktualisiert: "(10–400, Standard: 50)".
+- Gilt für wx (macOS) und Qt (Windows/Linux) gleichermaßen.
+
 2026-05-18 (v6.10.4)
 Vier weitere ttaccessible-Ideen: Per-Nutzer-Stereo-Balance, persistente Sitzungshistorie, Smart-Audio-Resolver
 
