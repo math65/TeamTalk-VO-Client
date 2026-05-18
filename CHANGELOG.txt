@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2026-05-18 (v6.10.8)
+Update-Manager: Bugfixes (Cmd+Q, Listenformat, Changelog-Darstellung)
+
+- Cmd+Q beendet die App jetzt auch aus dem Update-Manager-Dialog heraus.
+- Listeneinträge verwenden Komma als Trennzeichen statt Doppelleerzeichen/Klammern
+  (bessere VoiceOver-Lesbarkeit).
+- Changelog-Text: Windows-Zeilenenden (\r\n) werden auf macOS korrekt normalisiert.
+
 2026-05-18 (v6.10.7)
 Update-Manager: Hilfe-Menü → "Updates & Versionen…"
 
