@@ -70,11 +70,12 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "6.10.5"
+APP_VERSION = "6.10.6"
 
 
 def _start_demo_dialog_suppressor() -> None:
     """Schließt TeamTalk-SDK-Demo-Dialoge automatisch (Windows only)."""
+    import os
     import threading
     import ctypes
     import ctypes.wintypes
@@ -82,9 +83,16 @@ def _start_demo_dialog_suppressor() -> None:
 
     user32 = ctypes.windll.user32
     EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.wintypes.HWND, ctypes.wintypes.LPARAM)
+    _own_pid = os.getpid()
+    _KEYWORDS = ("teamtalk", "demo", "sdk", "bearware", "trial", "lizenz", "license")
 
     def _close_demo_windows(hwnd, _):
         if not user32.IsWindowVisible(hwnd):
+            return True
+        # Nur Dialoge des eigenen Prozesses schließen
+        pid = ctypes.wintypes.DWORD(0)
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        if pid.value != _own_pid:
             return True
         cls = ctypes.create_unicode_buffer(64)
         user32.GetClassNameW(hwnd, cls, 64)
@@ -96,14 +104,15 @@ def _start_demo_dialog_suppressor() -> None:
         title = ctypes.create_unicode_buffer(length + 1)
         user32.GetWindowTextW(hwnd, title, length + 1)
         title_lower = title.value.lower()
-        if "teamtalk" in title_lower or "demo" in title_lower or "sdk" in title_lower:
-            user32.PostMessageW(hwnd, 0x0111, 1, 0)  # WM_COMMAND IDOK
+        if any(kw in title_lower for kw in _KEYWORDS):
+            user32.PostMessageW(hwnd, 0x0010, 0, 0)  # WM_CLOSE
+            user32.PostMessageW(hwnd, 0x0111, 1, 0)  # WM_COMMAND IDOK (Fallback)
         return True
 
     def _worker():
         cb = EnumWindowsProc(_close_demo_windows)
         while True:
-            time.sleep(1)
+            time.sleep(0.1)  # 100 ms statt 1 s — Dialog verschwindet bevor er sichtbar wird
             try:
                 user32.EnumWindows(cb, 0)
             except Exception:

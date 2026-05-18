@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-05-18 (v6.10.6)
+Windows: SDK-Demo-Dialog-Unterdrücker verbessert
+
+- Demo-Dialog-Suppressor pollt jetzt alle 100 ms statt jede Sekunde — der Dialog
+  verschwindet bevor er sichtbar oder hörbar wird.
+- Prüft jetzt die Prozess-ID: nur Dialoge des eigenen Prozesses werden geschlossen,
+  keine fremden Systemdialoge.
+- Weitere Schlüsselwörter: "bearware", "trial", "license", "lizenz".
+- Schließt mit WM_CLOSE + WM_COMMAND IDOK (Fallback) statt nur WM_COMMAND.
+- Keine Änderung an macOS.
+
 2026-05-18 (v6.10.5)
 Streaming-Lautstärke: Standard von 100 auf 50 gesenkt, Minimum auf 10 erweitert
 
