@@ -84,7 +84,10 @@ class UpdateManagerDialog(wx.Dialog):
 
         self.SetSizer(outer)
         self.Layout()
-        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        accel = wx.AcceleratorTable([
+            (wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE),
+            (wx.ACCEL_CMD, ord("Q"), wx.ID_EXIT),
+        ])
         self.SetAcceleratorTable(accel)
 
     def _bind(self):
@@ -94,6 +97,7 @@ class UpdateManagerDialog(wx.Dialog):
         self._btn_open.Bind(wx.EVT_BUTTON, self._on_open)
         self.Bind(wx.EVT_MENU, lambda e: self.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
         self._btn_close.Bind(wx.EVT_BUTTON, lambda e: self.EndModal(wx.ID_CANCEL))
+        self.Bind(wx.EVT_MENU, self._on_app_quit, id=wx.ID_EXIT)
 
     # ------------------------------------------------------------------
     # Releases laden
@@ -121,8 +125,8 @@ class UpdateManagerDialog(wx.Dialog):
             tag = r.tag.lstrip("v")
             marker = " ★ NEU" if _version_gt(tag, current_v) else (" ✓ aktuell" if tag == current_v else "")
             has_asset = r.platform_asset is not None
-            asset_info = f"  [{um.format_size(r.platform_asset.size)}]" if has_asset else "  [kein macOS-Asset]"
-            self._list.Append(f"{r.tag}  {r.date}{marker}{asset_info}")
+            size_str = f", {um.format_size(r.platform_asset.size)}" if has_asset else ", kein macOS-Asset"
+            self._list.Append(f"{r.tag}, {r.date}{marker}{size_str}")
         self._btn_refresh.Enable()
         if releases:
             self._set_status(f"{len(releases)} Versionen geladen.")
@@ -140,7 +144,8 @@ class UpdateManagerDialog(wx.Dialog):
         if idx == wx.NOT_FOUND or idx >= len(self._releases):
             return
         self._selected = self._releases[idx]
-        self._changelog.SetValue(self._selected.body or "(kein Changelog)")
+        body = (self._selected.body or "(kein Changelog)").replace("\r\n", "\n").replace("\r", "\n")
+        self._changelog.SetValue(body)
         has_asset = self._selected.platform_asset is not None
         self._btn_download.Enable(has_asset)
         if not has_asset:
@@ -212,6 +217,10 @@ class UpdateManagerDialog(wx.Dialog):
     def _on_open(self, _event):
         if self._download_path:
             um.reveal_in_finder(self._download_path)
+
+    def _on_app_quit(self, _event):
+        self.EndModal(wx.ID_CANCEL)
+        wx.CallAfter(wx.GetApp().GetTopWindow().Close)
 
     def _set_status(self, text: str):
         self._status.SetLabel(text)
