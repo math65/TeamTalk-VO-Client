@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2026-05-18 (v6.10.9)
+i18n: Französische Übersetzung erweitert (Coverage 18,3 % → 22,0 %)
+
+- 45 fehlende Menü-Strings auf Französisch übersetzt (Datei, Kanal, Benutzer,
+  Server, Profil, Audio, Video, Aufnahmen, Automation, Hilfe).
+- Beitrag von Mathieu Ramage (@math65) — merci!
+
 2026-05-18 (v6.10.8)
 Update-Manager: Bugfixes (Cmd+Q, Listenformat, Changelog-Darstellung)
 
