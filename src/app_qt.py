@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "6.10.6"
+APP_VERSION = "6.10.7"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -765,6 +765,7 @@ class MainWindow(QMainWindow):
         self._add_action(hlp, "Statistiken &vorlesen", self.on_menu_client_stats_speak)
         self._add_action(hlp, "&Gespeicherte Nachrichten...", self.on_menu_saved_messages)
         self._add_action(hlp, "Auf &Updates prüfen...", self.on_menu_check_updates)
+        self._add_action(hlp, "Updates && &Versionen...", self.on_menu_update_manager)
         hlp.addSeparator()
         self._add_action(hlp, "&Handbuch...", self.on_menu_manual, "F1")
         self._add_action(hlp, "&Tastenkürzel-Referenz...", self.on_menu_shortcut_reference)
@@ -4078,6 +4079,11 @@ class MainWindow(QMainWindow):
         dlg.resize(500, 350)
         dlg.exec()
         self._refocus_channel_list()
+
+    def on_menu_update_manager(self) -> None:
+        from ui_qt.update_dialog import UpdateManagerDialog
+        dlg = UpdateManagerDialog(self, APP_VERSION)
+        dlg.exec()
 
     def on_menu_check_updates(self) -> None:
         self.set_status("Update-Prüfung gestartet...")

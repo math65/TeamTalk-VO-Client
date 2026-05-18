@@ -73,7 +73,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.10.6"
+APP_VERSION = "6.10.7"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -2111,6 +2111,7 @@ class MainFrame(wx.Frame):
         help_hotkeys = help_menu.Append(wx.ID_ANY, "Tastenkürzel-Referenz...")
         help_menu.AppendSeparator()
         help_check_update = help_menu.Append(wx.ID_ANY, "Auf Updates prüfen...")
+        help_update_mgr = help_menu.Append(wx.ID_ANY, "Updates & Versionen...")
         help_menu.AppendSeparator()
         help_changelog = help_menu.Append(wx.ID_ANY, "Changelog")
         help_about = help_menu.Append(wx.ID_ANY, _("Über"))
@@ -2285,6 +2286,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_manual, help_manual)
         self.Bind(wx.EVT_MENU, self.on_menu_hotkey_reference, help_hotkeys)
         self.Bind(wx.EVT_MENU, lambda _e: self._check_for_update(manual=True), help_check_update)
+        self.Bind(wx.EVT_MENU, self.on_menu_update_manager, help_update_mgr)
         self.Bind(wx.EVT_MENU, self.on_menu_changelog, help_changelog)
         self.Bind(wx.EVT_MENU, self.on_menu_about, help_about)
 
@@ -8530,6 +8532,12 @@ class MainFrame(wx.Frame):
         self._offline_event_log.append((ts, text, kind))
         if len(self._offline_event_log) > 50:
             self._offline_event_log = self._offline_event_log[-50:]
+
+    def on_menu_update_manager(self, _event):
+        from ui_wx.update_dialog import UpdateManagerDialog
+        dlg = UpdateManagerDialog(self, APP_VERSION)
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def _check_for_update(self, manual: bool = False) -> None:
         """Prüft im Hintergrund ob eine neuere Version verfügbar ist.

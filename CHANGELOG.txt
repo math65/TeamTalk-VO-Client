@@ -1,6 +1,18 @@
 Changelog
 =========
 
+2026-05-18 (v6.10.7)
+Update-Manager: Hilfe-Menü → "Updates & Versionen…"
+
+- Neuer Dialog im Hilfe-Menü (macOS + Windows): alle Releases werden über die
+  öffentliche GitHub-API geladen — kein Token nötig.
+- Zeigt alle verfügbaren Versionen mit Datum, Größe des Assets und ★ NEU / ✓ aktuell-Markierung.
+- Changelog der gewählten Version wird rechts angezeigt.
+- Download des passenden Assets (DMG auf macOS, ZIP auf Windows) in ~/Downloads
+  mit Fortschrittsbalken.
+- Nach Download: "DMG öffnen?" (macOS) bzw. "Im Explorer anzeigen" (Windows).
+- Ältere Versionen können genauso heruntergeladen werden wie die neueste.
+
 2026-05-18 (v6.10.6)
 Windows: SDK-Demo-Dialog-Unterdrücker verbessert
 
