@@ -1894,6 +1894,123 @@ _TRANSLATIONS.update({
 
 
 
+# ---------------------------------------------------------------------------
+# v6.10.4 – FR: Menüs vervollständigt (Coverage 18,3 % → 22,0 %)
+# Format: # EN: 'reference' / 'deutsch': 'französisch'
+# ---------------------------------------------------------------------------
+_TRANSLATIONS_FR.update({
+    # Menü: Datei
+    # EN: 'Connect...'
+    "Verbinden...": "Se connecter...",
+    # EN: 'Add server...'
+    "Server hinzufügen...": "Ajouter un serveur...",
+    # EN: 'Remove server'
+    "Server entfernen": "Supprimer le serveur",
+    # EN: 'Edit server...'
+    "Server bearbeiten...": "Modifier le serveur...",
+    # EN: 'Record conversations...'
+    "Konversationen aufzeichnen...": "Enregistrer les conversations...",
+    # EN: 'Auto-reconnect'
+    "Automatisch neu verbinden": "Reconnexion automatique",
+
+    # Menü: Kanal
+    # EN: 'Channel'
+    "Kanal": "Canal",
+    # EN: 'Remove channel'
+    "Kanal entfernen": "Supprimer le canal",
+    # EN: 'Enter channel password...'
+    "Kanalpasswort eingeben...": "Saisir le mot de passe du canal...",
+    # EN: 'Stream audio file to channel...'
+    "Audio-Datei in Kanal streamen...": "Diffuser un fichier audio dans le canal...",
+
+    # Menü: Benutzer
+    # EN: 'User info'
+    "Benutzer info": "Infos utilisateur",
+    # EN: 'Subscriptions...'
+    "Abonnements...": "Abonnements...",
+    # EN: 'Edit note...'
+    "Notiz bearbeiten...": "Modifier la note...",
+
+    # Menü: Server
+    # EN: 'Server properties...'
+    "Server-Eigenschaften...": "Propriétés du serveur...",
+    # EN: 'Announce statistics'
+    "Statistiken vorlesen": "Annoncer les statistiques",
+    # EN: 'Connection statistics...'
+    "Verbindungsstatistiken...": "Statistiques de connexion...",
+    # EN: 'Users online...'
+    "Benutzer online...": "Utilisateurs en ligne...",
+    # EN: 'Ban list...'
+    "Ban-Liste...": "Liste des bannissements...",
+
+    # Menü: Profil
+    # EN: 'Profile'
+    "Profil": "Profil",
+    # EN: 'Change status...'
+    "Status ändern...": "Changer le statut...",
+    # EN: 'Change avatar...'
+    "Profilbild ändern...": "Changer l'avatar...",
+
+    # Menü: Audio
+    # EN: 'Voice activation'
+    "Sprachaktivierung": "Activation vocale",
+    # EN: 'Audio settings...'
+    "Audio-Einstellungen...": "Paramètres audio...",
+    # EN: 'AGC'
+    "AGC": "AGC",
+    # EN: 'Noise suppression'
+    "Rauschunterdrückung": "Suppression du bruit",
+    # EN: 'Echo cancellation'
+    "Echounterdrückung": "Suppression de l'écho",
+    # EN: 'Apply effects'
+    "Effekte anwenden": "Appliquer les effets",
+    # EN: 'Apply audio'
+    "Audio anwenden": "Appliquer l'audio",
+    # EN: 'Refresh devices'
+    "Geräte aktualisieren": "Actualiser les périphériques",
+    # EN: 'Microphone test'
+    "Mikrofontest": "Test du microphone",
+    # EN: 'Mute all'
+    "Alles stummschalten": "Tout muter",
+    # EN: 'Equalizer presets...'
+    "Equalizer-Voreinstellungen...": "Préréglages d'égaliseur...",
+
+    # Menü: Video
+    # EN: 'Send video'
+    "Video senden": "Envoyer la vidéo",
+    # EN: 'Video settings...'
+    "Video-Einstellungen...": "Paramètres vidéo...",
+    # EN: 'Refresh video devices'
+    "Video-Geräte aktualisieren": "Actualiser les périphériques vidéo",
+
+    # Menü: Aufnahmen
+    # EN: 'Recordings'
+    "Aufnahmen": "Enregistrements",
+    # EN: 'Scheduled recordings...'
+    "Geplante Aufnahmen...": "Enregistrements programmés...",
+    # EN: 'Browse recordings...'
+    "Aufnahmen durchsuchen...": "Parcourir les enregistrements...",
+
+    # Menü: Automation
+    # EN: 'Automation'
+    "Automation": "Automatisation",
+    # EN: 'Macro editor...'
+    "Makro-Editor...": "Éditeur de macros...",
+    # EN: 'Scheduled macros...'
+    "Geplante Makros...": "Macros programmées...",
+    # EN: 'Trigger rules...'
+    "Trigger-Regeln...": "Règles de déclenchement...",
+
+    # Menü: Hilfe
+    # EN: 'Settings...'
+    "Einstellungen...": "Paramètres...",
+    # EN: 'Export logs...'
+    "Logs exportieren...": "Exporter les journaux...",
+    # EN: 'Shortcut reference...'
+    "Tastenkürzel-Referenz...": "Référence des raccourcis...",
+})
+
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
