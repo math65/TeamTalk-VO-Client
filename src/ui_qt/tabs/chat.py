@@ -259,7 +259,7 @@ class ChatTab(QWidget):
         try:
             key = getattr(self.window, "_current_server_key", "")
             if key and hasattr(self.window, "_chat_history"):
-                self.window._chat_history.append(key, line)
+                self.window._chat_history.append(key, line, kind)
         except Exception:
             pass
 
@@ -298,7 +298,7 @@ class ChatTab(QWidget):
         try:
             key = getattr(self.window, "_current_server_key", "")
             if key and hasattr(self.window, "_chat_history"):
-                self.window._chat_history.append(key, line)
+                self.window._chat_history.append(key, line, kind)
         except Exception:
             pass
 

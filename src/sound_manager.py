@@ -146,7 +146,7 @@ class SoundManager:
                     proc.wait()
                 elif sys.platform == "win32":
                     import winsound  # noqa: PLC0415
-                    winsound.PlaySound(path, winsound.SND_FILENAME | winsound.SND_ASYNC)
+                    winsound.PlaySound(path, winsound.SND_FILENAME)
                 else:
                     for player in ("paplay", "aplay"):
                         try:
