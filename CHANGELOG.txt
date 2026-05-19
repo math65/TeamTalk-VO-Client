@@ -1,6 +1,23 @@
 Changelog
 =========
 
+2026-05-19 (v7.0.0)
+Makro-Engine: Vollständig überarbeiteter Makro-Editor, neue Aktionen, Trigger und Zeitplan
+
+- Neuer Makro-Editor-Dialog (Automation → Makro-Editor) mit drei Tabs:
+  * Makros: Erstellen, Bearbeiten, Duplizieren, Löschen; Aktionsliste mit
+    grafischer Typ-Auswahl, Reihenfolge ändern (Hoch/Runter).
+  * Trigger: Ereignisbasierte Regeln — Makro automatisch ausführen bei
+    Benutzer-Join/-Leave, Kanal-Wechsel, Chat-Nachricht, Verbinden/Trennen.
+  * Zeitplan: Täglich zu HH:MM ein Makro ausführen.
+- Neue Aktionstypen: send_message (Kanalnachricht), send_private (Privatnachricht),
+  send_broadcast (Broadcast), play_sound (Audiodatei mit Datei-Browser).
+- Template-Variablen in Aktionswerten: {user}, {channel}, {message}, {time}.
+- Trigger-Filter: optionaler Regex-Modus; bei Chat-Nachricht-Trigger wird
+  Nachrichteninhalt geprüft (nicht Benutzername).
+- Neue Trigger-Ereignisse: connected (Verbunden), disconnected (Getrennt).
+- Makro-Editor öffnet Zeitplan-Tab direkt über Automation → Geplante Makros.
+
 2026-05-19 (v6.10.10)
 Qt-UI (Windows): Mehrere Fehler behoben
 

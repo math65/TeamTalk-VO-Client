@@ -73,7 +73,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.10.10"
+APP_VERSION = "7.0.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -598,10 +598,13 @@ class MainFrame(wx.Frame):
         self.bus.on("server_state_changed", self._on_server_state_changed)
         self.bus.on("transcription_result", self._on_transcription_result)
         # v3.5.0 – Makro-Trigger via Bus-Events
-        self.bus.on("user_joined", lambda **kw: self._macros.fire_event("user_join", **kw))
-        self.bus.on("user_left", lambda **kw: self._macros.fire_event("user_leave", **kw))
-        self.bus.on("chat_message", lambda **kw: self._macros.fire_event("chat_message", **kw))
-        self.bus.on("channel_joined", lambda **kw: self._macros.fire_event("channel_join", **kw))
+        self.bus.on("user_joined",            lambda **kw: self._macros.fire_event("user_join",    **kw))
+        self.bus.on("user_left",              lambda **kw: self._macros.fire_event("user_leave",   **kw))
+        self.bus.on("chat_message",           lambda **kw: self._macros.fire_event("chat_message", **kw))
+        self.bus.on("channel_joined",         lambda **kw: self._macros.fire_event("channel_join", **kw))
+        self.bus.on("connection_state_changed",
+                    lambda connected=False, **kw: self._macros.fire_event(
+                        "connected" if connected else "disconnected", **kw))
         plugins_dir = Path(__file__).parent.parent / "plugins"
         self._plugin_loader = PluginLoader(self.bus, plugins_dir, api=self._plugin_api)
         n = self._plugin_loader.load_all()
@@ -4826,7 +4829,14 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
 
     def on_menu_macro_editor(self, _event):
-        """Grafischer Makro-Editor: Erstellen, bearbeiten und löschen von Makros."""
+        """Grafischer Makro-Editor (v7.0) – Makros, Trigger, Zeitplan."""
+        from ui_wx.macro_dialog import MacroDialog
+        dlg = MacroDialog(self)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def _on_menu_macro_editor_legacy(self, _event):
+        """(Archiv) Alter eingebetteter Makro-Editor – nicht mehr verwendet."""
         import json as _json
         s = self.settings_store.settings
         macros = list(s.macros or [])
@@ -4962,7 +4972,15 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
 
     def on_menu_scheduled_macros(self, _event):
-        """v3.5.0 – Geplante Makros: Makros zu bestimmten Uhrzeiten ausführen."""
+        """Öffnet den Makro-Editor auf dem Zeitplan-Tab."""
+        from ui_wx.macro_dialog import MacroDialog
+        dlg = MacroDialog(self)
+        dlg._nb.SetSelection(2)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def _on_menu_scheduled_macros_legacy(self, _event):
+        """(Archiv) Alter Zeitplan-Dialog – nicht mehr verwendet."""
         s = self.settings_store.settings
         scheduled = list(s.scheduled_macros or [])
         macro_names = [m.get("name", "?") for m in (s.macros or [])]
