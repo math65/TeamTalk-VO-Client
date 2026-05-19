@@ -650,7 +650,10 @@ class MainFrame(wx.Frame):
         # v2.1.0 – Auto-Reconnect persistent
         self._auto_reconnect = bool(getattr(self.settings_store.settings, "auto_reconnect_enabled", True))
         # v2.2.0 – Aussprache, Lesezeichen
-        self._pronunciation = PronunciationManager(dict(getattr(_ts, "pronunciation_dict", {}) or {}))
+        _pron_rules = list(getattr(_ts, "pronunciation_rules", []) or [])
+        if not _pron_rules:
+            _pron_rules = dict(getattr(_ts, "pronunciation_dict", {}) or {})
+        self._pronunciation = PronunciationManager(_pron_rules)
         self._bookmarks = BookmarkManager(self.settings_store)
         # v2.3.0 – Zeitgesteuerte Stille, Makros
         self._mute_scheduler = MuteScheduler(self)
@@ -2083,6 +2086,7 @@ class MainFrame(wx.Frame):
         auto_menu = wx.Menu()
         auto_macro_editor = auto_menu.Append(wx.ID_ANY, "Makro-Editor...")
         auto_scheduled_macros = auto_menu.Append(wx.ID_ANY, "Geplante Makros...")
+        auto_pronunciation = auto_menu.Append(wx.ID_ANY, "Aussprache-Wörterbuch...")
         auto_menu.AppendSeparator()
         auto_trigger_editor = auto_menu.Append(wx.ID_ANY, _("Trigger-Regeln..."))
         auto_menu.AppendSeparator()
@@ -2265,6 +2269,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_recording_browser, rec_browser)
         self.Bind(wx.EVT_MENU, self.on_menu_macro_editor, auto_macro_editor)
         self.Bind(wx.EVT_MENU, self.on_menu_scheduled_macros, auto_scheduled_macros)
+        self.Bind(wx.EVT_MENU, self.on_menu_pronunciation, auto_pronunciation)
         self.Bind(wx.EVT_MENU, self.on_menu_trigger_editor, auto_trigger_editor)
         self._auto_translate_menu_item = auto_translate
         auto_translate.Check(bool(getattr(self.settings_store.settings, "translate_chat_enabled", False)))
@@ -4832,6 +4837,13 @@ class MainFrame(wx.Frame):
         """Grafischer Makro-Editor (v7.0) – Makros, Trigger, Zeitplan."""
         from ui_wx.macro_dialog import MacroDialog
         dlg = MacroDialog(self)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def on_menu_pronunciation(self, _event):
+        """Aussprache-Wörterbuch-Dialog (v7.0)."""
+        from ui_wx.pronunciation_dialog import PronunciationDialog
+        dlg = PronunciationDialog(self)
         dlg.ShowModal()
         dlg.Destroy()
 

@@ -2,7 +2,7 @@ Changelog
 =========
 
 2026-05-19 (v7.0.0)
-Makro-Engine: Vollständig überarbeiteter Makro-Editor, neue Aktionen, Trigger und Zeitplan
+Makro-Engine + Aussprache-Wörterbuch: Vollständig neue Automation- und TTS-Personalisierung
 
 - Neuer Makro-Editor-Dialog (Automation → Makro-Editor) mit drei Tabs:
   * Makros: Erstellen, Bearbeiten, Duplizieren, Löschen; Aktionsliste mit
@@ -17,6 +17,16 @@ Makro-Engine: Vollständig überarbeiteter Makro-Editor, neue Aktionen, Trigger 
   Nachrichteninhalt geprüft (nicht Benutzername).
 - Neue Trigger-Ereignisse: connected (Verbunden), disconnected (Getrennt).
 - Makro-Editor öffnet Zeitplan-Tab direkt über Automation → Geplante Makros.
+
+Aussprache-Wörterbuch (Automation → Aussprache-Wörterbuch):
+- Eigenständiger Dialog mit VoiceOver-freundlicher Regelliste.
+- Pro Regel: Suchbegriff, Ersatz, Wortgrenzen, Regex-Modus,
+  Groß-/Kleinschreibung, Aktivieren/Deaktivieren ohne Löschen.
+- Reihenfolge per Nach-oben/Nach-unten anpassbar.
+- Live-Test: Text eingeben und Ergebnis sofort sehen.
+- Import/Export als JSON (Regeln teilen oder sichern).
+- Rückwärtskompatibel: bestehende pronunciation_dict-Einträge werden
+  automatisch ins neue Format migriert.
 
 2026-05-19 (v6.10.10)
 Qt-UI (Windows): Mehrere Fehler behoben

@@ -223,6 +223,7 @@ class AppSettings:
     hotkey_ai_reply_suggestions: int = 0
     transcription_autosave: bool = False
     pronunciation_dict: Dict[str, str] = field(default_factory=dict)
+    pronunciation_rules: List[Dict] = field(default_factory=list)
     # v2.3.0 features
     auto_join_channel_per_server: Dict[str, str] = field(default_factory=dict)
     mute_schedule: List[Dict] = field(default_factory=list)
@@ -443,6 +444,8 @@ class SettingsStore:
             self.settings.hotkey_bookmark_3 = int(data.get("hotkey_bookmark_3", 0) or 0)
             raw_pd = data.get("pronunciation_dict", {})
             self.settings.pronunciation_dict = raw_pd if isinstance(raw_pd, dict) else {}
+            raw_pr = data.get("pronunciation_rules", [])
+            self.settings.pronunciation_rules = raw_pr if isinstance(raw_pr, list) else []
             # v2.3.0
             raw_ajc = data.get("auto_join_channel_per_server", {})
             self.settings.auto_join_channel_per_server = raw_ajc if isinstance(raw_ajc, dict) else {}
@@ -651,6 +654,7 @@ class SettingsStore:
             "hotkey_bookmark_2": int(self.settings.hotkey_bookmark_2 or 0),
             "hotkey_bookmark_3": int(self.settings.hotkey_bookmark_3 or 0),
             "pronunciation_dict": dict(self.settings.pronunciation_dict or {}),
+            "pronunciation_rules": list(self.settings.pronunciation_rules or []),
             # v2.3.0
             "auto_join_channel_per_server": dict(self.settings.auto_join_channel_per_server or {}),
             "mute_schedule": list(self.settings.mute_schedule or []),

@@ -263,7 +263,10 @@ class MainWindow(QMainWindow):
         self.sound_manager = SoundManager()
         self.sound_manager.set_pack_dir(getattr(_ts, "sound_pack_dir", "") or "")
         self._user_stereo = dict(getattr(_ts, "user_stereo_settings", {}) or {})
-        self._pronunciation = PronunciationManager(dict(getattr(_ts, "pronunciation_dict", {}) or {}))
+        _pron_rules = list(getattr(_ts, "pronunciation_rules", []) or [])
+        if not _pron_rules:
+            _pron_rules = dict(getattr(_ts, "pronunciation_dict", {}) or {})
+        self._pronunciation = PronunciationManager(_pron_rules)
         self._bookmarks = BookmarkManager(self.settings_store)
         self._mute_scheduler = MuteScheduler(self)
         self._macros = MacroManager(self)
