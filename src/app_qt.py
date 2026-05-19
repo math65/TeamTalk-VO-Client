@@ -200,6 +200,7 @@ class MainWindow(QMainWindow):
         _log_path = _log_dir()
         _log_path.mkdir(parents=True, exist_ok=True)
         self.logger = FileLogger(_log_path / "client.log")
+        self.logger.write(f"Programmstart — Version {APP_VERSION} — AppData: {_app_dir}")
         self._chat_history = ChatHistoryManager(_app_dir)
         self._saved_messages = SavedMessageManager(_app_dir)
         self._channel_notes = ChannelNotesManager(_app_dir)
