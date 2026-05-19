@@ -694,10 +694,11 @@ class MainWindow(QMainWindow):
 
         # --- Automation ---
         auto_m = mb.addMenu("A&utomation")
-        self._add_action(auto_m, "&Makro-Manager...", self.on_menu_macros, "Ctrl+Shift+M")
+        self._add_action(auto_m, "&Makro-Editor...", self.on_menu_macros, "Ctrl+Shift+M")
         self._add_action(auto_m, "Geplante &Makros...", self.on_menu_scheduled_macros)
         auto_m.addSeparator()
         self._add_action(auto_m, "&Trigger-Regeln...", self.on_menu_trigger_editor)
+        self._add_action(auto_m, "&Aussprache-Wörterbuch...", self.on_menu_pronunciation)
         auto_m.addSeparator()
         self._add_action(auto_m, "&Chat-Suche...", self.on_menu_chat_search, "Ctrl+F")
         self._add_action(auto_m, "&Nutzerwatcher...", self.on_menu_user_watcher)
@@ -3606,138 +3607,24 @@ class MainWindow(QMainWindow):
             self.notebook.setCurrentIndex(idx)
 
     def on_menu_macros(self) -> None:
-        from ui_qt.dialogs import MacroManagerDialog
-        dlg = MacroManagerDialog(self, self._macros)
-        dlg.exec()
+        from ui_qt.macro_dialog import MacroDialog
+        MacroDialog(self, initial_tab=0).exec()
         self._refocus_channel_list()
 
     def on_menu_scheduled_macros(self) -> None:
-        s = self.settings_store.settings
-        scheduled = list(s.scheduled_macros or [])
-        macro_names = [m.get("name", "?") for m in (s.macros or [])]
-
-        dlg = QDialog(self)
-        dlg.setWindowTitle("Geplante Makros")
-        layout = QVBoxLayout(dlg)
-        layout.addWidget(QLabel("Format HH:MM – täglich ausführen"))
-        lw = QListWidget()
-        for e in scheduled:
-            lw.addItem(f"{e.get('time', '?')}, Makro: {e.get('macro', '?')}")
-        lw.setMinimumHeight(160)
-        layout.addWidget(lw, 1)
-        form = QFormLayout()
-        time_edit = QTimeEdit()
-        time_edit.setDisplayFormat("HH:mm")
-        form.addRow("Zeit:", time_edit)
-        macro_combo = QComboBox()
-        for name in macro_names:
-            macro_combo.addItem(name)
-        form.addRow("Makro:", macro_combo)
-        layout.addLayout(form)
-        btn_row = QHBoxLayout()
-        add_btn = QPushButton("&Hinzufügen")
-        del_btn = QPushButton("&Entfernen")
-        btn_row.addWidget(add_btn)
-        btn_row.addWidget(del_btn)
-        layout.addLayout(btn_row)
-        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        bb.accepted.connect(dlg.accept)
-        bb.rejected.connect(dlg.reject)
-        layout.addWidget(bb)
-
-        def _add():
-            t = time_edit.time().toString("HH:mm")
-            m = macro_combo.currentText() if macro_names else ""
-            if not m:
-                return
-            entry = {"time": t, "macro": m}
-            scheduled.append(entry)
-            lw.addItem(f"{t}, Makro: {m}")
-
-        def _del():
-            row = lw.currentRow()
-            if 0 <= row < len(scheduled):
-                scheduled.pop(row)
-                lw.takeItem(row)
-
-        add_btn.clicked.connect(_add)
-        del_btn.clicked.connect(_del)
-        if dlg.exec() == QDialog.DialogCode.Accepted:
-            try:
-                self.settings_store.settings.scheduled_macros = scheduled
-                self.settings_store.save()
-                self.set_status("Geplante Makros gespeichert")
-            except Exception as exc:
-                self.set_status(f"Speichern fehlgeschlagen: {exc}")
+        from ui_qt.macro_dialog import MacroDialog
+        MacroDialog(self, initial_tab=2).exec()
+        self._refocus_channel_list()
 
     def on_menu_trigger_editor(self) -> None:
-        s = self.settings_store.settings
-        triggers = list(s.macro_triggers or [])
-        macro_names = [m.get("name", "?") for m in (s.macros or [])]
-        _EVENTS = ["user_join", "user_leave", "chat_message", "private_msg", "channel_join"]
+        from ui_qt.macro_dialog import MacroDialog
+        MacroDialog(self, initial_tab=1).exec()
+        self._refocus_channel_list()
 
-        dlg = QDialog(self)
-        dlg.setWindowTitle("Trigger-Regeln")
-        layout = QVBoxLayout(dlg)
-        layout.addWidget(QLabel("Makro automatisch ausführen wenn Ereignis eintritt:"))
-        lw = QListWidget()
-        for t in triggers:
-            filt = t.get("filter", "") or ""
-            filt_str = f" (Filter: {filt})" if filt else ""
-            lw.addItem(f"{t.get('event','?')}{filt_str} → {t.get('macro','?')}")
-        lw.setMinimumHeight(160)
-        layout.addWidget(lw, 1)
-        form = QFormLayout()
-        event_combo = QComboBox()
-        for ev in _EVENTS:
-            event_combo.addItem(ev)
-        form.addRow("Ereignis:", event_combo)
-        filter_edit = QLineEdit()
-        form.addRow("Filter (Name, leer=alle):", filter_edit)
-        macro_combo = QComboBox()
-        for name in macro_names:
-            macro_combo.addItem(name)
-        form.addRow("Makro:", macro_combo)
-        layout.addLayout(form)
-        btn_row = QHBoxLayout()
-        add_btn = QPushButton("&Hinzufügen")
-        del_btn = QPushButton("&Entfernen")
-        btn_row.addWidget(add_btn)
-        btn_row.addWidget(del_btn)
-        layout.addLayout(btn_row)
-        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        bb.accepted.connect(dlg.accept)
-        bb.rejected.connect(dlg.reject)
-        layout.addWidget(bb)
-
-        def _add():
-            ev = event_combo.currentText()
-            filt = filter_edit.text().strip()
-            m = macro_combo.currentText() if macro_names else ""
-            if not m:
-                return
-            entry = {"event": ev, "macro": m}
-            if filt:
-                entry["filter"] = filt
-            triggers.append(entry)
-            filt_str = f" (Filter: {filt})" if filt else ""
-            lw.addItem(f"{ev}{filt_str} → {m}")
-
-        def _del():
-            row = lw.currentRow()
-            if 0 <= row < len(triggers):
-                triggers.pop(row)
-                lw.takeItem(row)
-
-        add_btn.clicked.connect(_add)
-        del_btn.clicked.connect(_del)
-        if dlg.exec() == QDialog.DialogCode.Accepted:
-            try:
-                self.settings_store.settings.macro_triggers = triggers
-                self.settings_store.save()
-                self.set_status("Trigger-Regeln gespeichert")
-            except Exception as exc:
-                self.set_status(f"Speichern fehlgeschlagen: {exc}")
+    def on_menu_pronunciation(self) -> None:
+        from ui_qt.pronunciation_dialog import PronunciationDialog
+        PronunciationDialog(self).exec()
+        self._refocus_channel_list()
 
     def on_menu_plugin_manager(self) -> None:
         try:
