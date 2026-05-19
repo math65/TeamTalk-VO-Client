@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "6.10.9"
+APP_VERSION = "6.10.10"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -197,7 +197,9 @@ class MainWindow(QMainWindow):
         _lang = getattr(self.settings_store.settings, "app_language", "de") or "de"
         set_language(_lang)
 
-        self.logger = FileLogger(_app_dir / "client.log")
+        _log_path = _log_dir()
+        _log_path.mkdir(parents=True, exist_ok=True)
+        self.logger = FileLogger(_log_path / "client.log")
         self._chat_history = ChatHistoryManager(_app_dir)
         self._saved_messages = SavedMessageManager(_app_dir)
         self._channel_notes = ChannelNotesManager(_app_dir)
@@ -320,9 +322,6 @@ class MainWindow(QMainWindow):
         # Global hotkeys (macOS: NSEvent / Windows: GetAsyncKeyState polling)
         self.apply_global_hotkeys()
 
-        # Windows dark mode detection
-        self._apply_windows_dark_mode()
-
         # Audio device hotplug monitoring (5 s interval)
         self._audio_hotplug_timer = QTimer(self)
         self._audio_hotplug_timer.setInterval(5000)
@@ -340,50 +339,6 @@ class MainWindow(QMainWindow):
         # Show
         if not bool(getattr(_ts, "start_minimized", False)):
             self.show()
-
-    # ------------------------------------------------------------------
-    # Windows Dark Mode
-    # ------------------------------------------------------------------
-
-    def _apply_windows_dark_mode(self) -> None:
-        """Detect Windows dark mode via registry and apply a dark Qt palette."""
-        if sys.platform != "win32":
-            return
-        try:
-            import winreg
-            key = winreg.OpenKey(
-                winreg.HKEY_CURRENT_USER,
-                r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
-            )
-            value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
-            winreg.CloseKey(key)
-            is_dark = value == 0
-        except Exception:
-            return
-        if not is_dark:
-            return
-        from PySide6.QtGui import QPalette, QColor
-        p = QPalette()
-        dark   = QColor(30, 30, 30)
-        darker = QColor(20, 20, 20)
-        mid    = QColor(45, 45, 45)
-        light  = QColor(220, 220, 220)
-        highlight = QColor(0, 120, 212)
-        p.setColor(QPalette.ColorRole.Window,          dark)
-        p.setColor(QPalette.ColorRole.WindowText,      light)
-        p.setColor(QPalette.ColorRole.Base,            darker)
-        p.setColor(QPalette.ColorRole.AlternateBase,   mid)
-        p.setColor(QPalette.ColorRole.Text,            light)
-        p.setColor(QPalette.ColorRole.Button,          mid)
-        p.setColor(QPalette.ColorRole.ButtonText,      light)
-        p.setColor(QPalette.ColorRole.Highlight,       highlight)
-        p.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
-        p.setColor(QPalette.ColorRole.ToolTipBase,     mid)
-        p.setColor(QPalette.ColorRole.ToolTipText,     light)
-        p.setColor(QPalette.ColorRole.PlaceholderText, QColor(120, 120, 120))
-        from PySide6.QtWidgets import QApplication
-        QApplication.instance().setPalette(p)
-        self.logger.write("Windows dark mode erkannt — dunkles Farbschema aktiv")
 
     # ------------------------------------------------------------------
     # UI Construction
@@ -1432,10 +1387,7 @@ class MainWindow(QMainWindow):
             self.on_menu_private_msg()
             return
         if key == Qt.Key.Key_F9:
-            new_ptt = not self._ptt_enabled
-            self._ptt_action.setChecked(new_ptt)
-            self._tb_ptt.setChecked(new_ptt)
-            self._on_toggle_ptt(new_ptt)
+            self._on_toggle_ptt(not self._ptt_enabled)
             return
         # Hold-to-Talk PTT-Taste
         ptt_key = getattr(self.settings_store.settings, "ptt_key", None)
@@ -1852,9 +1804,20 @@ class MainWindow(QMainWindow):
     def import_tt_file(self, path: str) -> None:
         try:
             from ui.tt_file_parser import parse_teamtalk_file
-            result = parse_teamtalk_file(path)
-            if result:
-                self.set_status(f"TT-Datei importiert: {path}")
+            result = parse_teamtalk_file(Path(path))
+            if result and result.profile and result.profile.host:
+                profile = result.profile
+                if not profile.name:
+                    profile.name = Path(path).stem
+                if result.channel_path:
+                    profile.channel = result.channel_path
+                if result.channel_password:
+                    profile.channel_password = result.channel_password
+                self.store.add(profile)
+                self._rebuild_favorites_menu()
+                self.set_status(f"TT-Datei importiert: {profile.name}")
+            else:
+                self.set_status("TT-Datei konnte nicht gelesen werden.")
         except Exception as exc:
             self.set_status(f"Import fehlgeschlagen: {exc}")
 
@@ -3195,6 +3158,13 @@ class MainWindow(QMainWindow):
 
     def _on_toggle_ptt(self, checked: bool) -> None:
         self._ptt_enabled = checked
+        for _w in (self._ptt_action, self._tb_ptt):
+            try:
+                _w.blockSignals(True)
+                _w.setChecked(checked)
+                _w.blockSignals(False)
+            except Exception:
+                pass
         try:
             self.settings_store.settings.ptt_enabled = checked
             self.settings_store.save()
@@ -4221,6 +4191,9 @@ class App(QApplication):
                     palette.setColor(QPalette.ColorRole.ButtonText, QColor(220, 220, 220))
                     palette.setColor(QPalette.ColorRole.Highlight, QColor(0, 120, 215))
                     palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
+                    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(53, 53, 53))
+                    palette.setColor(QPalette.ColorRole.ToolTipText, QColor(220, 220, 220))
+                    palette.setColor(QPalette.ColorRole.PlaceholderText, QColor(120, 120, 120))
                     self.setPalette(palette)
         except Exception:
             pass

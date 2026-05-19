@@ -21,6 +21,8 @@ class ServerProfile:
     encrypted: bool = False
     elevenlabs_api_key: str = ""
     display_name: str = ""
+    channel: str = ""
+    channel_password: str = ""
 
 
 @dataclass

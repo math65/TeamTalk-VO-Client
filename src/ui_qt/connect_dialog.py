@@ -273,6 +273,7 @@ class ConnectDialog(QDialog):
             password=self.pass_field.text(),
             client_name=self.client_name_field.text().strip() or "TeamTalk VO Client",
             channel=self.channel_field.text().strip(),
+            channel_password=self.ch_pass_field.text(),
             encrypted=self.encrypted_check.isChecked(),
         )
 
@@ -463,11 +464,36 @@ class ConnectDialog(QDialog):
             pass
 
     def _on_server_check(self) -> None:
-        self.accept()
-        try:
-            self.window.on_menu_server_check()
-        except Exception:
-            pass
+        host = self.host_field.text().strip()
+        port = self.tcp_field.value()
+        if not host:
+            QMessageBox.warning(self, "Server prüfen", "Bitte Server-Adresse eingeben.")
+            return
+        self._server_check_btn.setEnabled(False)
+        self.window.set_status(f"Prüfe {host}:{port}…")
+
+        def worker():
+            try:
+                conn = socket.create_connection((host, port), timeout=3)
+                conn.close()
+                ok = True
+            except Exception:
+                ok = False
+            from ui_qt.call_after import call_after
+            call_after(self._on_server_check_done, host, port, ok)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_server_check_done(self, host: str, port: int, ok: bool) -> None:
+        self._server_check_btn.setEnabled(True)
+        if ok:
+            msg = f"Server erreichbar: {host}:{port}"
+            self.window.set_status(msg)
+            QMessageBox.information(self, "Server prüfen", msg)
+        else:
+            msg = f"Server nicht erreichbar: {host}:{port}"
+            self.window.set_status(msg)
+            QMessageBox.warning(self, "Server prüfen", msg)
 
     def _on_join_root(self) -> None:
         self.accept()

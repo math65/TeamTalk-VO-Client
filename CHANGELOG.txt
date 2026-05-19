@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-05-19 (v6.10.10)
+Qt-UI (Windows): Mehrere Fehler behoben
+
+- TT-Datei-Import: Importierte Server werden jetzt korrekt in der Serverliste gespeichert
+  und Kanal/Kanal-Passwort aus der TT-Datei übernommen.
+- Verbindungsdialog: "Server prüfen"-Schaltfläche schließt den Dialog nicht mehr —
+  TCP-Check läuft jetzt inline, eingegebene Daten bleiben erhalten.
+- Verbindungsdialog: "Speichern"-Schaltfläche funktioniert jetzt korrekt
+  (Kanal-Passwort-Feld wurde nicht korrekt in das Profil übernommen).
+- ServerProfile: Felder "Kanal" und "Kanal-Passwort" werden jetzt persistent gespeichert.
+- Logdateien: werden jetzt in das korrekte Logs-Verzeichnis geschrieben.
+- Dark Mode: Doppelte Palette-Anwendung entfernt; Fusion-Stil und Farben werden
+  einheitlich aus App.__init__ gesetzt (inkl. ToolTip-Farben).
+- PTT (Push-to-Talk): F9-Taste und Menü/Toolbar-Schaltfläche bleiben jetzt synchron;
+  Doppel-Toggle-Problem bei F9 behoben.
+
 2026-05-18 (v6.10.9)
 i18n: Französische Übersetzung erweitert (Coverage 18,3 % → 22,0 %)
 
