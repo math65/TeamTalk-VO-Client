@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-05-19 (v7.0.1)
+Qt UI (Windows/Linux): Makro-Editor + Aussprache-Wörterbuch (Parität zu macOS)
+
+- Makro-Editor (Automation → Makro-Editor): Vollständiger 3-Tab-Dialog auf Windows/Linux —
+  Makros erstellen/bearbeiten/duplizieren, Aktionsliste, Trigger-Regeln, Zeitplan.
+  Ersetzt die bisherigen drei separaten Inline-Dialoge.
+- Aussprache-Wörterbuch (Automation → Aussprache-Wörterbuch): Neuer Dialog auf Windows/Linux
+  mit Regelliste, Editor (Regex, Wortgrenze, Groß-/Kleinschreibung), Live-Test,
+  JSON-Import/Export — vollständige Parität zur macOS-Version.
+- Menü "Aussprache-Wörterbuch..." im Automation-Menü ergänzt.
+
 2026-05-19 (v7.0.0)
 Makro-Engine + Aussprache-Wörterbuch: Vollständig neue Automation- und TTS-Personalisierung
 
