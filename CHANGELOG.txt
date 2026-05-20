@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2026-05-20 (v7.0.2)
+Qt UI (Windows/Linux): Kanalliste, Chat, Sound – Bugfixes und UI-Verbesserungen
+
+- Chat: Nachrichtenversand komplett defekt (text wurde als channel_id übergeben) – behoben.
+- Chat: Nickname statt Login-Username im Chatverlauf angezeigt – behoben.
+- Sound: channel_join-Sound beim eigenen Kanalwechsel fehlte (Parität macOS) – ergänzt.
+- Kanalliste: Refresh-Fallback 1 s nach Connect (SDK-Timing) – behoben.
+- Kanalliste: Manueller „Aktualisieren"-Button hinzugefügt.
+- Kanalliste: Kanäle fett, Nutzer normal (visuelle Hierarchie).
+- Kanalliste: Mehr Padding in Listeneinträgen für bessere Lesbarkeit.
+- Layout: QSplitter statt starrem 50/50-Layout (Kanäle 38 %, Chat 62 %, ziehbar).
+- Kanalsuche: Reihenfolge-Bug beim Diff-Update behoben.
+  Beitrag von Juho Mäkinen (@garo).
+
 2026-05-19 (v7.0.1)
 Qt UI (Windows/Linux): Makro-Editor + Aussprache-Wörterbuch + Bugfixes
 
