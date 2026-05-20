@@ -864,6 +864,8 @@ class MainWindow(QMainWindow):
             self._drain_offline_queue()
             self._refresh_channels()
             self.client.start_event_loop(self._handle_tt_message)
+            # Zweiter Refresh nach 1 s – Timing-Fallback falls SDK-Cache noch nicht vollständig
+            QTimer.singleShot(1000, self._refresh_channels)
         else:
             self._update_conn_bar("Verbindung fehlgeschlagen")
             self.set_status(result.message)
@@ -982,6 +984,7 @@ class MainWindow(QMainWindow):
                 self._add_to_recent_channels(ch_id, self._current_channel_name)
         except Exception:
             pass
+        self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
         if getattr(self.settings_store.settings, "auto_channel_summary", False):
             QTimer.singleShot(0, self._auto_channel_summary)
         self._refresh_channels()
@@ -1019,6 +1022,14 @@ class MainWindow(QMainWindow):
                 from_user = self.tt_str(tmsg.szFromUsername)
                 msg_type = int(tmsg.nMsgType)
                 from_id = int(tmsg.nFromUserID)
+                try:
+                    u = self.client.get_user(from_id)
+                    if u:
+                        nick = self.tt_str(u.szNickname)
+                        if nick:
+                            from_user = nick
+                except Exception:
+                    pass
                 my_id = int(self.client.get_my_user_id() or 0)
                 is_own = bool(from_id and my_id and from_id == my_id)
 
@@ -1484,7 +1495,11 @@ class MainWindow(QMainWindow):
                 self.client.send_user_message(target_id, text)
                 self.sound_manager.play("msg_private_tx", self.settings_store.settings.sound_events.get("msg_private_tx"))
             else:
-                self.client.send_channel_message(text)
+                ch_id = int(self.client.get_my_channel_id() or 0)
+                if not ch_id:
+                    self.set_status("Senden fehlgeschlagen: Kein Kanal – bitte zuerst einem Kanal beitreten")
+                    return
+                self.client.send_channel_message(ch_id, text)
                 self.sound_manager.play("msg_channel_tx", self.settings_store.settings.sound_events.get("msg_channel_tx"))
         except Exception as exc:
             self.set_status(f"Senden fehlgeschlagen: {exc}")

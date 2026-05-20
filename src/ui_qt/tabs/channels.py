@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QInputDialog, QMessageBox, QApplication,
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QKeyEvent
+from PySide6.QtGui import QKeyEvent, QFont, QColor
 
 if TYPE_CHECKING:
     from app_qt import MainWindow
@@ -58,6 +58,10 @@ class ChannelsTab(QWidget):
             "Enter: Kanal beitreten oder privaten Chat öffnen. "
             "Shift+F10 oder Kontextmenü-Taste: Aktionen."
         )
+        self.channel_list.setStyleSheet(
+            "QListWidget::item { padding: 3px 6px; }"
+            "QListWidget::item:selected { font-weight: bold; }"
+        )
         self.channel_list.currentRowChanged.connect(self._on_list_sel)
         self.channel_list.itemActivated.connect(self._on_list_activate)
         self.channel_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -65,10 +69,32 @@ class ChannelsTab(QWidget):
         self.channel_list.installEventFilter(self)
         root.addWidget(self.channel_list, 1)
 
+        btn_row = QHBoxLayout()
         self.join_btn = QPushButton("&Kanal beitreten")
         self.join_btn.setAccessibleName("Ausgewählten Kanal beitreten")
         self.join_btn.clicked.connect(self._on_join_btn)
-        root.addWidget(self.join_btn)
+        btn_row.addWidget(self.join_btn, 1)
+
+        self.refresh_btn = QPushButton("&Aktualisieren")
+        self.refresh_btn.setAccessibleName("Kanalliste aktualisieren")
+        self.refresh_btn.setToolTip("Kanal- und Nutzerliste neu laden")
+        self.refresh_btn.clicked.connect(self.refresh_channels_and_users)
+        btn_row.addWidget(self.refresh_btn)
+        root.addLayout(btn_row)
+
+    # ------------------------------------------------------------------
+    # Item styling helpers
+    # ------------------------------------------------------------------
+
+    def _make_list_item(self, label: str, node_type: str) -> QListWidgetItem:
+        item = QListWidgetItem(label)
+        self._apply_item_style(item, node_type)
+        return item
+
+    def _apply_item_style(self, item: QListWidgetItem, node_type: str) -> None:
+        font = item.font()
+        font.setBold(node_type == _NODE_CHANNEL)
+        item.setFont(font)
 
     def eventFilter(self, obj, event) -> bool:
         if obj is self.channel_list and isinstance(event, QKeyEvent):
@@ -164,8 +190,8 @@ class ChannelsTab(QWidget):
         if search:
             filtered_labels, filtered_items = self._filter_by_search(labels, items, search)
             self.channel_list.clear()
-            for lbl in filtered_labels:
-                self.channel_list.addItem(lbl)
+            for lbl, (ntype, _) in zip(filtered_labels, filtered_items):
+                self.channel_list.addItem(self._make_list_item(lbl, ntype))
             self._items = filtered_items
         else:
             self._diff_update_listwidget(labels)
@@ -271,10 +297,13 @@ class ChannelsTab(QWidget):
                     item = self.channel_list.item(i)
                     if item:
                         item.setText(new)
+                        if i < len(self._items):
+                            self._apply_item_style(item, self._items[i][0])
         else:
             self.channel_list.clear()
-            for lbl in new_labels:
-                self.channel_list.addItem(lbl)
+            for i, lbl in enumerate(new_labels):
+                node_type = self._items[i][0] if i < len(self._items) else _NODE_CHANNEL
+                self.channel_list.addItem(self._make_list_item(lbl, node_type))
         self._displayed_labels = list(new_labels)
 
     def _filter_by_search(self, labels, items, search):
@@ -867,15 +896,15 @@ class ChannelsTab(QWidget):
     def _on_channel_search(self, text: str) -> None:
         search = text.strip().lower()
         if not search:
-            self._diff_update_listwidget(self._all_labels)
             self._items = list(self._all_items)
+            self._diff_update_listwidget(self._all_labels)
         else:
             filtered_labels, filtered_items = self._filter_by_search(
                 self._all_labels, self._all_items, search
             )
             self.channel_list.clear()
-            for lbl in filtered_labels:
-                self.channel_list.addItem(lbl)
+            for lbl, (ntype, _) in zip(filtered_labels, filtered_items):
+                self.channel_list.addItem(self._make_list_item(lbl, ntype))
             self._items = filtered_items
 
     # ------------------------------------------------------------------
