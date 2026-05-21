@@ -16,7 +16,8 @@ from typing import List, Optional, TYPE_CHECKING
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout,
     QLabel, QLineEdit, QListWidget, QPushButton, QComboBox,
-    QCheckBox, QFileDialog, QTabWidget, QSpinBox, QMessageBox,
+    QCheckBox, QFileDialog, QStackedWidget, QSpinBox, QMessageBox,
+    QFrame,
 )
 from PySide6.QtCore import Qt
 
@@ -93,16 +94,33 @@ class MediaTab(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(4, 4, 4, 4)
 
-        self._inner_tabs = QTabWidget()
-        root.addWidget(self._inner_tabs)
+        # ── Aufnahme (immer sichtbar) ─────────────────────────────────
+        root.addWidget(self._build_recording_tab())
 
-        self._inner_tabs.addTab(self._build_recording_tab(), "Aufnahme")   # 0
-        self._inner_tabs.addTab(self._build_file_tab(), "Datei")            # 1
-        self._inner_tabs.addTab(self._build_ytdlp_tab(), "YouTube/yt-dlp") # 2
-        self._inner_tabs.addTab(self._build_radio_tab(), "Webradio")        # 3
-        self._inner_tabs.addTab(self._build_podcast_tab(), "Podcasts")      # 4
-        self._inner_tabs.addTab(self._build_playlist_tab(), "Playlist")     # 5
-        inner = self._inner_tabs  # alias kept for legacy uses in this file
+        sep = QFrame()
+        sep.setFrameShape(QFrame.HLine)
+        sep.setFrameShadow(QFrame.Sunken)
+        root.addWidget(sep)
+
+        # ── Streaming-Quelle: Auswahlmenü ────────────────────────────
+        src_row = QHBoxLayout()
+        src_row.addWidget(QLabel("Streaming-Quelle:"))
+        self._source_combo = QComboBox()
+        self._source_combo.setAccessibleName("Streaming-Quelle")
+        for _src_name in ("URL / Datei", "YouTube / yt-dlp", "Webradio", "Podcasts", "Playlist"):
+            self._source_combo.addItem(_src_name)
+        src_row.addWidget(self._source_combo, 1)
+        root.addLayout(src_row)
+
+        self._source_stack = QStackedWidget()
+        self._source_stack.addWidget(self._build_file_tab())      # 0
+        self._source_stack.addWidget(self._build_ytdlp_tab())     # 1
+        self._source_stack.addWidget(self._build_radio_tab())     # 2
+        self._source_stack.addWidget(self._build_podcast_tab())   # 3
+        self._source_stack.addWidget(self._build_playlist_tab())  # 4
+        root.addWidget(self._source_stack, 1)
+
+        self._source_combo.currentIndexChanged.connect(self._source_stack.setCurrentIndex)
 
     # ------------------------------------------------------------------
     # Tab builders
@@ -1047,17 +1065,18 @@ class MediaTab(QWidget):
             "vimeo": 4,
             "mixcloud": 5,
         }
-        _tab_map = {
-            "file": 1,
-            "radio": 3,
-            "podcast": 4,
-            "playlist": 5,
+        # _source_stack indices: 0=Datei, 1=YouTube/yt-dlp, 2=Webradio, 3=Podcasts, 4=Playlist
+        _source_map = {
+            "file": 0,
+            "radio": 2,
+            "podcast": 3,
+            "playlist": 4,
         }
         if mode in _yt_source_map:
-            self._inner_tabs.setCurrentIndex(2)
+            self._source_combo.setCurrentIndex(1)
             self.yt_source.setCurrentIndex(_yt_source_map[mode])
-        elif mode in _tab_map:
-            self._inner_tabs.setCurrentIndex(_tab_map[mode])
+        elif mode in _source_map:
+            self._source_combo.setCurrentIndex(_source_map[mode])
 
     # ------------------------------------------------------------------
     # Lifecycle
