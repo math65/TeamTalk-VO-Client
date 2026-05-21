@@ -663,6 +663,7 @@ class MainFrame(wx.Frame):
         _notif_rules = list(getattr(_ts, "notification_rules", []) or [])
         self._notifications = NotificationManager(_notif_rules)
         self._sound_name_hint: Dict[int, str] = {}
+        self._sound_channel_hint: Dict[int, str] = {}
         # v2.5.0 – Auto-Antwort
         self._auto_reply = AutoReplyManager(self)
         # v2.7.0 – Webhook + HTTP-API
@@ -2922,7 +2923,8 @@ class MainFrame(wx.Frame):
             self.client.stop_event_loop_and_wait()
         except Exception:
             pass
-        self.sound_manager.play("server_disconnect", self.settings_store.settings.sound_events.get("server_disconnect"))
+        if self._notifications.allow_sound("disconnected", server=str(self._current_server_key or "")):
+            self.sound_manager.play("server_disconnect", self.settings_store.settings.sound_events.get("server_disconnect"))
         self.client.disconnect_transport()
         self._analytics.on_disconnect()
         # v2.6.0 – Verbindungsqualitäts-Timer stoppen
@@ -8368,7 +8370,7 @@ class MainFrame(wx.Frame):
                     client_name=tab.client_name.GetValue().strip(),
                     encrypted=encrypted,
                     timeout_ms=8000,
-                    on_login_confirmed=lambda: self.sound_manager.play("server_connect", _se.get("server_connect")),
+                    on_login_confirmed=lambda: self.sound_manager.play("server_connect", _se.get("server_connect")) if self._notifications.allow_sound("connected", server=str(getattr(self, "_current_server_key", "") or "")) else None,
                 )
                 wx.CallAfter(self.handle_connect_result, result)
             except Exception as exc:
@@ -8523,7 +8525,8 @@ class MainFrame(wx.Frame):
             if channel_name:
                 parts.append(f"Kanal {channel_name}")
             text = "Verbunden" + (", " + ", ".join(parts) if parts else "")
-            self.tts.speak(text, kind="connect")
+            if self._notifications.allow_tts("connected", server=str(self._current_server_key or "")):
+                self.tts.speak(text, kind="connect")
             self.bus.emit("connection_state_changed", connected=True, reason="login")
         except Exception:
             pass
@@ -9072,7 +9075,7 @@ class MainFrame(wx.Frame):
                 verify_peer=verify_peer,
                 tls_has_custom_material=tls_has_custom_material,
                 timeout_ms=8000,
-                on_login_confirmed=lambda: self.sound_manager.play("server_connect", _se.get("server_connect")),
+                on_login_confirmed=lambda: self.sound_manager.play("server_connect", _se.get("server_connect")) if self._notifications.allow_sound("connected", server=str(getattr(self, "_current_server_key", "") or "")) else None,
             )
             self._pending_join = parsed if result.ok else None
             wx.CallAfter(self.handle_connect_result, result)
@@ -9829,8 +9832,11 @@ class MainFrame(wx.Frame):
             self._session_history.log("disconnect", f"Verbindung verloren: {self._current_server_key}", server=self._current_server_key)
             self._offline_buffering = True
             wx.CallAfter(self.schedule_reconnect)
-            self.sound_manager.play("server_disconnect", self.settings_store.settings.sound_events.get("server_disconnect"))
-            wx.CallAfter(self.tts.speak, "Verbindung verloren", kind="connect")
+            _srv_key = str(self._current_server_key or "")
+            if self._notifications.allow_sound("disconnected", server=_srv_key):
+                self.sound_manager.play("server_disconnect", self.settings_store.settings.sound_events.get("server_disconnect"))
+            if self._notifications.allow_tts("disconnected", server=_srv_key):
+                wx.CallAfter(self.tts.speak, "Verbindung verloren", kind="connect")
             self.bus.emit("connection_state_changed", connected=False, reason="lost")
         elif event == tt.ClientEvent.CLIENTEVENT_CON_CRYPT_ERROR:
             err = self.tt_str(msg.clienterrormsg.szErrorMsg)
@@ -10060,10 +10066,11 @@ class MainFrame(wx.Frame):
             if not _tts_join_muted and channel_id:
                 _muted_chs = list(getattr(self.settings_store.settings, "tts_muted_channels", []) or [])
                 _tts_join_muted = channel_id in _muted_chs
-        # v7.1.0 – Benachrichtigungs-Engine: Hinweis für sound method setzen
+        # v7.1.0 – Benachrichtigungs-Engine: Hints für _play_user_event_sound setzen
         _uid_hint = int(getattr(user, "nUserID", 0) or 0)
         if _uid_hint:
             self._sound_name_hint[_uid_hint] = name
+            self._sound_channel_hint[_uid_hint] = channel_name
         _notif_allow_tts = self._notifications.allow_tts(
             tts_kind,
             server=str(self._current_server_key or ""),
@@ -10092,6 +10099,7 @@ class MainFrame(wx.Frame):
         my_ch = int(self.client.get_my_channel_id() or 0)
         # v7.1.0 – Name-Hint aus _emit_user_presence_event (sequenziell auf Main-Thread)
         _hint_name = self._sound_name_hint.pop(user_id, "") if user_id else ""
+        _hint_ch = self._sound_channel_hint.pop(user_id, "") if user_id else ""
 
         if event == tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED:
             if my_id and user_id == my_id:
@@ -10100,7 +10108,7 @@ class MainFrame(wx.Frame):
                     self.sound_manager.play("channel_join", se.get("channel_join"))
             elif my_ch and user_ch == my_ch:
                 # Anderer Benutzer betritt meinen Kanal
-                if self._notifications.allow_sound("user_join", user=_hint_name):
+                if self._notifications.allow_sound("user_join", user=_hint_name, channel=_hint_ch):
                     self.sound_manager.play("user_join", se.get("user_join"))
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
             if my_id and user_id == my_id:
@@ -10225,7 +10233,8 @@ class MainFrame(wx.Frame):
             # v7.1.0 – Benachrichtigungs-Engine für eingehende Nachrichten
             if speak:
                 _notif_kind = "private_msg" if kind == "private" else "chat_message"
-                speak = self._notifications.allow_tts(_notif_kind, user=from_user)
+                _srv = str(self._current_server_key or "")
+                speak = self._notifications.allow_tts(_notif_kind, user=from_user, server=_srv)
             wx.CallAfter(self.chat_tab.append_chat, f"{from_user}: {content}", kind, speak)
             if not (from_id and my_id and from_id == my_id):
                 self._analytics.on_message_received()
@@ -10276,12 +10285,12 @@ class MainFrame(wx.Frame):
             se = self.settings_store.settings.sound_events
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER):
                 sound_key = "msg_private_tx" if is_own else "msg_private_rx"
-                _allow_snd = is_own or self._notifications.allow_sound("private_msg", user=from_user)
+                _allow_snd = is_own or self._notifications.allow_sound("private_msg", user=from_user, server=_srv)
                 if _allow_snd:
                     self.sound_manager.play(sound_key, se.get(sound_key))
             elif msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL):
                 sound_key = "msg_channel_tx" if is_own else "msg_channel_rx"
-                _allow_snd = is_own or self._notifications.allow_sound("chat_message", user=from_user)
+                _allow_snd = is_own or self._notifications.allow_sound("chat_message", user=from_user, server=_srv)
                 if _allow_snd:
                     self.sound_manager.play(sound_key, se.get(sound_key))
             # Push notification

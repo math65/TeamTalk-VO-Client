@@ -847,8 +847,11 @@ class MainWindow(QMainWindow):
     def _on_connection_lost(self) -> None:
         self._update_conn_bar("Verbindung verloren")
         self.set_status("Verbindung verloren")
-        self.tts.speak("Verbindung verloren", kind="system")
-        self.sound_manager.play("server_disconnect", self.settings_store.settings.sound_events.get("server_disconnect"))
+        _srv = str(self._current_server_key or "")
+        if self._notifications.allow_tts("disconnected", server=_srv):
+            self.tts.speak("Verbindung verloren", kind="system")
+        if self._notifications.allow_sound("disconnected", server=_srv):
+            self.sound_manager.play("server_disconnect", self.settings_store.settings.sound_events.get("server_disconnect"))
         call_after(self._refresh_channels)
         if self._auto_reconnect:
             self._schedule_reconnect()
@@ -863,8 +866,11 @@ class MainWindow(QMainWindow):
             nick = getattr(profile, "nickname", "") if profile else ""
             self._update_conn_bar(f"Verbunden: {server_name}  |  Nickname: {nick}", connected=True)
             self.set_status(f"Angemeldet an {server_name}")
-            self.tts.speak("Angemeldet", kind="system")
-            self.sound_manager.play("server_connect", self.settings_store.settings.sound_events.get("server_connect"))
+            _srv = str(self._current_server_key or "")
+            if self._notifications.allow_tts("connected", server=_srv):
+                self.tts.speak("Angemeldet", kind="system")
+            if self._notifications.allow_sound("connected", server=_srv):
+                self.sound_manager.play("server_connect", self.settings_store.settings.sound_events.get("server_connect"))
             self._audit_log.log(A_SERVER_CONNECT)
             self._drain_offline_queue()
             self._refresh_channels()
@@ -917,10 +923,12 @@ class MainWindow(QMainWindow):
             _muted_list = [u.strip().lower() for u in _muted_raw.split(",") if u.strip()]
             _tts_muted = name.lower() in _muted_list if _muted_list else False
             if ch_id == my_ch:
+                _srv = str(self._current_server_key or "")
+                _ch = str(self._current_channel_name or "")
                 if (self.tts.settings.speak_user_join and not _tts_muted
-                        and self._notifications.allow_tts("user_join", user=name)):
+                        and self._notifications.allow_tts("user_join", user=name, server=_srv, channel=_ch)):
                     self.tts.speak(f"{name} hat den Kanal betreten", kind="user_join")
-                if self._notifications.allow_sound("user_join", user=name):
+                if self._notifications.allow_sound("user_join", user=name, server=_srv, channel=_ch):
                     self.sound_manager.play("user_join", self.settings_store.settings.sound_events.get("user_join"))
                 self._refresh_channels()
         except Exception:
@@ -937,10 +945,11 @@ class MainWindow(QMainWindow):
             _muted_raw = str(getattr(self.settings_store.settings, "tts_muted_join_users", "") or "")
             _muted_list = [u.strip().lower() for u in _muted_raw.split(",") if u.strip()]
             _tts_muted = name.lower() in _muted_list if _muted_list else False
+            _srv = str(self._current_server_key or "")
             if (self.tts.settings.speak_user_leave and not _tts_muted
-                    and self._notifications.allow_tts("user_leave", user=name)):
+                    and self._notifications.allow_tts("user_leave", user=name, server=_srv)):
                 self.tts.speak(f"{name} hat den Kanal verlassen", kind="user_leave")
-            if self._notifications.allow_sound("user_leave", user=name):
+            if self._notifications.allow_sound("user_leave", user=name, server=_srv):
                 self.sound_manager.play("user_leave", self.settings_store.settings.sound_events.get("user_leave"))
             self._refresh_channels()
         except Exception:
@@ -1070,14 +1079,15 @@ class MainWindow(QMainWindow):
                 if not is_own:
                     speak_text = f"{from_user}: {content}"
                     _notif_kind = "private_msg" if kind == "private" else "chat_message"
+                    _srv = str(self._current_server_key or "")
                     if kind == "private":
                         speak_text = f"Privat von {from_user}: {content}"
                         self._last_private_sender_id = from_id
                         self._last_private_message_text = str(content or "")
-                        if self._notifications.allow_sound("private_msg", user=from_user):
+                        if self._notifications.allow_sound("private_msg", user=from_user, server=_srv):
                             self.sound_manager.play("msg_private_rx", self.settings_store.settings.sound_events.get("msg_private_rx"))
                     else:
-                        if self._notifications.allow_sound("chat_message", user=from_user):
+                        if self._notifications.allow_sound("chat_message", user=from_user, server=_srv):
                             self.sound_manager.play("msg_channel_rx", self.settings_store.settings.sound_events.get("msg_channel_rx"))
                         # Keyword detection
                         kw_str = getattr(self.settings_store.settings, "highlight_keywords", "") or ""
@@ -1088,7 +1098,7 @@ class MainWindow(QMainWindow):
                                 if kw and kw in content_lower:
                                     self.tts.speak(f"Stichwort: {kw}", kind="system")
                                     break
-                    if self._notifications.allow_tts(_notif_kind, user=from_user):
+                    if self._notifications.allow_tts(_notif_kind, user=from_user, server=_srv):
                         self.tts.speak(speak_text, kind=kind)
                 else:
                     if kind == "private":
