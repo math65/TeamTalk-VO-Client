@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-05-21 (v7.1.1)
+Qt Medien-Tab: Streaming-Quellen als Auswahlmenü (Barrierefreiheit)
+
+- Qt (Windows/Linux) Medien-Tab: Innere Registerkarten (URL, YouTube, Radio,
+  Podcasts, Playlist) durch ein Auswahlmenü „Streaming-Quelle:" + umschaltenden
+  Inhaltsbereich ersetzt. Aufnahme-Steuerung bleibt immer sichtbar.
+  Zugänglicher für Screenreader (NVDA/Narrator).
+- Benachrichtigungs-Engine: Verbunden/Getrennt-Ereignisse nun mit Server-Kontext
+  (Regeln auf Server-Ebene greifen korrekt).
+
 2026-05-21 (v7.1.0)
 Benachrichtigungs-Engine (macOS + Windows/Linux)
 
