@@ -1,6 +1,21 @@
 Changelog
 =========
 
+2026-05-21 (v7.1.0)
+Benachrichtigungs-Engine (macOS + Windows/Linux)
+
+- Neu: Fein-granulare Benachrichtigungs-Regeln für TTS und Sound.
+  Unter „Automation → Benachrichtigungs-Regeln" können Regeln definiert werden,
+  die für jedes Ereignis (Benutzer betritt/verlässt Kanal, Chat-/Privatnachricht,
+  Kanalwechsel, Verbindung) festlegen ob TTS, Sound, beides oder nichts ausgegeben wird.
+- Geltungsbereiche: Global, Server, Kanal oder einzelner Benutzer.
+  Spezifischere Regeln überschreiben allgemeinere (Benutzer > Kanal > Server > Global).
+- Unterstützte Ereignisse: Benutzer betritt/verlässt Kanal, Kanalnachricht,
+  Privatnachricht, Kanalwechsel (eigener), Verbunden, Getrennt.
+- Unterstützte Aktionen: TTS + Sound, Nur TTS, Nur Sound, Stumm.
+- Vollständige Parität macOS (wx) und Windows/Linux (Qt).
+- Einstellungen werden in der Datenbank gespeichert und beim Start geladen.
+
 2026-05-20 (v7.0.2)
 Qt UI (Windows/Linux): Kanalliste, Chat, Sound – Bugfixes und UI-Verbesserungen
 

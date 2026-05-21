@@ -47,6 +47,7 @@ from pronunciation import PronunciationManager
 from bookmark_manager import BookmarkManager
 from mute_scheduler import MuteScheduler
 from macro_manager import MacroManager
+from notification_manager import NotificationManager
 from auto_reply import AutoReplyManager
 from webhook_manager import WebhookManager
 from http_api import HttpApiServer
@@ -73,7 +74,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "7.0.2"
+APP_VERSION = "7.1.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -658,6 +659,10 @@ class MainFrame(wx.Frame):
         # v2.3.0 – Zeitgesteuerte Stille, Makros
         self._mute_scheduler = MuteScheduler(self)
         self._macros = MacroManager(self)
+        # v7.1.0 – Benachrichtigungs-Regeln
+        _notif_rules = list(getattr(_ts, "notification_rules", []) or [])
+        self._notifications = NotificationManager(_notif_rules)
+        self._sound_name_hint: Dict[int, str] = {}
         # v2.5.0 – Auto-Antwort
         self._auto_reply = AutoReplyManager(self)
         # v2.7.0 – Webhook + HTTP-API
@@ -2087,6 +2092,7 @@ class MainFrame(wx.Frame):
         auto_macro_editor = auto_menu.Append(wx.ID_ANY, _("Makro-Editor..."))
         auto_scheduled_macros = auto_menu.Append(wx.ID_ANY, _("Geplante Makros..."))
         auto_pronunciation = auto_menu.Append(wx.ID_ANY, _("Aussprache-Wörterbuch..."))
+        auto_notification_rules = auto_menu.Append(wx.ID_ANY, _("Benachrichtigungs-Regeln..."))
         auto_menu.AppendSeparator()
         auto_trigger_editor = auto_menu.Append(wx.ID_ANY, _("Trigger-Regeln..."))
         auto_menu.AppendSeparator()
@@ -2270,6 +2276,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_macro_editor, auto_macro_editor)
         self.Bind(wx.EVT_MENU, self.on_menu_scheduled_macros, auto_scheduled_macros)
         self.Bind(wx.EVT_MENU, self.on_menu_pronunciation, auto_pronunciation)
+        self.Bind(wx.EVT_MENU, self.on_menu_notification_rules, auto_notification_rules)
         self.Bind(wx.EVT_MENU, self.on_menu_trigger_editor, auto_trigger_editor)
         self._auto_translate_menu_item = auto_translate
         auto_translate.Check(bool(getattr(self.settings_store.settings, "translate_chat_enabled", False)))
@@ -4845,6 +4852,17 @@ class MainFrame(wx.Frame):
         from ui_wx.pronunciation_dialog import PronunciationDialog
         dlg = PronunciationDialog(self)
         dlg.ShowModal()
+        dlg.Destroy()
+
+    def on_menu_notification_rules(self, _event):
+        """Benachrichtigungs-Regeln-Dialog (v7.1)."""
+        from ui_wx.notification_dialog import NotificationRulesDialog
+        dlg = NotificationRulesDialog(self, self._notifications.rules)
+        if dlg.ShowModal() == wx.ID_OK:
+            new_rules = dlg.get_rules()
+            self._notifications.update_rules(new_rules)
+            self.settings_store.settings.notification_rules = new_rules
+            self.settings_store.save()
         dlg.Destroy()
 
     def _on_menu_macro_editor_legacy(self, _event):
@@ -10042,8 +10060,18 @@ class MainFrame(wx.Frame):
             if not _tts_join_muted and channel_id:
                 _muted_chs = list(getattr(self.settings_store.settings, "tts_muted_channels", []) or [])
                 _tts_join_muted = channel_id in _muted_chs
+        # v7.1.0 – Benachrichtigungs-Engine: Hinweis für sound method setzen
+        _uid_hint = int(getattr(user, "nUserID", 0) or 0)
+        if _uid_hint:
+            self._sound_name_hint[_uid_hint] = name
+        _notif_allow_tts = self._notifications.allow_tts(
+            tts_kind,
+            server=str(self._current_server_key or ""),
+            channel=channel_name,
+            user=name,
+        )
         self.chat_tab.append_chat(text, kind="system", speak=False)
-        if not _tts_join_muted:
+        if not _tts_join_muted and _notif_allow_tts:
             self.tts.speak(text, kind=tts_kind)
         self._buffer_offline_event(text, "system")
         self.emit_system_message(text, speak=False)
@@ -10062,20 +10090,25 @@ class MainFrame(wx.Frame):
         se = self.settings_store.settings.sound_events
         my_id = int(self.client.get_my_user_id() or 0)
         my_ch = int(self.client.get_my_channel_id() or 0)
+        # v7.1.0 – Name-Hint aus _emit_user_presence_event (sequenziell auf Main-Thread)
+        _hint_name = self._sound_name_hint.pop(user_id, "") if user_id else ""
 
         if event == tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED:
             if my_id and user_id == my_id:
                 # Ich selbst habe einen Kanal betreten
-                self.sound_manager.play("channel_join", se.get("channel_join"))
+                if self._notifications.allow_sound("channel_join"):
+                    self.sound_manager.play("channel_join", se.get("channel_join"))
             elif my_ch and user_ch == my_ch:
                 # Anderer Benutzer betritt meinen Kanal
-                self.sound_manager.play("user_join", se.get("user_join"))
+                if self._notifications.allow_sound("user_join", user=_hint_name):
+                    self.sound_manager.play("user_join", se.get("user_join"))
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
             if my_id and user_id == my_id:
                 pass  # eigenes Verlassen: direkt in on_leave_channel gespielt
             elif user_id and (not my_ch or source_ch == my_ch):
                 # Anderer Benutzer verlässt meinen Kanal (oder channel unbekannt)
-                self.sound_manager.play("user_leave", se.get("user_leave"))
+                if self._notifications.allow_sound("user_leave", user=_hint_name):
+                    self.sound_manager.play("user_leave", se.get("user_leave"))
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN:
             self.sound_manager.play("user_login", se.get("user_login"))
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDOUT:
@@ -10189,6 +10222,10 @@ class MainFrame(wx.Frame):
                 self._channel_message_log.append(entry)
                 if len(self._channel_message_log) > 200:
                     self._channel_message_log = self._channel_message_log[-200:]
+            # v7.1.0 – Benachrichtigungs-Engine für eingehende Nachrichten
+            if speak:
+                _notif_kind = "private_msg" if kind == "private" else "chat_message"
+                speak = self._notifications.allow_tts(_notif_kind, user=from_user)
             wx.CallAfter(self.chat_tab.append_chat, f"{from_user}: {content}", kind, speak)
             if not (from_id and my_id and from_id == my_id):
                 self._analytics.on_message_received()
@@ -10239,10 +10276,14 @@ class MainFrame(wx.Frame):
             se = self.settings_store.settings.sound_events
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER):
                 sound_key = "msg_private_tx" if is_own else "msg_private_rx"
-                self.sound_manager.play(sound_key, se.get(sound_key))
+                _allow_snd = is_own or self._notifications.allow_sound("private_msg", user=from_user)
+                if _allow_snd:
+                    self.sound_manager.play(sound_key, se.get(sound_key))
             elif msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL):
                 sound_key = "msg_channel_tx" if is_own else "msg_channel_rx"
-                self.sound_manager.play(sound_key, se.get(sound_key))
+                _allow_snd = is_own or self._notifications.allow_sound("chat_message", user=from_user)
+                if _allow_snd:
+                    self.sound_manager.play(sound_key, se.get(sound_key))
             # Push notification
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER):
                 wx.CallAfter(self._send_notification, "Privatnachricht", f"{from_user}: {content}", "private")

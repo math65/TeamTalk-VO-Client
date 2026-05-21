@@ -322,6 +322,8 @@ class AppSettings:
     notify_background_broadcast_mode: str = "notification"
     auto_join_root_channel: bool = False
     user_stereo_prefs: Dict[str, str] = field(default_factory=dict)  # username → "normal"|"left"|"right"
+    # v7.1.0 features
+    notification_rules: List[Dict] = field(default_factory=list)
 
 
 class SettingsStore:

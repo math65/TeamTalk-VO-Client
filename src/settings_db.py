@@ -385,6 +385,8 @@ class SQLiteSettingsStore:
         s.mute_from_time = _str("mute_from_time", "22:00")
         s.mute_to_time = _str("mute_to_time", "07:00")
         s.auto_reply_text = _str("auto_reply_text", "Ich bin gerade nicht erreichbar.")
+        # v7.1.0
+        s.notification_rules = _list("notification_rules")
 
     def save(self) -> None:
         s = self.settings
@@ -580,6 +582,8 @@ class SQLiteSettingsStore:
         _set("mute_from_time", str(getattr(s, "mute_from_time", "22:00") or "22:00"))
         _set("mute_to_time", str(getattr(s, "mute_to_time", "07:00") or "07:00"))
         _set("auto_reply_text", str(getattr(s, "auto_reply_text", "") or ""))
+        # v7.1.0
+        _set("notification_rules", list(getattr(s, "notification_rules", []) or []))
 
         db.commit()
 

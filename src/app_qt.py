@@ -51,6 +51,7 @@ from pronunciation import PronunciationManager
 from bookmark_manager import BookmarkManager
 from mute_scheduler import MuteScheduler
 from macro_manager import MacroManager
+from notification_manager import NotificationManager
 from auto_reply import AutoReplyManager
 from webhook_manager import WebhookManager
 from http_api import HttpApiServer
@@ -70,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "7.0.2"
+APP_VERSION = "7.1.0"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -271,6 +272,9 @@ class MainWindow(QMainWindow):
         self._bookmarks = BookmarkManager(self.settings_store)
         self._mute_scheduler = MuteScheduler(self)
         self._macros = MacroManager(self)
+        # v7.1.0 – Benachrichtigungs-Regeln
+        _notif_rules = list(getattr(_ts, "notification_rules", []) or [])
+        self._notifications = NotificationManager(_notif_rules)
         self._auto_reply = AutoReplyManager(self)
         self._webhook = WebhookManager(self)
         self._http_api = HttpApiServer(self)
@@ -700,6 +704,7 @@ class MainWindow(QMainWindow):
         auto_m.addSeparator()
         self._add_action(auto_m, "&Trigger-Regeln...", self.on_menu_trigger_editor)
         self._add_action(auto_m, "&Aussprache-Wörterbuch...", self.on_menu_pronunciation)
+        self._add_action(auto_m, "&Benachrichtigungs-Regeln...", self.on_menu_notification_rules)
         auto_m.addSeparator()
         self._add_action(auto_m, "&Chat-Suche...", self.on_menu_chat_search, "Ctrl+F")
         self._add_action(auto_m, "&Nutzerwatcher...", self.on_menu_user_watcher)
@@ -912,9 +917,11 @@ class MainWindow(QMainWindow):
             _muted_list = [u.strip().lower() for u in _muted_raw.split(",") if u.strip()]
             _tts_muted = name.lower() in _muted_list if _muted_list else False
             if ch_id == my_ch:
-                if self.tts.settings.speak_user_join and not _tts_muted:
+                if (self.tts.settings.speak_user_join and not _tts_muted
+                        and self._notifications.allow_tts("user_join", user=name)):
                     self.tts.speak(f"{name} hat den Kanal betreten", kind="user_join")
-                self.sound_manager.play("user_join", self.settings_store.settings.sound_events.get("user_join"))
+                if self._notifications.allow_sound("user_join", user=name):
+                    self.sound_manager.play("user_join", self.settings_store.settings.sound_events.get("user_join"))
                 self._refresh_channels()
         except Exception:
             pass
@@ -930,9 +937,11 @@ class MainWindow(QMainWindow):
             _muted_raw = str(getattr(self.settings_store.settings, "tts_muted_join_users", "") or "")
             _muted_list = [u.strip().lower() for u in _muted_raw.split(",") if u.strip()]
             _tts_muted = name.lower() in _muted_list if _muted_list else False
-            if self.tts.settings.speak_user_leave and not _tts_muted:
+            if (self.tts.settings.speak_user_leave and not _tts_muted
+                    and self._notifications.allow_tts("user_leave", user=name)):
                 self.tts.speak(f"{name} hat den Kanal verlassen", kind="user_leave")
-            self.sound_manager.play("user_leave", self.settings_store.settings.sound_events.get("user_leave"))
+            if self._notifications.allow_sound("user_leave", user=name):
+                self.sound_manager.play("user_leave", self.settings_store.settings.sound_events.get("user_leave"))
             self._refresh_channels()
         except Exception:
             pass
@@ -1060,13 +1069,16 @@ class MainWindow(QMainWindow):
 
                 if not is_own:
                     speak_text = f"{from_user}: {content}"
+                    _notif_kind = "private_msg" if kind == "private" else "chat_message"
                     if kind == "private":
                         speak_text = f"Privat von {from_user}: {content}"
                         self._last_private_sender_id = from_id
                         self._last_private_message_text = str(content or "")
-                        self.sound_manager.play("msg_private_rx", self.settings_store.settings.sound_events.get("msg_private_rx"))
+                        if self._notifications.allow_sound("private_msg", user=from_user):
+                            self.sound_manager.play("msg_private_rx", self.settings_store.settings.sound_events.get("msg_private_rx"))
                     else:
-                        self.sound_manager.play("msg_channel_rx", self.settings_store.settings.sound_events.get("msg_channel_rx"))
+                        if self._notifications.allow_sound("chat_message", user=from_user):
+                            self.sound_manager.play("msg_channel_rx", self.settings_store.settings.sound_events.get("msg_channel_rx"))
                         # Keyword detection
                         kw_str = getattr(self.settings_store.settings, "highlight_keywords", "") or ""
                         if kw_str:
@@ -1076,7 +1088,8 @@ class MainWindow(QMainWindow):
                                 if kw and kw in content_lower:
                                     self.tts.speak(f"Stichwort: {kw}", kind="system")
                                     break
-                    self.tts.speak(speak_text, kind=kind)
+                    if self._notifications.allow_tts(_notif_kind, user=from_user):
+                        self.tts.speak(speak_text, kind=kind)
                 else:
                     if kind == "private":
                         self.sound_manager.play("msg_private_tx", self.settings_store.settings.sound_events.get("msg_private_tx"))
@@ -3640,6 +3653,16 @@ class MainWindow(QMainWindow):
     def on_menu_pronunciation(self) -> None:
         from ui_qt.pronunciation_dialog import PronunciationDialog
         PronunciationDialog(self).exec()
+        self._refocus_channel_list()
+
+    def on_menu_notification_rules(self) -> None:
+        from ui_qt.notification_dialog import NotificationRulesDialog
+        dlg = NotificationRulesDialog(self, self._notifications.rules)
+        if dlg.exec():
+            new_rules = dlg.get_rules()
+            self._notifications.update_rules(new_rules)
+            self.settings_store.settings.notification_rules = new_rules
+            self.settings_store.save()
         self._refocus_channel_list()
 
     def on_menu_plugin_manager(self) -> None:
