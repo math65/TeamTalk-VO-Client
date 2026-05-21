@@ -28,7 +28,7 @@ Qt UI (Windows/Linux): Kanalliste, Chat, Sound – Bugfixes und UI-Verbesserunge
 - Kanalliste: Mehr Padding in Listeneinträgen für bessere Lesbarkeit.
 - Layout: QSplitter statt starrem 50/50-Layout (Kanäle 38 %, Chat 62 %, ziehbar).
 - Kanalsuche: Reihenfolge-Bug beim Diff-Update behoben.
-  Beitrag von Juho Mäkinen (@garo).
+  Beitrag von @danijel1124.
 
 2026-05-19 (v7.0.1)
 Qt UI (Windows/Linux): Makro-Editor + Aussprache-Wörterbuch + Bugfixes
@@ -43,7 +43,7 @@ Qt UI (Windows/Linux): Makro-Editor + Aussprache-Wörterbuch + Bugfixes
 - Windows: Chat-Protokolle werden jetzt korrekt im AppData-Verzeichnis gespeichert.
 - Windows: Log-Datei (client.log) wird beim Start korrekt angelegt.
 - Windows: Sound-Wiedergabe korrigiert.
-  Beitrag von Juho Mäkinen (@garo).
+  Beitrag von @danijel1124.
 
 2026-05-19 (v7.0.0)
 Makro-Engine + Aussprache-Wörterbuch: Vollständig neue Automation- und TTS-Personalisierung
