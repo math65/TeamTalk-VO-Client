@@ -490,62 +490,62 @@ class MainWindow(QMainWindow):
         mb = self.menuBar()
 
         # --- Datei ---
-        datei = mb.addMenu("&Datei")
-        self._add_action(datei, "&Verbinden...", self.on_menu_connect, "Ctrl+Return")
-        self._add_action(datei, "&Trennen", self.on_menu_disconnect, "Ctrl+W")
-        self._add_action(datei, "Neu &verbinden", self.reconnect, "Ctrl+Shift+R")
-        self._auto_reconnect_action = self._add_checkable(datei, "Auto-&Reconnect",
+        datei = mb.addMenu(_("&Datei"))
+        self._add_action(datei, _("&Verbinden..."), self.on_menu_connect, "Ctrl+Return")
+        self._add_action(datei, _("&Trennen"), self.on_menu_disconnect, "Ctrl+W")
+        self._add_action(datei, _("Neu &verbinden"), self.reconnect, "Ctrl+Shift+R")
+        self._auto_reconnect_action = self._add_checkable(datei, _("Auto-&Reconnect"),
             self._on_toggle_auto_reconnect,
             bool(getattr(self.settings_store.settings, "auto_reconnect_enabled", True)))
         datei.addSeparator()
-        self._fav_menu = datei.addMenu("&Schnellverbindung")
+        self._fav_menu = datei.addMenu(_("&Schnellverbindung"))
         self._rebuild_favorites_menu()
         datei.addSeparator()
-        self._add_action(datei, "&TT-Datei öffnen...", self.on_menu_open_tt_file)
-        self._add_action(datei, "TT-&URL kopieren", self.copy_tt_url)
+        self._add_action(datei, _("&TT-Datei öffnen..."), self.on_menu_open_tt_file)
+        self._add_action(datei, _("TT-&URL kopieren"), self.copy_tt_url)
         datei.addSeparator()
-        self._add_action(datei, "Neuen Client &starten", self.on_menu_new_client)
+        self._add_action(datei, _("Neuen Client &starten"), self.on_menu_new_client)
         datei.addSeparator()
-        self._add_action(datei, "Server &prüfen", self.on_menu_server_check)
+        self._add_action(datei, _("Server &prüfen"), self.on_menu_server_check)
         datei.addSeparator()
-        self._add_action(datei, "Serverliste &importieren...", self.on_menu_import_servers)
-        self._add_action(datei, "Serverliste &exportieren...", self.on_menu_export_servers)
+        self._add_action(datei, _("Serverliste &importieren..."), self.on_menu_import_servers)
+        self._add_action(datei, _("Serverliste &exportieren..."), self.on_menu_export_servers)
         datei.addSeparator()
-        sound_sub = datei.addMenu("&Sound-Konfiguration")
-        self._add_action(sound_sub, "Audio-Einstellungen...", self.on_menu_audio_settings)
-        self._add_action(sound_sub, "Geräte a&ktualisieren", self.on_menu_audio_refresh)
+        sound_sub = datei.addMenu(_("&Sound-Konfiguration"))
+        self._add_action(sound_sub, _("Audio-Einstellungen..."), self.on_menu_audio_settings)
+        self._add_action(sound_sub, _("Geräte a&ktualisieren"), self.on_menu_audio_refresh)
         datei.addSeparator()
-        self._add_action(datei, "Einstellungen &sichern (Backup)...", self.on_menu_settings_backup)
-        self._add_action(datei, "Einstellungen &wiederherstellen...", self.on_menu_settings_restore)
+        self._add_action(datei, _("Einstellungen &sichern (Backup)..."), self.on_menu_settings_backup)
+        self._add_action(datei, _("Einstellungen &wiederherstellen..."), self.on_menu_settings_restore)
         datei.addSeparator()
-        self._add_action(datei, "&Beenden", self.force_close, "Ctrl+Q")
+        self._add_action(datei, _("&Beenden"), self.force_close, "Ctrl+Q")
 
         # --- Kanal ---
-        kanal = mb.addMenu("&Kanal")
-        self._add_action(kanal, "Kanal &beitreten", self.on_menu_join_channel, "Ctrl+J")
-        self._add_action(kanal, "&Root-Kanal beitreten", self.on_menu_join_root)
-        self._add_action(kanal, "Kanal &verlassen", self.on_menu_leave_channel, "Ctrl+L")
+        kanal = mb.addMenu(_("&Kanal"))
+        self._add_action(kanal, _("Kanal &beitreten"), self.on_menu_join_channel, "Ctrl+J")
+        self._add_action(kanal, _("&Root-Kanal beitreten"), self.on_menu_join_root)
+        self._add_action(kanal, _("Kanal &verlassen"), self.on_menu_leave_channel, "Ctrl+L")
         kanal.addSeparator()
-        self._add_action(kanal, "Kanal &erstellen...", self.on_menu_create_channel, "F7")
-        self._add_action(kanal, "Kanal &bearbeiten...", self.on_menu_edit_channel)
-        self._add_action(kanal, "Kanal &löschen", self.on_menu_delete_channel)
+        self._add_action(kanal, _("Kanal &erstellen..."), self.on_menu_create_channel, "F7")
+        self._add_action(kanal, _("Kanal &bearbeiten..."), self.on_menu_edit_channel)
+        self._add_action(kanal, _("Kanal &löschen"), self.on_menu_delete_channel)
         kanal.addSeparator()
-        self._add_action(kanal, "Kanal&info vorlesen", self.on_menu_channel_info, "Ctrl+S")
-        self._add_action(kanal, "Kanal-Statistiken &ansagen", self.on_menu_channel_stats_speak)
-        self._add_action(kanal, "Kanalzustand &ansagen", self.on_menu_channel_state_speak)
-        self._add_action(kanal, "Kanal-&Notiz bearbeiten...", self.on_menu_channel_note)
-        self._add_action(kanal, "Kanal&nachricht senden...", self.on_menu_send_channel_msg, "F3")
+        self._add_action(kanal, _("Kanal&info vorlesen"), self.on_menu_channel_info, "Ctrl+S")
+        self._add_action(kanal, _("Kanal-Statistiken &ansagen"), self.on_menu_channel_stats_speak)
+        self._add_action(kanal, _("Kanalzustand &ansagen"), self.on_menu_channel_state_speak)
+        self._add_action(kanal, _("Kanal-&Notiz bearbeiten..."), self.on_menu_channel_note)
+        self._add_action(kanal, _("Kanal&nachricht senden..."), self.on_menu_send_channel_msg, "F3")
         kanal.addSeparator()
-        self._add_action(kanal, "&Datei hochladen...", self.on_menu_upload_file)
-        self._add_action(kanal, "Datei &herunterladen", self.on_menu_download_file)
+        self._add_action(kanal, _("&Datei hochladen..."), self.on_menu_upload_file)
+        self._add_action(kanal, _("Datei &herunterladen"), self.on_menu_download_file)
         kanal.addSeparator()
-        self._add_action(kanal, "Sperren im Kanal anzeigen...", self.on_menu_channel_bans)
-        self._add_action(kanal, "Kanal&nachrichten anzeigen...", self.on_menu_channel_view_msgs)
-        self._add_action(kanal, "Kanal&verlauf...", self.on_menu_channel_history)
-        self._recent_ch_menu = kanal.addMenu("&Zuletzt besucht")
+        self._add_action(kanal, _("Sperren im Kanal anzeigen..."), self.on_menu_channel_bans)
+        self._add_action(kanal, _("Kanal&nachrichten anzeigen..."), self.on_menu_channel_view_msgs)
+        self._add_action(kanal, _("Kanal&verlauf..."), self.on_menu_channel_history)
+        self._recent_ch_menu = kanal.addMenu(_("&Zuletzt besucht"))
         self._refresh_recent_channels_menu()
         kanal.addSeparator()
-        stream_m = kanal.addMenu("&Streamen")
+        stream_m = kanal.addMenu(_("&Streamen"))
         for _label, _mode in [
             ("&YouTube/URL...", "url"),
             ("&SoundCloud...", "soundcloud"),
@@ -558,187 +558,187 @@ class MainWindow(QMainWindow):
             ("&Datei...", "file"),
             ("&Playlist...", "playlist"),
         ]:
-            self._add_action(stream_m, _label,
+            self._add_action(stream_m, _(_label),
                 lambda checked=False, m=_mode: self._on_channel_stream_mode(m))
         stream_m.addSeparator()
-        self._add_action(stream_m, "Audio-&Datei direkt streamen...", self.on_menu_stream_audio_file)
+        self._add_action(stream_m, _("Audio-&Datei direkt streamen..."), self.on_menu_stream_audio_file)
 
         # --- Benutzer ---
-        benutzer = mb.addMenu("&Benutzer")
-        self._add_action(benutzer, "&Benutzerinfo vorlesen", self.on_menu_user_info, "Ctrl+I")
-        self._add_action(benutzer, "&Private Nachricht...", self.on_menu_private_msg, "Ctrl+T")
+        benutzer = mb.addMenu(_("&Benutzer"))
+        self._add_action(benutzer, _("&Benutzerinfo vorlesen"), self.on_menu_user_info, "Ctrl+I")
+        self._add_action(benutzer, _("&Private Nachricht..."), self.on_menu_private_msg, "Ctrl+T")
         benutzer.addSeparator()
-        self._add_action(benutzer, "S&tummschalten (Sprache)", self.on_menu_mute_voice, "Ctrl+M")
-        self._add_action(benutzer, "Stummschalten (&Mediendatei)", self.on_menu_mute_media)
-        self._add_action(benutzer, "Lautstärke &einstellen...", self.on_menu_user_volume)
-        self._add_action(benutzer, "Stereo-&Position...", self.on_menu_user_stereo)
-        self._add_action(benutzer, "Lautstärke &hoch", self.on_menu_user_volume_up, "Ctrl+Right")
-        self._add_action(benutzer, "Lautstärke &runter", self.on_menu_user_volume_down, "Ctrl+Left")
-        self._add_action(benutzer, "Medien-Lautstärke h&och", self.on_menu_user_media_volume_up, "Ctrl+Alt+Up")
-        self._add_action(benutzer, "Medien-Lautstärke &runter", self.on_menu_user_media_volume_down, "Ctrl+Alt+Down")
+        self._add_action(benutzer, _("S&tummschalten (Sprache)"), self.on_menu_mute_voice, "Ctrl+M")
+        self._add_action(benutzer, _("Stummschalten (&Mediendatei)"), self.on_menu_mute_media)
+        self._add_action(benutzer, _("Lautstärke &einstellen..."), self.on_menu_user_volume)
+        self._add_action(benutzer, _("Stereo-&Position..."), self.on_menu_user_stereo)
+        self._add_action(benutzer, _("Lautstärke &hoch"), self.on_menu_user_volume_up, "Ctrl+Right")
+        self._add_action(benutzer, _("Lautstärke &runter"), self.on_menu_user_volume_down, "Ctrl+Left")
+        self._add_action(benutzer, _("Medien-Lautstärke h&och"), self.on_menu_user_media_volume_up, "Ctrl+Alt+Up")
+        self._add_action(benutzer, _("Medien-Lautstärke &runter"), self.on_menu_user_media_volume_down, "Ctrl+Alt+Down")
         benutzer.addSeparator()
-        self._add_action(benutzer, "Aus Kanal &kicken", self.on_menu_kick, "Ctrl+K")
-        self._add_action(benutzer, "Kicken + &Sperren", self.on_menu_kick_ban, "Ctrl+Shift+K")
-        self._add_action(benutzer, "Vom &Server kicken", self.on_menu_kick_server)
-        self._add_action(benutzer, "Vom Server kicken + &Bannen", self.on_menu_kick_ban_server)
+        self._add_action(benutzer, _("Aus Kanal &kicken"), self.on_menu_kick, "Ctrl+K")
+        self._add_action(benutzer, _("Kicken + &Sperren"), self.on_menu_kick_ban, "Ctrl+Shift+K")
+        self._add_action(benutzer, _("Vom &Server kicken"), self.on_menu_kick_server)
+        self._add_action(benutzer, _("Vom Server kicken + &Bannen"), self.on_menu_kick_ban_server)
         benutzer.addSeparator()
-        self._add_action(benutzer, "Benutzer &verschieben", self.on_menu_move_user)
-        self._add_action(benutzer, "Verschiebe-&Ziel merken", self.on_menu_store_move_target)
-        self._add_action(benutzer, "Zum &Ziel verschieben", self.on_menu_move_to_target)
-        self._add_action(benutzer, "&Operator geben/nehmen", self.on_menu_toggle_operator)
+        self._add_action(benutzer, _("Benutzer &verschieben"), self.on_menu_move_user)
+        self._add_action(benutzer, _("Verschiebe-&Ziel merken"), self.on_menu_store_move_target)
+        self._add_action(benutzer, _("Zum &Ziel verschieben"), self.on_menu_move_to_target)
+        self._add_action(benutzer, _("&Operator geben/nehmen"), self.on_menu_toggle_operator)
         benutzer.addSeparator()
-        self._add_action(benutzer, "&Abonnements...", self.on_menu_subscriptions)
-        self._add_action(benutzer, "Benutzer &positionieren...", self.on_menu_user_position)
-        adv_m = benutzer.addMenu("Er&weitert")
-        self._add_action(adv_m, "&Sprachstream weiterleiten", self.on_menu_relay_voice)
-        self._add_action(adv_m, "&Medienstream weiterleiten", self.on_menu_relay_media)
+        self._add_action(benutzer, _("&Abonnements..."), self.on_menu_subscriptions)
+        self._add_action(benutzer, _("Benutzer &positionieren..."), self.on_menu_user_position)
+        adv_m = benutzer.addMenu(_("Er&weitert"))
+        self._add_action(adv_m, _("&Sprachstream weiterleiten"), self.on_menu_relay_voice)
+        self._add_action(adv_m, _("&Medienstream weiterleiten"), self.on_menu_relay_media)
         benutzer.addSeparator()
-        self._all_mute_action = self._add_checkable(benutzer, "Alle &stummschalten",
+        self._all_mute_action = self._add_checkable(benutzer, _("Alle &stummschalten"),
             self._on_toggle_mute_all, self._mute_all)
         benutzer.addSeparator()
-        tx_m = benutzer.addMenu("&Sendekontrolle")
+        tx_m = benutzer.addMenu(_("&Sendekontrolle"))
         for _tx_label, _stype in [
             ("Sprache erlauben/sperren", "voice"),
             ("Video erlauben/sperren", "video"),
             ("Desktop erlauben/sperren", "desktop"),
             ("Mediendatei erlauben/sperren", "media"),
         ]:
-            self._add_action(tx_m, _tx_label,
+            self._add_action(tx_m, _(_tx_label),
                 lambda checked=False, st=_stype: self.on_menu_toggle_user_tx(st))
 
         # --- Profil ---
-        profil = mb.addMenu("&Profil")
-        self._add_action(profil, "&Nickname ändern...", self.on_menu_change_nick, "Ctrl+R")
-        self._add_action(profil, "&Status setzen...", self.on_menu_status)
+        profil = mb.addMenu(_("&Profil"))
+        self._add_action(profil, _("&Nickname ändern..."), self.on_menu_change_nick, "Ctrl+R")
+        self._add_action(profil, _("&Status setzen..."), self.on_menu_status)
         profil.addSeparator()
-        self._self_hear_action = self._add_checkable(profil, "Mich selbst &hören",
+        self._self_hear_action = self._add_checkable(profil, _("Mich selbst &hören"),
             self._on_toggle_self_hear,
             bool(getattr(self.settings_store.settings, "self_hear", False)))
-        self._question_mode_action = self._add_checkable(profil, "&Frage-Modus",
+        self._question_mode_action = self._add_checkable(profil, _("&Frage-Modus"),
             self._on_toggle_question_mode, False)
         profil.addSeparator()
-        self._tts_active_action = self._add_checkable(profil, "&TTS aktiv",
+        self._tts_active_action = self._add_checkable(profil, _("&TTS aktiv"),
             self._on_toggle_tts,
             bool(getattr(self.settings_store.settings, "tts_enabled", True)))
         _s = self.settings_store.settings
-        self._tts_flag_chat = self._add_checkable(profil, "TTS: &Chat vorlesen",
+        self._tts_flag_chat = self._add_checkable(profil, _("TTS: &Chat vorlesen"),
             lambda checked: self._on_toggle_tts_flag("chat", checked),
             bool(getattr(_s, "tts_speak_chat", True)))
-        self._tts_flag_private = self._add_checkable(profil, "TTS: &Privat vorlesen",
+        self._tts_flag_private = self._add_checkable(profil, _("TTS: &Privat vorlesen"),
             lambda checked: self._on_toggle_tts_flag("private", checked),
             bool(getattr(_s, "tts_speak_private", True)))
-        self._tts_flag_system = self._add_checkable(profil, "TTS: &System vorlesen",
+        self._tts_flag_system = self._add_checkable(profil, _("TTS: &System vorlesen"),
             lambda checked: self._on_toggle_tts_flag("system", checked),
             bool(getattr(_s, "tts_speak_system", True)))
-        self._tts_flag_own = self._add_checkable(profil, "TTS: &Eigene vorlesen",
+        self._tts_flag_own = self._add_checkable(profil, _("TTS: &Eigene vorlesen"),
             lambda checked: self._on_toggle_tts_flag("own", checked),
             bool(getattr(_s, "tts_speak_own", False)))
         profil.addSeparator()
-        self._add_action(profil, "TTS-&Mitschrift...", self.on_menu_tts_transcript)
+        self._add_action(profil, _("TTS-&Mitschrift..."), self.on_menu_tts_transcript)
 
         # --- Audio ---
-        audio_m = mb.addMenu("&Audio")
-        self._ptt_action = self._add_checkable(audio_m, "&Push-to-Talk",
+        audio_m = mb.addMenu(_("&Audio"))
+        self._ptt_action = self._add_checkable(audio_m, _("&Push-to-Talk"),
             self._on_toggle_ptt,
             bool(getattr(self.settings_store.settings, "ptt_enabled", False)), "F9")
-        self._va_action = self._add_checkable(audio_m, "&Sprachaktivierung",
+        self._va_action = self._add_checkable(audio_m, _("&Sprachaktivierung"),
             self._on_toggle_va,
             bool(getattr(self.settings_store.settings, "voice_activation", False)))
         audio_m.addSeparator()
-        self._agc_action = self._add_checkable(audio_m, "&AGC",
+        self._agc_action = self._add_checkable(audio_m, _("&AGC"),
             self._on_toggle_agc,
             bool(getattr(self.settings_store.settings, "agc", False)))
-        self._denoise_action = self._add_checkable(audio_m, "&Rauschunterdrückung",
+        self._denoise_action = self._add_checkable(audio_m, _("&Rauschunterdrückung"),
             self._on_toggle_denoise,
             bool(getattr(self.settings_store.settings, "denoise", False)))
-        self._echo_action = self._add_checkable(audio_m, "&Echounterdrückung",
+        self._echo_action = self._add_checkable(audio_m, _("&Echounterdrückung"),
             self._on_toggle_echo,
             bool(getattr(self.settings_store.settings, "echo_cancel", False)))
-        self._loopback_action = self._add_checkable(audio_m, "&Mikrofontest",
+        self._loopback_action = self._add_checkable(audio_m, _("&Mikrofontest"),
             self._on_toggle_loopback_menu, False)
         audio_m.addSeparator()
-        self._add_action(audio_m, "Audio-Einstellungen...", self.on_menu_audio_settings)
-        self._add_action(audio_m, "Audio &anwenden", self.apply_audio_prefs)
-        self._add_action(audio_m, "Geräte a&ktualisieren", self.on_menu_audio_refresh)
-        self._add_action(audio_m, "Effekte &anwenden", self.on_menu_audio_effects)
+        self._add_action(audio_m, _("Audio-Einstellungen..."), self.on_menu_audio_settings)
+        self._add_action(audio_m, _("Audio &anwenden"), self.apply_audio_prefs)
+        self._add_action(audio_m, _("Geräte a&ktualisieren"), self.on_menu_audio_refresh)
+        self._add_action(audio_m, _("Effekte &anwenden"), self.on_menu_audio_effects)
         audio_m.addSeparator()
-        self._add_action(audio_m, "&Equalizer-Voreinstellungen...", self.on_menu_equalizer)
-        self._add_action(audio_m, "&Per-Server-Soundprofile...", self.on_menu_server_audio_profiles)
+        self._add_action(audio_m, _("&Equalizer-Voreinstellungen..."), self.on_menu_equalizer)
+        self._add_action(audio_m, _("&Per-Server-Soundprofile..."), self.on_menu_server_audio_profiles)
 
         # --- Chat ---
-        chat_m = mb.addMenu("&Chat")
-        self._add_action(chat_m, "Chat-Log &exportieren...", self.on_menu_chat_export)
-        self._add_action(chat_m, "Letzte &TTS-Ansage wiederholen", self.on_menu_tts_repeat, "Ctrl+Shift+S")
+        chat_m = mb.addMenu(_("&Chat"))
+        self._add_action(chat_m, _("Chat-Log &exportieren..."), self.on_menu_chat_export)
+        self._add_action(chat_m, _("Letzte &TTS-Ansage wiederholen"), self.on_menu_tts_repeat, "Ctrl+Shift+S")
 
         # --- Aufnahmen ---
-        aufn = mb.addMenu("A&ufnahmen")
-        self._add_action(aufn, "Aufnahme &starten...", self.on_menu_start_recording)
-        self._add_action(aufn, "Aufnahme &stoppen", self.on_menu_stop_recording)
+        aufn = mb.addMenu(_("A&ufnahmen"))
+        self._add_action(aufn, _("Aufnahme &starten..."), self.on_menu_start_recording)
+        self._add_action(aufn, _("Aufnahme &stoppen"), self.on_menu_stop_recording)
         aufn.addSeparator()
-        self._add_action(aufn, "Konversationen au&fzeichnen...", self.on_menu_user_recording)
+        self._add_action(aufn, _("Konversationen au&fzeichnen..."), self.on_menu_user_recording)
         aufn.addSeparator()
-        self._add_action(aufn, "Geplante &Aufnahmen...", self.on_menu_scheduled_recordings)
+        self._add_action(aufn, _("Geplante &Aufnahmen..."), self.on_menu_scheduled_recordings)
         aufn.addSeparator()
-        self._add_action(aufn, "Aufnahmen-&Browser...", self.on_menu_recordings_browser)
+        self._add_action(aufn, _("Aufnahmen-&Browser..."), self.on_menu_recordings_browser)
 
         # --- Server ---
-        server_m = mb.addMenu("&Server")
-        self._add_action(server_m, "&Online-Nutzer...", self.on_menu_online_users, "Ctrl+U")
-        self._add_action(server_m, "Server&nachricht senden...", self.on_menu_server_message)
-        self._add_action(server_m, "Server-&Statistiken...", self.on_menu_server_stats)
+        server_m = mb.addMenu(_("&Server"))
+        self._add_action(server_m, _("&Online-Nutzer..."), self.on_menu_online_users, "Ctrl+U")
+        self._add_action(server_m, _("Server&nachricht senden..."), self.on_menu_server_message)
+        self._add_action(server_m, _("Server-&Statistiken..."), self.on_menu_server_stats)
         server_m.addSeparator()
-        self._add_action(server_m, "&Sperrliste...", self.on_menu_ban_list, "Ctrl+B")
-        self._add_action(server_m, "&Administration...", self.on_menu_admin, "Ctrl+A")
-        self._add_action(server_m, "Server&eigenschaften...", self.on_menu_server_properties)
+        self._add_action(server_m, _("&Sperrliste..."), self.on_menu_ban_list, "Ctrl+B")
+        self._add_action(server_m, _("&Administration..."), self.on_menu_admin, "Ctrl+A")
+        self._add_action(server_m, _("Server&eigenschaften..."), self.on_menu_server_properties)
         server_m.addSeparator()
-        self._add_action(server_m, "&Wer-spricht-Protokoll...", self.on_menu_speaking_log)
-        self._add_action(server_m, "&Sitzungsübersicht...", self.on_menu_session_overview)
+        self._add_action(server_m, _("&Wer-spricht-Protokoll..."), self.on_menu_speaking_log)
+        self._add_action(server_m, _("&Sitzungsübersicht..."), self.on_menu_session_overview)
         server_m.addSeparator()
-        self._add_action(server_m, "&Ping ansagen", self.on_menu_announce_ping, "Ctrl+P")
-        self._add_action(server_m, "Konfiguration &speichern", self.on_menu_server_save_config)
+        self._add_action(server_m, _("&Ping ansagen"), self.on_menu_announce_ping, "Ctrl+P")
+        self._add_action(server_m, _("Konfiguration &speichern"), self.on_menu_server_save_config)
 
         # --- Automation ---
-        auto_m = mb.addMenu("A&utomation")
-        self._add_action(auto_m, "&Makro-Editor...", self.on_menu_macros, "Ctrl+Shift+M")
-        self._add_action(auto_m, "Geplante &Makros...", self.on_menu_scheduled_macros)
+        auto_m = mb.addMenu(_("A&utomation"))
+        self._add_action(auto_m, _("&Makro-Editor..."), self.on_menu_macros, "Ctrl+Shift+M")
+        self._add_action(auto_m, _("Geplante &Makros..."), self.on_menu_scheduled_macros)
         auto_m.addSeparator()
-        self._add_action(auto_m, "&Trigger-Regeln...", self.on_menu_trigger_editor)
-        self._add_action(auto_m, "&Aussprache-Wörterbuch...", self.on_menu_pronunciation)
-        self._add_action(auto_m, "&Benachrichtigungs-Regeln...", self.on_menu_notification_rules)
+        self._add_action(auto_m, _("&Trigger-Regeln..."), self.on_menu_trigger_editor)
+        self._add_action(auto_m, _("&Aussprache-Wörterbuch..."), self.on_menu_pronunciation)
+        self._add_action(auto_m, _("&Benachrichtigungs-Regeln..."), self.on_menu_notification_rules)
         auto_m.addSeparator()
-        self._add_action(auto_m, "&Chat-Suche...", self.on_menu_chat_search, "Ctrl+F")
-        self._add_action(auto_m, "&Nutzerwatcher...", self.on_menu_user_watcher)
-        self._add_action(auto_m, "&Offline-Warteschlange...", self.on_menu_offline_queue)
+        self._add_action(auto_m, _("&Chat-Suche..."), self.on_menu_chat_search, "Ctrl+F")
+        self._add_action(auto_m, _("&Nutzerwatcher..."), self.on_menu_user_watcher)
+        self._add_action(auto_m, _("&Offline-Warteschlange..."), self.on_menu_offline_queue)
         auto_m.addSeparator()
-        self._translation_action = self._add_checkable(auto_m, "Chat-&Übersetzung",
+        self._translation_action = self._add_checkable(auto_m, _("Chat-&Übersetzung"),
             self._on_toggle_translation,
             bool(getattr(self.settings_store.settings, "translation_enabled", False)))
-        self._auto_channel_sum_action = self._add_checkable(auto_m, "Auto-&Kanal-Zusammenfassung",
+        self._auto_channel_sum_action = self._add_checkable(auto_m, _("Auto-&Kanal-Zusammenfassung"),
             self._on_toggle_channel_summary,
             bool(getattr(self.settings_store.settings, "auto_channel_summary", False)))
         auto_m.addSeparator()
-        self._add_action(auto_m, "&Plugin-Manager...", self.on_menu_plugin_manager)
-        self._add_action(auto_m, "Per-Server-&Soundprofile...", self.on_menu_server_audio_profiles)
+        self._add_action(auto_m, _("&Plugin-Manager..."), self.on_menu_plugin_manager)
+        self._add_action(auto_m, _("Per-Server-&Soundprofile..."), self.on_menu_server_audio_profiles)
         auto_m.addSeparator()
-        self._add_action(auto_m, "&Einstellungen...", self.on_menu_settings, "F4")
+        self._add_action(auto_m, _("&Einstellungen..."), self.on_menu_settings, "F4")
 
         # --- Hilfe ---
-        hlp = mb.addMenu("&Hilfe")
-        self._add_action(hlp, "Logs &exportieren...", self.on_menu_export_logs)
-        self._add_action(hlp, "&Gesundheitsbericht...", self.on_menu_health_report)
-        self._add_action(hlp, "Verbindungs&statistiken...", self.on_menu_client_stats)
-        self._add_action(hlp, "Statistiken &vorlesen", self.on_menu_client_stats_speak)
-        self._add_action(hlp, "&Gespeicherte Nachrichten...", self.on_menu_saved_messages)
-        self._add_action(hlp, "Auf &Updates prüfen...", self.on_menu_check_updates)
-        self._add_action(hlp, "Updates && &Versionen...", self.on_menu_update_manager)
+        hlp = mb.addMenu(_("&Hilfe"))
+        self._add_action(hlp, _("Logs &exportieren..."), self.on_menu_export_logs)
+        self._add_action(hlp, _("&Gesundheitsbericht..."), self.on_menu_health_report)
+        self._add_action(hlp, _("Verbindungs&statistiken..."), self.on_menu_client_stats)
+        self._add_action(hlp, _("Statistiken &vorlesen"), self.on_menu_client_stats_speak)
+        self._add_action(hlp, _("&Gespeicherte Nachrichten..."), self.on_menu_saved_messages)
+        self._add_action(hlp, _("Auf &Updates prüfen..."), self.on_menu_check_updates)
+        self._add_action(hlp, _("Updates && &Versionen..."), self.on_menu_update_manager)
         hlp.addSeparator()
-        self._add_action(hlp, "&Handbuch...", self.on_menu_manual, "F1")
-        self._add_action(hlp, "&Tastenkürzel-Referenz...", self.on_menu_shortcut_reference)
-        self._add_action(hlp, "&Changelog...", self.on_menu_changelog)
+        self._add_action(hlp, _("&Handbuch..."), self.on_menu_manual, "F1")
+        self._add_action(hlp, _("&Tastenkürzel-Referenz..."), self.on_menu_shortcut_reference)
+        self._add_action(hlp, _("&Changelog..."), self.on_menu_changelog)
         hlp.addSeparator()
-        self._add_action(hlp, "&Startup-Profiler...", self.on_menu_startup_profiler)
-        self._add_action(hlp, "&Nutzungsbericht...", self.on_menu_analytics_report)
-        self._add_action(hlp, "&Info...", self.on_menu_about)
+        self._add_action(hlp, _("&Startup-Profiler..."), self.on_menu_startup_profiler)
+        self._add_action(hlp, _("&Nutzungsbericht..."), self.on_menu_analytics_report)
+        self._add_action(hlp, _("&Info..."), self.on_menu_about)
 
     def _add_checkable(self, menu: QMenu, label: str, slot, checked: bool = False, shortcut: str = "") -> QAction:
         action = QAction(label, self)

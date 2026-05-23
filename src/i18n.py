@@ -2158,6 +2158,97 @@ _TRANSLATIONS_FR.update({
     "Trigger-Regeln...": "Règles de déclenchement...",
 })
 
+# FR-Ergänzungen: Chat- und Audio-Sektionen (PR @math65)
+_TRANSLATIONS_FR.update({
+    # --- Chat ---
+    "Alle gespeicherten Nachrichten löschen": "Supprimer tous les messages enregistrés",
+    "Alle löschen": "Tout supprimer",
+    "Als HTML": "En HTML",
+    "Ausgewählte Nachricht löschen": "Supprimer le message sélectionné",
+    "Ausgewählten Text zitieren": "Citer le texte sélectionné",
+    "Gespeicherte Nachrichten": "Messages enregistrés",
+    "HTML-Export": "Export HTML",
+    "HTML-Export fehlgeschlagen": "Échec de l'export HTML",
+    "Kanal-Chat: Nicht in einem Kanal": "Chat de canal : pas dans un canal",
+    "Kein Chat-Verlauf zum Exportieren": "Aucun historique de chat à exporter",
+    "Kein Text zum Speichern": "Aucun texte à enregistrer",
+    "Kein Text zum Zitieren": "Aucun texte à citer",
+    "Nachricht gespeichert": "Message enregistré",
+    "Nachricht kopieren": "Copier le message",
+    "Privater Chat: Bitte Benutzer wählen": "Chat privé : veuillez sélectionner un utilisateur",
+    "Verlauf als HTML exportieren": "Exporter l'historique en HTML",
+
+    # --- Audio ---
+    "Aktivierungspegel": "Niveau d'activation",
+    "Aktuelle Audioeinstellungen speichern": "Enregistrer les paramètres audio actuels",
+    "Audioeinstellungen beim Start anwenden": "Appliquer les paramètres audio au démarrage",
+    "Audioeinstellungen speichern": "Enregistrer les paramètres audio",
+    "Ausgabe": "Sortie",
+    "Ausgabe stummschalten": "Muter la sortie",
+    "Aussteuerungsanzeige": "VU-mètre",
+    "Bei Gerätewechsel automatisch anwenden": "Appliquer automatiquement au changement de périphérique",
+    "Duplex-Modus": "Mode duplex",
+    "EQ-Preset gespeichert": "Préréglage d'égaliseur enregistré",
+    "EQ-Preset importiert": "Préréglage d'égaliseur importé",
+    "EQ-Presets exportiert": "Préréglages d'égaliseur exportés",
+    "Export fehlgeschlagen": "Échec de l'export",
+    "Exportieren…": "Exporter…",
+    "Geräte": "Périphériques",
+    "Geräteeffekte": "Effets de périphérique",
+    "Gespeicherte Audioeinstellungen anwenden": "Appliquer les paramètres audio enregistrés",
+    "Gespeicherte Audioeinstellungen löschen": "Supprimer les paramètres audio enregistrés",
+    "Import fehlgeschlagen": "Échec de l'import",
+    "Importieren…": "Importer…",
+    "Lokale Wiedergabe": "Lecture locale",
+    "Nachlaufzeit (ms)": "Temps de maintien (ms)",
+    "PTT-Hotkey": "Raccourci PTT",
+    "Pegel und Lautstärke": "Niveaux et volume",
+    "Preset speichern": "Enregistrer le préréglage",
+    "Presets exportieren": "Exporter les préréglages",
+    "Presets importieren": "Importer les préréglages",
+    "Speichern als…": "Enregistrer sous…",
+    "Sprachaktivierung aktivieren": "Activer la détection vocale",
+    "Stille-Dauer (s)": "Durée du silence (s)",
+    "Stille-Erkennung": "Détection de silence",
+    "Stille-Pegel": "Niveau de silence",
+    "Vorverarbeitung": "Prétraitement",
+})
+
+# FR-Ergänzungen: Connection- und Channel-Sektionen (PR @math65)
+_TRANSLATIONS_FR.update({
+    # --- Connection ---
+    "Auto-Wiederverbinden": "Reconnexion automatique",
+    "Lokalen Port binden": "Lier le port local",
+    "Max": "Max",
+    "Min": "Min",
+    "Profil-Liste": "Liste des profils",
+    "Server exportieren (.tt)": "Exporter le serveur (.tt)",
+    "Server importieren (.tt)": "Importer le serveur (.tt)",
+    "Serverprofil": "Profil de serveur",
+    "Standard-Abonnements": "Abonnements par défaut",
+    "Status prüfen": "Vérifier l'état",
+    "TCP-Port": "Port TCP",
+    "UDP-Port": "Port UDP",
+    "ms": "ms",
+    "Ø Ping": "Ping moy.",
+
+    # --- Channels ---
+    "Beitreten": "Rejoindre",
+    "Kanal beitreten (Enter)": "Rejoindre le canal (Entrée)",
+    "Kanal-Notiz": "Note du canal",
+    "Kanal-Notiz gespeichert": "Note du canal enregistrée",
+    "Kanalverlauf": "Historique du canal",
+    "Kanalverlauf leeren": "Effacer l'historique du canal",
+    "Lesezeichen 4": "Marque-page 4",
+    "Lesezeichen 5": "Marque-page 5",
+    "Lesezeichen 6": "Marque-page 6",
+    "Lesezeichen 7": "Marque-page 7",
+    "Lesezeichen 8": "Marque-page 8",
+    "Lesezeichen 9": "Marque-page 9",
+    "Noch keine Kanäle besucht.": "Aucun canal visité pour l'instant.",
+    "Notiz bearbeiten... [✓]": "Modifier la note... [✓]",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
@@ -2171,16 +2262,98 @@ def current_language() -> str:
     return _LANG
 
 
+def _lookup_direct(text: str, lang: str) -> str | None:
+    """Direkter Wörterbuch-Lookup ohne Normalisierung. None wenn nicht gefunden."""
+    if lang == "fr":
+        if text in _TRANSLATIONS_FR:
+            return _TRANSLATIONS_FR[text]
+        if text in _TRANSLATIONS:
+            return _TRANSLATIONS[text]
+        return None
+    if lang == "es":
+        if text in _TRANSLATIONS_ES:
+            return _TRANSLATIONS_ES[text]
+        if text in _TRANSLATIONS:
+            return _TRANSLATIONS[text]
+        return None
+    if lang == "en":
+        return _TRANSLATIONS.get(text)
+    return None
+
+
+def _strip_qt_decorations(text: str) -> tuple[str, str | None, bool]:
+    """Entfernt Qt-Mnemonik (&) und abschließende '...' für den Lookup.
+
+    Rückgabe: (stripped_text, mnemonic_char_lower, has_ellipsis).
+    - Erstes einzelnes '&' vor einem Nicht-Whitespace-Zeichen wird entfernt;
+      die folgende Letter wird (lowercase) als mnemonic_char zurückgegeben.
+    - Escapeter Ampersand '&&' bleibt erhalten und gilt nicht als Mnemonik.
+    - Trailing '...' (3 ASCII-Punkte) wird abgeschnitten.
+    """
+    has_ellipsis = text.endswith("...")
+    if has_ellipsis:
+        text = text[:-3]
+
+    mnemonic_char: str | None = None
+    out: list[str] = []
+    i = 0
+    n = len(text)
+    while i < n:
+        c = text[i]
+        if c == "&" and i + 1 < n:
+            nxt = text[i + 1]
+            if nxt == "&":
+                out.append("&")
+                i += 2
+                continue
+            if mnemonic_char is None and not nxt.isspace():
+                mnemonic_char = nxt.lower()
+                i += 1
+                continue
+        out.append(c)
+        i += 1
+    return "".join(out), mnemonic_char, has_ellipsis
+
+
+def _reattach_decorations(translation: str, mnemonic_char: str | None, has_ellipsis: bool) -> str:
+    """Heftet Mnemonik und '...' wieder an die übersetzte Zeichenkette an.
+
+    Mnemonik wird vor dem ersten Vorkommen von mnemonic_char (case-insensitive)
+    eingefügt; Fallback ist der Wortanfang.
+    """
+    if mnemonic_char is not None:
+        idx = translation.lower().find(mnemonic_char)
+        if idx >= 0:
+            translation = translation[:idx] + "&" + translation[idx:]
+        else:
+            translation = "&" + translation
+    if has_ellipsis:
+        translation = translation + "..."
+    return translation
+
+
 def _(text: str, lang: str | None = None) -> str:
-    """Gibt den übersetzten Text zurück (oder Original wenn keine Übersetzung)."""
+    """Gibt den übersetzten Text zurück (oder Original wenn keine Übersetzung).
+
+    Qt-Strings mit &-Mnemonik oder abschließendem '...' werden transparent
+    unterstützt: zuerst direkter Lookup, dann normalisierter Lookup mit
+    anschließendem Wiederanbringen der Dekorationen.
+    """
     effective = lang if lang is not None else _LANG
     if effective == "de":
         return text
-    if effective == "fr":
-        return _TRANSLATIONS_FR.get(text, _TRANSLATIONS.get(text, text))
-    if effective == "es":
-        return _TRANSLATIONS_ES.get(text, _TRANSLATIONS.get(text, text))
-    return _TRANSLATIONS.get(text, text)
+
+    direct = _lookup_direct(text, effective)
+    if direct is not None:
+        return direct
+
+    stripped, mnemonic, ellipsis = _strip_qt_decorations(text)
+    if stripped != text:
+        normalized_hit = _lookup_direct(stripped, effective)
+        if normalized_hit is not None:
+            return _reattach_decorations(normalized_hit, mnemonic, ellipsis)
+
+    return text
 
 
 def ngettext(singular: str, plural: str, n: int, lang: str | None = None) -> str:
