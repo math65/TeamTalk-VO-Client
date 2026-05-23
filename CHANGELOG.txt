@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2026-05-23 (v7.3.1)
+Qt Accessibility: setAccessibleName() für alle fehlenden Widgets
+
+- Qt (Windows/Linux): Alle QCheckBox-, QComboBox-, QListWidget- und
+  QSpinBox-Instanzen ohne expliziten Namen erhalten setAccessibleName().
+  NVDA und andere Screen-Reader lesen jetzt konsistente, &-freie Namen vor.
+  Betroffen: Audio, Medien, Einstellungen, Chat, ElevenLabs-TTS-Tab.
+
 2026-05-23 (v7.3.0)
 i18n: Systemsprache-Erkennung, Qt-Sprachauswahl, 99 weitere FR-Strings
 
