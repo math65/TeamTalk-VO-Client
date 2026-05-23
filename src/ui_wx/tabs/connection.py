@@ -160,7 +160,7 @@ class ConnectionTab(wx.Panel):
         self.share_file_btn = wx.Button(self, label="TT-Datei s&peichern")
         self.share_file_btn.SetName("TT-Datei speichern")
         self.share_file_btn.Bind(wx.EVT_BUTTON, self.on_save_tt_file)
-        self.qr_btn = wx.Button(self, label="&QR-Code")
+        self.qr_btn = wx.Button(self, label="QR-Code")
         self.qr_btn.SetName("Server als QR-Code anzeigen")
         self.qr_btn.Bind(wx.EVT_BUTTON, self.on_show_qr)
         self.auto_reconnect = wx.CheckBox(self, label="Auto&matisch neu verbinden")
