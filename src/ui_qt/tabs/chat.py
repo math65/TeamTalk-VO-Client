@@ -81,6 +81,7 @@ class ChatTab(QWidget):
 
         target_row = QHBoxLayout()
         self.private_chat = QCheckBox("&Privat")
+        self.private_chat.setAccessibleName("Privat senden")
         self.private_chat.stateChanged.connect(lambda _: self.update_chat_target())
         lbl_private = QLabel("Privat an:")
         self.private_user = QComboBox()

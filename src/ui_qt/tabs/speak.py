@@ -37,6 +37,7 @@ class SpeakTab(QWidget):
         sel_form = QFormLayout()
         voice_row = QHBoxLayout()
         self.voice_choice = QComboBox()
+        self.voice_choice.setAccessibleName("Stimme")
         self.refresh_btn = QPushButton("&Aktualisieren")
         self.refresh_btn.clicked.connect(self.on_refresh)
         voice_row.addWidget(self.voice_choice, 1)
@@ -44,10 +45,12 @@ class SpeakTab(QWidget):
         sel_form.addRow("Stimme", voice_row)
 
         self.model_choice = QComboBox()
+        self.model_choice.setAccessibleName("Modell")
         self.model_choice.currentIndexChanged.connect(self.on_model_changed)
         sel_form.addRow("Modell", self.model_choice)
 
         self.streaming_check = QCheckBox("&Echtzeit-Streaming")
+        self.streaming_check.setAccessibleName("Echtzeit-Streaming")
         sel_form.addRow("", self.streaming_check)
         tts_layout.addLayout(sel_form)
 
@@ -55,19 +58,23 @@ class SpeakTab(QWidget):
         self.stability_slider = QSpinBox()
         self.stability_slider.setRange(0, 100)
         self.stability_slider.setValue(50)
+        self.stability_slider.setAccessibleName("Stabilität (0–100)")
         settings_form.addRow("Stabilität (0–100)", self.stability_slider)
 
         self.similarity_slider = QSpinBox()
         self.similarity_slider.setRange(0, 100)
         self.similarity_slider.setValue(75)
+        self.similarity_slider.setAccessibleName("Ähnlichkeit (0–100)")
         settings_form.addRow("Ähnlichkeit (0–100)", self.similarity_slider)
 
         self.style_slider = QSpinBox()
         self.style_slider.setRange(0, 100)
         self.style_slider.setValue(0)
+        self.style_slider.setAccessibleName("Stil (0–100)")
         settings_form.addRow("Stil (0–100)", self.style_slider)
 
         self.speaker_boost = QCheckBox("&Sprecher-Boost")
+        self.speaker_boost.setAccessibleName("Sprecher-Boost")
         self.speaker_boost.setChecked(True)
         settings_form.addRow("", self.speaker_boost)
 

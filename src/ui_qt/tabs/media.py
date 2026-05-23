@@ -134,6 +134,7 @@ class MediaTab(QWidget):
         rec_form = QFormLayout(rec_group)
         self.rec_format = QComboBox()
         self.rec_format.addItems(["WAV", "MP3 16k", "MP3 32k", "MP3 64k", "MP3 128k", "MP3 256k", "MP3 320k"])
+        self.rec_format.setAccessibleName("Aufnahmeformat")
         rec_form.addRow("Format", self.rec_format)
         layout.addWidget(rec_group)
 
@@ -151,6 +152,7 @@ class MediaTab(QWidget):
         convo_group = QGroupBox("Konversationen aufzeichnen")
         convo_form = QFormLayout(convo_group)
         self.user_rec_enable = QCheckBox("&Automatisch aufzeichnen")
+        self.user_rec_enable.setAccessibleName("Automatisch aufzeichnen")
         convo_form.addRow("", self.user_rec_enable)
         self.user_rec_dir = QLineEdit()
         self.user_rec_dir.setPlaceholderText("Zielordner...")
@@ -164,8 +166,10 @@ class MediaTab(QWidget):
         convo_form.addRow("Dateiname", self.user_rec_pattern)
         self.user_rec_format = QComboBox()
         self.user_rec_format.addItems(["WAV", "MP3 128k", "MP3 256k"])
+        self.user_rec_format.setAccessibleName("Konversations-Aufnahmeformat")
         convo_form.addRow("Format", self.user_rec_format)
         self.user_rec_include_self = QCheckBox("&Eigene Stimme mit aufnehmen")
+        self.user_rec_include_self.setAccessibleName("Eigene Stimme mit aufnehmen")
         self.user_rec_include_self.setChecked(True)
         convo_form.addRow("", self.user_rec_include_self)
         apply_btn = QPushButton("An&wenden")
@@ -217,6 +221,7 @@ class MediaTab(QWidget):
         src_row = QHBoxLayout()
         src_row.addWidget(QLabel("Quelle:"))
         self.yt_source = QComboBox()
+        self.yt_source.setAccessibleName("yt-dlp Quelle")
         for name, _ in _YT_SOURCES:
             self.yt_source.addItem(name)
         self.yt_source.currentIndexChanged.connect(self._on_yt_source_changed)
@@ -236,6 +241,7 @@ class MediaTab(QWidget):
         search_row.addWidget(self.yt_search_btn)
         search_inner.addLayout(search_row)
         self.yt_results = QListWidget()
+        self.yt_results.setAccessibleName("Suchergebnisse")
         search_inner.addWidget(self.yt_results, 1)
         layout.addWidget(search_group, 1)
 
@@ -286,6 +292,7 @@ class MediaTab(QWidget):
         s_row.addWidget(self.radio_search_btn)
         search_inner.addLayout(s_row)
         self.radio_search_results = QListWidget()
+        self.radio_search_results.setAccessibleName("Webradio Suchergebnisse")
         self.radio_search_results.currentRowChanged.connect(self._on_radio_search_select)
         search_inner.addWidget(self.radio_search_results, 1)
         layout.addWidget(search_group)
@@ -293,6 +300,7 @@ class MediaTab(QWidget):
         preset_group = QGroupBox("Senderliste")
         preset_inner = QVBoxLayout(preset_group)
         self.radio_list = QListWidget()
+        self.radio_list.setAccessibleName("Webradio Senderliste")
         for name, _ in _RADIO_ENTRIES:
             self.radio_list.addItem(name)
         self.radio_list.currentRowChanged.connect(self._on_radio_preset_select)
@@ -337,6 +345,7 @@ class MediaTab(QWidget):
         s_row.addWidget(self.podcast_search_btn)
         search_inner.addLayout(s_row)
         self.podcast_list = QListWidget()
+        self.podcast_list.setAccessibleName("Podcast Suchergebnisse")
         self.podcast_list.currentRowChanged.connect(self._on_podcast_select)
         search_inner.addWidget(self.podcast_list, 1)
         layout.addWidget(search_group)
@@ -354,6 +363,7 @@ class MediaTab(QWidget):
         episode_group = QGroupBox("Episoden")
         episode_inner = QVBoxLayout(episode_group)
         self.episode_list = QListWidget()
+        self.episode_list.setAccessibleName("Podcast Episoden")
         episode_inner.addWidget(self.episode_list, 1)
         layout.addWidget(episode_group, 1)
 
@@ -378,6 +388,7 @@ class MediaTab(QWidget):
         layout = QVBoxLayout(w)
 
         self.pl_list = QListWidget()
+        self.pl_list.setAccessibleName("Playlist")
         layout.addWidget(self.pl_list, 1)
 
         edit_row = QHBoxLayout()
@@ -400,6 +411,7 @@ class MediaTab(QWidget):
         layout.addLayout(edit_row)
 
         self.pl_auto_next = QCheckBox("&Automatisch weiter (nächster Titel nach Ende)")
+        self.pl_auto_next.setAccessibleName("Automatisch weiter (nächster Titel nach Ende)")
         self.pl_auto_next.setChecked(True)
         layout.addWidget(self.pl_auto_next)
 

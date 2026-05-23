@@ -820,6 +820,7 @@ class SettingsTab(QWidget):
         grp_layout = QVBoxLayout(grp)
 
         self._vol_preset_list = QListWidget()
+        self._vol_preset_list.setAccessibleName("Gespeicherte Nutzer-Lautstärken")
         self._vol_preset_list.setMinimumHeight(180)
         grp_layout.addWidget(self._vol_preset_list, 1)
 
@@ -897,6 +898,7 @@ class SettingsTab(QWidget):
         _VERBOSITY_LABELS = ["Kompakt", "Normal", "Ausführlich"]
         _VERBOSITY_VALUES = ["compact", "normal", "verbose"]
         self.braille_verbosity = QComboBox()
+        self.braille_verbosity.setAccessibleName("Braille-Ausführlichkeit")
         self.braille_verbosity.addItems(_VERBOSITY_LABELS)
         saved_verb = getattr(s, "braille_verbosity", "normal") or "normal"
         self.braille_verbosity.setCurrentIndex(
