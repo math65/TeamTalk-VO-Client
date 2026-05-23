@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-05-23 (v7.2.0)
+i18n: Französische Übersetzung + Qt-Menü-Lokalisierung
+
+- Französische Übersetzung erweitert: 77 neue Strings in den Bereichen
+  Chat, Audio, Verbindung und Kanäle (Beitrag: @math65).
+- Qt (Windows/Linux): Alle Menüstrings werden jetzt über _() übersetzt –
+  Grundlage für vollständige Mehrsprachigkeit der Qt-Oberfläche.
+- i18n-Engine: Transparente Normalisierung von Qt-Mnemoniken (&) und
+  abschließendem '...' beim Lookup – kein Dictionary-Bloat mehr nötig.
+- Bugfix (macOS): Cmd+Q öffnete den QR-Code-Dialog statt zu beenden.
+- Bugfix: qrcode-Bibliothek jetzt im Bundle enthalten.
+- Über-Dialog: Beitragende (math65, danijel1124) ergänzt.
+
 2026-05-21 (v7.1.1)
 Qt Medien-Tab: Streaming-Quellen als Auswahlmenü (Barrierefreiheit)
 

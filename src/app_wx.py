@@ -74,7 +74,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "7.1.1"
+APP_VERSION = "7.2.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -7955,6 +7955,11 @@ class MainFrame(wx.Frame):
             "\n"
             "Hauptentwickler\n"
             "  Florian Lichteblau (Flarion)\n"
+            "\n"
+            "Beitragende\n"
+            "  Mathieu Ramage (math65)  –  Französische Übersetzung (v7.2.0),\n"
+            "                              Windows-Bugfixes (v7.0.2)\n"
+            "  danijel1124  –  Windows-Bugfixes (v7.0.2)\n"
             "\n"
             "Hinweis zur Plattformunterstützung\n"
             "  Ich entwickle dieses Projekt in erster Linie für macOS und\n"

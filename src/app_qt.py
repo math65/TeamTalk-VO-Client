@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "7.1.1"
+APP_VERSION = "7.2.0"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -3874,6 +3874,12 @@ class MainWindow(QMainWindow):
             self, "Info",
             f"TeamTalk VoiceOver Client {APP_VERSION}\n"
             f"© Flarion (Florian Lichteblau)\n"
+            f"\n"
+            f"Beitragende\n"
+            f"  Mathieu Ramage (math65)  –  Französische Übersetzung (v7.2.0),\n"
+            f"                              Windows-Bugfixes (v7.0.2)\n"
+            f"  danijel1124  –  Windows-Bugfixes (v7.0.2)\n"
+            f"\n"
             f"Plattform: {platform_info()}"
         )
 
