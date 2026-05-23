@@ -1,6 +1,18 @@
 Changelog
 =========
 
+2026-05-23 (v7.3.0)
+i18n: Systemsprache-Erkennung, Qt-Sprachauswahl, 99 weitere FR-Strings
+
+- Neu: Automatische Systemsprache-Erkennung beim ersten Start (macOS + Windows/Linux).
+  Die App erkennt die Betriebssystemsprache und stellt sie als Standard ein,
+  sofern sie unterstützt wird (de, en, fr, es). Bereits gesetzte Sprachen bleiben.
+- Qt (Windows/Linux): Sprachauswahl in den Einstellungen zeigt jetzt alle 4
+  unterstützten Sprachen (Deutsch, English, Français, Español).
+- Französische Übersetzung erweitert: 99 neue Strings für Dateien, Medien-Streaming
+  und Administration (Beitrag: @math65).
+- Testsuite: Neue Tests für Systemsprache-Erkennung und -Initialisierung.
+
 2026-05-23 (v7.2.0)
 i18n: Französische Übersetzung + Qt-Menü-Lokalisierung
 
