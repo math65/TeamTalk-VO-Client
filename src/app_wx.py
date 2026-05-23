@@ -51,7 +51,7 @@ from notification_manager import NotificationManager
 from auto_reply import AutoReplyManager
 from webhook_manager import WebhookManager
 from http_api import HttpApiServer
-from i18n import _, set_language, current_language
+from i18n import _, set_language, current_language, ensure_language
 from saved_messages import SavedMessageManager
 from channel_notes import ChannelNotesManager
 from chat_translator import ChatTranslatorManager
@@ -514,9 +514,8 @@ class MainFrame(wx.Frame):
             print("[v2.0.0] Einstellungen aus JSON nach SQLite migriert.")
         self.settings_store = SQLiteSettingsStore(self._settings_db)
         self.store = SQLiteServerStore(self._settings_db)
-        # v3.6.0 – Sprache initialisieren
-        _lang = getattr(self.settings_store.settings, "app_language", "de") or "de"
-        set_language(_lang)
+        # v3.6.0 – Sprache initialisieren (mit Auto-Detect beim ersten Start)
+        ensure_language(self.settings_store)
 
         # JSON-Stores als Fallback (werden nicht mehr aktiv beschrieben)
         self._json_settings_store = SettingsStore(app_dir / "settings.json")

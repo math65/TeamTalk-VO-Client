@@ -137,11 +137,16 @@ class SettingsTab(QWidget):
         self.braille_compact.stateChanged.connect(lambda v: self._save_bool("braille_compact", v))
         disp_form.addRow("", self.braille_compact)
 
+        _LANG_CODES = ["de", "en", "fr", "es"]
+        _LANG_LABELS = ["Deutsch", "English", "Français", "Español"]
         lang_combo = QComboBox()
-        lang_combo.addItems(["Deutsch", "English"])
+        lang_combo.addItems(_LANG_LABELS)
         lang_combo.setAccessibleName("App-Sprache")
+        lang_combo._lang_codes = _LANG_CODES
+        self._lang_combo = lang_combo
         saved_lang = getattr(s, "app_language", "de") or "de"
-        lang_combo.setCurrentIndex(0 if saved_lang == "de" else 1)
+        sel = _LANG_CODES.index(saved_lang) if saved_lang in _LANG_CODES else 0
+        lang_combo.setCurrentIndex(sel)
         lang_combo.currentIndexChanged.connect(self._on_lang_changed)
         disp_form.addRow("Sprache", lang_combo)
 
@@ -1013,7 +1018,8 @@ class SettingsTab(QWidget):
             field.setText(path)
 
     def _on_lang_changed(self, idx: int) -> None:
-        lang = "de" if idx == 0 else "en"
+        codes = getattr(self._lang_combo, "_lang_codes", ["de", "en", "fr", "es"])
+        lang = codes[idx] if 0 <= idx < len(codes) else "de"
         self._save_str("app_language", lang)
         try:
             from i18n import set_language

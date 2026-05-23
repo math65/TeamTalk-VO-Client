@@ -9,6 +9,9 @@ Verwendung:
 """
 from __future__ import annotations
 
+import locale
+import os
+
 _LANG = "de"  # Standard: Deutsch
 
 # ---------------------------------------------------------------------------
@@ -2249,6 +2252,114 @@ _TRANSLATIONS_FR.update({
     "Notiz bearbeiten... [✓]": "Modifier la note... [✓]",
 })
 
+# FR-Ergänzungen: Files / Médias / Administration (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- Files ----
+    "&Schließen": "&Fermer",
+    "Datei herunterladen": "Télécharger le fichier",
+    "Datei hochladen": "Téléverser le fichier",
+    "Datei löschen": "Supprimer le fichier",
+    "Dateien im aktuellen Kanal": "Fichiers dans le canal actuel",
+    "Dateiliste Kopfzeile": "En-tête de la liste de fichiers",
+    "Dateiname, Größe, Hochgeladen von, Datum": "Nom de fichier, Taille, Téléversé par, Date",
+    "Dateiübertragung": "Transfert de fichier",
+    "Dateiübertragungsverlauf": "Historique des transferts de fichiers",
+    "Noch kein Dateiübertragungsverlauf vorhanden.": "Aucun historique de transfert de fichiers pour l'instant.",
+    "Übertragungsfortschritt": "Progression du transfert",
+
+    # ---- Médias / Streaming ----
+    "Aufnahme": "Enregistrement",
+    "Aufnahme starten": "Démarrer l'enregistrement",
+    "Aufnahme und Medien": "Enregistrement et médias",
+    "Aufnahmeformat": "Format d'enregistrement",
+    "Aufzeichnung anwenden": "Appliquer les réglages d'enregistrement",
+    "Ausgewählten Titel entfernen": "Retirer le titre sélectionné",
+    "Automatisch weiter": "Avancer automatiquement",
+    "Dateien zur Playlist hinzufügen": "Ajouter des fichiers à la liste de lecture",
+    "Dateiname": "Nom de fichier",
+    "Dauer: --": "Durée : --",
+    "Eigene Stimme mit aufnehmen": "Inclure sa propre voix",
+    "Episode streamen": "Diffuser l'épisode",
+    "Format": "Format",
+    "Konversationen aufzeichnen": "Enregistrer les conversations",
+    "Konversationsformat": "Format de conversation",
+    "Leeren": "Vider",
+    "Link": "Lien",
+    "M3U-Datei laden": "Charger un fichier M3U",
+    "Medien-Streaming": "Diffusion de médias",
+    "Mediendatei Pfad": "Chemin du fichier média",
+    "Mediendatei auswählen": "Sélectionner un fichier média",
+    "Medieninfo": "Informations média",
+    "Playlist": "Liste de lecture",
+    "Playlist Kopfzeile": "En-tête de la liste de lecture",
+    "Playlist abspielen": "Lire la liste de lecture",
+    "Playlist als M3U exportieren": "Exporter la liste de lecture en M3U",
+    "Playlist leeren": "Vider la liste de lecture",
+    "Playlist pausieren": "Mettre la liste de lecture en pause",
+    "Playlist stoppen": "Arrêter la liste de lecture",
+    "Playlist-Lautstärke": "Volume de la liste de lecture",
+    "Podcast Episoden": "Épisodes de podcast",
+    "Podcast Ergebnisse": "Résultats de podcast",
+    "Podcast Feed URL": "URL du flux de podcast",
+    "Podcast Feed laden": "Charger le flux de podcast",
+    "Podcast Pause": "Pause du podcast",
+    "Podcast Stopp": "Arrêt du podcast",
+    "Podcast Suche": "Recherche de podcasts",
+    "Podcast suchen": "Rechercher des podcasts",
+    "Podcast-Lautstärke": "Volume du podcast",
+    "Podcasts": "Podcasts",
+    "Position": "Position",
+    "Position (0–1000)": "Position (0–1000)",
+    "Status: bereit": "État : prêt",
+    "Streamen": "Diffuser",
+    "Streaming (yt-dlp)": "Diffusion (yt-dlp)",
+    "Streaming Pause": "Pause de la diffusion",
+    "Streaming Stopp": "Arrêt de la diffusion",
+    "Streaming-Lautstärke": "Volume de la diffusion",
+    "Streaming-Quelle": "Source de la diffusion",
+    "Streaming-Status": "État de la diffusion",
+    "Suche:": "Rechercher :",
+    "Suchergebnisse": "Résultats de recherche",
+    "Titel nach oben verschieben": "Déplacer le titre vers le haut",
+    "Titel nach unten verschieben": "Déplacer le titre vers le bas",
+    "Titel, Pfad": "Titre, Chemin",
+    "Webradio": "Webradio",
+    "Webradio Ergebnisse": "Résultats de webradio",
+    "Webradio Pause": "Pause de la webradio",
+    "Webradio Senderliste": "Liste des stations de webradio",
+    "Webradio Stopp": "Arrêt de la webradio",
+    "Webradio Stream-URL": "URL de diffusion de la webradio",
+    "Webradio Suche": "Recherche de webradio",
+    "Webradio streamen": "Diffuser la webradio",
+    "Webradio suchen": "Rechercher une webradio",
+    "Webradio-Lautstärke": "Volume de la webradio",
+    "Zielordner": "Dossier de destination",
+
+    # ---- Administration ----
+    "Admin-Info": "Infos admin",
+    "Administrationsfunktionen (nur für Admins)": "Fonctions d'administration (admins uniquement)",
+    "Administrator": "Administrateur",
+    "Benutzerkonten": "Comptes utilisateurs",
+    "Benutzerkonten Kopfzeile": "En-tête des comptes utilisateurs",
+    "Benutzername, Typ, Notiz": "Nom d'utilisateur, Type, Note",
+    "Entsperren": "Débannir",
+    "IP-Adresse bannen": "Bannir l'adresse IP",
+    "IP-Adresse, Benutzername, Zeitpunkt": "Adresse IP, Nom d'utilisateur, Date",
+    "Konten laden": "Charger les comptes",
+    "Konto hinzufügen": "Ajouter un compte",
+    "Konto löschen": "Supprimer le compte",
+    "Max. Benutzer": "Utilisateurs max.",
+    "Notiz": "Note",
+    "Servereigenschaften": "Propriétés du serveur",
+    "Servereigenschaften laden": "Charger les propriétés du serveur",
+    "Servereigenschaften speichern": "Enregistrer les propriétés du serveur",
+    "Sperren": "Bannissements",
+    "Sperren laden": "Charger les bannissements",
+    "Sperrliste": "Liste des bannissements",
+    "Sperrliste Kopfzeile": "En-tête de la liste des bannissements",
+    "Standard": "Par défaut",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
@@ -2260,6 +2371,66 @@ def set_language(lang: str) -> None:
 
 def current_language() -> str:
     return _LANG
+
+
+def _extract_lang_code(raw: str) -> str:
+    """Reduziert eine Locale-Kennung auf den 2-Buchstaben-ISO-Code."""
+    if not raw:
+        return ""
+    head = raw.split(":", 1)[0].split(".", 1)[0]
+    head = head.replace("-", "_").split("_", 1)[0]
+    head = head.strip().lower()
+    if head in ("c", "posix"):
+        return ""
+    return head[:2] if len(head) >= 2 else ""
+
+
+def _iter_locale_candidates() -> list[str]:
+    """Sammelt mögliche Locale-Strings in Prioritätsreihenfolge."""
+    candidates: list[str] = []
+    try:
+        lc = locale.getlocale()
+        if lc and lc[0]:
+            candidates.append(lc[0])
+    except Exception:
+        pass
+    for var in ("LC_ALL", "LC_MESSAGES", "LANG"):
+        v = os.environ.get(var, "")
+        if v:
+            candidates.append(v)
+    language_env = os.environ.get("LANGUAGE", "")
+    if language_env:
+        for piece in language_env.split(":"):
+            if piece:
+                candidates.append(piece)
+    return candidates
+
+
+def detect_system_language(default: str = "en") -> str:
+    """Erkennt die Systemsprache und gibt einen Code aus _SUPPORTED_LANGUAGES zurück."""
+    try:
+        for raw in _iter_locale_candidates():
+            code = _extract_lang_code(raw)
+            if code in _SUPPORTED_LANGUAGES:
+                return code
+    except Exception:
+        pass
+    return default
+
+
+def ensure_language(store) -> str:
+    """Stellt sicher, dass store.settings.app_language gesetzt ist und aktiviert sie.
+
+    Beim ersten Start (leere Sprache) wird die Systemsprache erkannt,
+    persistiert und aktiviert. Andernfalls bleibt die gespeicherte Wahl.
+    """
+    lang = getattr(store.settings, "app_language", "") or ""
+    if not lang:
+        lang = detect_system_language(default="en")
+        store.settings.app_language = lang
+        store.save()
+    set_language(lang)
+    return lang
 
 
 def _lookup_direct(text: str, lang: str) -> str | None:

@@ -55,7 +55,7 @@ from notification_manager import NotificationManager
 from auto_reply import AutoReplyManager
 from webhook_manager import WebhookManager
 from http_api import HttpApiServer
-from i18n import _, set_language, current_language
+from i18n import _, set_language, current_language, ensure_language
 from saved_messages import SavedMessageManager
 from channel_notes import ChannelNotesManager
 from chat_translator import ChatTranslatorManager
@@ -195,8 +195,7 @@ class MainWindow(QMainWindow):
         )
         self.settings_store = SQLiteSettingsStore(self._settings_db)
         self.store = SQLiteServerStore(self._settings_db)
-        _lang = getattr(self.settings_store.settings, "app_language", "de") or "de"
-        set_language(_lang)
+        ensure_language(self.settings_store)
 
         _log_path = _log_dir()
         _log_path.mkdir(parents=True, exist_ok=True)

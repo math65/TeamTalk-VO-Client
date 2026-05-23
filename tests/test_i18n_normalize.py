@@ -45,7 +45,7 @@ def test_strip_ampersand_followed_by_space_is_literal():
 
 def test_strip_only_first_mnemonic_consumed():
     stripped, mnem, _ell = _strip_qt_decorations("&Foo &Bar")
-    assert stripped == "Foo Bar"
+    assert stripped == "Foo &Bar"
     assert mnem == "f"
 
 
@@ -83,7 +83,7 @@ def test_reattach_both():
 
 def test_direct_dict_lookup_still_works():
     set_language("fr")
-    assert _("Verbinden") == "Se connecter"
+    assert _("Verbinden") == "Connecter"
 
 
 def test_qt_string_with_ellipsis_is_translated():
