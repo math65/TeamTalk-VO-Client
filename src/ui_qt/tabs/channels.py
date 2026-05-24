@@ -241,34 +241,47 @@ class ChannelsTab(QWidget):
             return labels, items
         tt_str = self.window.tt_str
         ch_name = server_name if depth == 0 else tt_str(ch.szName)
-        topic = ""
-        try:
-            t = tt_str(ch.szTopic)
-            if t:
-                topic = f", {t}"
-        except Exception:
-            pass
         user_count = len(users_by_channel.get(root_id, []))
         total_count = self._count_total_users(root_id, users_by_channel, channels_by_id)
-        if total_count > user_count:
-            count_txt = f" ({user_count}/{total_count})"
-        elif user_count:
-            count_txt = f" ({user_count})"
-        else:
-            count_txt = ""
         has_pw = bool(getattr(ch, "bPassword", False))
-        pw_txt = ", Passwort" if has_pw else ""
-        labels.append(f"{indent}[{ch_name}{topic}{pw_txt}{count_txt}]")
+        braille = getattr(self.window, "braille", None)
+        compact = braille and braille.verbosity == "compact"
+        if compact:
+            if total_count > user_count:
+                count_txt = f" {user_count}/{total_count}N"
+            elif user_count:
+                count_txt = f" {user_count}N"
+            else:
+                count_txt = ""
+            pw_txt = " [P]" if has_pw else ""
+            labels.append(f"{indent}{ch_name}{pw_txt}{count_txt}")
+        else:
+            topic = ""
+            try:
+                t = tt_str(ch.szTopic)
+                if t:
+                    topic = f", {t}"
+            except Exception:
+                pass
+            if total_count > user_count:
+                count_txt = f" ({user_count}/{total_count})"
+            elif user_count:
+                count_txt = f" ({user_count})"
+            else:
+                count_txt = ""
+            pw_txt = ", Passwort" if has_pw else ""
+            labels.append(f"{indent}[{ch_name}{topic}{pw_txt}{count_txt}]")
         items.append((_NODE_CHANNEL, root_id))
 
         for u in sorted(users_by_channel.get(root_id, []),
                         key=lambda u: (tt_str(u.szNickname) or "").lower()):
             try:
                 uname = tt_str(u.szNickname) or tt_str(u.szUsername) or f"User#{u.nUserID}"
-                status_txt = tt_str(u.szStatusMsg)
                 line = f"{indent}  {uname}"
-                if status_txt:
-                    line += f", {status_txt}"
+                if not compact:
+                    status_txt = tt_str(u.szStatusMsg)
+                    if status_txt:
+                        line += f", {status_txt}"
                 labels.append(line)
                 items.append((_NODE_USER, int(u.nUserID)))
             except Exception:

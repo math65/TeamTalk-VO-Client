@@ -74,7 +74,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "7.5.0"
+APP_VERSION = "7.5.1"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -8892,10 +8892,14 @@ class MainFrame(wx.Frame):
                             topic = self.tt_str(getattr(ch, "szTopic", "") or "") if ch else ""
                             if topic:
                                 wx.CallAfter(self.tts.speak, f"Kanal-Thema: {topic}", kind="channel_topic")
-                        # VoiceOver: Kanalname ankündigen
-                        _vo_text = f"Kanal {ch_name}" if ch_name else "Kanal betreten"
-                        if topic:
-                            _vo_text += f", Thema: {topic}"
+                        # VoiceOver: Kanalname ankündigen (verbositäts-abhängig)
+                        try:
+                            users_in_ch = list(self.client.get_channel_users(channel_id) or [])
+                            _uc = len(users_in_ch)
+                        except Exception:
+                            _uc = 0
+                        _vo_text = self.braille.announce_channel_join(ch_name or str(channel_id), _uc)
+                        _vo_text = self.braille.strip_for_braille(_vo_text)
                         from ui_wx.a11y import post_voiceover_announcement
                         wx.CallAfter(post_voiceover_announcement, _vo_text)
                     except Exception:
@@ -10099,7 +10103,8 @@ class MainFrame(wx.Frame):
                 self._send_notification("Benutzer betreten", f"{name} → {channel_name or str(channel_id)}")
                 try:
                     from ui_wx.a11y import post_voiceover_announcement
-                    wx.CallAfter(post_voiceover_announcement, text)
+                    _vo = self.braille.strip_for_braille(text)
+                    wx.CallAfter(post_voiceover_announcement, _vo)
                 except Exception:
                     pass
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
@@ -10108,7 +10113,8 @@ class MainFrame(wx.Frame):
                 self._send_notification("Benutzer verlassen", f"{name} ← {channel_name or str(channel_id)}")
                 try:
                     from ui_wx.a11y import post_voiceover_announcement
-                    wx.CallAfter(post_voiceover_announcement, text)
+                    _vo = self.braille.strip_for_braille(text)
+                    wx.CallAfter(post_voiceover_announcement, _vo)
                 except Exception:
                     pass
 

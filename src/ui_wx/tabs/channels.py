@@ -241,17 +241,31 @@ class ChannelsTab(wx.Panel):
         return total
 
     def _make_channel_label(self, name: str, chan, users: List, total: int = 0) -> str:
-        parts = [name]
-        if chan is not None and bool(getattr(chan, "bPassword", False)):
-            parts.append("Passwort")
         n = len(users)
-        if total > n:
-            parts.append(f"{n}/{total} Nutzer")
-        elif n == 1:
-            parts.append("1 Nutzer")
-        elif n > 1:
-            parts.append(f"{n} Nutzer")
-        label = ", ".join(parts)
+        has_pw = chan is not None and bool(getattr(chan, "bPassword", False))
+        braille = getattr(self.frame, "braille", None)
+        compact = braille and braille.verbosity == "compact"
+        if compact:
+            if total > n:
+                suffix = f", {n}/{total}N"
+            elif n:
+                suffix = f", {n}N"
+            else:
+                suffix = ""
+            label = f"{name}{suffix}"
+            if has_pw:
+                label += " [P]"
+        else:
+            parts = [name]
+            if has_pw:
+                parts.append("Passwort")
+            if total > n:
+                parts.append(f"{n}/{total} Nutzer")
+            elif n == 1:
+                parts.append("1 Nutzer")
+            elif n > 1:
+                parts.append(f"{n} Nutzer")
+            label = ", ".join(parts)
         # v6.9.7: Favoriten-Stern voranstellen
         if chan is not None:
             ch_id = int(getattr(chan, "nChannelID", 0) or 0)
@@ -280,6 +294,9 @@ class ChannelsTab(wx.Panel):
                 flags.append("Stumm")
         except Exception:
             pass
+        braille = getattr(self.frame, "braille", None)
+        if braille and braille.verbosity == "compact":
+            return f"{name}, {flags[0]}" if flags else name
         if flags:
             return f"{name}, {', '.join(flags)}"
         return name
@@ -396,7 +413,9 @@ class ChannelsTab(wx.Panel):
         self.frame.set_status(announce)
         try:
             from ui_wx.a11y import post_voiceover_announcement
-            post_voiceover_announcement(announce)
+            braille = getattr(self.frame, "braille", None)
+            vo_text = braille.strip_for_braille(announce) if braille else announce
+            post_voiceover_announcement(vo_text)
         except Exception:
             pass
 

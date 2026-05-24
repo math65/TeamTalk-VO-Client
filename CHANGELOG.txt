@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2026-05-24 (v7.5.1)
+Braillezeilen-Optimierung: Kanal-/Nutzerliste und Ankündigungen
+
+- Kanal-Labels im Kompaktmodus: Nutzerzahl als "3N" / "3/7N" statt "3 Nutzer";
+  Passwort als "[P]" statt "Passwort"; kein Thema-Text in der Liste.
+  (wx macOS + Qt Windows/Linux)
+- Nutzer-Labels im Kompaktmodus: nur erstes Status-Flag ("Admin" oder "Spricht"),
+  kein Statustext in Qt-Liste.
+- Kanalbetreten-Ansage: VoiceOver/NVDA nutzt jetzt BrailleOutputManager.announce_channel_join()
+  mit Nutzerzahl und verbositäts-abhängigem Format (z. B. "Allgemein (3)" im Kompaktmodus).
+- Alle VoiceOver-Ankündigungen (Beitritt/Verlassen/Mitgliederliste) werden durch
+  strip_for_braille() geleitet – entfernt Emojis, Pfeile und Pipe-Zeichen die auf
+  Braillezeilen schlecht dargestellt werden.
+
 2026-05-24 (v7.5.0)
 Barrierefreiheit: VoiceOver Live-Regionen (macOS) + NVDA Live-Regionen (Windows)
 
