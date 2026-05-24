@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "7.5.1"
+APP_VERSION = "7.5.2"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -2059,18 +2059,67 @@ class MainWindow(QMainWindow):
         self._refocus_channel_list()
 
     def on_menu_import_servers(self) -> None:
-        from PySide6.QtWidgets import QFileDialog
+        from PySide6.QtWidgets import QFileDialog, QMessageBox
         path, _ = QFileDialog.getOpenFileName(
             self, "Serverliste importieren", "", "JSON (*.json);;Alle Dateien (*.*)"
         )
         if not path:
             return
         try:
-            self.store.import_from(Path(path))
-            self._rebuild_favorites_menu()
-            self.set_status("Serverliste importiert")
+            import dataclasses as _dc, json as _json
+            from ui.models import ServerProfile as _SP
+            raw = _json.loads(Path(path).read_text(encoding="utf-8"))
+            if not isinstance(raw, list):
+                self.set_status("Ungültige Datei: keine Profilliste")
+                return
+            valid = {f.name for f in _dc.fields(_SP)}
+            incoming = []
+            for item in raw:
+                try:
+                    incoming.append(_SP(**{k: v for k, v in item.items() if k in valid}))
+                except Exception:
+                    continue
         except Exception as exc:
             self.set_status(f"Import fehlgeschlagen: {exc}")
+            return
+        if not incoming:
+            self.set_status("Keine gültigen Profile in der Datei")
+            return
+        existing_names = {p.name for p in self.store.items()}
+        new_only = [p for p in incoming if p.name not in existing_names]
+        duplicates = [p for p in incoming if p.name in existing_names]
+        if duplicates:
+            dup_str = ", ".join(p.name for p in duplicates[:5])
+            if len(duplicates) > 5:
+                dup_str += f" (+{len(duplicates) - 5} weitere)"
+            msg = (
+                f"{len(incoming)} Profile in Datei.\n"
+                f"{len(new_only)} neu, {len(duplicates)} bereits vorhanden:\n{dup_str}\n\n"
+                "Was möchtest du tun?"
+            )
+            mb = QMessageBox(self)
+            mb.setWindowTitle("Profile importieren")
+            mb.setText(msg)
+            add_new_btn = mb.addButton(f"Nur neue hinzufügen ({len(new_only)})", QMessageBox.ButtonRole.AcceptRole)
+            replace_btn = mb.addButton(f"Alle ersetzen ({len(incoming)})", QMessageBox.ButtonRole.DestructiveRole)
+            mb.addButton("Abbrechen", QMessageBox.ButtonRole.RejectRole)
+            mb.exec()
+            clicked = mb.clickedButton()
+            if clicked is None or clicked not in (add_new_btn, replace_btn):
+                return
+            if clicked is replace_btn:
+                self.store.import_from(Path(path))
+                result_msg = f"{len(incoming)} Profile importiert (ersetzt)"
+            else:
+                for p in new_only:
+                    self.store.add(p)
+                result_msg = f"{len(new_only)} neue Profile hinzugefügt"
+        else:
+            for p in incoming:
+                self.store.add(p)
+            result_msg = f"{len(incoming)} Profile importiert"
+        self._rebuild_favorites_menu()
+        self.set_status(result_msg)
 
     def on_menu_export_servers(self) -> None:
         from PySide6.QtWidgets import QFileDialog

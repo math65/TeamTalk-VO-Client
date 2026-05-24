@@ -74,7 +74,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "7.5.1"
+APP_VERSION = "7.5.2"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -9220,16 +9220,70 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
 
     def on_import_servers(self, _event):
-        with wx.FileDialog(self, "Serverliste importieren", wildcard="JSON (*.json)|*.json|Alle Dateien|*.*") as dlg:
+        with wx.FileDialog(
+            self, "Serverliste importieren",
+            wildcard="JSON (*.json)|*.json|Alle Dateien|*.*",
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        ) as dlg:
             if dlg.ShowModal() != wx.ID_OK:
                 return
             path = Path(dlg.GetPath())
         try:
-            self.store.import_from(path)
-            self.connection_tab.reload_server_list()
-            self.set_status("Serverliste importiert")
+            import dataclasses as _dc, json as _json
+            from ui.models import ServerProfile as _SP
+            raw = _json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(raw, list):
+                self.set_status("Ungültige Datei: keine Profilliste")
+                return
+            valid = {f.name for f in _dc.fields(_SP)}
+            incoming = []
+            for item in raw:
+                try:
+                    incoming.append(_SP(**{k: v for k, v in item.items() if k in valid}))
+                except Exception:
+                    continue
         except Exception as exc:
             self.set_status(f"Import fehlgeschlagen: {exc}")
+            return
+        if not incoming:
+            self.set_status("Keine gültigen Profile in der Datei")
+            return
+        existing_names = {p.name for p in self.store.items()}
+        new_only = [p for p in incoming if p.name not in existing_names]
+        duplicates = [p for p in incoming if p.name in existing_names]
+        if duplicates:
+            dup_str = ", ".join(p.name for p in duplicates[:5])
+            if len(duplicates) > 5:
+                dup_str += f" (+{len(duplicates) - 5} weitere)"
+            choices = [
+                f"Nur neue hinzufügen ({len(new_only)})",
+                f"Alle importieren und ersetzen ({len(incoming)})",
+                "Abbrechen",
+            ]
+            msg = (
+                f"{len(incoming)} Profile in Datei.\n"
+                f"{len(new_only)} neu, {len(duplicates)} bereits vorhanden:\n{dup_str}\n\n"
+                "Was möchtest du tun?"
+            )
+            with wx.SingleChoiceDialog(self, msg, "Profile importieren", choices) as cdlg:
+                if cdlg.ShowModal() != wx.ID_OK:
+                    return
+                sel = cdlg.GetSelection()
+            if sel == 2:
+                return
+            if sel == 1:
+                self.store.import_from(path)
+                result_msg = f"{len(incoming)} Profile importiert (ersetzt)"
+            else:
+                for p in new_only:
+                    self.store.add(p)
+                result_msg = f"{len(new_only)} neue Profile hinzugefügt"
+        else:
+            for p in incoming:
+                self.store.add(p)
+            result_msg = f"{len(incoming)} Profile importiert"
+        self.connection_tab.reload_server_list()
+        self.set_status(result_msg)
 
     def on_export_servers(self, _event):
         with wx.FileDialog(self, "Serverliste exportieren", wildcard="JSON (*.json)|*.json|Alle Dateien|*.*", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as dlg:

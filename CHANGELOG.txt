@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2026-05-24 (v7.5.2)
+Verbindungsprofile: Merge-Import mit Duplikat-Erkennung
+
+- Serverliste importieren (Datei → Serverliste importieren) erkennt nun Duplikate:
+  Bei Konflikten fragt die App, ob nur neue Profile hinzugefügt oder die gesamte
+  Liste ersetzt werden soll.
+- Gilt für macOS (wxPython) und Windows/Linux (Qt/PySide6).
+
 2026-05-24 (v7.5.1)
 Braillezeilen-Optimierung: Kanal-/Nutzerliste und Ankündigungen
 
