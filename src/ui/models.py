@@ -180,6 +180,7 @@ class AppSettings:
     hotkey_announce_ping: int = 0
     # v1.7.0 features
     save_channel_passwords: bool = False
+    channel_password_index: List[Dict[str, Any]] = field(default_factory=list)
     hotkey_reply_last_sender: int = 0
     # v1.9.0 features
     sound_profiles: List[Dict[str, str]] = field(default_factory=list)
@@ -414,6 +415,8 @@ class SettingsStore:
             self.settings.hotkey_announce_ping = int(data.get("hotkey_announce_ping", 0) or 0)
             # v1.7.0
             self.settings.save_channel_passwords = bool(data.get("save_channel_passwords", False))
+            raw_cpwi = data.get("channel_password_index", [])
+            self.settings.channel_password_index = raw_cpwi if isinstance(raw_cpwi, list) else []
             self.settings.hotkey_reply_last_sender = int(data.get("hotkey_reply_last_sender", 0) or 0)
             # v1.9.0
             raw_profiles = data.get("sound_profiles", [])
@@ -627,6 +630,7 @@ class SettingsStore:
             "hotkey_announce_ping": int(self.settings.hotkey_announce_ping or 0),
             # v1.7.0
             "save_channel_passwords": bool(self.settings.save_channel_passwords),
+            "channel_password_index": list(self.settings.channel_password_index or []),
             "hotkey_reply_last_sender": int(self.settings.hotkey_reply_last_sender or 0),
             # v1.9.0
             "sound_profiles": self.settings.sound_profiles or [],

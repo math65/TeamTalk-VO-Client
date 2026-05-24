@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-05-24 (v7.5.3)
+Kanal-Passwörter verwalten
+
+- Neuer Dialog "Gespeicherte Kanalpasswörter verwalten" in Einstellungen → Allgemein:
+  zeigt alle per Keychain gespeicherten Kanalpasswörter (Server + Kanalname) und
+  erlaubt das gezielte oder vollständige Löschen einzelner Einträge.
+- Index der gespeicherten Passwörter wird in den Einstellungen persistiert, damit
+  der Dialog auch ohne aktive Serververbindung funktioniert.
+  (macOS)
+
 2026-05-24 (v7.5.2)
 Verbindungsprofile: Merge-Import mit Duplikat-Erkennung
 

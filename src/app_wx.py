@@ -74,7 +74,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "7.5.2"
+APP_VERSION = "7.5.3"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -1676,6 +1676,18 @@ class MainFrame(wx.Frame):
         except Exception:
             pass
         return self._current_server_key
+
+    def _update_channel_pw_index(self, server_key: str, channel_id: int, channel_name: str, add: bool) -> None:
+        """Pflegt den Index gespeicherter Kanalpasswörter in den Einstellungen."""
+        try:
+            idx = list(getattr(self.settings_store.settings, "channel_password_index", []) or [])
+            idx = [e for e in idx if not (e.get("server_key") == server_key and e.get("channel_id") == channel_id)]
+            if add:
+                idx.append({"server_key": server_key, "channel_id": channel_id, "channel_name": channel_name})
+            self.settings_store.settings.channel_password_index = idx
+            self.settings_store.save()
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # v5.1.0 – Companion-Server Callbacks
@@ -8913,6 +8925,7 @@ class MainFrame(wx.Frame):
                             key = self._get_server_key()
                             if key:
                                 kc.save_channel_password(key, channel_id, password)
+                                wx.CallAfter(self._update_channel_pw_index, key, channel_id, ch_name or str(channel_id), True)
                         except Exception:
                             pass
                 elif result.error_code == 2001:  # CMDERR_INCORRECT_CHANNEL_PASSWORD
@@ -8924,6 +8937,7 @@ class MainFrame(wx.Frame):
                             key = self._get_server_key()
                             if key:
                                 kc.delete_channel_password(key, channel_id)
+                                wx.CallAfter(self._update_channel_pw_index, key, channel_id, "", False)
                         except Exception:
                             pass
                     wx.CallAfter(self._ask_channel_password, channel_id)

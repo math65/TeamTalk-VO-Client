@@ -268,6 +268,10 @@ class SettingsTab(wx.Panel):
         self._save_channel_passwords.SetName("Kanalpasswörter in Keychain speichern")
         self._save_channel_passwords.SetValue(bool(s.save_channel_passwords))
         gen_sizer.Add(self._save_channel_passwords, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        manage_pw_btn = wx.Button(panel, label="Gespeicherte Passwörter &verwalten...")
+        manage_pw_btn.SetName("Gespeicherte Kanalpasswörter verwalten")
+        manage_pw_btn.Bind(wx.EVT_BUTTON, self._on_manage_channel_passwords)
+        gen_sizer.Add(manage_pw_btn, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         # Chat filter
         filter_box = wx.StaticBox(panel, label="Chat-Filter")
@@ -2171,9 +2175,113 @@ class SettingsTab(wx.Panel):
         self._export_logs_zip()
         self._copy_logs_to_clipboard()
 
+    def _on_manage_channel_passwords(self, _event) -> None:
+        dlg = _ChannelPasswordsDialog(self, self.frame)
+        dlg.ShowModal()
+        dlg.Destroy()
+
     def _show_section(self, section: str) -> None:
         active = {id(p) for p in self._sections.get(section, [])}
         for panels in self._sections.values():
             for p in panels:
                 p.Show(id(p) in active)
         self.Layout()
+
+
+class _ChannelPasswordsDialog(wx.Dialog):
+    """Zeigt alle gespeicherten Kanalpasswörter und erlaubt das Löschen."""
+
+    def __init__(self, parent: wx.Window, frame) -> None:
+        super().__init__(parent, title="Gespeicherte Kanalpasswörter", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self.frame = frame
+        self.SetMinSize((560, 380))
+
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        info = wx.StaticText(panel, label="Gespeicherte Passwörter für passwortgeschützte Kanäle:")
+        sizer.Add(info, 0, wx.ALL, 8)
+
+        self._list = wx.ListBox(panel, style=wx.LB_SINGLE)
+        self._list.SetName("Gespeicherte Kanalpasswörter")
+        sizer.Add(self._list, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._del_btn = wx.Button(panel, label="&Eintrag löschen")
+        self._del_btn.SetName("Eintrag löschen")
+        self._del_btn.Bind(wx.EVT_BUTTON, self._on_delete)
+        self._del_all_btn = wx.Button(panel, label="&Alle löschen")
+        self._del_all_btn.SetName("Alle löschen")
+        self._del_all_btn.Bind(wx.EVT_BUTTON, self._on_delete_all)
+        close_btn = wx.Button(panel, wx.ID_OK, label="&Schließen")
+        btn_row.Add(self._del_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(self._del_all_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(close_btn, 0)
+        sizer.Add(btn_row, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
+
+        panel.SetSizer(sizer)
+        self._refresh()
+        self.CentreOnParent()
+
+    def _get_index(self):
+        return list(getattr(self.frame.settings_store.settings, "channel_password_index", []) or [])
+
+    def _refresh(self) -> None:
+        idx = self._get_index()
+        labels = []
+        for entry in idx:
+            sk = entry.get("server_key", "")
+            ch_name = entry.get("channel_name", "") or str(entry.get("channel_id", ""))
+            labels.append(f"{sk}, Kanal: {ch_name}")
+        self._list.Set(labels)
+        has_items = bool(labels)
+        self._del_btn.Enable(has_items)
+        self._del_all_btn.Enable(has_items)
+        if not has_items:
+            self._list.Append("(Keine gespeicherten Passwörter)")
+            self._list.Enable(False)
+        else:
+            self._list.Enable(True)
+
+    def _on_delete(self, _event) -> None:
+        sel = self._list.GetSelection()
+        if sel == wx.NOT_FOUND:
+            return
+        idx = self._get_index()
+        if sel >= len(idx):
+            return
+        entry = idx[sel]
+        try:
+            import keychain as kc
+            kc.delete_channel_password(entry["server_key"], int(entry["channel_id"]))
+        except Exception:
+            pass
+        idx.pop(sel)
+        self.frame.settings_store.settings.channel_password_index = idx
+        self.frame.settings_store.save()
+        self.frame.set_status("Kanalpasswort gelöscht")
+        self._refresh()
+
+    def _on_delete_all(self, _event) -> None:
+        confirm = wx.MessageDialog(
+            self, "Alle gespeicherten Kanalpasswörter löschen?",
+            "Alle löschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+        )
+        if confirm.ShowModal() != wx.ID_YES:
+            confirm.Destroy()
+            return
+        confirm.Destroy()
+        idx = self._get_index()
+        try:
+            import keychain as kc
+            for entry in idx:
+                try:
+                    kc.delete_channel_password(entry["server_key"], int(entry["channel_id"]))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        self.frame.settings_store.settings.channel_password_index = []
+        self.frame.settings_store.save()
+        self.frame.set_status("Alle Kanalpasswörter gelöscht")
+        self._refresh()
