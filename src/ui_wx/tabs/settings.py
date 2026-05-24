@@ -704,6 +704,16 @@ class SettingsTab(wx.Panel):
         self._elevenlabs_key.SetName("ElevenLabs API-Schlüssel")
         key_form.Add(self._elevenlabs_key, 1, wx.EXPAND)
         el_sizer.Add(key_form, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        el_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._elevenlabs_verify_btn = wx.Button(panel, label="Schlüssel &prüfen")
+        self._elevenlabs_verify_btn.SetName("ElevenLabs Schlüssel prüfen")
+        self._elevenlabs_verify_btn.Bind(wx.EVT_BUTTON, self._on_verify_elevenlabs)
+        el_btn_row.Add(self._elevenlabs_verify_btn, 0, wx.RIGHT, 8)
+        self._elevenlabs_status = wx.StaticText(panel, label="")
+        self._elevenlabs_status.SetName("ElevenLabs Schlüssel-Status")
+        el_btn_row.Add(self._elevenlabs_status, 1, wx.ALIGN_CENTER_VERTICAL)
+        el_sizer.Add(el_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         sizer.Add(el_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # ---- KI & Barrierefreiheit StaticBox ----
@@ -728,6 +738,16 @@ class SettingsTab(wx.Panel):
         self._claude_api_key.SetName("Claude API-Schlüssel")
         key_form2.Add(self._claude_api_key, 1, wx.EXPAND)
         claude_sizer.Add(key_form2, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        claude_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._claude_verify_btn = wx.Button(panel, label="Schlüssel p&rüfen")
+        self._claude_verify_btn.SetName("Claude Schlüssel prüfen")
+        self._claude_verify_btn.Bind(wx.EVT_BUTTON, self._on_verify_claude)
+        claude_btn_row.Add(self._claude_verify_btn, 0, wx.RIGHT, 8)
+        self._claude_status = wx.StaticText(panel, label="")
+        self._claude_status.SetName("Claude Schlüssel-Status")
+        claude_btn_row.Add(self._claude_status, 1, wx.ALIGN_CENTER_VERTICAL)
+        claude_sizer.Add(claude_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         sizer.Add(claude_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # --- Google Gemini ---
@@ -736,9 +756,7 @@ class SettingsTab(wx.Panel):
 
         info_gemini = wx.StaticText(panel, label=(
             "API-Key aus https://aistudio.google.com/app/apikey\n"
-            "oder Via Google anmelden (Browser-OAuth, kein Key nötig).\n"
-            "Für OAuth: client_secrets.json aus Google Cloud Console\n"
-            "in den App-Daten-Ordner legen."
+            "oder Via Google anmelden (Browser-OAuth, kein Key nötig)."
         ))
         info_gemini.SetName("Gemini Info")
         gemini_sizer.Add(info_gemini, 0, wx.ALL, 8)
@@ -752,6 +770,16 @@ class SettingsTab(wx.Panel):
         self._gemini_api_key.SetName("Gemini API-Schlüssel")
         gemini_form.Add(self._gemini_api_key, 1, wx.EXPAND)
         gemini_sizer.Add(gemini_form, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        gemini_key_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._gemini_verify_btn = wx.Button(panel, label="API-Key &prüfen")
+        self._gemini_verify_btn.SetName("Gemini API-Key prüfen")
+        self._gemini_verify_btn.Bind(wx.EVT_BUTTON, self._on_verify_gemini_key)
+        gemini_key_row.Add(self._gemini_verify_btn, 0, wx.RIGHT, 8)
+        self._gemini_key_status = wx.StaticText(panel, label="")
+        self._gemini_key_status.SetName("Gemini API-Key-Status")
+        gemini_key_row.Add(self._gemini_key_status, 1, wx.ALIGN_CENTER_VERTICAL)
+        gemini_sizer.Add(gemini_key_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         gemini_btn_row = wx.BoxSizer(wx.HORIZONTAL)
         self._gemini_login_btn = wx.Button(panel, label="&Via Google anmelden")
@@ -1544,8 +1572,26 @@ class SettingsTab(wx.Panel):
             pass
 
     def _on_gemini_login(self, _event) -> None:
+        auth = self.frame._gemini_auth
+        if not auth.has_client_secrets():
+            path = auth._secrets_path
+            wx.MessageBox(
+                "Für die Google-Anmeldung wird eine OAuth-Clientkonfiguration benötigt.\n\n"
+                "So erhalten Sie die Datei:\n"
+                "1. Öffnen Sie console.cloud.google.com\n"
+                "2. Projekt auswählen → APIs & Dienste → Anmeldedaten\n"
+                "3. 'OAuth 2.0-Client-IDs' → Typ 'Desktop-App' erstellen → JSON herunterladen\n"
+                f"4. Datei umbenennen und speichern als:\n   {path}\n\n"
+                "Einfacher: Tragen Sie stattdessen direkt einen API-Schlüssel ein.\n"
+                "Den Key erhalten Sie unter: aistudio.google.com/app/apikey",
+                "OAuth-Konfiguration fehlt",
+                wx.OK | wx.ICON_INFORMATION,
+                self,
+            )
+            return
+
         self._gemini_login_btn.Disable()
-        self._gemini_status_label.SetLabel("Browser öffnet sich...")
+        self._gemini_status_label.SetLabel("Browser öffnet sich…")
 
         def _on_success(_creds) -> None:
             import wx as _wx
@@ -1556,14 +1602,11 @@ class SettingsTab(wx.Panel):
         def _on_error(msg: str) -> None:
             import wx as _wx
             _wx.CallAfter(self._gemini_login_btn.Enable)
-            _wx.CallAfter(self._gemini_status_label.SetLabel, f"Fehler: {msg[:60]}")
+            _wx.CallAfter(self._gemini_status_label.SetLabel, "Fehler – Details in Statuszeile")
             _wx.CallAfter(self.frame.set_status, f"Gemini-Anmeldung fehlgeschlagen: {msg}")
 
         try:
-            self.frame._gemini_auth.start_oauth_flow(
-                on_success=_on_success,
-                on_error=_on_error,
-            )
+            auth.start_oauth_flow(on_success=_on_success, on_error=_on_error)
         except Exception as exc:
             self._gemini_login_btn.Enable()
             self._gemini_status_label.SetLabel(f"Fehler: {exc}")
@@ -1575,6 +1618,89 @@ class SettingsTab(wx.Panel):
             self.frame.set_status("Google-Abmeldung erfolgreich")
         except Exception as exc:
             self.frame.set_status(f"Gemini-Abmeldung: {exc}")
+
+    def _on_verify_elevenlabs(self, _event) -> None:
+        import threading
+        key = self._elevenlabs_key.GetValue().strip()
+        if not key:
+            self._elevenlabs_status.SetLabel("Kein Schlüssel eingegeben.")
+            return
+        self._elevenlabs_verify_btn.Disable()
+        self._elevenlabs_status.SetLabel("Prüfe…")
+
+        def worker():
+            try:
+                import requests as _req
+                resp = _req.get(
+                    "https://api.elevenlabs.io/v1/user",
+                    headers={"xi-api-key": key},
+                    timeout=10,
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    name = (data.get("first_name") or "").strip()
+                    tier = (data.get("subscription") or {}).get("tier") or ""
+                    label = f"✓ Gültig{(' – ' + name) if name else ''}{(' (' + tier + ')') if tier else ''}"
+                elif resp.status_code == 401:
+                    label = "✗ Ungültig (401 Unauthorized)"
+                else:
+                    label = f"✗ Fehler: HTTP {resp.status_code}"
+            except Exception as exc:
+                label = f"✗ Fehler: {exc}"
+            import wx as _wx
+            _wx.CallAfter(self._elevenlabs_verify_btn.Enable)
+            _wx.CallAfter(self._elevenlabs_status.SetLabel, label)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_verify_claude(self, _event) -> None:
+        import threading
+        key = self._claude_api_key.GetValue().strip()
+        if not key:
+            self._claude_status.SetLabel("Kein Schlüssel eingegeben.")
+            return
+        self._claude_verify_btn.Disable()
+        self._claude_status.SetLabel("Prüfe…")
+
+        def worker():
+            try:
+                import anthropic
+                client = anthropic.Anthropic(api_key=key)
+                models = client.models.list()
+                count = len(list(models.data))
+                label = f"✓ Gültig ({count} Modelle verfügbar)"
+            except Exception as exc:
+                name = type(exc).__name__
+                label = f"✗ {name}: {str(exc)[:60]}"
+            import wx as _wx
+            _wx.CallAfter(self._claude_verify_btn.Enable)
+            _wx.CallAfter(self._claude_status.SetLabel, label)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_verify_gemini_key(self, _event) -> None:
+        import threading
+        key = self._gemini_api_key.GetValue().strip()
+        if not key:
+            self._gemini_key_status.SetLabel("Kein Schlüssel eingegeben.")
+            return
+        self._gemini_verify_btn.Disable()
+        self._gemini_key_status.SetLabel("Prüfe…")
+
+        def worker():
+            try:
+                import google.genai as genai
+                client = genai.Client(api_key=key)
+                models = list(client.models.list())
+                label = f"✓ Gültig ({len(models)} Modelle verfügbar)"
+            except Exception as exc:
+                name = type(exc).__name__
+                label = f"✗ {name}: {str(exc)[:60]}"
+            import wx as _wx
+            _wx.CallAfter(self._gemini_verify_btn.Enable)
+            _wx.CallAfter(self._gemini_key_status.SetLabel, label)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def _on_vc_start(self, _event) -> None:
         try:

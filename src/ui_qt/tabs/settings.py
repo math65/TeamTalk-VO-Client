@@ -941,31 +941,157 @@ class SettingsTab(QWidget):
     # ------------------------------------------------------------------
 
     def _build_ki_tab(self) -> QWidget:
+        import threading
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         inner = QWidget()
         layout = QVBoxLayout(inner)
         s = self.window.settings_store.settings
 
-        ki_group = QGroupBox("API-Schlüssel")
-        ki_form = QFormLayout(ki_group)
-
-        self.gemini_key = QLineEdit(getattr(s, "gemini_api_key", "") or "")
-        self.gemini_key.setEchoMode(QLineEdit.EchoMode.Password)
-        self.gemini_key.setPlaceholderText("Gemini API-Key")
-        self.gemini_key.textChanged.connect(lambda v: self._save_str("gemini_api_key", v))
-        ki_form.addRow("Gemini", self.gemini_key)
+        # ── ElevenLabs ──────────────────────────────────────────────────────
+        el_group = QGroupBox("ElevenLabs Text-to-Speech")
+        el_layout = QVBoxLayout(el_group)
+        el_form = QFormLayout()
 
         self.elevenlabs_key = QLineEdit(getattr(s, "elevenlabs_api_key", "") or "")
         self.elevenlabs_key.setEchoMode(QLineEdit.EchoMode.Password)
-        self.elevenlabs_key.setPlaceholderText("ElevenLabs API-Key")
+        self.elevenlabs_key.setPlaceholderText("API-Key von elevenlabs.io")
+        self.elevenlabs_key.setAccessibleName("ElevenLabs API-Schlüssel")
         def _on_elevenlabs_key_changed(v: str) -> None:
             self._save_str("elevenlabs_api_key", v)
             if hasattr(self.window, "_update_speak_tab"):
                 self.window._update_speak_tab(v)
         self.elevenlabs_key.textChanged.connect(_on_elevenlabs_key_changed)
-        ki_form.addRow("ElevenLabs", self.elevenlabs_key)
-        layout.addWidget(ki_group)
+        el_form.addRow("API-Schlüssel:", self.elevenlabs_key)
+        el_layout.addLayout(el_form)
+
+        el_btn_row = QHBoxLayout()
+        self._el_verify_btn = QPushButton("Schlüssel prüfen")
+        self._el_verify_btn.setAccessibleName("ElevenLabs Schlüssel prüfen")
+        self._el_status = QLabel("")
+        self._el_status.setAccessibleName("ElevenLabs Schlüssel-Status")
+
+        def _verify_elevenlabs():
+            key = self.elevenlabs_key.text().strip()
+            if not key:
+                self._el_status.setText("Kein Schlüssel eingegeben.")
+                return
+            self._el_verify_btn.setEnabled(False)
+            self._el_status.setText("Prüfe…")
+            def worker():
+                try:
+                    import requests as _req
+                    resp = _req.get("https://api.elevenlabs.io/v1/user",
+                                   headers={"xi-api-key": key}, timeout=10)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        name = (data.get("first_name") or "").strip()
+                        tier = (data.get("subscription") or {}).get("tier") or ""
+                        lbl = f"✓ Gültig{(' – ' + name) if name else ''}{(' (' + tier + ')') if tier else ''}"
+                    elif resp.status_code == 401:
+                        lbl = "✗ Ungültig (401 Unauthorized)"
+                    else:
+                        lbl = f"✗ Fehler: HTTP {resp.status_code}"
+                except Exception as exc:
+                    lbl = f"✗ Fehler: {exc}"
+                from PySide6.QtCore import QMetaObject, Qt
+                self._el_verify_btn.setEnabled(True)
+                self._el_status.setText(lbl)
+            threading.Thread(target=worker, daemon=True).start()
+
+        self._el_verify_btn.clicked.connect(_verify_elevenlabs)
+        el_btn_row.addWidget(self._el_verify_btn)
+        el_btn_row.addWidget(self._el_status, 1)
+        el_layout.addLayout(el_btn_row)
+        layout.addWidget(el_group)
+
+        # ── Claude (Anthropic) ───────────────────────────────────────────────
+        claude_group = QGroupBox("Claude KI (Anthropic)")
+        claude_layout = QVBoxLayout(claude_group)
+        claude_form = QFormLayout()
+
+        self.claude_key = QLineEdit(getattr(s, "claude_api_key", "") or "")
+        self.claude_key.setEchoMode(QLineEdit.EchoMode.Password)
+        self.claude_key.setPlaceholderText("API-Key von console.anthropic.com")
+        self.claude_key.setAccessibleName("Claude API-Schlüssel")
+        self.claude_key.textChanged.connect(lambda v: self._save_str("claude_api_key", v))
+        claude_form.addRow("API-Schlüssel:", self.claude_key)
+        claude_layout.addLayout(claude_form)
+
+        claude_btn_row = QHBoxLayout()
+        self._claude_verify_btn = QPushButton("Schlüssel prüfen")
+        self._claude_verify_btn.setAccessibleName("Claude Schlüssel prüfen")
+        self._claude_status = QLabel("")
+        self._claude_status.setAccessibleName("Claude Schlüssel-Status")
+
+        def _verify_claude():
+            key = self.claude_key.text().strip()
+            if not key:
+                self._claude_status.setText("Kein Schlüssel eingegeben.")
+                return
+            self._claude_verify_btn.setEnabled(False)
+            self._claude_status.setText("Prüfe…")
+            def worker():
+                try:
+                    import anthropic
+                    client = anthropic.Anthropic(api_key=key)
+                    count = len(list(client.models.list().data))
+                    lbl = f"✓ Gültig ({count} Modelle verfügbar)"
+                except Exception as exc:
+                    lbl = f"✗ {type(exc).__name__}: {str(exc)[:60]}"
+                self._claude_verify_btn.setEnabled(True)
+                self._claude_status.setText(lbl)
+            threading.Thread(target=worker, daemon=True).start()
+
+        self._claude_verify_btn.clicked.connect(_verify_claude)
+        claude_btn_row.addWidget(self._claude_verify_btn)
+        claude_btn_row.addWidget(self._claude_status, 1)
+        claude_layout.addLayout(claude_btn_row)
+        layout.addWidget(claude_group)
+
+        # ── Google Gemini ────────────────────────────────────────────────────
+        gemini_group = QGroupBox("Google Gemini KI")
+        gemini_layout = QVBoxLayout(gemini_group)
+        gemini_form = QFormLayout()
+
+        self.gemini_key = QLineEdit(getattr(s, "gemini_api_key", "") or "")
+        self.gemini_key.setEchoMode(QLineEdit.EchoMode.Password)
+        self.gemini_key.setPlaceholderText("API-Key von aistudio.google.com/app/apikey")
+        self.gemini_key.setAccessibleName("Gemini API-Schlüssel")
+        self.gemini_key.textChanged.connect(lambda v: self._save_str("gemini_api_key", v))
+        gemini_form.addRow("API-Schlüssel:", self.gemini_key)
+        gemini_layout.addLayout(gemini_form)
+
+        gemini_btn_row = QHBoxLayout()
+        self._gemini_verify_btn = QPushButton("API-Key prüfen")
+        self._gemini_verify_btn.setAccessibleName("Gemini API-Key prüfen")
+        self._gemini_status = QLabel("")
+        self._gemini_status.setAccessibleName("Gemini API-Key-Status")
+
+        def _verify_gemini():
+            key = self.gemini_key.text().strip()
+            if not key:
+                self._gemini_status.setText("Kein Schlüssel eingegeben.")
+                return
+            self._gemini_verify_btn.setEnabled(False)
+            self._gemini_status.setText("Prüfe…")
+            def worker():
+                try:
+                    import google.genai as genai
+                    client = genai.Client(api_key=key)
+                    models = list(client.models.list())
+                    lbl = f"✓ Gültig ({len(models)} Modelle verfügbar)"
+                except Exception as exc:
+                    lbl = f"✗ {type(exc).__name__}: {str(exc)[:60]}"
+                self._gemini_verify_btn.setEnabled(True)
+                self._gemini_status.setText(lbl)
+            threading.Thread(target=worker, daemon=True).start()
+
+        self._gemini_verify_btn.clicked.connect(_verify_gemini)
+        gemini_btn_row.addWidget(self._gemini_verify_btn)
+        gemini_btn_row.addWidget(self._gemini_status, 1)
+        gemini_layout.addLayout(gemini_btn_row)
+        layout.addWidget(gemini_group)
 
         http_group = QGroupBox("HTTP-Companion-API")
         http_form = QFormLayout(http_group)
