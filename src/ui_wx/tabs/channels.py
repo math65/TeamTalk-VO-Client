@@ -394,6 +394,11 @@ class ChannelsTab(wx.Panel):
         else:
             announce = f"Im Kanal {ch_name} ist niemand."
         self.frame.set_status(announce)
+        try:
+            from ui_wx.a11y import post_voiceover_announcement
+            post_voiceover_announcement(announce)
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Nutzer im eigenen Kanal aktualisieren

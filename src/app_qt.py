@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "7.4.1"
+APP_VERSION = "7.5.0"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -788,6 +788,14 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_screen_reader"):
             self._screen_reader.speak(text)
 
+    def _sr_announce(self, text: str) -> None:
+        """Sendet Text als NVDA-Live-Region (unterbricht nicht, reiht ein)."""
+        try:
+            if hasattr(self, "_screen_reader") and self._screen_reader.active:
+                self._screen_reader.speak(text, interrupt=False)
+        except Exception:
+            pass
+
     # ------------------------------------------------------------------
     # TeamTalk Event Loop (driven by client.start_event_loop)
     # ------------------------------------------------------------------
@@ -924,9 +932,11 @@ class MainWindow(QMainWindow):
             if ch_id == my_ch:
                 _srv = str(self._current_server_key or "")
                 _ch = str(self._current_channel_name or "")
+                _join_text = f"{name} hat den Kanal betreten"
                 if (self.tts.settings.speak_user_join and not _tts_muted
                         and self._notifications.allow_tts("user_join", user=name, server=_srv, channel=_ch)):
-                    self.tts.speak(f"{name} hat den Kanal betreten", kind="user_join")
+                    self.tts.speak(_join_text, kind="user_join")
+                self._sr_announce(_join_text)
                 if self._notifications.allow_sound("user_join", user=name, server=_srv, channel=_ch):
                     self.sound_manager.play("user_join", self.settings_store.settings.sound_events.get("user_join"))
                 self._refresh_channels()
@@ -945,9 +955,11 @@ class MainWindow(QMainWindow):
             _muted_list = [u.strip().lower() for u in _muted_raw.split(",") if u.strip()]
             _tts_muted = name.lower() in _muted_list if _muted_list else False
             _srv = str(self._current_server_key or "")
+            _leave_text = f"{name} hat den Kanal verlassen"
             if (self.tts.settings.speak_user_leave and not _tts_muted
                     and self._notifications.allow_tts("user_leave", user=name, server=_srv)):
-                self.tts.speak(f"{name} hat den Kanal verlassen", kind="user_leave")
+                self.tts.speak(_leave_text, kind="user_leave")
+            self._sr_announce(_leave_text)
             if self._notifications.allow_sound("user_leave", user=name, server=_srv):
                 self.sound_manager.play("user_leave", self.settings_store.settings.sound_events.get("user_leave"))
             self._refresh_channels()
@@ -998,6 +1010,7 @@ class MainWindow(QMainWindow):
                 if topic:
                     announce += f" — {topic}"
                 self.tts.speak(announce, kind="system")
+                self._sr_announce(f"Kanal {announce}")
                 self._add_to_recent_channels(ch_id, self._current_channel_name)
         except Exception:
             pass
@@ -1099,6 +1112,7 @@ class MainWindow(QMainWindow):
                                     break
                     if self._notifications.allow_tts(_notif_kind, user=from_user, server=_srv, message=str(content or "")):
                         self.tts.speak(speak_text, kind=kind)
+                    self._sr_announce(speak_text)
                 else:
                     if kind == "private":
                         self.sound_manager.play("msg_private_tx", self.settings_store.settings.sound_events.get("msg_private_tx"))

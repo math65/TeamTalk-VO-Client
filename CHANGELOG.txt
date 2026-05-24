@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2026-05-24 (v7.5.0)
+Barrierefreiheit: VoiceOver Live-Regionen (macOS) + NVDA Live-Regionen (Windows)
+
+- macOS/VoiceOver: Kanalbetreten wird jetzt direkt über VoiceOver angekündigt –
+  Name und Thema des Kanals werden beim Beitreten via NSAccessibilityAnnouncementRequestedNotification
+  ausgegeben, unabhängig vom espeak-ng-TTS-Status.
+- macOS/VoiceOver: Wenn ein anderer Nutzer meinen Kanal betritt oder verlässt, wird
+  die Meldung zusätzlich zur TTS-Ansage auch als VoiceOver-Ankündigung gesendet.
+- macOS/VoiceOver: Die Mitgliederliste des aktuellen Kanals (nach Kanalwechsel und
+  Refresh) wird jetzt als VoiceOver-Live-Region angekündigt ("Im Kanal X: Nutzer A, B, C").
+- Windows/NVDA: Neue Methode _sr_announce() sendet dynamische Ereignisse als Live-Region
+  an NVDA (und andere Screen Reader via tolk.dll), ohne die aktuelle Sprache zu unterbrechen.
+  Betroffen: Kanalbetreten, Nutzerbeitritt/-verlassen, eingehende Chat- und Privatnachrichten.
+
 2026-05-24 (v7.4.1)
 KI-Dienste Einstellungen: Schlüssel-Verifikation + Gemini-OAuth-Fix
 

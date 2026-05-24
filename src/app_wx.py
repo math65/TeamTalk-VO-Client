@@ -74,7 +74,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "7.4.1"
+APP_VERSION = "7.5.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -8892,6 +8892,12 @@ class MainFrame(wx.Frame):
                             topic = self.tt_str(getattr(ch, "szTopic", "") or "") if ch else ""
                             if topic:
                                 wx.CallAfter(self.tts.speak, f"Kanal-Thema: {topic}", kind="channel_topic")
+                        # VoiceOver: Kanalname ankündigen
+                        _vo_text = f"Kanal {ch_name}" if ch_name else "Kanal betreten"
+                        if topic:
+                            _vo_text += f", Thema: {topic}"
+                        from ui_wx.a11y import post_voiceover_announcement
+                        wx.CallAfter(post_voiceover_announcement, _vo_text)
                     except Exception:
                         pass
                     if self.files_tab is not None:
@@ -10091,10 +10097,20 @@ class MainFrame(wx.Frame):
             my_ch = int(self.client.get_my_channel_id() or 0)
             if my_ch and channel_id == my_ch:
                 self._send_notification("Benutzer betreten", f"{name} → {channel_name or str(channel_id)}")
+                try:
+                    from ui_wx.a11y import post_voiceover_announcement
+                    wx.CallAfter(post_voiceover_announcement, text)
+                except Exception:
+                    pass
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
             my_ch = int(self.client.get_my_channel_id() or 0)
             if my_ch and channel_id == my_ch:
                 self._send_notification("Benutzer verlassen", f"{name} ← {channel_name or str(channel_id)}")
+                try:
+                    from ui_wx.a11y import post_voiceover_announcement
+                    wx.CallAfter(post_voiceover_announcement, text)
+                except Exception:
+                    pass
 
     def _play_user_event_sound(self, event, user_id: int, user_ch: int, source_ch: int, tt) -> None:
         """Wird auf dem Haupt-Thread ausgeführt; Werte wurden im Event-Thread erfasst."""

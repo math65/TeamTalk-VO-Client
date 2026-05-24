@@ -35,7 +35,7 @@
 
 <h1>TeamTalk VoiceOver Client – Benutzerhandbuch</h1>
 <p>Barrierefreier TeamTalk-Client für VoiceOver (macOS), NVDA / JAWS (Windows) und Orca (Linux).<br>
-Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>7.4.1</strong></p>
+Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>7.5.0</strong></p>
 
 <!-- ============================================================ -->
 <div id="toc">
@@ -110,6 +110,13 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <p>Die App unterstützt vier Oberflächensprachen: <strong>Deutsch, English, Français, Español</strong>. Die Sprache kann unter <em>Einstellungen → Allgemein → App-Sprache</em> gewechselt werden; die App startet dann neu.</p>
 
 <h2>Was ist neu</h2>
+<div class="new">
+<strong>v7.5.0 (2026-05-24):</strong>
+<ul>
+  <li><strong>VoiceOver Live-Regionen</strong> <span class="platform mac">macOS</span>: Kanalbetreten, Nutzerbeitritt/-verlassen und die Mitgliederliste des aktuellen Kanals werden jetzt direkt über VoiceOver angekündigt (<code>NSAccessibilityAnnouncementRequestedNotification</code>), ohne dass espeak-ng TTS aktiviert sein muss.</li>
+  <li><strong>NVDA Live-Regionen</strong> <span class="platform win">Windows</span>: Kanal- und Nutzerereignisse sowie eingehende Nachrichten werden über <code>_sr_announce()</code> als nicht-unterbrechende NVDA-Live-Region gesendet (tolk.dll, nvdaControllerClient64.dll oder SAPI). Funktioniert auch, wenn espeak-ng TTS deaktiviert ist.</li>
+</ul>
+</div>
 <div class="new">
 <strong>v7.4.0 (2026-05-24):</strong>
 <ul>
@@ -885,7 +892,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 </p>
 
 <hr>
-<p><em>TeamTalk VoiceOver Client v7.4.1 – Benutzerhandbuch. Hauptentwickler: Florian Lichteblau (Flarion). Inspirationsquellen: ttaccessible (Mathieu Ramage). Danksagungen: Garo, FVH, DHT, Korn, de Losse.</em></p>
+<p><em>TeamTalk VoiceOver Client v7.5.0 – Benutzerhandbuch. Hauptentwickler: Florian Lichteblau (Flarion). Inspirationsquellen: ttaccessible (Mathieu Ramage). Danksagungen: Garo, FVH, DHT, Korn, de Losse.</em></p>
 
 </body>
 </html>
