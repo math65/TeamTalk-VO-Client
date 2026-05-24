@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2026-05-24 (v7.4.1)
+KI-Dienste Einstellungen: Schlüssel-Verifikation + Gemini-OAuth-Fix
+
+- Neu: "Schlüssel prüfen"-Schaltfläche für ElevenLabs, Claude (Anthropic) und
+  Google Gemini – prüft den eingetragenen API-Key sofort gegen die jeweilige API
+  und zeigt das Ergebnis an (z. B. "✓ Gültig – Florian (creator)").
+- Fix: Gemini "Via Google anmelden" zeigte bei fehlendem client_secrets.json
+  nur eine abgeschnittene Fehlermeldung. Jetzt erscheint ein vollständiger Dialog
+  mit Schritt-für-Schritt-Anleitung für die Google Cloud Console und dem exakten
+  Speicherpfad der Datei sowie Hinweis auf die einfachere API-Key-Alternative.
+- Qt (Windows/Linux): Claude-API-Schlüssel-Feld war komplett fehlend, ist jetzt
+  mit eigenem Verify-Button vorhanden. Alle drei KI-Dienste haben eigene
+  Bereiche mit Verifikations-Feedback statt eines gemeinsamen Blocks ohne Rückmeldung.
+
 2026-05-24 (v7.4.0)
 Keyword-Benachrichtigungen + Spanische Übersetzung (Parität)
 
