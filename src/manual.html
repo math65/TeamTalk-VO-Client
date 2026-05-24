@@ -35,7 +35,7 @@
 
 <h1>TeamTalk VoiceOver Client – Benutzerhandbuch</h1>
 <p>Barrierefreier TeamTalk-Client für VoiceOver (macOS), NVDA / JAWS (Windows) und Orca (Linux).<br>
-Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>6.4.3</strong></p>
+Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>7.4.0</strong></p>
 
 <!-- ============================================================ -->
 <div id="toc">
@@ -111,32 +111,40 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 
 <h2>Was ist neu</h2>
 <div class="new">
-<strong>v6.4.3 (2026-05-09):</strong>
+<strong>v7.4.0 (2026-05-24):</strong>
 <ul>
-  <li><strong>Barrierefreiheits-Fix</strong>: VoiceOver-Ankündigung und Makro-Trigger für eingehende Privatnachrichten werden jetzt immer ausgelöst – unabhängig davon, ob der Echtzeit-Übersetzer aktiv ist.</li>
+  <li><strong>Stichwort-Filter in Benachrichtigungs-Regeln</strong>: Regeln können jetzt ein optionales Stichwort enthalten. Die Regel greift dann nur, wenn die Nachricht dieses Wort enthält (Groß-/Kleinschreibung ignoriert). Verfügbar für Chat- und Privatnachrichten-Events (→ <a href="#benachrichtigungen">Abschnitt 10</a>).</li>
+  <li><strong>Spanische Übersetzung vollständig</strong>: +339 neue Strings bringen Español auf 555 Einträge – Parität mit Français. Alle Bereiche der Oberfläche sind jetzt vollständig übersetzt.</li>
 </ul>
 </div>
 <div class="new">
-<strong>v6.4.0–6.4.2 (2026-05-10):</strong>
+<strong>v7.3.x (2026-05-23):</strong>
 <ul>
-  <li><strong>Benachrichtigungen ein-/ausschalten</strong>: Neue Checkbox in <em>Einstellungen → Anzeige</em> steuert, ob Desktop-Benachrichtigungen angezeigt werden (→ <a href="#benachrichtigungen">Abschnitt 10</a>).</li>
-  <li><strong>Companion-Server-Einstellungen</strong>: Port und Aktivierungsstatus des integrierten HTTP-Companion-Servers können jetzt in <em>Einstellungen → Integrationen</em> konfiguriert werden (→ <a href="#einstellungen">Abschnitt 18</a>).</li>
+  <li><strong>Qt-Barrierefreiheit</strong> <span class="platform win">Windows</span> <span class="platform lin">Linux</span>: Alle Checkboxen, Auswahlmenüs, Listen und Zahlfelder haben jetzt explizite, &amp;-freie Namen – NVDA und andere Screenreader lesen konsistente Bezeichnungen vor.</li>
+  <li><strong>Systemsprache-Erkennung</strong>: Beim ersten Start erkennt die App automatisch die Betriebssystemsprache (de, en, fr, es) und stellt sie als Standard ein.</li>
+  <li><strong>App-Sprache (Qt)</strong>: Das Einstellungsfeld zeigt alle 4 unterstützten Sprachen (Deutsch, English, Français, Español).</li>
+  <li><strong>Französische Übersetzung erweitert</strong>: 99 weitere Strings für Dateien, Medien-Streaming und Administration (Beitrag: @math65).</li>
 </ul>
 </div>
 <div class="new">
-<strong>v6.3.8 (2026-05-10):</strong>
+<strong>v7.2.0 (2026-05-20):</strong>
 <ul>
-  <li><strong>Auto-Away</strong>: Die App setzt automatisch einen Away-Status nach einer konfigurierbaren Zeit ohne Tastatureingabe. Einstellbar unter <em>Einstellungen → Allgemein → Abwesenheits-Timer (Minuten)</em> (0 = deaktiviert).</li>
-  <li><strong>Im Tray minimieren</strong>: Standardmäßig jetzt aktiviert. Beim Schließen des Fensters bleibt die Verbindung im Tray erhalten.</li>
+  <li><strong>Mehrsprachigkeit (Qt)</strong> <span class="platform win">Windows</span>: Alle Menüpunkte werden jetzt über das Übersetzungssystem lokalisiert. Qt-Mnemonik-Zeichen (&amp;) werden normalisiert.</li>
+  <li><strong>Französische Übersetzung</strong>: 77 neue Strings für Chat, Audio, Verbindung und Kanäle (Beitrag: @math65). Beitragende erscheinen jetzt im Über-Dialog.</li>
 </ul>
 </div>
 <div class="new">
-<strong>v6.1.6 (2026-03-31):</strong>
+<strong>v7.1.x (2026-05-21):</strong>
 <ul>
-  <li><strong>Mikrofon-Verarbeitung</strong>: Noise Gate, Expander, Limiter und Expander+Limiter direkt im Audio-Tab (→ <a href="#mikverarbeitung">Abschnitt 12</a>).</li>
-  <li><strong>Mikrofon-Vorschau</strong>: Loopback-Test ohne Serververbindung.</li>
-  <li><strong>Fokus-Shortcuts <span class="platform mac">macOS</span></strong>: Cmd+1–4 (→ <a href="#fokus">Abschnitt 6</a>).</li>
-  <li><strong>Kanalbasierte Benachrichtigungen</strong>: Erscheinen nur wenn der andere Nutzer im eigenen Kanal ist (→ <a href="#benachrichtigungen">Abschnitt 10</a>).</li>
+  <li><strong>Benachrichtigungs-Regeln</strong>: Fein-granulare Kontrolle über TTS und Klänge für jeden Ereignistyp – global, pro Server, pro Kanal oder pro Nutzer (→ <a href="#benachrichtigungen">Abschnitt 10</a>).</li>
+  <li><strong>Medien-Tab</strong> <span class="platform win">Windows</span>: Streaming-Quellen (Datei, YouTube, Webradio, Podcast, Playlist) als Auswahlmenü statt Registerkarten.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.0.x (2026-05-18):</strong>
+<ul>
+  <li><strong>Makro-Engine</strong>: Trigger-basierte Textmakros und Aussprache-Wörterbuch für TTS (macOS und Windows/Linux).</li>
+  <li><strong>Barrierefreiheits-Fix</strong>: VoiceOver-Ankündigung und Makro-Trigger für eingehende Privatnachrichten immer aktiv – unabhängig vom Echtzeit-Übersetzer.</li>
 </ul>
 </div>
 
@@ -423,6 +431,29 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <h2>Sound-Ereignisse</h2>
 <p>Zusätzlich zu nativen Benachrichtigungen kann für jedes Ereignis ein eigener Klang abgespielt werden. Die Konfiguration erfolgt unter <em>Einstellungen → Sound-Ereignisse</em> (→ <a href="#einstellungen">Abschnitt 18</a>).</p>
 
+<h2>Benachrichtigungs-Regeln <span class="badge-new">NEU ab v7.1</span></h2>
+<p>Über <em>Einstellungen → Benachrichtigungs-Regeln…</em> steuern Sie fein-granular, welche Ereignisse TTS, Klang, beides oder nichts auslösen. Regeln greifen von spezifisch nach allgemein: Eine Nutzer-Regel schlägt eine Kanal-Regel, diese schlägt eine Server-Regel, diese schlägt eine globale Regel.</p>
+
+<h3>Felder einer Regel</h3>
+<table>
+<tr><th>Feld</th><th>Beschreibung</th></tr>
+<tr><td>Ereignis</td><td>Welches Ereignis diese Regel betrifft: alle, Nutzer betritt/verlässt Kanal, Kanal-Chat, Privatnachricht usw.</td></tr>
+<tr><td>Stichwort <span class="badge-new">NEU v7.4</span></td><td>Optional: Die Regel greift nur wenn die Nachricht dieses Wort enthält (Groß-/Kleinschreibung egal). Nur bei Nachrichten-Events aktiv.</td></tr>
+<tr><td>Geltungsbereich</td><td>Global, Server, Kanal oder Nutzer</td></tr>
+<tr><td>Wert</td><td>Name des Servers / Kanals / Nutzers (bei Global leer lassen)</td></tr>
+<tr><td>Aktion</td><td>TTS + Klang, nur TTS, nur Klang, oder Stumm (alles unterdrücken)</td></tr>
+</table>
+
+<h3>Beispiele</h3>
+<ul>
+  <li><strong>Alle Chat-Nachrichten außer in Kanal "Lounge" unterdrücken</strong>: Globale Regel "Chat → Stumm", dann spezifischere Regel "Chat, Kanal: Lounge → TTS + Klang".</li>
+  <li><strong>TTS nur wenn Stichwort "wichtig" vorkommt</strong>: Regel "Chat, Stichwort: wichtig → TTS". Ohne Stichwort in der Nachricht wird kein TTS ausgelöst.</li>
+  <li><strong>Privatnachrichten von Nutzer "Max" immer vorlesen</strong>: Regel "Privatnachricht, Nutzer: Max → TTS + Klang".</li>
+</ul>
+
+<h3>Reihenfolge und Priorität</h3>
+<p>Regeln werden von oben nach unten durchsucht. Die erste passende Regel gewinnt. Spezifischere Regeln (Nutzer vor Kanal vor Server vor Global) sollten daher weiter oben stehen. Mit "Nach oben"/"Nach unten" können Sie die Reihenfolge anpassen.</p>
+
 <!-- ============================================================ -->
 <div class="part-header">Teil D · Audio</div>
 
@@ -691,6 +722,9 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <h2>Bereich: Sound-Ereignisse</h2>
 <p>Weist Klängen Ereignissen zu (Nutzer tritt bei, verlässt, neue Nachricht usw.). Für jedes Ereignis kann eine WAV-Datei ausgewählt werden. Mit "Testen" hören Sie den Klang vorher. Die Sound-Lautstärke (0–100) regelt alle Ereignistöne gleichzeitig.</p>
 
+<h2>Benachrichtigungs-Regeln <span class="badge-new">NEU ab v7.1</span></h2>
+<p>Über die Schaltfläche <strong>Benachrichtigungs-Regeln…</strong> im Einstellungsdialog öffnen Sie den Regel-Editor. Hier legen Sie für jede Kombination aus Ereignis, Geltungsbereich und (optional) Stichwort fest, ob TTS, Klang, beides oder nichts ausgelöst wird. Siehe → <a href="#benachrichtigungen">Abschnitt 10</a> für eine detaillierte Beschreibung.</p>
+
 <h2>Bereich: System &amp; TTS</h2>
 <p>Einstellungen für die eingebaute Text-to-Speech-Ausgabe (espeak-ng). Siehe → <a href="#systemtts">Abschnitt 13</a>.</p>
 
@@ -835,6 +869,12 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
   und weitere Verbesserungen gehen auf Impulse aus ttaccessible zurück.
 </p>
 
+<h3>Beitragende</h3>
+<p>
+  <strong>Mathieu Ramage (@math65)</strong> – Französische Übersetzung (549 Strings), Qt-Menü-Lokalisierung, Systemsprache-Erkennung, Bugfixes<br>
+  <strong>@danijel1124</strong> – Qt-Bugfixes: Chat-Versand, Nickname, Kanalklänge, Layout (v7.0.2)
+</p>
+
 <h3>Beta-Tester und Unterstützer</h3>
 <p>
   <strong>Garo</strong> – Git-Server, Windows-Tests<br>
@@ -845,7 +885,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 </p>
 
 <hr>
-<p><em>TeamTalk VoiceOver Client v6.9.8 – Benutzerhandbuch. Hauptentwickler: Florian Lichteblau (Flarion). Inspirationsquellen: ttaccessible (Mathieu Ramage). Danksagungen: Garo, FVH, DHT, Korn, de Losse.</em></p>
+<p><em>TeamTalk VoiceOver Client v7.4.0 – Benutzerhandbuch. Hauptentwickler: Florian Lichteblau (Flarion). Inspirationsquellen: ttaccessible (Mathieu Ramage). Danksagungen: Garo, FVH, DHT, Korn, de Losse.</em></p>
 
 </body>
 </html>
