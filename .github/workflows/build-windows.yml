@@ -13,10 +13,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Python 3.11 einrichten
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -50,7 +50,7 @@ jobs:
           echo "ZIP_NAME=$zipName" >> $env:GITHUB_ENV
 
       - name: GitHub Release erstellen und ZIP hochladen
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: "TeamTalk VO Client ${{ steps.version.outputs.version }}"
           body: |
