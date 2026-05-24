@@ -62,6 +62,7 @@ class NotificationManager:
         server: str = "",
         channel: str = "",
         user: str = "",
+        message: str = "",
     ) -> str:
         best_scope = -1
         best_action = "both"
@@ -71,9 +72,14 @@ class NotificationManager:
             r_scope = rule.get("scope", "global")
             r_value = str(rule.get("value", "")).strip().lower()
             r_action = rule.get("action", "both")
+            r_keyword = str(rule.get("keyword", "")).strip()
 
             if r_event and r_event != event:
                 continue
+
+            if r_keyword:
+                if not message or r_keyword.lower() not in message.lower():
+                    continue
 
             if r_scope == "global":
                 match = True
@@ -107,7 +113,14 @@ def rule_label(rule: Dict) -> str:
     event_label = _EVENT_LABELS.get(rule.get("event", ""), "") or "Alle Events"
     scope_label = _SCOPE_LABELS.get(rule.get("scope", "global"), "Global")
     value = rule.get("value", "")
+    keyword = str(rule.get("keyword", "")).strip()
     action_label = _ACTION_LABELS.get(rule.get("action", "both"), "TTS + Sound")
+    parts = [event_label]
+    if keyword:
+        parts.append(f"Stichwort: \"{keyword}\"")
     if value:
-        return f"{event_label} | {scope_label}: {value} → {action_label}"
-    return f"{event_label} | {scope_label} → {action_label}"
+        parts.append(f"{scope_label}: {value}")
+    else:
+        parts.append(scope_label)
+    parts.append(f"→ {action_label}")
+    return " | ".join(parts)

@@ -62,6 +62,11 @@ class NotificationRulesDialog(QDialog):
             self._event_cb.addItem(lbl, key)
         form.addRow("Ereignis:", self._event_cb)
 
+        self._keyword_le = QLineEdit()
+        self._keyword_le.setAccessibleName("Stichwort (nur für Nachrichten)")
+        self._keyword_le.setPlaceholderText("Leer = alle Nachrichten")
+        form.addRow("Stichwort:", self._keyword_le)
+
         self._scope_cb = QComboBox()
         self._scope_cb.setAccessibleName("Geltungsbereich")
         for key, lbl in SCOPES:
@@ -98,6 +103,7 @@ class NotificationRulesDialog(QDialog):
 
         # Verbindungen
         self._list.currentRowChanged.connect(self._on_select)
+        self._event_cb.currentIndexChanged.connect(self._update_editor_enable)
         self._scope_cb.currentIndexChanged.connect(self._update_editor_enable)
         self._add_btn.clicked.connect(self._on_add)
         self._del_btn.clicked.connect(self._on_delete)
@@ -115,16 +121,21 @@ class NotificationRulesDialog(QDialog):
         if self._rules:
             self._list.setCurrentRow(min(current, len(self._rules) - 1))
 
+    _MSG_EVENTS = {"", "chat_message", "private_msg"}
+
     def _update_editor_enable(self) -> None:
         sc_key = self._scope_cb.currentData() or "global"
         self._value_le.setEnabled(sc_key != "global")
+        ev_key = self._event_cb.currentData() or ""
+        self._keyword_le.setEnabled(ev_key in self._MSG_EVENTS)
 
     def _get_current_rule(self) -> dict:
         ev_key = self._event_cb.currentData() or ""
         sc_key = self._scope_cb.currentData() or "global"
         value = self._value_le.text().strip() if sc_key != "global" else ""
         ac_key = self._action_cb.currentData() or "both"
-        return {"event": ev_key, "scope": sc_key, "value": value, "action": ac_key}
+        keyword = self._keyword_le.text().strip() if ev_key in self._MSG_EVENTS else ""
+        return {"event": ev_key, "scope": sc_key, "value": value, "action": ac_key, "keyword": keyword}
 
     def _load_rule_into_editor(self, rule: dict) -> None:
         ev = rule.get("event", "")
@@ -132,6 +143,7 @@ class NotificationRulesDialog(QDialog):
             if self._event_cb.itemData(i) == ev:
                 self._event_cb.setCurrentIndex(i)
                 break
+        self._keyword_le.setText(rule.get("keyword", ""))
         sc = rule.get("scope", "global")
         for i in range(self._scope_cb.count()):
             if self._scope_cb.itemData(i) == sc:

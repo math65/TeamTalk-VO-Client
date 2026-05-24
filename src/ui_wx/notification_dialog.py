@@ -51,7 +51,7 @@ class NotificationRulesDialog(wx.Dialog):
         editor_box = wx.StaticBox(panel, label="Regel bearbeiten")
         editor = wx.StaticBoxSizer(editor_box, wx.VERTICAL)
 
-        form = wx.FlexGridSizer(rows=4, cols=2, hgap=10, vgap=6)
+        form = wx.FlexGridSizer(rows=5, cols=2, hgap=10, vgap=6)
         form.AddGrowableCol(1)
 
         # Ereignis
@@ -62,6 +62,14 @@ class NotificationRulesDialog(wx.Dialog):
         self._event_ch.SetName("Ereignis auswählen")
         self._event_ch.SetSelection(0)
         form.Add(self._event_ch, 1, wx.EXPAND)
+
+        # Stichwort (für Nachrichtenevents)
+        form.Add(wx.StaticText(panel, label="Stichwort:"),
+                 0, wx.ALIGN_CENTER_VERTICAL)
+        self._keyword_tc = wx.TextCtrl(panel)
+        self._keyword_tc.SetName("Stichwort (nur für Nachrichten)")
+        self._keyword_tc.SetHint("Leer = alle Nachrichten")
+        form.Add(self._keyword_tc, 1, wx.EXPAND)
 
         # Geltungsbereich
         form.Add(wx.StaticText(panel, label="Geltungsbereich:"),
@@ -115,6 +123,7 @@ class NotificationRulesDialog(wx.Dialog):
 
         # Bindungen
         self._lb.Bind(wx.EVT_LISTBOX, self._on_select)
+        self._event_ch.Bind(wx.EVT_CHOICE, self._on_event_change)
         self._scope_ch.Bind(wx.EVT_CHOICE, self._on_scope_change)
         self._add_btn.Bind(wx.EVT_BUTTON, self._on_add)
         self._del_btn.Bind(wx.EVT_BUTTON, self._on_delete)
@@ -130,9 +139,14 @@ class NotificationRulesDialog(wx.Dialog):
         for rule in self._rules:
             self._lb.Append(rule_label(rule))
 
+    _MSG_EVENTS = {"", "chat_message", "private_msg"}
+
     def _update_editor_enable(self) -> None:
         sc = SCOPES[max(self._scope_ch.GetSelection(), 0)][0]
         self._value_tc.Enable(sc != "global")
+        ev_idx = self._event_ch.GetSelection()
+        ev_key = "" if ev_idx == 0 else EVENTS[ev_idx - 1][0]
+        self._keyword_tc.Enable(ev_key in self._MSG_EVENTS)
 
     def _get_current_rule(self) -> dict:
         ev_idx = self._event_ch.GetSelection()
@@ -142,7 +156,8 @@ class NotificationRulesDialog(wx.Dialog):
         value = self._value_tc.GetValue().strip() if sc_key != "global" else ""
         ac_idx = self._action_ch.GetSelection()
         ac_key = ACTIONS[ac_idx][0] if 0 <= ac_idx < len(ACTIONS) else "both"
-        return {"event": ev_key, "scope": sc_key, "value": value, "action": ac_key}
+        keyword = self._keyword_tc.GetValue().strip() if ev_key in self._MSG_EVENTS else ""
+        return {"event": ev_key, "scope": sc_key, "value": value, "action": ac_key, "keyword": keyword}
 
     def _load_rule_into_editor(self, rule: dict) -> None:
         ev = rule.get("event", "")
@@ -154,6 +169,7 @@ class NotificationRulesDialog(wx.Dialog):
                 self._event_ch.SetSelection(keys.index(ev) + 1)
             except ValueError:
                 self._event_ch.SetSelection(0)
+        self._keyword_tc.SetValue(rule.get("keyword", ""))
         sc_keys = [k for k, _ in SCOPES]
         try:
             self._scope_ch.SetSelection(sc_keys.index(rule.get("scope", "global")))
@@ -175,6 +191,9 @@ class NotificationRulesDialog(wx.Dialog):
             return
         self._editing_idx = idx
         self._load_rule_into_editor(self._rules[idx])
+
+    def _on_event_change(self, _event) -> None:
+        self._update_editor_enable()
 
     def _on_scope_change(self, _event) -> None:
         self._update_editor_enable()

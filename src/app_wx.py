@@ -74,7 +74,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "7.3.1"
+APP_VERSION = "7.4.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -10238,7 +10238,7 @@ class MainFrame(wx.Frame):
             if speak:
                 _notif_kind = "private_msg" if kind == "private" else "chat_message"
                 _srv = str(self._current_server_key or "")
-                speak = self._notifications.allow_tts(_notif_kind, user=from_user, server=_srv)
+                speak = self._notifications.allow_tts(_notif_kind, user=from_user, server=_srv, message=str(content or ""))
             wx.CallAfter(self.chat_tab.append_chat, f"{from_user}: {content}", kind, speak)
             if not (from_id and my_id and from_id == my_id):
                 self._analytics.on_message_received()
@@ -10289,12 +10289,12 @@ class MainFrame(wx.Frame):
             se = self.settings_store.settings.sound_events
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER):
                 sound_key = "msg_private_tx" if is_own else "msg_private_rx"
-                _allow_snd = is_own or self._notifications.allow_sound("private_msg", user=from_user, server=_srv)
+                _allow_snd = is_own or self._notifications.allow_sound("private_msg", user=from_user, server=_srv, message=str(content or ""))
                 if _allow_snd:
                     self.sound_manager.play(sound_key, se.get(sound_key))
             elif msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL):
                 sound_key = "msg_channel_tx" if is_own else "msg_channel_rx"
-                _allow_snd = is_own or self._notifications.allow_sound("chat_message", user=from_user, server=_srv)
+                _allow_snd = is_own or self._notifications.allow_sound("chat_message", user=from_user, server=_srv, message=str(content or ""))
                 if _allow_snd:
                     self.sound_manager.play(sound_key, se.get(sound_key))
             # Push notification

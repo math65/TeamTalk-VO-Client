@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "7.3.1"
+APP_VERSION = "7.4.0"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -1083,10 +1083,10 @@ class MainWindow(QMainWindow):
                         speak_text = f"Privat von {from_user}: {content}"
                         self._last_private_sender_id = from_id
                         self._last_private_message_text = str(content or "")
-                        if self._notifications.allow_sound("private_msg", user=from_user, server=_srv):
+                        if self._notifications.allow_sound("private_msg", user=from_user, server=_srv, message=str(content or "")):
                             self.sound_manager.play("msg_private_rx", self.settings_store.settings.sound_events.get("msg_private_rx"))
                     else:
-                        if self._notifications.allow_sound("chat_message", user=from_user, server=_srv):
+                        if self._notifications.allow_sound("chat_message", user=from_user, server=_srv, message=str(content or "")):
                             self.sound_manager.play("msg_channel_rx", self.settings_store.settings.sound_events.get("msg_channel_rx"))
                         # Keyword detection
                         kw_str = getattr(self.settings_store.settings, "highlight_keywords", "") or ""
@@ -1097,7 +1097,7 @@ class MainWindow(QMainWindow):
                                 if kw and kw in content_lower:
                                     self.tts.speak(f"Stichwort: {kw}", kind="system")
                                     break
-                    if self._notifications.allow_tts(_notif_kind, user=from_user, server=_srv):
+                    if self._notifications.allow_tts(_notif_kind, user=from_user, server=_srv, message=str(content or "")):
                         self.tts.speak(speak_text, kind=kind)
                 else:
                     if kind == "private":

@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2026-05-24 (v7.4.0)
+Keyword-Benachrichtigungen + Spanische Übersetzung (Parität)
+
+- Neu: Benachrichtigungs-Regeln unterstützen jetzt ein optionales Stichwort-Feld.
+  Wird ein Stichwort eingetragen, greift die Regel nur, wenn die Nachricht dieses
+  Stichwort enthält (Groß-/Kleinschreibung wird ignoriert). Verfügbar für alle
+  Nachrichten-Events (Chat, Privat, alle Ereignisse).
+- Benachrichtigungs-Dialog (wx + Qt): Neues Stichwort-Feld erscheint zwischen
+  Ereignis und Geltungsbereich; es ist nur aktiv, wenn ein Nachrichten-Event gewählt ist.
+- Spanische Übersetzung deutlich erweitert: +339 neue Strings bringen ES auf 555 Einträge
+  (Parität mit Französisch, 549). Abgedeckt sind jetzt alle UI-Bereiche: Audio, Aufnahme,
+  Medien-Streaming, Kanäle, Administration, Dateien, Playlists, Webradio, Podcasts,
+  Einstellungen, Benachrichtigungen u. v. m.
+
 2026-05-23 (v7.3.1)
 Qt Accessibility: setAccessibleName() für alle fehlenden Widgets
 
