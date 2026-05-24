@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2026-05-24 (v7.5.4)
+Tastenkürzel-Tab: Kategorien, Suchfeld, Alle-zurücksetzen
+
+- Hotkeys jetzt in 4 Kategorien gegliedert: Audio & Aufnahme, Ansagen & TTS,
+  Navigation & Chat, KI & Automatisierung.
+- Neues Suchfeld oben: filtert alle Einträge live nach Stichwort.
+- Neuer Button "Alle zurücksetzen": löscht alle Tastenkürzel nach Bestätigung.
+- Gilt für macOS (wxPython) und Windows/Linux (Qt/PySide6).
+
 2026-05-24 (v7.5.3)
 Kanal-Passwörter verwalten
 

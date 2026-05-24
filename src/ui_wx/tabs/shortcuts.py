@@ -1,105 +1,148 @@
 from __future__ import annotations
 
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Tuple
 
 import wx
 
 if TYPE_CHECKING:
     from app import MainFrame
 
+_INAPP_CATEGORIES: List[Tuple[str, List[Tuple[str, str]]]] = [
+    ("Audio & Aufnahme", [
+        ("Alles stummschalten", "hotkey_mute_all"),
+        ("Sprachaktivierung umschalten", "hotkey_voice_activation"),
+        ("Video senden umschalten", "hotkey_video_tx"),
+        ("Ausgabelautstärke hoch", "hotkey_volume_up"),
+        ("Ausgabelautstärke runter", "hotkey_volume_down"),
+        ("Mikrofon-Boost hoch", "hotkey_mic_boost_up"),
+        ("Mikrofon-Boost runter", "hotkey_mic_boost_down"),
+        ("Aufnahme umschalten", "hotkey_record_toggle"),
+    ]),
+    ("Ansagen & TTS", [
+        ("Eingangspegel ansagen", "hotkey_announce_level"),
+        ("Nutzerinfo ansagen", "hotkey_announce_user_info"),
+        ("Ping ansagen", "hotkey_announce_ping"),
+        ("Braille-Status ansagen", "hotkey_announce_status"),
+        ("TTS abbrechen", "hotkey_tts_cancel"),
+        ("Braille-Verbosität wechseln", "hotkey_cycle_braille_verbosity"),
+        ("Sound-Profil wechseln", "hotkey_cycle_sound_profile"),
+    ]),
+    ("Navigation & Chat", [
+        ("Privatantwort (letzter Absender)", "hotkey_reply_last_sender"),
+        ("Lesezeichen 1 springen", "hotkey_bookmark_1"),
+        ("Lesezeichen 2 springen", "hotkey_bookmark_2"),
+        ("Lesezeichen 3 springen", "hotkey_bookmark_3"),
+        ("Lesezeichen 4 springen", "hotkey_bookmark_4"),
+        ("Lesezeichen 5 springen", "hotkey_bookmark_5"),
+        ("Lesezeichen 6 springen", "hotkey_bookmark_6"),
+        ("Lesezeichen 7 springen", "hotkey_bookmark_7"),
+        ("Lesezeichen 8 springen", "hotkey_bookmark_8"),
+        ("Lesezeichen 9 springen", "hotkey_bookmark_9"),
+    ]),
+    ("KI & Automatisierung", [
+        ("KI-Zusammenfassung ansagen", "hotkey_ai_summary"),
+        ("KI-Antwortvorschläge", "hotkey_ai_reply_suggestions"),
+        ("Status-Vorlage 1", "hotkey_status_template_1"),
+        ("Status-Vorlage 2", "hotkey_status_template_2"),
+        ("Status-Vorlage 3", "hotkey_status_template_3"),
+    ]),
+]
+
 
 class ShortcutsTab(wx.Panel):
-    """Settings: App-level shortcuts (within the app) and global hotkeys."""
+    """Tab 11: Tastenkürzel – kategorisiert, durchsuchbar, mit Alle-zurücksetzen."""
 
     def __init__(self, parent: wx.Window, frame: MainFrame) -> None:
         super().__init__(parent)
         self.frame = frame
         self.SetName("Tastenkürzel")
 
-        root = wx.BoxSizer(wx.VERTICAL)
+        outer = wx.BoxSizer(wx.VERTICAL)
 
-        # --- In-app hotkeys ---
-        inapp_box = wx.StaticBox(self, label="App-Hotkeys (nur innerhalb der App)")
-        inapp_sizer = wx.StaticBoxSizer(inapp_box, wx.VERTICAL)
+        # --- Search field ---
+        search_row = wx.BoxSizer(wx.HORIZONTAL)
+        search_lbl = wx.StaticText(self, label="Suche:")
+        self._search = wx.TextCtrl(self, value="")
+        self._search.SetName("Tastenkürzel suchen")
+        self._search.SetHelpText("Stichwort eingeben, um Tastenkürzel zu filtern")
+        self._search.Bind(wx.EVT_TEXT, self._on_search_changed)
+        clear_search_btn = wx.Button(self, label="Such&e löschen")
+        clear_search_btn.SetName("Suche löschen")
+        clear_search_btn.Bind(wx.EVT_BUTTON, lambda _: self._search.SetValue(""))
+        search_row.Add(search_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
+        search_row.Add(self._search, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
+        search_row.Add(clear_search_btn, 0)
+        outer.Add(search_row, 0, wx.ALL | wx.EXPAND, 8)
 
-        self._rows = []
-        self._rows.append(self._make_row(inapp_box, "Alles stummschalten", "hotkey_mute_all", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Sprachaktivierung umschalten", "hotkey_voice_activation", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Video senden umschalten", "hotkey_video_tx", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Eingangspegel ansagen", "hotkey_announce_level", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Nutzerinfo ansagen", "hotkey_announce_user_info", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Ping ansagen", "hotkey_announce_ping", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Privatantwort (letzter Absender)", "hotkey_reply_last_sender", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Sound-Profil wechseln", "hotkey_cycle_sound_profile", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Braille-Verbosität wechseln", "hotkey_cycle_braille_verbosity", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "KI-Zusammenfassung ansagen", "hotkey_ai_summary", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Lesezeichen 1 springen", "hotkey_bookmark_1", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Lesezeichen 2 springen", "hotkey_bookmark_2", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Lesezeichen 3 springen", "hotkey_bookmark_3", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Lesezeichen 4 springen", "hotkey_bookmark_4", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Lesezeichen 5 springen", "hotkey_bookmark_5", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Lesezeichen 6 springen", "hotkey_bookmark_6", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Lesezeichen 7 springen", "hotkey_bookmark_7", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Lesezeichen 8 springen", "hotkey_bookmark_8", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Lesezeichen 9 springen", "hotkey_bookmark_9", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Aufnahme umschalten", "hotkey_record_toggle", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "KI-Antwortvorschläge", "hotkey_ai_reply_suggestions", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Status-Vorlage 1", "hotkey_status_template_1", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Status-Vorlage 2", "hotkey_status_template_2", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Status-Vorlage 3", "hotkey_status_template_3", global_key=False))
-        # v2.9.0
-        self._rows.append(self._make_row(inapp_box, "Ausgabelautstärke hoch", "hotkey_volume_up", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Ausgabelautstärke runter", "hotkey_volume_down", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Mikrofon-Boost hoch", "hotkey_mic_boost_up", global_key=False))
-        self._rows.append(self._make_row(inapp_box, "Mikrofon-Boost runter", "hotkey_mic_boost_down", global_key=False))
-        # v3.1.0
-        self._rows.append(self._make_row(inapp_box, "TTS abbrechen", "hotkey_tts_cancel", global_key=False))
-        # v3.3.0
-        self._rows.append(self._make_row(inapp_box, "Braille-Status ansagen", "hotkey_announce_status", global_key=False))
+        # --- Scrolled content area ---
+        self._scroll = wx.ScrolledWindow(self, style=wx.TAB_TRAVERSAL | wx.VSCROLL)
+        self._scroll.SetScrollRate(0, 20)
+        scroll_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        for row in self._rows:
-            inapp_sizer.Add(row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        self._rows: List = []
+        self._global_rows: List = []
+        self._sections: List[Tuple] = []  # (header_lbl, [row_panels])
 
-        root.Add(inapp_sizer, 0, wx.ALL | wx.EXPAND, 8)
+        bold_font = wx.Font(wx.FontInfo().Bold())
+
+        for cat_name, entries in _INAPP_CATEGORIES:
+            header = wx.StaticText(self._scroll, label=cat_name)
+            header.SetFont(bold_font)
+            header.SetName(cat_name)
+            scroll_sizer.Add(header, 0, wx.LEFT | wx.TOP, 8)
+            scroll_sizer.Add(wx.StaticLine(self._scroll), 0, wx.LEFT | wx.RIGHT | wx.EXPAND | wx.BOTTOM, 8)
+            cat_rows = []
+            for label, key in entries:
+                row = self._make_row(self._scroll, label, key, global_key=False)
+                scroll_sizer.Add(row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+                cat_rows.append(row)
+                self._rows.append(row)
+            self._sections.append((header, cat_rows))
 
         # --- Global hotkeys (macOS only) ---
         if sys.platform == "darwin":
-            global_box = wx.StaticBox(self, label="Globale Hotkeys (systemweit, auch wenn App im Hintergrund)")
-            global_sizer = wx.StaticBoxSizer(global_box, wx.VERTICAL)
+            g_header = wx.StaticText(self._scroll, label="Globale Hotkeys (systemweit, auch wenn App im Hintergrund)")
+            g_header.SetFont(bold_font)
+            g_header.SetName("Globale Hotkeys")
+            scroll_sizer.Add(g_header, 0, wx.LEFT | wx.TOP, 8)
+            scroll_sizer.Add(wx.StaticLine(self._scroll), 0, wx.LEFT | wx.RIGHT | wx.EXPAND | wx.BOTTOM, 8)
 
-            self._global_enable = wx.CheckBox(global_box, label="&Globale Hotkeys aktivieren")
+            self._global_enable = wx.CheckBox(self._scroll, label="&Globale Hotkeys aktivieren")
             self._global_enable.SetName("Globale Hotkeys aktivieren")
             self._global_enable.SetValue(bool(frame.settings_store.settings.global_hotkeys_enabled))
             self._global_enable.Bind(wx.EVT_CHECKBOX, self._on_global_enable_changed)
-            global_sizer.Add(self._global_enable, 0, wx.ALL, 8)
+            scroll_sizer.Add(self._global_enable, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-            self._global_rows = []
-            self._global_rows.append(self._make_row(global_box, "PTT (Sprechtaste)", "global_hotkey_ptt", global_key=True))
-            self._global_rows.append(self._make_row(global_box, "Stummschalten umschalten", "global_hotkey_mute", global_key=True))
-
-            for row in self._global_rows:
-                global_sizer.Add(row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-
-            root.Add(global_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+            for label, key in [("PTT (Sprechtaste)", "global_hotkey_ptt"),
+                                ("Stummschalten umschalten", "global_hotkey_mute")]:
+                row = self._make_row(self._scroll, label, key, global_key=True)
+                scroll_sizer.Add(row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+                self._global_rows.append(row)
         else:
             self._global_enable = None
-            self._global_rows = []
 
-        # --- Profile import/export ---
-        profile_box = wx.StaticBox(self, label="Profil Import/Export")
-        profile_sizer = wx.StaticBoxSizer(profile_box, wx.HORIZONTAL)
-        export_btn = wx.Button(profile_box, label="Profil &exportieren")
+        self._scroll.SetSizer(scroll_sizer)
+        self._scroll.FitInside()
+        outer.Add(self._scroll, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 0)
+
+        # --- Bottom toolbar ---
+        bottom_row = wx.BoxSizer(wx.HORIZONTAL)
+        export_btn = wx.Button(self, label="Profil &exportieren")
         export_btn.SetName("Tastenkürzel-Profil exportieren")
         export_btn.Bind(wx.EVT_BUTTON, self._on_export_profile)
-        import_btn = wx.Button(profile_box, label="Profil &importieren")
+        import_btn = wx.Button(self, label="Profil &importieren")
         import_btn.SetName("Tastenkürzel-Profil importieren")
         import_btn.Bind(wx.EVT_BUTTON, self._on_import_profile)
-        profile_sizer.Add(export_btn, 0, wx.ALL, 8)
-        profile_sizer.Add(import_btn, 0, wx.ALL, 8)
-        root.Add(profile_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        reset_all_btn = wx.Button(self, label="A&lle zurücksetzen")
+        reset_all_btn.SetName("Alle Tastenkürzel zurücksetzen")
+        reset_all_btn.Bind(wx.EVT_BUTTON, self._on_reset_all)
+        bottom_row.Add(export_btn, 0, wx.RIGHT, 8)
+        bottom_row.Add(import_btn, 0, wx.RIGHT, 8)
+        bottom_row.Add(reset_all_btn, 0)
+        outer.Add(bottom_row, 0, wx.ALL, 8)
 
-        self.SetSizer(root)
+        self.SetSizer(outer)
         self.update_labels()
 
     def _make_row(self, parent: wx.Window, label: str, key: str, global_key: bool) -> wx.Panel:
@@ -121,70 +164,45 @@ class ShortcutsTab(wx.Panel):
         panel.SetSizer(sizer)
         panel._hotkey_key = key  # type: ignore[attr-defined]
         panel._hotkey_label = hotkey_label  # type: ignore[attr-defined]
+        panel._hotkey_title = label  # type: ignore[attr-defined]
         panel._is_global = global_key  # type: ignore[attr-defined]
         return panel
 
+    def _on_search_changed(self, _event) -> None:
+        q = self._search.GetValue().strip().lower()
+        for header, cat_rows in self._sections:
+            any_visible = False
+            for row in cat_rows:
+                title = getattr(row, "_hotkey_title", "").lower()
+                visible = not q or q in title
+                row.Show(visible)
+                if visible:
+                    any_visible = True
+            header.Show(any_visible)
+        self._scroll.FitInside()
+        self._scroll.Refresh()
+
     def update_labels(self) -> None:
         settings = self.frame.settings_store.settings
-        inapp_map = {
-            "hotkey_mute_all": int(settings.hotkey_mute_all or 0),
-            "hotkey_voice_activation": int(settings.hotkey_voice_activation or 0),
-            "hotkey_video_tx": int(settings.hotkey_video_tx or 0),
-            "hotkey_announce_level": int(settings.hotkey_announce_level or 0),
-            "hotkey_announce_user_info": int(settings.hotkey_announce_user_info or 0),
-            "hotkey_announce_ping": int(settings.hotkey_announce_ping or 0),
-            "hotkey_reply_last_sender": int(settings.hotkey_reply_last_sender or 0),
-            "hotkey_cycle_sound_profile": int(settings.hotkey_cycle_sound_profile or 0),
-            "hotkey_cycle_braille_verbosity": int(getattr(settings, "hotkey_cycle_braille_verbosity", 0) or 0),
-            "hotkey_ai_summary": int(getattr(settings, "hotkey_ai_summary", 0) or 0),
-            "hotkey_bookmark_1": int(getattr(settings, "hotkey_bookmark_1", 0) or 0),
-            "hotkey_bookmark_2": int(getattr(settings, "hotkey_bookmark_2", 0) or 0),
-            "hotkey_bookmark_3": int(getattr(settings, "hotkey_bookmark_3", 0) or 0),
-            "hotkey_bookmark_4": int(getattr(settings, "hotkey_bookmark_4", 0) or 0),
-            "hotkey_bookmark_5": int(getattr(settings, "hotkey_bookmark_5", 0) or 0),
-            "hotkey_bookmark_6": int(getattr(settings, "hotkey_bookmark_6", 0) or 0),
-            "hotkey_bookmark_7": int(getattr(settings, "hotkey_bookmark_7", 0) or 0),
-            "hotkey_bookmark_8": int(getattr(settings, "hotkey_bookmark_8", 0) or 0),
-            "hotkey_bookmark_9": int(getattr(settings, "hotkey_bookmark_9", 0) or 0),
-            "hotkey_record_toggle": int(getattr(settings, "hotkey_record_toggle", 0) or 0),
-            "hotkey_ai_reply_suggestions": int(getattr(settings, "hotkey_ai_reply_suggestions", 0) or 0),
-            "hotkey_status_template_1": int(getattr(settings, "hotkey_status_template_1", 0) or 0),
-            "hotkey_status_template_2": int(getattr(settings, "hotkey_status_template_2", 0) or 0),
-            "hotkey_status_template_3": int(getattr(settings, "hotkey_status_template_3", 0) or 0),
-            # v2.9.0
-            "hotkey_mic_boost_up": int(getattr(settings, "hotkey_mic_boost_up", 0) or 0),
-            "hotkey_mic_boost_down": int(getattr(settings, "hotkey_mic_boost_down", 0) or 0),
-            # v3.1.0
-            "hotkey_tts_cancel": int(getattr(settings, "hotkey_tts_cancel", 0) or 0),
-            # v3.3.0
-            "hotkey_announce_status": int(getattr(settings, "hotkey_announce_status", 0) or 0),
-        }
-        global_map = {
-            "global_hotkey_ptt": int(settings.global_hotkey_ptt or 0),
-            "global_hotkey_mute": int(settings.global_hotkey_mute or 0),
-        }
         all_rows = list(self._rows) + list(self._global_rows)
         for row in all_rows:
             key = getattr(row, "_hotkey_key", "")
-            label = getattr(row, "_hotkey_label", None)
-            is_global = getattr(row, "_is_global", False)
-            if label is None:
+            lbl = getattr(row, "_hotkey_label", None)
+            if lbl is None:
                 continue
-            keycode = global_map.get(key, 0) if is_global else inapp_map.get(key, 0)
-            if is_global:
-                label.SetLabel(self._format_vk(keycode))
-            else:
-                label.SetLabel(self._format_keycode(keycode))
+            is_global = getattr(row, "_is_global", False)
+            keycode = int(getattr(settings, key, 0) or 0)
+            lbl.SetLabel(self._format_vk(keycode) if is_global else self._format_keycode(keycode))
 
     def set_capture_label(self, key: str, capturing: bool) -> None:
         for row in self._rows:
             if getattr(row, "_hotkey_key", "") != key:
                 continue
-            label = getattr(row, "_hotkey_label", None)
-            if label is None:
+            lbl = getattr(row, "_hotkey_label", None)
+            if lbl is None:
                 return
             if capturing:
-                label.SetLabel("(Taste drücken...)")
+                lbl.SetLabel("(Taste drücken...)")
             else:
                 self.update_labels()
             return
@@ -193,11 +211,11 @@ class ShortcutsTab(wx.Panel):
         for row in self._global_rows:
             if getattr(row, "_hotkey_key", "") != key:
                 continue
-            label = getattr(row, "_hotkey_label", None)
-            if label is None:
+            lbl = getattr(row, "_hotkey_label", None)
+            if lbl is None:
                 return
             if capturing:
-                label.SetLabel("(Taste drücken...)")
+                lbl.SetLabel("(Taste drücken...)")
             else:
                 self.update_labels()
             return
@@ -228,8 +246,26 @@ class ShortcutsTab(wx.Panel):
         except Exception:
             return f"VK-{vk:#04x}"
 
+    def _on_reset_all(self, _event) -> None:
+        confirm = wx.MessageDialog(
+            self, "Alle Tastenkürzel auf '(nicht gesetzt)' zurücksetzen?",
+            "Alle zurücksetzen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+        )
+        confirm.SetYesNoLabels("Ja", "Nein")
+        if confirm.ShowModal() != wx.ID_YES:
+            confirm.Destroy()
+            return
+        confirm.Destroy()
+        import dataclasses
+        s = self.frame.settings_store.settings
+        for f in dataclasses.fields(s):
+            if f.name.startswith("hotkey_") or f.name.startswith("global_hotkey_"):
+                setattr(s, f.name, 0)
+        self.frame.settings_store.save()
+        self.update_labels()
+        self.frame.set_status("Alle Tastenkürzel zurückgesetzt")
+
     def _on_export_profile(self, _event) -> None:
-        """Exportiert alle App-Hotkeys als JSON-Profildatei."""
         import json
         import dataclasses
         s = self.frame.settings_store.settings
@@ -255,7 +291,6 @@ class ShortcutsTab(wx.Panel):
             self.frame.set_status(f"Export fehlgeschlagen: {exc}")
 
     def _on_import_profile(self, _event) -> None:
-        """Importiert App-Hotkeys aus einer JSON-Profildatei."""
         import json
         import dataclasses
         with wx.FileDialog(

@@ -3,22 +3,66 @@ from __future__ import annotations
 import json
 import dataclasses
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Tuple
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox,
     QPushButton, QLabel, QFileDialog, QScrollArea,
+    QLineEdit, QMessageBox,
 )
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 
 if TYPE_CHECKING:
     from app_qt import MainWindow
 
+_INAPP_CATEGORIES: List[Tuple[str, List[Tuple[str, str]]]] = [
+    ("Audio & Aufnahme", [
+        ("Alles stummschalten", "hotkey_mute_all"),
+        ("Sprachaktivierung umschalten", "hotkey_voice_activation"),
+        ("Video senden umschalten", "hotkey_video_tx"),
+        ("Ausgabelautstärke hoch", "hotkey_volume_up"),
+        ("Ausgabelautstärke runter", "hotkey_volume_down"),
+        ("Mikrofon-Boost hoch", "hotkey_mic_boost_up"),
+        ("Mikrofon-Boost runter", "hotkey_mic_boost_down"),
+        ("Aufnahme umschalten", "hotkey_record_toggle"),
+    ]),
+    ("Ansagen & TTS", [
+        ("Eingangspegel ansagen", "hotkey_announce_level"),
+        ("Nutzerinfo ansagen", "hotkey_announce_user_info"),
+        ("Ping ansagen", "hotkey_announce_ping"),
+        ("Braille-Status ansagen", "hotkey_announce_status"),
+        ("TTS abbrechen", "hotkey_tts_cancel"),
+        ("Braille-Verbosität wechseln", "hotkey_cycle_braille_verbosity"),
+        ("Sound-Profil wechseln", "hotkey_cycle_sound_profile"),
+    ]),
+    ("Navigation & Chat", [
+        ("Privatantwort (letzter Absender)", "hotkey_reply_last_sender"),
+        ("Lesezeichen 1 springen", "hotkey_bookmark_1"),
+        ("Lesezeichen 2 springen", "hotkey_bookmark_2"),
+        ("Lesezeichen 3 springen", "hotkey_bookmark_3"),
+        ("Lesezeichen 4 springen", "hotkey_bookmark_4"),
+        ("Lesezeichen 5 springen", "hotkey_bookmark_5"),
+        ("Lesezeichen 6 springen", "hotkey_bookmark_6"),
+        ("Lesezeichen 7 springen", "hotkey_bookmark_7"),
+        ("Lesezeichen 8 springen", "hotkey_bookmark_8"),
+        ("Lesezeichen 9 springen", "hotkey_bookmark_9"),
+    ]),
+    ("KI & Automatisierung", [
+        ("KI-Zusammenfassung ansagen", "hotkey_ai_summary"),
+        ("KI-Antwortvorschläge", "hotkey_ai_reply_suggestions"),
+        ("Status-Vorlage 1", "hotkey_status_template_1"),
+        ("Status-Vorlage 2", "hotkey_status_template_2"),
+        ("Status-Vorlage 3", "hotkey_status_template_3"),
+    ]),
+]
+
 
 class _HotkeyRow(QWidget):
-    def __init__(self, parent, label: str, key: str, global_key: bool, window: "MainWindow") -> None:
+    def __init__(self, parent: QWidget, label: str, key: str, global_key: bool, window: "MainWindow") -> None:
         super().__init__(parent)
         self._key = key
+        self._label_text = label
         self._global = global_key
         self._window = window
         layout = QHBoxLayout(self)
@@ -28,6 +72,7 @@ class _HotkeyRow(QWidget):
         self.status = QLabel("(nicht gesetzt)")
         self.status.setAccessibleName(f"{label} Hotkey")
         btn = QPushButton("&Hotkey aufnehmen")
+        btn.setAccessibleName(f"{label} Hotkey aufnehmen")
         if global_key:
             btn.clicked.connect(lambda: window.start_global_hotkey_capture(key))
         else:
@@ -38,7 +83,7 @@ class _HotkeyRow(QWidget):
 
 
 class ShortcutsTab(QWidget):
-    """Tab 11: Tastenkürzel."""
+    """Tab 11: Tastenkürzel – kategorisiert, durchsuchbar, mit Alle-zurücksetzen."""
 
     def __init__(self, parent: QWidget, window: "MainWindow") -> None:
         super().__init__(parent)
@@ -46,59 +91,49 @@ class ShortcutsTab(QWidget):
         self._rows: list[_HotkeyRow] = []
         self._global_rows: list[_HotkeyRow] = []
         self._global_enable = None
+        self._sections: List[Tuple] = []  # (QGroupBox, [_HotkeyRow])
 
         root = QVBoxLayout(self)
 
+        # --- Search field ---
+        search_row = QHBoxLayout()
+        search_lbl = QLabel("Suche:")
+        self._search = QLineEdit()
+        self._search.setPlaceholderText("Stichwort zum Filtern…")
+        self._search.setAccessibleName("Tastenkürzel suchen")
+        self._search.textChanged.connect(self._on_search_changed)
+        clear_btn = QPushButton("Such&e löschen")
+        clear_btn.setAccessibleName("Suche löschen")
+        clear_btn.clicked.connect(self._search.clear)
+        search_row.addWidget(search_lbl)
+        search_row.addWidget(self._search, 1)
+        search_row.addWidget(clear_btn)
+        root.addLayout(search_row)
+
+        # --- Scrolled content ---
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         inner = QWidget()
         inner_layout = QVBoxLayout(inner)
 
-        inapp_group = QGroupBox("App-Hotkeys (nur innerhalb der App)")
-        inapp_layout = QVBoxLayout(inapp_group)
-        definitions = [
-            ("Alles stummschalten", "hotkey_mute_all"),
-            ("Sprachaktivierung umschalten", "hotkey_voice_activation"),
-            ("Video senden umschalten", "hotkey_video_tx"),
-            ("Eingangspegel ansagen", "hotkey_announce_level"),
-            ("Nutzerinfo ansagen", "hotkey_announce_user_info"),
-            ("Ping ansagen", "hotkey_announce_ping"),
-            ("Privatantwort (letzter Absender)", "hotkey_reply_last_sender"),
-            ("Sound-Profil wechseln", "hotkey_cycle_sound_profile"),
-            ("Braille-Verbosität wechseln", "hotkey_cycle_braille_verbosity"),
-            ("KI-Zusammenfassung ansagen", "hotkey_ai_summary"),
-            ("Lesezeichen 1 springen", "hotkey_bookmark_1"),
-            ("Lesezeichen 2 springen", "hotkey_bookmark_2"),
-            ("Lesezeichen 3 springen", "hotkey_bookmark_3"),
-            ("Lesezeichen 4 springen", "hotkey_bookmark_4"),
-            ("Lesezeichen 5 springen", "hotkey_bookmark_5"),
-            ("Lesezeichen 6 springen", "hotkey_bookmark_6"),
-            ("Lesezeichen 7 springen", "hotkey_bookmark_7"),
-            ("Lesezeichen 8 springen", "hotkey_bookmark_8"),
-            ("Lesezeichen 9 springen", "hotkey_bookmark_9"),
-            ("Aufnahme umschalten", "hotkey_record_toggle"),
-            ("KI-Antwortvorschläge", "hotkey_ai_reply_suggestions"),
-            ("Status-Vorlage 1", "hotkey_status_template_1"),
-            ("Status-Vorlage 2", "hotkey_status_template_2"),
-            ("Status-Vorlage 3", "hotkey_status_template_3"),
-            ("Ausgabelautstärke hoch", "hotkey_volume_up"),
-            ("Ausgabelautstärke runter", "hotkey_volume_down"),
-            ("Mikrofon-Boost hoch", "hotkey_mic_boost_up"),
-            ("Mikrofon-Boost runter", "hotkey_mic_boost_down"),
-            ("TTS abbrechen", "hotkey_tts_cancel"),
-            ("Braille-Status ansagen", "hotkey_announce_status"),
-        ]
-        for label, key in definitions:
-            row = _HotkeyRow(inapp_group, label, key, False, window)
-            self._rows.append(row)
-            inapp_layout.addWidget(row)
-        inner_layout.addWidget(inapp_group)
+        for cat_name, entries in _INAPP_CATEGORIES:
+            group = QGroupBox(cat_name)
+            group.setAccessibleName(cat_name)
+            group_layout = QVBoxLayout(group)
+            cat_rows = []
+            for label, key in entries:
+                row = _HotkeyRow(group, label, key, False, window)
+                group_layout.addWidget(row)
+                cat_rows.append(row)
+                self._rows.append(row)
+            inner_layout.addWidget(group)
+            self._sections.append((group, cat_rows))
 
-        # Global hotkeys (macOS only — on Windows/Linux these don't apply)
+        # --- Global hotkeys (macOS only) ---
         if sys.platform == "darwin":
-            global_group = QGroupBox("Globale Hotkeys (systemweit)")
-            global_layout = QVBoxLayout(global_group)
             from PySide6.QtWidgets import QCheckBox
+            global_group = QGroupBox("Globale Hotkeys (systemweit, auch wenn App im Hintergrund)")
+            global_layout = QVBoxLayout(global_group)
             self._global_enable = QCheckBox("&Globale Hotkeys aktivieren")
             self._global_enable.setChecked(bool(window.settings_store.settings.global_hotkeys_enabled))
             self._global_enable.stateChanged.connect(self._on_global_enable_changed)
@@ -106,26 +141,43 @@ class ShortcutsTab(QWidget):
             for label, key in [("PTT (Sprechtaste)", "global_hotkey_ptt"),
                                 ("Stummschalten umschalten", "global_hotkey_mute")]:
                 row = _HotkeyRow(global_group, label, key, True, window)
-                self._global_rows.append(row)
                 global_layout.addWidget(row)
+                self._global_rows.append(row)
             inner_layout.addWidget(global_group)
 
-        # Profile import/export
-        profile_group = QGroupBox("Profil Import/Export")
-        profile_layout = QHBoxLayout(profile_group)
+        inner_layout.addStretch()
+        scroll.setWidget(inner)
+        root.addWidget(scroll, 1)
+
+        # --- Bottom toolbar ---
+        bottom_row = QHBoxLayout()
         export_btn = QPushButton("Profil &exportieren")
+        export_btn.setAccessibleName("Tastenkürzel-Profil exportieren")
         export_btn.clicked.connect(self._on_export_profile)
         import_btn = QPushButton("Profil &importieren")
+        import_btn.setAccessibleName("Tastenkürzel-Profil importieren")
         import_btn.clicked.connect(self._on_import_profile)
-        profile_layout.addWidget(export_btn)
-        profile_layout.addWidget(import_btn)
-        profile_layout.addStretch()
-        inner_layout.addWidget(profile_group)
-        inner_layout.addStretch()
+        reset_all_btn = QPushButton("A&lle zurücksetzen")
+        reset_all_btn.setAccessibleName("Alle Tastenkürzel zurücksetzen")
+        reset_all_btn.clicked.connect(self._on_reset_all)
+        bottom_row.addWidget(export_btn)
+        bottom_row.addWidget(import_btn)
+        bottom_row.addWidget(reset_all_btn)
+        bottom_row.addStretch()
+        root.addLayout(bottom_row)
 
-        scroll.setWidget(inner)
-        root.addWidget(scroll)
         self.update_labels()
+
+    def _on_search_changed(self, text: str) -> None:
+        q = text.strip().lower()
+        for group, cat_rows in self._sections:
+            any_visible = False
+            for row in cat_rows:
+                visible = not q or q in row._label_text.lower()
+                row.setVisible(visible)
+                if visible:
+                    any_visible = True
+            group.setVisible(any_visible)
 
     def update_labels(self) -> None:
         settings = self.window.settings_store.settings
@@ -173,7 +225,6 @@ class ShortcutsTab(QWidget):
     def _format_vk(self, vk: int) -> str:
         if not vk:
             return "(nicht gesetzt)"
-        import sys
         if sys.platform == "win32":
             try:
                 from win32_hotkeys import win32_vk_to_name
@@ -185,6 +236,23 @@ class ShortcutsTab(QWidget):
             return vk_to_name(vk)
         except Exception:
             return f"VK-{vk:#04x}"
+
+    def _on_reset_all(self) -> None:
+        answer = QMessageBox.question(
+            self, "Alle zurücksetzen",
+            "Alle Tastenkürzel auf '(nicht gesetzt)' zurücksetzen?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        s = self.window.settings_store.settings
+        for f in dataclasses.fields(s):
+            if f.name.startswith("hotkey_") or f.name.startswith("global_hotkey_"):
+                setattr(s, f.name, 0)
+        self.window.settings_store.save()
+        self.update_labels()
+        self.window.set_status("Alle Tastenkürzel zurückgesetzt")
 
     def _on_export_profile(self) -> None:
         s = self.window.settings_store.settings
