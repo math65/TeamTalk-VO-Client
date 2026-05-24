@@ -2702,6 +2702,80 @@ _TRANSLATIONS_FR.update({
     "Standard": "Par défaut",
 })
 
+# FR-Ergänzungen: Audio / Aufnahme / Equalizer / VU (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- Sprachen / Tabs (Parität mit ES) ----
+    "Deutsch": "Allemand",
+    "Englisch": "Anglais",
+    "Français": "Français",
+    "Spanisch": "Espagnol",
+    "Tastenkürzel": "Raccourcis clavier",
+    "Wird geladen...": "Chargement...",
+
+    # ---- Audio-Einstellungen ----
+    "Audio & Aufnahme": "Audio et enregistrement",
+    "Audio automatisch anwenden bei Gerätewechsel": "Appliquer l'audio automatiquement au changement de périphérique",
+    "Audio-Codec": "Codec audio",
+    "Audio-Codec kann nicht geändert werden, wenn Nutzer im Kanal sind.": "Impossible de changer le codec audio quand des utilisateurs sont dans le canal.",
+    "Audio-Optionen": "Options audio",
+    "Audioeinstellungen anwenden": "Appliquer les réglages audio",
+    "Audioeinstellungen löschen": "Supprimer les réglages audio",
+
+    # ---- Mikrofon ----
+    "Mikrofon:": "Micro :",
+    "Mikrofon-Boost hoch": "Augmenter le boost micro",
+    "Mikrofon-Boost runter": "Diminuer le boost micro",
+    "Mikrofon-Gain": "Gain micro",
+    "Mikrofon-Gain (%):": "Gain micro (%) :",
+    "Mikrofonlautstärke": "Volume du micro",
+    "Mikrofonverstärkung (0–32000)": "Amplification du micro (0–32000)",
+
+    # ---- Wiedergabe ----
+    "Abspielmodus": "Mode de lecture",
+    "Lokale Wiedergabe pausieren": "Mettre en pause la lecture locale",
+    "Lokale Wiedergabe starten": "Démarrer la lecture locale",
+    "Lokale Wiedergabe stoppen": "Arrêter la lecture locale",
+    "Wiedergabe-Datei": "Fichier de lecture",
+    "Wiedergabe-Datei auswählen": "Sélectionner le fichier de lecture",
+
+    # ---- Aufnahme ----
+    "Aufnahme abspielen": "Lire l'enregistrement",
+    "Aufnahme aktivieren oder deaktivieren": "Activer ou désactiver l'enregistrement",
+    "Aufnahme bearbeiten": "Modifier l'enregistrement",
+    "Aufnahme beendet": "Enregistrement terminé",
+    "Aufnahme gestartet": "Enregistrement démarré",
+    "Aufnahme im Finder öffnen": "Ouvrir l'enregistrement dans le Finder",
+    "Aufnahme läuft bereits": "Un enregistrement est déjà en cours",
+    "Aufnahme löschen": "Supprimer l'enregistrement",
+    "Aufnahme umschalten": "Basculer l'enregistrement",
+    "Aufnahme, Wochentage, Uhrzeit, Dauer": "Enregistrement, jours de la semaine, heure, durée",
+    "Aufnahme-Segmentierung (0 = deaktiviert)": "Segmentation de l'enregistrement (0 = désactivée)",
+    "Aufnahme  PTT speichern": "Enregistrer l'enregistrement et le PTT",
+    "Aufnahme & PTT speichern": "Enregistrer l'enregistrement et le PTT",
+    "Aufnahmeliste": "Liste des enregistrements",
+    "Aufnahmeliste Kopfzeile": "En-tête de la liste des enregistrements",
+    "Aufnahmen Anzahl": "Nombre d'enregistrements",
+    "Aufnahmen-Browser": "Navigateur d'enregistrements",
+    "Geplante Aufnahmen": "Enregistrements planifiés",
+    "Keine laufende Aufnahme": "Aucun enregistrement en cours",
+    "Max. Aufnahmedauer Minuten": "Durée max. d'enregistrement (minutes)",
+    "Max. Aufnahmegröße MB": "Taille max. d'enregistrement (Mo)",
+    "Neue Aufnahme": "Nouvel enregistrement",
+    "Noch keine Video-Aufnahmen vorhanden.": "Aucun enregistrement vidéo pour l'instant.",
+    "Stille-Erkennung (stoppt Aufnahme bei Stille)": "Détection de silence (arrête l'enregistrement en cas de silence)",
+
+    # ---- Equalizer ----
+    "Equalizer-Voreinstellung": "Préréglage d'égaliseur",
+    "Equalizer-Voreinstellungen": "Préréglages d'égaliseur",
+
+    # ---- VU-Meter ----
+    "VU-Alarm Schwellenwert": "Seuil d'alerte VU",
+    "VU-Alarm aktivieren": "Activer l'alerte VU",
+    "VU-Alarm aktivieren (bei zu hohem Eingangspegel)": "Activer l'alerte VU (niveau d'entrée trop élevé)",
+    "VU-Meter anzeigen": "Afficher le VU-mètre",
+    "VU-Pegel-Alarm": "Alerte de niveau VU",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
