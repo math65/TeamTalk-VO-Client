@@ -14,6 +14,7 @@ from PySide6.QtCore import Qt
 
 from ui.models import ServerProfile
 from ui_qt.call_after import call_after
+from i18n import _
 
 if TYPE_CHECKING:
     from app_qt import MainWindow
@@ -82,42 +83,42 @@ class ServerBrowserDialog(QDialog):
         self._window = parent
         self._servers: List[_PublicServer] = []
 
-        self.setWindowTitle("Öffentliche Serverliste (bearware.dk)")
+        self.setWindowTitle(_("Öffentliche Serverliste (bearware.dk)"))
         self.setMinimumWidth(680)
         self.resize(720, 520)
 
         layout = QVBoxLayout(self)
 
-        self._status_lbl = QLabel("Serverliste wird abgerufen…")
+        self._status_lbl = QLabel(_("Serverliste wird abgerufen…"))
         layout.addWidget(self._status_lbl)
 
         self._list = QListWidget()
-        self._list.setAccessibleName("Öffentliche Server")
+        self._list.setAccessibleName(_("Öffentliche Server"))
         self._list.currentRowChanged.connect(self._on_selection)
         self._list.itemActivated.connect(self._on_connect)
         layout.addWidget(self._list, 1)
 
         self._detail_lbl = QLabel("")
         self._detail_lbl.setWordWrap(True)
-        self._detail_lbl.setAccessibleName("Serverdetails")
+        self._detail_lbl.setAccessibleName(_("Serverdetails"))
         layout.addWidget(self._detail_lbl)
 
         btn_row = QHBoxLayout()
-        self._connect_btn = QPushButton("&Verbinden")
-        self._connect_btn.setAccessibleName("Mit ausgewähltem Server verbinden")
+        self._connect_btn = QPushButton(_("&Verbinden"))
+        self._connect_btn.setAccessibleName(_("Mit ausgewähltem Server verbinden"))
         self._connect_btn.setEnabled(False)
         self._connect_btn.clicked.connect(self._on_connect)
 
-        self._save_btn = QPushButton("In Liste &speichern")
-        self._save_btn.setAccessibleName("Server in eigene Serverliste speichern")
+        self._save_btn = QPushButton(_("In Liste &speichern"))
+        self._save_btn.setAccessibleName(_("Server in eigene Serverliste speichern"))
         self._save_btn.setEnabled(False)
         self._save_btn.clicked.connect(self._on_save)
 
-        self._reload_btn = QPushButton("&Aktualisieren")
-        self._reload_btn.setAccessibleName("Serverliste neu abrufen")
+        self._reload_btn = QPushButton(_("&Aktualisieren"))
+        self._reload_btn.setAccessibleName(_("Serverliste neu abrufen"))
         self._reload_btn.clicked.connect(self._fetch)
 
-        close_btn = QPushButton("&Schließen")
+        close_btn = QPushButton(_("&Schließen"))
         close_btn.clicked.connect(self.reject)
 
         btn_row.addWidget(self._connect_btn)
@@ -130,7 +131,7 @@ class ServerBrowserDialog(QDialog):
         self._fetch()
 
     def _fetch(self) -> None:
-        self._status_lbl.setText("Serverliste wird abgerufen…")
+        self._status_lbl.setText(_("Serverliste wird abgerufen…"))
         self._list.clear()
         self._servers.clear()
         self._connect_btn.setEnabled(False)
@@ -151,11 +152,11 @@ class ServerBrowserDialog(QDialog):
             return
         self._servers = servers
         if not servers:
-            self._status_lbl.setText("Keine Server gefunden.")
+            self._status_lbl.setText(_("Keine Server gefunden."))
             return
         self._status_lbl.setText(f"{len(servers)} Server gefunden.")
         for s in servers:
-            enc = " [verschlüsselt]" if s.encrypted else ""
+            enc = _(" [verschlüsselt]") if s.encrypted else ""
             country = f" [{s.country}]" if s.country else ""
             self._list.addItem(f"{s.name}{country}{enc}, {s.users} Nutzer")
 
@@ -166,7 +167,7 @@ class ServerBrowserDialog(QDialog):
             self._detail_lbl.setText("")
             return
         srv = self._servers[row]
-        enc = "Ja" if srv.encrypted else "Nein"
+        enc = _("Ja") if srv.encrypted else _("Nein")
         parts = [f"Host: {srv.host}", f"Port: {srv.tcp_port}", f"Verschlüsselt: {enc}"]
         if srv.version:
             parts.append(f"Version: {srv.version}")

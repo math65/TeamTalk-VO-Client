@@ -12,6 +12,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QKeySequence, QCloseEvent, QShortcut
 
+from i18n import _
+
 if TYPE_CHECKING:
     from app_qt import MainWindow
 
@@ -63,7 +65,7 @@ class PrivateChatDialog(QDialog):
         self.setModal(False)
 
         # NVDA/JAWS: accessible name for the dialog
-        self.setAccessibleName(f"Privater Chat mit {self._nick}")
+        self.setAccessibleName(f"Privater Chat mit {self._nick}")  # f-string, kept untranslated
 
         self._build_ui()
         self._load_history()
@@ -82,29 +84,29 @@ class PrivateChatDialog(QDialog):
 
         # Status line (who you're talking to)
         self._status_label = QLabel(f"Chat mit {self._nick}")
-        self._status_label.setAccessibleName("Gesprächspartner")
+        self._status_label.setAccessibleName(_("Gesprächspartner"))
         root.addWidget(self._status_label)
 
         # Chat log (read-only)
         self.chat_log = QTextEdit()
         self.chat_log.setReadOnly(True)
         self.chat_log.setAccessibleName(f"Verlauf des privaten Chats mit {self._nick}")
-        self.chat_log.setAccessibleDescription(
+        self.chat_log.setAccessibleDescription(_(
             "Chatverlauf. Drücken Sie F6 um zur Eingabe zu wechseln."
-        )
+        ))
         root.addWidget(self.chat_log, 1)
 
         # Input row
         input_row = QHBoxLayout()
         self._input = QLineEdit()
         self._input.setPlaceholderText(f"Nachricht an {self._nick} …")
-        self._input.setAccessibleName("Nachricht eingeben")
+        self._input.setAccessibleName(_("Nachricht eingeben"))
         self._input.setAccessibleDescription(
             f"Nachricht an {self._nick}. Enter zum Senden, F6 für Verlauf."
         )
         self._input.returnPressed.connect(self._on_send)
-        self._send_btn = QPushButton("&Senden")
-        self._send_btn.setAccessibleName("Nachricht senden")
+        self._send_btn = QPushButton(_("&Senden"))
+        self._send_btn.setAccessibleName(_("Nachricht senden"))
         self._send_btn.clicked.connect(self._on_send)
         input_row.addWidget(self._input, 1)
         input_row.addWidget(self._send_btn)
@@ -112,14 +114,14 @@ class PrivateChatDialog(QDialog):
 
         # Action buttons
         btn_row = QHBoxLayout()
-        load_btn = QPushButton("Verlauf &laden")
-        load_btn.setAccessibleName("Gespeicherten Verlauf laden")
+        load_btn = QPushButton(_("Verlauf &laden"))
+        load_btn.setAccessibleName(_("Gespeicherten Verlauf laden"))
         load_btn.clicked.connect(self._load_history)
-        export_btn = QPushButton("&Exportieren")
-        export_btn.setAccessibleName("Verlauf exportieren")
+        export_btn = QPushButton(_("&Exportieren"))
+        export_btn.setAccessibleName(_("Verlauf exportieren"))
         export_btn.clicked.connect(self._on_export)
-        copy_btn = QPushButton("&Kopieren")
-        copy_btn.setAccessibleName("Ausgewählten Text kopieren")
+        copy_btn = QPushButton(_("&Kopieren"))
+        copy_btn.setAccessibleName(_("Ausgewählten Text kopieren"))
         copy_btn.clicked.connect(self._on_copy)
         btn_row.addWidget(load_btn)
         btn_row.addWidget(export_btn)
@@ -232,7 +234,7 @@ class PrivateChatDialog(QDialog):
             return
         from PySide6.QtWidgets import QFileDialog
         name = f"privat_{self._nick}_{time.strftime('%Y%m%d_%H%M%S')}.txt"
-        path, _ = QFileDialog.getSaveFileName(self, "Verlauf exportieren", name,
+        path, _filter = QFileDialog.getSaveFileName(self, _("Verlauf exportieren"), name,
                                                "Textdateien (*.txt)")
         if path:
             try:

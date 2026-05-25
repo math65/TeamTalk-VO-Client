@@ -16,6 +16,8 @@ except ImportError:
     sc = None  # type: ignore
     HAVE_SC = False
 
+from i18n import _
+
 if TYPE_CHECKING:
     from app_qt import MainWindow
 
@@ -37,12 +39,12 @@ class DesktopTab(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
 
         # ── Aufnahmequelle ────────────────────────────────────────────────
-        src_group = QGroupBox("Aufnahmequelle")
+        src_group = QGroupBox(_("Aufnahmequelle"))
         src_layout = QVBoxLayout(src_group)
 
         rb_row = QHBoxLayout()
-        self.rb_fullscreen = QRadioButton("&Vollbild")
-        self.rb_window = QRadioButton("&Fenster auswählen")
+        self.rb_fullscreen = QRadioButton(_("&Vollbild"))
+        self.rb_window = QRadioButton(_("&Fenster auswählen"))
         self.rb_fullscreen.setChecked(True)
         rb_row.addWidget(self.rb_fullscreen)
         rb_row.addWidget(self.rb_window)
@@ -61,11 +63,11 @@ class DesktopTab(QWidget):
         fs_page = QWidget()
         fs_layout = QHBoxLayout(fs_page)
         fs_layout.setContentsMargins(0, 0, 0, 0)
-        fs_layout.addWidget(QLabel("Monitor:"))
+        fs_layout.addWidget(QLabel(_("Monitor:")))
         self.monitor_choice = QComboBox()
-        self.monitor_choice.setAccessibleName("Monitor")
+        self.monitor_choice.setAccessibleName(_("Monitor"))
         fs_layout.addWidget(self.monitor_choice, 1)
-        self.refresh_monitors_btn = QPushButton("A&ktualisieren")
+        self.refresh_monitors_btn = QPushButton(_("A&ktualisieren"))
         self.refresh_monitors_btn.clicked.connect(self._refresh_monitors)
         fs_layout.addWidget(self.refresh_monitors_btn)
         self._source_stack.addWidget(fs_page)
@@ -75,9 +77,9 @@ class DesktopTab(QWidget):
         win_layout = QVBoxLayout(win_page)
         win_layout.setContentsMargins(0, 0, 0, 0)
         self.window_list = QListWidget()
-        self.window_list.setAccessibleName("Fensterliste")
+        self.window_list.setAccessibleName(_("Fensterliste"))
         win_layout.addWidget(self.window_list, 1)
-        self.refresh_windows_btn = QPushButton("&Fenster aktualisieren")
+        self.refresh_windows_btn = QPushButton(_("&Fenster aktualisieren"))
         self.refresh_windows_btn.clicked.connect(self._refresh_windows)
         if not HAVE_SC or (HAVE_SC and hasattr(sc, "is_wayland") and sc.is_wayland()):
             self.refresh_windows_btn.setEnabled(False)
@@ -89,7 +91,7 @@ class DesktopTab(QWidget):
         root.addWidget(src_group)
 
         # ── Capture-Optionen ──────────────────────────────────────────────
-        opt_group = QGroupBox("Optionen")
+        opt_group = QGroupBox(_("Optionen"))
         opt_form = QFormLayout(opt_group)
 
         self.fps_choice = QComboBox()
@@ -99,21 +101,21 @@ class DesktopTab(QWidget):
         opt_form.addRow(QLabel("FPS"), self.fps_choice)
 
         self.scale_choice = QComboBox()
-        self.scale_choice.setAccessibleName("Skalierung")
+        self.scale_choice.setAccessibleName(_("Skalierung"))
         self.scale_choice.addItems(["25%", "50%", "75%", "100%"])
         self.scale_choice.setCurrentIndex(1)  # default 50%
-        opt_form.addRow(QLabel("Skalierung"), self.scale_choice)
+        opt_form.addRow(QLabel(_("Skalierung")), self.scale_choice)
 
         root.addWidget(opt_group)
 
         # ── Desktop senden ────────────────────────────────────────────────
-        ctrl_group = QGroupBox("Desktop senden")
+        ctrl_group = QGroupBox(_("Desktop senden"))
         ctrl_layout = QVBoxLayout(ctrl_group)
 
         share_btn_row = QHBoxLayout()
-        self.start_btn = QPushButton("&Freigabe starten")
+        self.start_btn = QPushButton(_("&Freigabe starten"))
         self.start_btn.clicked.connect(self.on_start_share)
-        self.stop_btn = QPushButton("Freigabe &beenden")
+        self.stop_btn = QPushButton(_("Freigabe &beenden"))
         self.stop_btn.clicked.connect(self.on_stop_share)
         share_btn_row.addWidget(self.start_btn)
         share_btn_row.addWidget(self.stop_btn)
@@ -122,13 +124,13 @@ class DesktopTab(QWidget):
         root.addWidget(ctrl_group)
 
         # ── Remote-Steuerung ──────────────────────────────────────────────
-        remote_group = QGroupBox("Desktop-Steuerung (Remote)")
+        remote_group = QGroupBox(_("Desktop-Steuerung (Remote)"))
         remote_row = QHBoxLayout(remote_group)
-        self.left_click_btn = QPushButton("&Linksklick senden")
+        self.left_click_btn = QPushButton(_("&Linksklick senden"))
         self.left_click_btn.clicked.connect(lambda: self._send_click("left"))
-        self.right_click_btn = QPushButton("&Rechtsklick senden")
+        self.right_click_btn = QPushButton(_("&Rechtsklick senden"))
         self.right_click_btn.clicked.connect(lambda: self._send_click("right"))
-        self.middle_click_btn = QPushButton("&Mittelklick senden")
+        self.middle_click_btn = QPushButton(_("&Mittelklick senden"))
         self.middle_click_btn.clicked.connect(lambda: self._send_click("middle"))
         remote_row.addWidget(self.left_click_btn)
         remote_row.addWidget(self.right_click_btn)
@@ -137,10 +139,10 @@ class DesktopTab(QWidget):
         root.addWidget(remote_group)
 
         # ── Status ───────────────────────────────────────────────────────
-        status_group = QGroupBox("Status")
+        status_group = QGroupBox(_("Status"))
         status_layout = QVBoxLayout(status_group)
-        self.status_label = QLabel("Bereit")
-        self.status_label.setAccessibleName("Desktop-Status")
+        self.status_label = QLabel(_("Bereit"))
+        self.status_label.setAccessibleName(_("Desktop-Status"))
         status_layout.addWidget(self.status_label)
         root.addWidget(status_group)
 
@@ -176,10 +178,10 @@ class DesktopTab(QWidget):
                 f"Monitor {i + 1} ({screen.name()})"
             )
         if not screens:
-            self.monitor_choice.addItem("Standard (Primärmonitor)")
+            self.monitor_choice.addItem(_("Standard (Primärmonitor)"))
 
     def _refresh_windows(self) -> None:
-        self._set_status("Fensterliste wird geladen…")
+        self._set_status(_("Fensterliste wird geladen…"))
         self.window_list.clear()
         if HAVE_SC:
             try:
@@ -191,13 +193,13 @@ class DesktopTab(QWidget):
                         f"{len(self._window_list_data)} Fenster gefunden"
                     )
                 else:
-                    self._set_status("Keine Fenster gefunden")
+                    self._set_status(_("Keine Fenster gefunden"))
                 return
             except Exception as exc:
                 self._set_status(f"Fensterliste Fehler: {exc}")
                 return
-        self.window_list.addItem("Fensterliste nicht verfügbar")
-        self._set_status("screen_capture-Modul nicht verfügbar")
+        self.window_list.addItem(_("Fensterliste nicht verfügbar"))
+        self._set_status(_("screen_capture-Modul nicht verfügbar"))
 
     # ── Share control ─────────────────────────────────────────────────────
 
@@ -209,11 +211,11 @@ class DesktopTab(QWidget):
 
     def on_start_share(self) -> None:
         if not self.window.client.is_connected():
-            self.window.set_status("Nicht verbunden")
+            self.window.set_status(_("Nicht verbunden"))
             return
         self._sharing = True
         self._share_timer.start(self._fps_interval())
-        self._set_status("Desktopfreigabe gestartet")
+        self._set_status(_("Desktopfreigabe gestartet"))
 
     def on_stop_share(self) -> None:
         self._stop_sharing()
@@ -226,17 +228,17 @@ class DesktopTab(QWidget):
             self.window.client.close_desktop_window()
         except Exception:
             pass
-        self._set_status("Desktopfreigabe beendet")
+        self._set_status(_("Desktopfreigabe beendet"))
 
     def _on_timer(self) -> None:
         if not self._sharing:
             return
         if not self.window.client.is_connected():
             self._stop_sharing()
-            self._set_status("Verbindung verloren")
+            self._set_status(_("Verbindung verloren"))
             return
         if not self._send_frame():
-            self._set_status("Senden fehlgeschlagen")
+            self._set_status(_("Senden fehlgeschlagen"))
 
     def on_desktop_window(self, username: str) -> None:
         """Called when a remote desktop stream arrives."""
@@ -279,14 +281,14 @@ class DesktopTab(QWidget):
 
     def _send_click(self, button: str) -> None:
         if not self.window.client.is_connected():
-            self.window.set_status("Nicht verbunden")
+            self.window.set_status(_("Nicht verbunden"))
             return
         try:
             ok = self.window.client.send_desktop_click(button)
             labels = {
-                "left": "Linksklick",
-                "right": "Rechtsklick",
-                "middle": "Mittelklick",
+                "left": _("Linksklick"),
+                "right": _("Rechtsklick"),
+                "middle": _("Mittelklick"),
             }
             name = labels.get(button, button)
             self._set_status(

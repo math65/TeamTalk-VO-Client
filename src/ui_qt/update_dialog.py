@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 import update_manager as um
+from i18n import _
 
 
 class _Signals(QObject):
@@ -25,7 +26,7 @@ class _Signals(QObject):
 class UpdateManagerDialog(QDialog):
     def __init__(self, parent, current_version: str):
         super().__init__(parent)
-        self.setWindowTitle("Update-Manager")
+        self.setWindowTitle(_("Update-Manager"))
         self.resize(660, 500)
         self._current = current_version.lstrip("v")
         self._releases: List[um.Release] = []
@@ -52,9 +53,9 @@ class UpdateManagerDialog(QDialog):
         left = QWidget()
         ll = QVBoxLayout(left)
         ll.setContentsMargins(0, 0, 0, 0)
-        ll.addWidget(QLabel("Verfügbare Versionen:"))
+        ll.addWidget(QLabel(_("Verfügbare Versionen:")))
         self._list = QListWidget()
-        self._list.setAccessibleName("Versionsliste")
+        self._list.setAccessibleName(_("Versionsliste"))
         ll.addWidget(self._list)
         splitter.addWidget(left)
 
@@ -62,10 +63,10 @@ class UpdateManagerDialog(QDialog):
         right = QWidget()
         rl = QVBoxLayout(right)
         rl.setContentsMargins(0, 0, 0, 0)
-        rl.addWidget(QLabel("Changelog:"))
+        rl.addWidget(QLabel(_("Changelog:")))
         self._changelog = QTextEdit()
         self._changelog.setReadOnly(True)
-        self._changelog.setAccessibleName("Changelog")
+        self._changelog.setAccessibleName(_("Changelog"))
         rl.addWidget(self._changelog)
         splitter.addWidget(right)
 
@@ -76,20 +77,20 @@ class UpdateManagerDialog(QDialog):
         # Fortschrittsbalken
         self._progress = QProgressBar()
         self._progress.setRange(0, 100)
-        self._progress.setAccessibleName("Download-Fortschritt")
+        self._progress.setAccessibleName(_("Download-Fortschritt"))
         self._progress.hide()
         layout.addWidget(self._progress)
 
         # Status
-        self._status = QLabel("Versionen werden geladen…")
+        self._status = QLabel(_("Versionen werden geladen…"))
         layout.addWidget(self._status)
 
         # Buttons
         btn_row = QHBoxLayout()
-        self._btn_refresh = QPushButton("Aktualisieren")
-        self._btn_download = QPushButton("Herunterladen")
-        self._btn_open = QPushButton("Im Explorer anzeigen")
-        self._btn_close = QPushButton("Schließen")
+        self._btn_refresh = QPushButton(_("Aktualisieren"))
+        self._btn_download = QPushButton(_("Herunterladen"))
+        self._btn_open = QPushButton(_("Im Explorer anzeigen"))
+        self._btn_close = QPushButton(_("Schließen"))
         self._btn_download.setEnabled(False)
         self._btn_open.hide()
         btn_row.addWidget(self._btn_refresh)
@@ -115,7 +116,7 @@ class UpdateManagerDialog(QDialog):
     # ------------------------------------------------------------------
 
     def _load_releases(self):
-        self._set_status("Versionen werden geladen…")
+        self._set_status(_("Versionen werden geladen…"))
         self._btn_refresh.setEnabled(False)
 
         def worker():
@@ -133,16 +134,16 @@ class UpdateManagerDialog(QDialog):
         current_v = self._current.lstrip("v")
         for r in releases:
             tag = r.tag.lstrip("v")
-            marker = " ★ NEU" if _version_gt(tag, current_v) else (" ✓ aktuell" if tag == current_v else "")
+            marker = _(" ★ NEU") if _version_gt(tag, current_v) else (_(" ✓ aktuell") if tag == current_v else "")
             has_asset = r.platform_asset is not None
-            asset_info = f"  [{um.format_size(r.platform_asset.size)}]" if has_asset else "  [kein Windows-Asset]"
+            asset_info = f"  [{um.format_size(r.platform_asset.size)}]" if has_asset else _("  [kein Windows-Asset]")
             self._list.addItem(f"{r.tag}  {r.date}{marker}{asset_info}")
         self._btn_refresh.setEnabled(True)
         if releases:
             self._set_status(f"{len(releases)} Versionen geladen.")
             self._list.setCurrentRow(0)
         else:
-            self._set_status("Keine Versionen gefunden.")
+            self._set_status(_("Keine Versionen gefunden."))
 
     # ------------------------------------------------------------------
     # Events
@@ -152,11 +153,11 @@ class UpdateManagerDialog(QDialog):
         if idx < 0 or idx >= len(self._releases):
             return
         self._selected = self._releases[idx]
-        self._changelog.setPlainText(self._selected.body or "(kein Changelog)")
+        self._changelog.setPlainText(self._selected.body or _("(kein Changelog)"))
         has_asset = self._selected.platform_asset is not None
         self._btn_download.setEnabled(has_asset)
         if not has_asset:
-            self._set_status("Kein Windows-Asset für diese Version verfügbar.")
+            self._set_status(_("Kein Windows-Asset für diese Version verfügbar."))
         else:
             self._set_status(f"Bereit zum Herunterladen: {self._selected.tag}")
 
@@ -207,7 +208,7 @@ class UpdateManagerDialog(QDialog):
         self._set_status(f"Download abgeschlossen: {os.path.basename(path)}")
         if path.endswith(".zip"):
             reply = QMessageBox.question(
-                self, "Download fertig",
+                self, _("Download fertig"),
                 f"Download abgeschlossen:\n{path}\n\nIm Explorer anzeigen?",
             )
             if reply == QMessageBox.StandardButton.Yes:
