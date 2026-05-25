@@ -2776,6 +2776,829 @@ _TRANSLATIONS_FR.update({
     "VU-Pegel-Alarm": "Alerte de niveau VU",
 })
 
+# FR-Ergänzungen: Chat / Nachrichten / Benutzer / Status (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- Chat / Automation ----
+    "Chat & Automation": "Chat et automation",
+    "Chat & Automation speichern": "Enregistrer chat et automation",
+    "Chat  Automation speichern": "Enregistrer chat et automation",
+    "Chat / Privat (Wörter/Min):": "Chat / privé (mots/min) :",
+    "Chat TTS Geschwindigkeit": "Vitesse TTS du chat",
+    "Chat TTS Stimme": "Voix TTS du chat",
+    "Chat-Filter": "Filtres de chat",
+    "Chat-Stimme (leer = global):": "Voix du chat (vide = global) :",
+    "Chat-Übersetzung aktiviert": "Traduction du chat activée",
+    "Chat-Übersetzung deaktiviert": "Traduction du chat désactivée",
+    "Zeitstempel im Chat anzeigen": "Afficher l'horodatage dans le chat",
+
+    # ---- Chat-Verlauf / Historique ----
+    "Chat-Verlauf Format": "Format de l'historique du chat",
+    "Chat-Verlauf exportiert: {path}": "Historique du chat exporté : {path}",
+    "Chat-Verlauf speichern": "Enregistrer l'historique du chat",
+    "Chat-Verlauf speichern (pro Server)": "Enregistrer l'historique du chat (par serveur)",
+    "Verlauf": "Historique",
+    "Kanal aus Verlauf beitreten": "Rejoindre le canal depuis l'historique",
+    "Kanalverlauf Liste": "Liste de l'historique du canal",
+
+    # ---- Nachrichten ----
+    "Chat-Nachricht": "Message de chat",
+    "Nachricht": "Message",
+    "Nachricht:": "Message :",
+    "Nachricht senden": "Envoyer le message",
+    "Nachricht an alle verbundenen Nutzer senden:": "Envoyer un message à tous les utilisateurs connectés :",
+    "Privatnachricht": "Message privé",
+    "Privatnachricht an ausgewählten Benutzer": "Message privé à l'utilisateur sélectionné",
+    "Privatantwort": "Réponse privée",
+    "Privatantwort bereit": "Réponse privée prête",
+    "Rundnachricht": "Message diffusé",
+    "Servernachricht senden": "Envoyer un message serveur",
+    "Status Nachricht": "Message de statut",
+    "Willkommensnachricht (MOTD)": "Message de bienvenue (MOTD)",
+    "Gespeicherte Nachrichten Liste": "Liste des messages enregistrés",
+    "Keine gespeicherten Nachrichten.": "Aucun message enregistré.",
+    "{n} Nachricht": "{n} message",
+    "{n} Nachrichten": "{n} messages",
+
+    # ---- KI-Antworten / AI replies ----
+    "Antwort verwenden": "Utiliser la réponse",
+    "Auto-Antwort Nachricht": "Message de réponse automatique",
+    "Auto-Antwort aktivieren": "Activer la réponse automatique",
+    "Auto-Antwort auf Privatnachrichten": "Réponse automatique aux messages privés",
+    "KI-Antwortvorschläge": "Suggestions de réponse IA",
+    "KI-Antwortvorschläge werden generiert…": "Génération des suggestions de réponse IA…",
+    "Keine Antwortvorschläge generiert": "Aucune suggestion de réponse générée",
+    "Keine Privatnachricht zum Beantworten": "Aucun message privé auquel répondre",
+
+    # ---- Protokolle / Journaux ----
+    "Ereignisprotokoll": "Journal des événements",
+    "Ereignisprotokoll anzeigen": "Afficher le journal des événements",
+    "Wer-spricht-Protokoll": "Journal des intervenants",
+    "Hinweis: Toolbar und Protokoll sind standardmäßig versteckt\n(empfohlen für Screenreader/VoiceOver/NVDA).": "Note : la barre d'outils et le journal sont masqués par défaut\n(recommandé pour les lecteurs d'écran/VoiceOver/NVDA).",
+
+    # ---- Abwesenheit / Away ----
+    "Abwesenheits-Timer": "Minuteur d'absence",
+    "Abwesenheits-Timer (Min., 0=aus)": "Minuteur d'absence (min., 0=désactivé)",
+    "Abwesenheits-Timer (Minuten)": "Minuteur d'absence (minutes)",
+
+    # ---- BearWare ----
+    "BearWare Benutzername": "Nom d'utilisateur BearWare",
+    "BearWare-Benutzername": "Nom d'utilisateur BearWare",
+    "BearWare Passwort": "Mot de passe BearWare",
+    "BearWare Web-Login": "Connexion Web BearWare",
+    "BearWare Web-Login verwenden": "Utiliser la connexion Web BearWare",
+    "BearWare-Token": "Jeton BearWare",
+
+    # ---- Benutzer / Utilisateurs ----
+    "Benutzer beigetreten": "Arrivée d'utilisateur",
+    "Benutzer verlassen": "Départ d'utilisateur",
+    "Benutzer suchen": "Rechercher des utilisateurs",
+    "Benutzerinfo": "Infos utilisateur",
+    "Benutzername Suchfeld": "Champ de recherche du nom d'utilisateur",
+    "Suche nach Benutzername:": "Recherche par nom d'utilisateur :",
+    "Nickname, Benutzername, Kanal": "Pseudo, Nom d'utilisateur, Canal",
+    "IP, Benutzername, Zeitpunkt": "IP, Nom d'utilisateur, Date",
+    "Feste Lautstärke für alle Nutzer": "Volume fixe pour tous les utilisateurs",
+    "Max. Benutzer (0=Server)": "Utilisateurs max. (0=serveur)",
+    "Nutzer stumm": "Utilisateurs muets",
+    "Nutzeranzahl im Kanal": "Nombre d'utilisateurs dans le canal",
+    "Nutzeranzahl und Ping in Titelleiste anzeigen": "Afficher le nombre d'utilisateurs et le ping dans la barre de titre",
+    "Nutzerinfo ansagen": "Annoncer les infos utilisateur",
+    "Nutzerinfo nicht verfügbar": "Infos utilisateur indisponibles",
+    "Gespeicherte Nutzer-Notizen": "Notes utilisateur enregistrées",
+    "Nutzer-Notiz löschen": "Supprimer la note utilisateur",
+    "Nutzer-Notizen Liste": "Liste des notes utilisateur",
+    "{n} Benutzer": "{n} utilisateur",
+    "{n} Benutzer (Plural)": "{n} utilisateurs",
+
+    # ---- Online-Benutzer ----
+    "Online-Benutzer": "Utilisateurs en ligne",
+    "Online-Benutzer Anzahl": "Nombre d'utilisateurs en ligne",
+    "Online-Benutzer Kopfzeile": "En-tête des utilisateurs en ligne",
+    "Online-Benutzer Liste": "Liste des utilisateurs en ligne",
+    "Online-Benutzer aktualisieren": "Actualiser les utilisateurs en ligne",
+    "Online-Benutzer schließen": "Fermer les utilisateurs en ligne",
+
+    # ---- Kick / Ban ----
+    "Kicken": "Expulser",
+    "Rauswerfen": "Expulser",
+    "Aus Kanal kicken": "Expulser du canal",
+    "Vom Server kicken": "Expulser du serveur",
+    "Vom Server rauswerfen": "Expulser du serveur",
+    "Kicken + Bannen": "Expulser et bannir",
+    "Rauswerfen + Sperren": "Expulser et bannir",
+    "Auf Server sperren": "Bannir sur le serveur",
+    "IP-Adresse bannen...": "Bannir l'adresse IP...",
+
+    # ---- Status (présence utilisateur) ----
+    "Status": "Statut",
+    "Status:": "Statut :",
+    "Status Auswahl": "Sélection du statut",
+    "Status setzen": "Définir le statut",
+    "Status-Vorlage 1": "Modèle de statut 1",
+    "Status-Vorlage 2": "Modèle de statut 2",
+    "Status-Vorlage 3": "Modèle de statut 3",
+    "Status-Vorlagen": "Modèles de statut",
+    "Status-Vorlagen (eine Vorlage je Zeile, max. 3 per Hotkey)": "Modèles de statut (un modèle par ligne, max. 3 par raccourci)",
+})
+
+
+# FR-Ergänzungen: Plugins / Makros / Automation / Trigger / Transkription (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- Plugins ----
+    "(Keine Plugins gefunden)": "(Aucun plugin trouvé)",
+    "Geladene Plugins": "Plugins chargés",
+    "Plugin aktivieren": "Activer le plugin",
+    "Plugin aktivieren/deaktivieren": "Activer/désactiver le plugin",
+    "Plugin deaktivieren": "Désactiver le plugin",
+    "Plugin installieren": "Installer le plugin",
+    "Plugin neu laden": "Recharger le plugin",
+    "Plugins neu laden": "Recharger les plugins",
+    "Plugin-Details": "Détails du plugin",
+    "Plugin-Fehler": "Erreur du plugin",
+    "Plugin-Info": "Infos du plugin",
+    "Plugin-Liste": "Liste des plugins",
+    "Plugin-Ordner öffnen": "Ouvrir le dossier des plugins",
+    "Plugin-Verzeichnis": "Répertoire des plugins",
+
+    # ---- Plugin-Marktplatz / Catalogue ----
+    "Plugin-Marktplatz Details": "Détails du catalogue de plugins",
+    "Plugin-Marktplatz Liste": "Liste du catalogue de plugins",
+    "Plugin-Marktplatz Status": "État du catalogue de plugins",
+    "Plugin-Marktplatz Suche": "Recherche dans le catalogue de plugins",
+    "Plugin-Marktplatz URL": "URL du catalogue de plugins",
+    "Plugin-Marktplatz laden": "Charger le catalogue de plugins",
+
+    # ---- Live-Transkription ----
+    "Live-Transkription aktivieren": "Activer la transcription en direct",
+    "Transkription Info": "Infos de transcription",
+    "Transkription exportieren": "Exporter la transcription",
+    "Transkription exportiert": "Transcription exportée",
+    "Transkription exportiert: {path}": "Transcription exportée : {path}",
+    "Transkriptions-Text": "Texte de transcription",
+
+    # ---- Makros / Macros ----
+    "Makro": "Macro",
+    "Makro:": "Macro :",
+    "Makros": "Macros",
+    "Makros:": "Macros :",
+    "Makros JSON": "Macros JSON",
+    "Makro Name": "Nom de la macro",
+    "Makroname": "Nom de la macro",
+    "Makro Aktionen": "Actions de la macro",
+    "Makro ausführen": "Exécuter la macro",
+    "Makro auswählen": "Sélectionner la macro",
+    "Makro automatisch ausführen wenn Ereignis eintritt:": "Exécuter la macro automatiquement lorsqu'un événement se produit :",
+    "Makro löschen": "Supprimer la macro",
+    "Makro neu": "Nouvelle macro",
+    "Makro speichern": "Enregistrer la macro",
+    "Makro-Editor": "Éditeur de macros",
+    "Makroliste": "Liste des macros",
+
+    # ---- Geplante Makros / Macros planifiées ----
+    "Geplante Makros": "Macros planifiées",
+    "Geplante Makros Liste": "Liste des macros planifiées",
+    "Geplantes Makro entfernen": "Retirer la macro planifiée",
+    "Geplantes Makro hinzufügen": "Ajouter une macro planifiée",
+
+    # ---- Trigger / Déclencheurs ----
+    "Trigger-Ereignis": "Événement déclencheur",
+    "Trigger-Filter": "Filtre de déclencheur",
+    "Trigger-Makro": "Macro à déclencher",
+    "Trigger-Regeln": "Règles de déclenchement",
+    "Trigger-Regeln Liste": "Liste des règles de déclenchement",
+})
+
+
+# FR-Ergänzungen: Server / Verbindung / Ports / Statistiken (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- Server / Gestion ----
+    "Server hinzufügen": "Ajouter un serveur",
+    "Server bearbeiten": "Modifier le serveur",
+    "Server verbinden": "Se connecter au serveur",
+    "Server trennen": "Se déconnecter du serveur",
+    "Server-URL": "URL du serveur",
+    "Server:": "Serveur :",
+    "Serverdetails": "Détails du serveur",
+    "Serverfilter": "Filtre de serveurs",
+    "Serverliste": "Liste des serveurs",
+    "Serverliste wird abgerufen…": "Récupération de la liste des serveurs…",
+    "Server-Switcher": "Sélecteur de serveurs",
+    "Server in Gruppe": "Serveur dans le groupe",
+    "Server-Gruppe": "Groupe de serveurs",
+    "Server-Gruppen verwalten": "Gérer les groupes de serveurs",
+    "In Serverliste speichern": "Enregistrer dans la liste des serveurs",
+    "Öffentliche Server…": "Serveurs publics…",
+    "Server-Status prüfen": "Vérifier l'état du serveur",
+    "Serverstatus": "État du serveur",
+    "Serverinfo in Titelleiste": "Infos serveur dans la barre de titre",
+    "Fenstertitel zeigt Server/Kanal": "Le titre de la fenêtre affiche le serveur/canal",
+    "Ausgaben und Servermeldungen": "Sorties et messages du serveur",
+
+    # ---- Server-Statistiken ----
+    "Serverstatistiken": "Statistiques du serveur",
+    "Serverstatistiken Liste": "Liste des statistiques du serveur",
+    "Serverstatistiken aktualisieren": "Actualiser les statistiques du serveur",
+    "Serverstatistiken schließen": "Fermer les statistiques du serveur",
+    "Geprüfte Server: {total}  |  Online-Server: {online_servers}  |  Leere Server: {empty}  |  Fehler: {errors}  |  Nutzer online: {online_users}": "Serveurs vérifiés : {total}  |  Serveurs en ligne : {online_servers}  |  Serveurs vides : {empty}  |  Erreurs : {errors}  |  Utilisateurs en ligne : {online_users}",
+
+    # ---- QR-Code / .tt-Datei ----
+    ".tt exportieren": "Exporter .tt",
+    ".tt importieren": "Importer .tt",
+    "Server QR-Code": "QR code du serveur",
+    "Server als QR-Code anzeigen": "Afficher le serveur en QR code",
+    "Server als TT-Datei exportieren": "Exporter le serveur en fichier TT",
+    "Server aus TT-Datei importieren": "Importer le serveur depuis un fichier TT",
+
+    # ---- Passwörter / Mots de passe ----
+    "Operator-Passwort": "Mot de passe opérateur",
+    "Passwort setzen": "Définir le mot de passe",
+    "Hinweis: Einige Optionen erfordern Serverrechte (Kanaleigenschaften).": "Note : certaines options nécessitent des droits serveur (propriétés du canal).",
+
+    # ---- Verbindung / Connexion ----
+    "Verbindung speichern": "Enregistrer la connexion",
+    "Automatische Wiederverbindung": "Reconnexion automatique",
+    "Verbindungsstatistik": "Statistique de connexion",
+    "Verbindungsstatistiken": "Statistiques de connexion",
+    "Verbindungsstatistiken Liste": "Liste des statistiques de connexion",
+    "Verbindungsstatistiken aktualisieren": "Actualiser les statistiques de connexion",
+    "Verbindungsstatistiken schließen": "Fermer les statistiques de connexion",
+    "Verbindungsqualität ansagen": "Annoncer la qualité de la connexion",
+    "Schlechte Verbindungsqualität ansagen": "Annoncer une mauvaise qualité de connexion",
+    "Verbindungsqualität Schwellenwert ms": "Seuil de qualité de la connexion (ms)",
+    "Braille-Status: Verbindungsstatus": "État braille : état de la connexion",
+
+    # ---- Ports ----
+    "Port:": "Port :",
+    "Port-Bindung": "Liaison du port",
+    "TCP-Port (0=auto)": "Port TCP (0=auto)",
+    "TCP-Port Bindung": "Liaison du port TCP",
+    "UDP-Port (0=auto)": "Port UDP (0=auto)",
+    "UDP-Port Bindung": "Liaison du port UDP",
+    "HTTP-API Port": "Port de l'API HTTP",
+
+    # ---- Kick + Ban (Server, variante manquante) ----
+    "Vom Server + Sperren": "Expulser du serveur + bannir",
+})
+
+
+# FR-Ergänzungen: Video / Desktop / Hotkeys / Sound-Profile (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- Desktop / Bureau ----
+    "Desktop": "Bureau",
+    "Desktop FPS": "FPS du bureau",
+    "Desktop Info": "Infos du bureau",
+    "Desktop Linksklick": "Clic gauche du bureau",
+    "Desktop Mittelklick": "Clic milieu du bureau",
+    "Desktop Rechtsklick": "Clic droit du bureau",
+    "Desktop Skalierung": "Mise à l'échelle du bureau",
+    "Desktop Status": "État du bureau",
+    "Desktop einmal senden": "Envoyer le bureau une fois",
+    "Desktop freigabe beenden": "Arrêter le partage du bureau",
+    "Desktop freigeben": "Partager le bureau",
+    "Desktop-Steuerung (Remote)": "Contrôle du bureau (à distance)",
+    "Desktop-Zugriff erlauben": "Autoriser l'accès au bureau",
+    "Desktopfreigabe": "Partage de bureau",
+    "Desktopfreigabe senden und Status anzeigen.": "Envoyer le partage de bureau et afficher l'état.",
+
+    # ---- Video / Vidéo ----
+    "Video & Desktop": "Vidéo et bureau",
+    "Video anwenden": "Appliquer la vidéo",
+    "Video senden umschalten": "Basculer la transmission vidéo",
+    "Video-Bitrate": "Débit vidéo",
+    "Video-Format": "Format vidéo",
+    "Video-Gerät": "Périphérique vidéo",
+    "Video-Qualität": "Qualité vidéo",
+
+    # ---- Hotkeys / Raccourcis ----
+    "App-Hotkeys (nur innerhalb der App)": "Raccourcis app (uniquement dans l'app)",
+    "Globale Hotkeys (systemweit)": "Raccourcis globaux (tout le système)",
+    "Hinweis: Der Hotkey funktioniert nur innerhalb der App.": "Note : le raccourci ne fonctionne qu'à l'intérieur de l'app.",
+    "Hotkey gespeichert": "Raccourci enregistré",
+    "PTT-Hotkey Anzeige": "Affichage du raccourci PTT",
+    "PTT-Hotkey aufnehmen": "Capturer le raccourci PTT",
+    "PTT-Hotkey: ": "Raccourci PTT : ",
+    "Status-Ansage Felder (Hotkey: Braille-Status):": "Champs d'annonce du statut (raccourci : État braille) :",
+    "Tastenkürzel-Referenz": "Référence des raccourcis",
+
+    # ---- Sound-Profile / Profils sonores ----
+    "Aktives Sound-Profil": "Profil sonore actif",
+    "Als Sound-Profil speichern": "Enregistrer comme profil sonore",
+    "Sound-Ereignisse": "Événements sonores",
+    "Sound-Ereignisse speichern": "Enregistrer les événements sonores",
+    "Sound-Lautstärke": "Volume des sons",
+    "Sound-Profil löschen": "Supprimer le profil sonore",
+    "Sound-Profil wechseln": "Changer de profil sonore",
+    "Sound-Profile": "Profils sonores",
+})
+
+
+# FR-Ergänzungen: TTS / Voice / Braille / Accessibility (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- TTS général ----
+    "TTS": "TTS",
+    "TTS Lautstärke": "Volume TTS",
+    "TTS Sprache": "Langue TTS",
+    "TTS Status": "État TTS",
+    "TTS Stimme Filter": "Filtre de voix TTS",
+    "TTS abbrechen": "Annuler le TTS",
+    "TTS abgebrochen": "TTS annulé",
+    "TTS-Erweitert speichern": "Enregistrer TTS avancé",
+    "Sprechen (TTS)": "Parler (TTS)",
+    "Kanal TTS Geschwindigkeit": "Vitesse TTS du canal",
+    "System TTS Geschwindigkeit": "Vitesse TTS système",
+    "System TTS Stimme": "Voix TTS système",
+    "System-Stimme (leer = global):": "Voix système (vide = global) :",
+    "Stichwort TTS ansagen": "Annoncer le mot-clé via TTS",
+    "Stichwort via TTS ansagen": "Annoncer le mot-clé via TTS",
+
+    # ---- Stimmen / Voix ----
+    "Stimme auswählen...": "Sélectionner la voix...",
+    "Stimme stummschalten": "Couper la voix",
+    "Stimme weiterleiten": "Transmettre la voix",
+    "Stimmen und Modelle aktualisieren": "Actualiser les voix et modèles",
+    "Lautstärke Stimme...": "Volume de la voix...",
+
+    # ---- Sprachsteuerung / Commande vocale ----
+    "Sprachaktivierung Nachlauf": "Délai d'activation vocale",
+    "Sprachaktivierung umschalten": "Basculer l'activation vocale",
+    "Sprachsteuerung (Whisper)": "Commande vocale (Whisper)",
+    "Sprachsteuerung Info": "Infos de la commande vocale",
+    "Sprachsteuerung aktivieren": "Activer la commande vocale",
+    "Sprachsteuerung beim Start aktivieren": "Activer la commande vocale au démarrage",
+    "Sprachsteuerung jetzt starten": "Démarrer la commande vocale maintenant",
+    "Sprachsteuerung stoppen": "Arrêter la commande vocale",
+    "Max. Sprachdauer (Sek., 0=aus)": "Durée vocale max. (sec., 0=désactivé)",
+    "Sprechgeschwindigkeit je Kontext (0 = global)": "Vitesse d'élocution par contexte (0 = global)",
+
+    # ---- Sprache / Langue ----
+    "Sprachcode": "Code de langue",
+    "Sprache wird neu geladen…": "Rechargement de la langue…",
+    "Die Sprache wird nach einem Neustart übernommen.": "La langue sera appliquée après un redémarrage.",
+    "Zielsprache": "Langue cible",
+
+    # ---- Aussprache / espeak ----
+    "Aussprache-Wörterbuch": "Dictionnaire de prononciation",
+    "Aussprache-Wörterbuch (Suche → Ersatz, eine Zeile je Regel: Wort=Ersatz)": "Dictionnaire de prononciation (recherche → remplacement, une règle par ligne : mot=remplacement)",
+    "espeak-ng Pfad": "Chemin espeak-ng",
+
+    # ---- ElevenLabs ----
+    "ElevenLabs": "ElevenLabs",
+    "ElevenLabs API-Schlüssel": "Clé API ElevenLabs",
+    "ElevenLabs Info": "Infos ElevenLabs",
+    "ElevenLabs TTS": "ElevenLabs TTS",
+    "ElevenLabs Text-to-Speech": "ElevenLabs synthèse vocale",
+
+    # ---- Handbuch / À propos ----
+    "TeamTalk VoiceOver Client – Handbuch": "TeamTalk VoiceOver Client – Manuel",
+    "Über TeamTalk VoiceOver Client": "À propos de TeamTalk VoiceOver Client",
+
+    # ---- Braille / Plage braille ----
+    "Braille-Status ansagen": "Annoncer l'état braille",
+    "Braille-Status: Kanal": "État braille : canal",
+    "Braille-Status: Nutzeranzahl": "État braille : nombre d'utilisateurs",
+    "Braille-Status: Ping": "État braille : ping",
+    "Braille-Status: Stummschaltstatus": "État braille : état muet",
+    "Braille-Verbosität wechseln": "Changer la verbosité braille",
+    "Braille-Verbositätsstufe": "Niveau de verbosité braille",
+    "Braille: ausführlich": "Braille : détaillé",
+    "Braille: kompakt": "Braille : compact",
+    "Braille: normal": "Braille : normal",
+    "Braillezeilen-Ausgabe": "Sortie braille",
+    "Braillezeilen-Kompaktmodus": "Mode compact braille",
+    "Braillezeilen-Kompaktmodus (kürzere Labels)": "Mode compact braille (étiquettes plus courtes)",
+
+    # ---- Accessibility annotations / Annonces ----
+    "Barrierefreiheitshinweis": "Note d'accessibilité",
+    "Eigene vorlesen": "Lire les miens",
+    "Private vorlesen": "Lire les privés",
+    "Eingangspegel ansagen": "Annoncer le niveau d'entrée",
+    "Kanal-Thema ansagen": "Annoncer le sujet du canal",
+    "Ping ansagen": "Annoncer le ping",
+    "Liste": "Liste",
+
+    # ---- Divers technique ----
+    "Variable Bitrate (VBR)": "Débit variable (VBR)",
+})
+
+
+# FR-Ergänzungen: AI services / Audio Output / PTT / Streaming (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- AI / KI général ----
+    "KI & Integration": "IA et intégration",
+    "KI & Integration speichern": "Enregistrer IA et intégration",
+    "KI-Anbieter": "Fournisseur IA",
+    "KI-Zusammenfassung": "Résumé IA",
+    "API-Dokumentation": "Documentation API",
+    "API-Schlüssel": "Clé API",
+    "Abonnements verwalten": "Gérer les abonnements",
+    "Endpunkte": "Points de terminaison",
+
+    # ---- Claude ----
+    "Claude API-Schlüssel": "Clé API Claude",
+    "Claude Info": "Infos Claude",
+    "Claude KI (Anthropic)": "Claude IA (Anthropic)",
+
+    # ---- Gemini / Google ----
+    "Gemini API-Schlüssel": "Clé API Gemini",
+    "Gemini Auth-Status": "État d'authentification Gemini",
+    "Gemini Info": "Infos Gemini",
+    "Google Abmelden": "Se déconnecter de Google",
+    "Google Gemini KI": "Google Gemini IA",
+    "Via Google anmelden": "Se connecter via Google",
+
+    # ---- HTTP-API / Webhook / SSE ----
+    "HTTP-API": "API HTTP",
+    "HTTP-API aktivieren": "Activer l'API HTTP",
+    "SSE-Events aktiviert": "Événements SSE activés",
+    "Webhook": "Webhook",
+    "Webhook Ereignisse": "Événements webhook",
+    "Webhook-Ereignisse": "Événements webhook",
+    "Webhook URL": "URL du webhook",
+    "Webhook-URL": "URL du webhook",
+    "Webhook-URL:": "URL du webhook :",
+
+    # ---- Audio Output / Sortie ----
+    "Ausgabe:": "Sortie :",
+    "Ausgabe aktiv": "Sortie active",
+    "Ausgabe stummgeschaltet": "Sortie coupée",
+    "Ausgabelautstärke": "Volume de sortie",
+    "Ausgabe-Lautstärke (%):": "Volume de sortie (%) :",
+    "Ausgabe-Lautstärke (0–32000)": "Volume de sortie (0–32000)",
+    "Ausgabe-Lautstärke Prozent": "Volume de sortie en pourcentage",
+
+    # ---- Eingangspegel / Niveau d'entrée ----
+    "Eingangspegel": "Niveau d'entrée",
+    "Pegel:": "Niveau :",
+    "Pegel nicht verfügbar": "Niveau indisponible",
+    "Aktivierungspegel (0–100)": "Niveau d'activation (0–100)",
+
+    # ---- Volume / Lautstärke divers ----
+    "Lautstärke anpassen": "Ajuster le volume",
+    "Lautstärke Mediendatei...": "Volume du fichier média...",
+    "Laut": "Fort",
+    "Lauter": "Plus fort",
+    "Leise": "Faible",
+    "Leiser": "Plus faible",
+
+    # ---- PTT / Push-to-Talk ----
+    "PTT": "PTT",
+    "PTT (Sprechtaste)": "PTT (touche parole)",
+    "PTT aktiv": "PTT actif",
+    "PTT deaktiviert": "PTT désactivé",
+    "PTT-Zeitlimit": "Limite de temps PTT",
+    "PTT-Zeitlimit (Sekunden, 0=aus):": "Limite de temps PTT (secondes, 0=désactivée) :",
+    "PTT-Zeitlimit Sekunden": "Limite de temps PTT en secondes",
+    "Push-to-Talk (Leertaste halten)": "Push-to-talk (maintenir Espace)",
+
+    # ---- Stummschaltung / Mode muet ----
+    "Stumm": "Muet",
+    "Stummgeschaltet": "Muet",
+    "Stummschaltstatus": "État muet",
+    "Stummschaltung aufgehoben": "Audio rétabli",
+    "Alle stummschalten": "Tout couper",
+    "Alles stummschalten/reaktivieren": "Tout couper/réactiver",
+    "Medienstrom stummschalten": "Couper le flux média",
+    "Medienstrom weiterleiten": "Transmettre le flux média",
+
+    # ---- Stille / Silence ----
+    "Stille": "Silence",
+    "Stille ignorieren (DTX)": "Ignorer le silence (DTX)",
+    "Silence ignorieren (DTX)": "Ignorer le silence (DTX)",
+    "Stille-Erkennung aktivieren": "Activer la détection de silence",
+    "Stille-Schwellenwert (%):": "Seuil de silence (%) :",
+    "Stille-Schwellenwert Prozent": "Seuil de silence en pourcentage",
+    "Stille-Timeout (Sekunden):": "Délai de silence (secondes) :",
+    "Stille-Timeout Sekunden": "Délai de silence en secondes",
+
+    # ---- Codec / Réglages ----
+    "OPUS Einstellungen": "Réglages OPUS",
+    "Speex Einstellungen": "Réglages Speex",
+    "Noise Gate / Rauschunterdrückung": "Noise gate / réduction de bruit",
+    "Noise Gate Schwellenwert": "Seuil du noise gate",
+    "Rauschunterdrückung aktivieren": "Activer la réduction de bruit",
+    "Bitrate (kbps)": "Débit (kbps)",
+    "Max. Bitrate (bps, 0=aus)": "Débit max. (bps, 0=désactivé)",
+    "Samplerate (Hz)": "Fréquence d'échantillonnage (Hz)",
+    "Framegröße (ms)": "Taille de trame (ms)",
+    "Qualität (0–10)": "Qualité (0–10)",
+    "Duplex-Modus verwenden (Eingabe/Ausgabe gekoppelt)": "Utiliser le mode duplex (entrée/sortie couplées)",
+    "Nachlauf (ms, 0–5000)": "Délai de relâchement (ms, 0–5000)",
+
+    # ---- Streaming / Diffusion ----
+    "Stream-Typ:": "Type de flux :",
+    "Streaming-Lautstärke (25–400)": "Volume de diffusion (25–400)",
+    "Max. Mediendauer (Sek., 0=aus)": "Durée max. du média (sec., 0=désactivé)",
+    "Einmal senden": "Envoyer une fois",
+
+    # ---- Misc audio ----
+    "Sprechen aktiv": "Parole active",
+    "Musik": "Musique",
+    "FPS": "FPS",
+    "Intervall (ms)": "Intervalle (ms)",
+    "System-Meldungen (Wörter/Min):": "Messages système (mots/min) :",
+})
+
+
+# FR-Ergänzungen: Channels-extra / Settings / Backup / About / Tray (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- Kanäle / Canaux (compléments) ----
+    "Aktuellen Kanal hinzufügen": "Ajouter le canal actuel",
+    "Auto-Kanal Kanalname": "Auto-canal : nom du canal",
+    "Auto-Kanal beim Verbinden": "Auto-canal à la connexion",
+    "Beigetreten": "Rejoint",
+    "Beitrittscode eingeben": "Saisir le code d'accès",
+    "Kanal beigetreten": "Canal rejoint",
+    "Kanal beitreten...": "Rejoindre le canal...",
+    "Kanal suchen": "Rechercher un canal",
+    "Kanal wechseln": "Changer de canal",
+    "Kanal-Thema (Wörter/Min):": "Sujet du canal (mots/min) :",
+    "Kanalname im Fenstertitel": "Nom du canal dans le titre de la fenêtre",
+    "Kanalname:": "Nom du canal :",
+    "Kanalnamen filtern (Eingabe filtert die Liste)": "Filtrer les noms de canaux (la saisie filtre la liste)",
+    "Kanaltyp": "Type de canal",
+    "Letzten Kanal automatisch beitreten": "Rejoindre automatiquement le dernier canal",
+    "Zielkanal speichern": "Enregistrer le canal de destination",
+    "Zu Kanal bewegen": "Déplacer vers le canal",
+    "Zu gespeichertem Kanal": "Vers le canal enregistré",
+
+    # ---- Lesezeichen / Marque-pages ----
+    "Gespeicherte Lesezeichen": "Marque-pages enregistrés",
+    "Lesezeichen 1": "Marque-page 1",
+    "Lesezeichen 2": "Marque-page 2",
+    "Lesezeichen 3": "Marque-page 3",
+    "Lesezeichen entfernen": "Retirer le marque-page",
+    "Lesezeichen hinzufügen": "Ajouter un marque-page",
+    "Lesezeichen-Liste": "Liste des marque-pages",
+    "Zum Lesezeichen springen": "Aller au marque-page",
+
+    # ---- Operator / Pin / Ping ----
+    "Operator": "Opérateur",
+    "Operator entziehen": "Retirer le statut d'opérateur",
+    "Zum Operator machen": "Promouvoir opérateur",
+    "Pin entfernen": "Retirer l'épingle",
+    "Pinnen": "Épingler",
+    "Ping": "Ping",
+    "Ping nicht verfügbar": "Ping indisponible",
+    "Ping-Schwellenwert (ms):": "Seuil de ping (ms) :",
+
+    # ---- TT-Datei / TeamTalk file ----
+    "TT-Datei generieren": "Générer le fichier TT",
+    "TT-Datei speichern": "Enregistrer le fichier TT",
+    "TT-URL kopieren": "Copier l'URL TT",
+    "TeamTalk-Datei öffnen...": "Ouvrir un fichier TeamTalk...",
+
+    # ---- Settings / Réglages ----
+    "Einstellungen speichern": "Enregistrer les réglages",
+    "Einstellungen...\tF4": "Réglages...\tF4",
+    "Einstellungsbereich": "Section des réglages",
+    "Einstellungsbereich suchen": "Rechercher dans les réglages",
+    "Allgemein  Anzeige speichern": "Enregistrer général et affichage",
+    "Allgemein & Anzeige speichern": "Enregistrer général et affichage",
+    "Allgemeine Informationen": "Informations générales",
+    "Voreinstellung wählen:": "Choisir un préréglage :",
+    "Manuelle Anpassung": "Ajustement manuel",
+    "Schnellaktionen": "Actions rapides",
+    "Skalierung": "Mise à l'échelle",
+    "Verbositätsstufe": "Niveau de verbosité",
+
+    # ---- Display / Affichage / Hauptfenster ----
+    "Anwendung": "Application",
+    "Anzeigen": "Afficher",
+    "Ausblenden": "Masquer",
+    "Hauptfenster": "Fenêtre principale",
+    "Hauptinhalt": "Contenu principal",
+    "Immer im Vordergrund": "Toujours au premier plan",
+
+    # ---- Tray / Zone système ----
+    "Tray-Icon anzeigen": "Afficher l'icône système",
+    "Im Tray minimieren": "Réduire dans la zone système",
+    "Im Tray minimieren (statt schließen)": "Réduire dans la zone système (au lieu de fermer)",
+    "Toolbar / Schnellaktionen anzeigen": "Afficher la barre d'outils / actions rapides",
+    "Toolbar anzeigen": "Afficher la barre d'outils",
+    "Werkzeugleiste anzeigen": "Afficher la barre d'outils",
+
+    # ---- Updates ----
+    "Auf Updates prüfen": "Rechercher des mises à jour",
+    "Beim Start auf Updates prüfen": "Rechercher des mises à jour au démarrage",
+
+    # ---- Backup / Sauvegarde ----
+    "Backup erstellt": "Sauvegarde créée",
+    "Backup fehlgeschlagen": "Échec de la sauvegarde",
+    "Backup wiederhergestellt – App wird neu gestartet…": "Sauvegarde restaurée – l'app redémarre…",
+    "Backup wiederherstellen": "Restaurer la sauvegarde",
+    "Wiederherstellung fehlgeschlagen": "Échec de la restauration",
+    "Beides (ZIP + Kopieren)": "Les deux (ZIP + copier)",
+
+    # ---- Logs / Reports ----
+    "Logs exportieren (ZIP)": "Exporter les journaux (ZIP)",
+    "Logs kopieren": "Copier les journaux",
+    "Nutzungsbericht exportieren": "Exporter le rapport d'utilisation",
+    "Tastenkürzel-Profil exportieren": "Exporter le profil de raccourcis",
+    "Tastenkürzel-Profil importieren": "Importer le profil de raccourcis",
+
+    # ---- About / À propos / Licences ----
+    "Changelog Details": "Détails du changelog",
+    "Changelog Versionen": "Versions du changelog",
+    "Danksagungen": "Remerciements",
+    "Lizenz": "Licence",
+    "Lizenz öffnen": "Ouvrir la licence",
+    "Lizenzen": "Licences",
+    "Lizenzen Liste": "Liste des licences",
+    "Weitere Abhängigkeiten: Lizenzen der jeweiligen Projekte beachten.": "Autres dépendances : respecter les licences des projets correspondants.",
+    "Wähle eine Lizenz aus und klicke auf 'Öffnen':": "Choisis une licence puis clique sur 'Ouvrir' :",
+
+    # ---- États / Status divers ----
+    "Bereit": "Prêt",
+    "Geladen": "Chargé",
+    "Details": "Détails",
+    "Bereichsinfo": "Infos de la section",
+    "Beschreibung:": "Description :",
+    "Bezeichnung": "Libellé",
+    "Suchbegriff": "Terme de recherche",
+    "Suchergebnis Anzahl": "Nombre de résultats de recherche",
+    "Nicht gespeicherte Änderungen": "Modifications non enregistrées",
+
+    # ---- Traduction (méta) ----
+    "Nicht übersetzt": "Non traduit",
+    "Übersetzt": "Traduit",
+    "Übersetzungs-Statistik": "Statistiques de traduction",
+})
+
+
+# FR-Ergänzungen: Final batch — UI verbs / Schedules / Files / Misc (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- UI verbs / Actions génériques ----
+    "Aktivieren": "Activer",
+    "Aktivieren/Deaktivieren": "Activer/Désactiver",
+    "Anwenden": "Appliquer",
+    "Deaktivieren": "Désactiver",
+    "Installieren": "Installer",
+    "Jetzt starten": "Démarrer maintenant",
+    "Kopieren": "Copier",
+    "Neu laden": "Recharger",
+    "Neuen Client starten": "Démarrer un nouveau client",
+    "Springen": "Aller",
+    "Stoppen": "Arrêter",
+    "Testen": "Tester",
+    "URL kopieren": "Copier l'URL",
+    "Unterbrechen": "Interrompre",
+    "Prüfen": "Vérifier",
+    "Profil löschen": "Supprimer le profil",
+    "Liste aktualisieren": "Actualiser la liste",
+    "Freigabe beenden": "Arrêter le partage",
+    "Hinzufügen...": "Ajouter...",
+    "In Liste speichern": "Enregistrer dans la liste",
+    "Als Profil speichern...": "Enregistrer comme profil...",
+    "Als M3U exportieren...": "Exporter en M3U...",
+    "Nach oben": "Vers le haut",
+    "Nach unten": "Vers le bas",
+
+    # ---- Feeds / Catalogues / M3U ----
+    "Feed laden": "Charger le flux",
+    "M3U laden...": "Charger M3U...",
+    "Katalog laden": "Charger le catalogue",
+    "Katalog wird geladen...": "Chargement du catalogue...",
+    "Katalog-URL:": "URL du catalogue :",
+    "Kein Katalog geladen": "Aucun catalogue chargé",
+
+    # ---- Mouse clicks ----
+    "Linksklick": "Clic gauche",
+    "Mittelklick": "Clic milieu",
+    "Rechtsklick": "Clic droit",
+
+    # ---- Coordonnées ----
+    "X:": "X :",
+    "Y:": "Y :",
+    "Z:": "Z :",
+
+    # ---- Genre / Voix ----
+    "Geschlecht": "Genre",
+    "Männlich": "Masculin",
+    "Weiblich": "Féminin",
+    "Neutral": "Neutre",
+    "Sprache": "Parole",
+
+    # ---- Actions de macro ----
+    "Aktion entfernen": "Retirer l'action",
+    "Aktion hinzufügen": "Ajouter une action",
+    "Aktionen (eine pro Zeile, Format: type=value):": "Actions (une par ligne, format : type=value) :",
+    "Aktionstyp": "Type d'action",
+    "Aktives Profil:": "Profil actif :",
+
+    # ---- Schedules / Planification ----
+    "Startzeit": "Heure de début",
+    "Startzeit (HH:MM)": "Heure de début (HH:MM)",
+    "Geplante Zeit": "Heure planifiée",
+    "Uhrzeit (HH:MM)": "Heure (HH:MM)",
+    "Zeit (HH:MM):": "Heure (HH:MM) :",
+    "Format HH:MM – täglich ausführen": "Format HH:MM – exécution quotidienne",
+    "Einmalig": "Une seule fois",
+    "Täglich": "Quotidien",
+    "Wochentage (leer = täglich)": "Jours de la semaine (vide = quotidien)",
+    "Zeitgesteuerte Stille": "Silence programmé",
+    "Zeitgesteuerte Stille Zeitfenster": "Plage horaire du silence programmé",
+    "Warten (ms)": "Attendre (ms)",
+    "Mindestverzögerung (Sek.)": "Délai minimum (sec.)",
+    "Reconnect-Verzögerung": "Délai de reconnexion",
+
+    # ---- Files / Folders ----
+    "Im Explorer öffnen": "Ouvrir dans l'Explorateur",
+    "Im Finder öffnen": "Ouvrir dans le Finder",
+    "Ordner öffnen": "Ouvrir le dossier",
+    "Datei:": "Fichier :",
+    "Datei-Quota (MB, 0=aus)": "Quota de fichiers (Mo, 0=désactivé)",
+    "Keine Datei ausgewählt": "Aucun fichier sélectionné",
+    "Max. Dateigröße (MB, 0=aus):": "Taille max. de fichier (Mo, 0=désactivée) :",
+    "Max. Dauer (Minuten, 0=aus):": "Durée max. (minutes, 0=désactivée) :",
+    "Mediendatei": "Fichier média",
+    "{n} Datei": "{n} fichier",
+    "{n} Dateien": "{n} fichiers",
+
+    # ---- Événements / Reconnect / Limites ----
+    "Ereignis": "Événement",
+    "Ereignis:": "Événement :",
+    "Ereignisse (Komma-getrennt):": "Événements (séparés par virgule) :",
+    "Mögliche Werte: private_msg, channel_msg, user_join, user_leave, connect, disconnect": "Valeurs possibles : private_msg, channel_msg, user_join, user_leave, connect, disconnect",
+    "Max. Reconnect-Versuche": "Tentatives de reconnexion max.",
+    "Max. Versuche (0=unbegrenzt)": "Tentatives max. (0=illimité)",
+    "Limits": "Limites",
+    "Schwellenwert % (0-100):": "Seuil % (0-100) :",
+    "Schwellenwert (0-10000):": "Seuil (0-10000) :",
+
+    # ---- Stichwort / Mots-clés ----
+    "Stichwort-Alarm": "Alerte par mot-clé",
+    "Stichwörter": "Mots-clés",
+    "Ein Stichwort je Zeile (Groß/Kleinschreibung egal):": "Un mot-clé par ligne (insensible à la casse) :",
+    "Komma-getrennte Stichwörter, z. B.: wichtig,dringend": "Mots-clés séparés par virgule, p. ex. : important,urgent",
+
+    # ---- Notes ----
+    "Notiz (lokal, nur auf diesem Gerät gespeichert):": "Note (locale, enregistrée uniquement sur cet appareil) :",
+    "Notiz löschen": "Supprimer la note",
+
+    # ---- QR Code ----
+    "QR-Code": "QR code",
+    "QR-Code Bild": "Image QR code",
+    "(qrcode-Bibliothek nicht installiert – URL unten kopieren und\nin einem QR-Generator einfügen)": "(bibliothèque qrcode non installée – copiez l'URL ci-dessous et\ncollez-la dans un générateur de QR code)",
+
+    # ---- Auto / Continue ----
+    "Automatisch aufzeichnen": "Enregistrer automatiquement",
+    "Automatisch weiter (nächster Titel nach Ende)": "Continuer automatiquement (titre suivant à la fin)",
+
+    # ---- ElevenLabs Voice settings ----
+    "Sprecherklarheit verstärken (nicht bei v3)": "Renforcer la clarté de la voix (sauf en v3)",
+    "Stil-Übertreibung (0–100)": "Exagération du style (0–100)",
+    "Stimmstabilität (0–100)": "Stabilité de la voix (0–100)",
+    "Stabilität": "Stabilité",
+
+    # ---- Settings divers ----
+    "Qualität  Anzeige": "Qualité et affichage",
+    "Qualität & Anzeige": "Qualité et affichage",
+    "Verschlüsselt (Encrypted)": "Chiffré (Encrypted)",
+    "Startup-Profil": "Profil de démarrage",
+    "Textfeld": "Champ de texte",
+    "Thema": "Sujet",
+    "Übertragungsrechte": "Droits de transmission",
+    "Über Reiter": "À propos des onglets",
+    "Initialisierungsphasen": "Phases d'initialisation",
+
+    # ---- Identifiants / Métadonnées ----
+    "Autor:": "Auteur :",
+    "Name:": "Nom :",
+    "Namensfilter": "Filtre par nom",
+    "Filter (Name, leer=alle):": "Filtre (nom, vide=tous) :",
+    "Version:": "Version :",
+    "Versionen": "Versions",
+    "Grunddaten": "Données de base",
+    "Dauer (Minuten)": "Durée (minutes)",
+    "Dauer in Minuten": "Durée en minutes",
+
+    # ---- Groupes ----
+    "Gruppe verwalten...": "Gérer le groupe...",
+    "Gruppen": "Groupes",
+    "Gruppen-Liste": "Liste des groupes",
+
+    # ---- Bannissements (compléments) ----
+    "Sperrliste Liste": "Liste des bannissements",
+    "Sperrliste schließen": "Fermer la liste des bannissements",
+
+    # ---- Misc UI states/labels ----
+    "(nicht gesetzt)": "(non défini)",
+    "0 online": "0 en ligne",
+    "?-Modus": "Mode question",
+    "Abmelden": "Se déconnecter",
+    "Permanent": "Permanent",
+    "Einstellungen...\tF4": "Réglages...\tF4",
+    "anwesend": "présent",
+    "derzeit leer": "actuellement vide",
+    "tt://-URL:": "URL tt:// :",
+    "aktiviert (wirkt beim nächsten Start)": "activé (effectif au prochain démarrage)",
+    "deaktiviert (wirkt beim nächsten Start)": "désactivé (effectif au prochain démarrage)",
+    "Änderungen speichern?": "Enregistrer les modifications ?",
+
+    # ---- Erreurs ----
+    "Export fehlgeschlagen: {exc}": "Échec de l'export : {exc}",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
