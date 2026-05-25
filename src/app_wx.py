@@ -74,7 +74,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "7.6.0"
+APP_VERSION = "7.7.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -603,6 +603,7 @@ class MainFrame(wx.Frame):
         self.bus.on("chat_message",           lambda **kw: self._macros.fire_event("chat_message", **kw))
         self.bus.on("channel_joined",         lambda **kw: self._macros.fire_event("channel_join", **kw))
         self.bus.on("channel_joined",         lambda **kw: wx.CallAfter(self._on_channel_joined_greeting, **kw))
+        self.bus.on("channel_joined",         lambda **kw: wx.CallAfter(self._maybe_summarize_on_connect, **kw))
         self.bus.on("connection_state_changed",
                     lambda connected=False, **kw: self._macros.fire_event(
                         "connected" if connected else "disconnected", **kw))
@@ -9709,6 +9710,31 @@ class MainFrame(wx.Frame):
             return
         import threading as _t
         _t.Thread(target=lambda: self.client.send_channel_message(int(channel_id), text), daemon=True).start()
+
+    def _maybe_summarize_on_connect(self, channel_id=None, **_kw) -> None:
+        """v7.5.x – Automatische Verbindungs-Zusammenfassung beim Kanalbetreten."""
+        if not getattr(self.settings_store.settings, "auto_summary_on_connect", False):
+            return
+        if self._ai_summary is None:
+            return
+        server_key = getattr(self, "_current_server_key", "")
+        if not server_key:
+            return
+        since = time.time() - 7200  # letzte 2 Stunden
+        def _work():
+            try:
+                text = self._ai_summary.summarize_missed(server_key, since)
+                if text and text.strip():
+                    try:
+                        from ui_wx.a11y import post_voiceover_announcement
+                        wx.CallAfter(post_voiceover_announcement, f"Zusammenfassung: {text}")
+                    except Exception:
+                        pass
+                    wx.CallAfter(self.tts.speak, f"Verpasste Nachrichten: {text}", kind="system")
+            except Exception:
+                pass
+        import threading as _t
+        _t.Thread(target=_work, daemon=True).start()
 
     def _bump_activity(self) -> None:
         """Registriert Benutzeraktivität und hebt ggf. den Timer-Abwesend-Status auf."""

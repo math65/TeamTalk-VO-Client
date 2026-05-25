@@ -1045,6 +1045,12 @@ class SettingsTab(wx.Panel):
         self._auto_greeting_text.SetName("Begrüßungstext")
         greeting_row.Add(self._auto_greeting_text, 1, wx.EXPAND)
         greet_sizer.Add(greeting_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        self._auto_summary_connect = wx.CheckBox(panel, label="KI-&Zusammenfassung beim Verbinden")
+        self._auto_summary_connect.SetName("KI-Zusammenfassung beim Verbinden")
+        self._auto_summary_connect.SetValue(bool(getattr(s, "auto_summary_on_connect", False)))
+        greet_sizer.Add(self._auto_summary_connect, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
         sizer.Add(greet_sizer, 0, wx.ALL | wx.EXPAND, 8)
 
         # ---- Chat & Status StaticBox ----
@@ -1874,6 +1880,7 @@ class SettingsTab(wx.Panel):
         s = self.frame.settings_store.settings
         s.auto_greeting_enabled = self._auto_greeting_enabled.GetValue()
         s.auto_greeting_text = self._auto_greeting_text.GetValue().strip()
+        s.auto_summary_on_connect = self._auto_summary_connect.GetValue()
         s.auto_reply_enabled = self._auto_reply_enabled.GetValue()
         s.auto_reply_message = self._auto_reply_message.GetValue().strip()
         templates = [line.strip() for line in self._status_templates.GetValue().splitlines() if line.strip()]

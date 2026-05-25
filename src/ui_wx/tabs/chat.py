@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import re
+import threading
 import time
 from typing import TYPE_CHECKING, List
 
@@ -138,9 +139,13 @@ class ChatTab(wx.Panel):
         self.chat_send = wx.Button(self, label="&Senden")
         self.chat_send.SetName("Nachricht senden")
         self.chat_send.Bind(wx.EVT_BUTTON, self.on_chat_send)
+        self.improve_btn = wx.Button(self, label="&Verbessern")
+        self.improve_btn.SetName("Text verbessern")
+        self.improve_btn.Bind(wx.EVT_BUTTON, self._on_improve_text)
         input_row.Add(lbl_msg, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 4)
         input_row.Add(self.chat_input, 1, wx.RIGHT, 8)
-        input_row.Add(self.chat_send, 0)
+        input_row.Add(self.chat_send, 0, wx.RIGHT, 8)
+        input_row.Add(self.improve_btn, 0)
         sizer.Add(input_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
@@ -356,6 +361,30 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
         server = getattr(self.frame, "_current_server_key", "")
         self.frame._saved_messages.add(selected, server=server)
         self.frame.set_status(f"Nachricht gespeichert ({len(selected)} Zeichen)")
+
+    def _on_improve_text(self, _event) -> None:
+        """Verbessert den aktuellen Eingabetext via KI."""
+        text = self.chat_input.GetValue()
+        if not text.strip():
+            return
+        self.improve_btn.Disable()
+
+        def _worker():
+            try:
+                result = self.frame._ai_reply.improve_text(text)
+            except Exception:
+                result = None
+
+            def _done():
+                self.improve_btn.Enable()
+                if result:
+                    self.chat_input.SetValue(result)
+                    self.chat_input.SetInsertionPointEnd()
+                    post_voiceover_announcement("Text verbessert")
+
+            wx.CallAfter(_done)
+
+        threading.Thread(target=_worker, daemon=True).start()
 
     def on_chat_send(self, _event):
         msg = self.chat_input.GetValue().strip()

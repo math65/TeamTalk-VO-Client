@@ -34,6 +34,12 @@ _INTENT_PROMPT = (
     "Antworte nur mit dem Kategorie-Namen, ohne Erklärung."
 )
 
+_IMPROVE_PROMPT = (
+    "Verbessere den folgenden Text: Mache ihn klarer, präziser und natürlicher. "
+    "Behalte die Sprache und den Ton bei. "
+    "Antworte NUR mit dem verbesserten Text, ohne Erklärung oder Einleitung."
+)
+
 
 class AiReplyManager:
     """Generiert Antwortvorschläge via verfügbares KI-Backend."""
@@ -115,6 +121,25 @@ class AiReplyManager:
         result = raw.strip().lower().split()[0] if raw.strip() else "sonstiges"
         valid = {"frage", "antwort", "begruessung", "verabschiedung", "ankuendigung", "hilfe", "sonstiges"}
         return result if result in valid else "sonstiges"
+
+    def improve_text(self, text: str) -> Optional[str]:
+        """Verbessert einen Text via KI. Gibt verbesserten Text oder None zurück.
+
+        Gleiche Backend-Reihenfolge wie suggest_replies: Claude → Gemini → Ollama.
+        Gibt None zurück wenn kein KI-Backend verfügbar oder bei Fehler.
+        """
+        if not text.strip():
+            return None
+
+        raw: Optional[str] = None
+        key = self._claude_key()
+        if key:
+            raw = self._with_claude(text, key, system=_IMPROVE_PROMPT, max_tokens=500)
+        if raw is None:
+            raw = self._with_gemini(text, system=_IMPROVE_PROMPT)
+        if raw is None:
+            raw = self._with_ollama(text, system=_IMPROVE_PROMPT)
+        return raw or None
 
     # ------------------------------------------------------------------
     # Backends

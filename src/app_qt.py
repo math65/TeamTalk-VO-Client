@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "7.6.0"
+APP_VERSION = "7.7.0"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -1054,6 +1054,19 @@ class MainWindow(QMainWindow):
         self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
         if getattr(self.settings_store.settings, "auto_channel_summary", False):
             QTimer.singleShot(0, self._auto_channel_summary)
+        if getattr(self.settings_store.settings, "auto_summary_on_connect", False) and self._ai_summary:
+            server_key = getattr(self, "_current_server_key", "")
+            if server_key:
+                since = time.time() - 7200  # letzte 2 Stunden
+                def _summarize(sk=server_key, ts=since):
+                    try:
+                        text = self._ai_summary.summarize_missed(sk, ts)
+                        if text and text.strip():
+                            call_after(lambda t=text: self._sr_announce(f"Zusammenfassung: {t[:150]}"))
+                            call_after(lambda t=text: self.tts.speak(f"Verpasste Nachrichten: {t}", kind="system"))
+                    except Exception:
+                        pass
+                threading.Thread(target=_summarize, daemon=True).start()
         self._refresh_channels()
 
     def _on_myself_left(self, msg) -> None:
@@ -1552,6 +1565,11 @@ class MainWindow(QMainWindow):
                 if key and key == hk:
                     self._bookmarks.jump(self, idx)
                     return
+            # v3.9.0 – KI-Antwortvorschläge
+            hk_reply = int(getattr(settings, "hotkey_ai_reply_suggestions", 0) or 0)
+            if hk_reply and key == hk_reply:
+                self._show_ai_reply_suggestions()
+                return
             macro = self._macros.find_by_hotkey(key)
             if macro:
                 self._macros.execute(macro)
@@ -3806,6 +3824,90 @@ class MainWindow(QMainWindow):
                 call_after(lambda: self.tts.speak(f"Zusammenfassung: {text}", kind="system"))
 
         threading.Thread(target=_work, daemon=True).start()
+
+    # ------------------------------------------------------------------
+    # KI-Antwortvorschläge
+    # ------------------------------------------------------------------
+
+    def _show_ai_reply_suggestions(self) -> None:
+        """Zeigt KI-generierte Antwortvorschläge auf die letzte Privatnachricht."""
+        msg = getattr(self, "_last_private_message_text", "").strip()
+        if not msg:
+            try:
+                self._sr_announce("Keine Privatnachricht zum Beantworten")
+            except Exception:
+                pass
+            self.set_status("Keine Privatnachricht zum Beantworten")
+            return
+        self.set_status("KI-Antwortvorschläge werden generiert…")
+
+        def _work():
+            suggestions = self._ai_reply.suggest_replies(msg)
+            QTimer.singleShot(0, lambda: self._show_reply_dialog(suggestions, msg))
+
+        threading.Thread(target=_work, daemon=True).start()
+
+    def _show_reply_dialog(self, suggestions: list, original: str) -> None:
+        """Zeigt einen Dialog mit KI-Antwortvorschlägen und übernimmt den gewählten Text ins Chat-Eingabefeld."""
+        if not suggestions:
+            self.set_status("Keine Antwortvorschläge generiert")
+            return
+        from PySide6.QtWidgets import (
+            QDialog, QVBoxLayout, QHBoxLayout, QLabel, QListWidget,
+            QPushButton, QListWidgetItem,
+        )
+        dlg = QDialog(self)
+        dlg.setWindowTitle("KI-Antwortvorschläge")
+        dlg.setAccessibleName("KI-Antwortvorschläge")
+        dlg.setMinimumSize(540, 300)
+
+        root = QVBoxLayout(dlg)
+
+        orig_trunc = original[:80] + "…" if len(original) > 80 else original
+        lbl = QLabel(f"Nachricht: {orig_trunc}")
+        lbl.setAccessibleName(f"Nachricht: {orig_trunc}")
+        lbl.setWordWrap(True)
+        root.addWidget(lbl)
+
+        list_widget = QListWidget()
+        list_widget.setAccessibleName("Antwortvorschläge")
+        for s in suggestions:
+            QListWidgetItem(s, list_widget)
+        if suggestions:
+            list_widget.setCurrentRow(0)
+        root.addWidget(list_widget)
+
+        btn_row = QHBoxLayout()
+        use_btn = QPushButton("&Verwenden")
+        use_btn.setAccessibleName("Antwort verwenden")
+        use_btn.setDefault(True)
+        cancel_btn = QPushButton("Abbrechen")
+        cancel_btn.setAccessibleName("Abbrechen")
+        btn_row.addStretch()
+        btn_row.addWidget(use_btn)
+        btn_row.addWidget(cancel_btn)
+        root.addLayout(btn_row)
+
+        use_btn.clicked.connect(dlg.accept)
+        cancel_btn.clicked.connect(dlg.reject)
+
+        try:
+            self._sr_announce("Antwortvorschläge verfügbar")
+        except Exception:
+            pass
+
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            idx = list_widget.currentRow()
+            if 0 <= idx < len(suggestions):
+                text = suggestions[idx]
+                try:
+                    self.chat_tab.private_chat.setChecked(True)
+                    self.chat_tab.update_chat_target()
+                    self.chat_tab.chat_input.setText(text)
+                    self.chat_tab.chat_input.setFocus()
+                    self._sr_announce(f"Antwort übernommen: {text[:60]}")
+                except Exception:
+                    pass
 
     # ------------------------------------------------------------------
     # Einstellungen / Navigation

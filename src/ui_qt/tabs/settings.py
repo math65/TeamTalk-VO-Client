@@ -527,6 +527,12 @@ class SettingsTab(QWidget):
         self.auto_greeting_enabled.stateChanged.connect(lambda v: self._save_bool("auto_greeting_enabled", bool(v)))
         auto_form.addRow("", self.auto_greeting_enabled)
 
+        self.auto_summary_on_connect = QCheckBox("KI-Zusammenfassung beim Verbinden")
+        self.auto_summary_on_connect.setAccessibleName("KI-Zusammenfassung beim Verbinden")
+        self.auto_summary_on_connect.setChecked(bool(getattr(s, "auto_summary_on_connect", False)))
+        self.auto_summary_on_connect.stateChanged.connect(lambda v: self._save_bool("auto_summary_on_connect", bool(v)))
+        auto_form.addRow("", self.auto_summary_on_connect)
+
         self.auto_greeting_text = QLineEdit(str(getattr(s, "auto_greeting_text", "") or ""))
         self.auto_greeting_text.setAccessibleName("Begrüßungstext")
         self.auto_greeting_text.setPlaceholderText("z. B. Hallo zusammen!")

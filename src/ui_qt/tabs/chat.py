@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import re
+import threading
 import time
 from typing import TYPE_CHECKING, List
 
@@ -10,7 +11,7 @@ from PySide6.QtWidgets import (
     QLabel, QCheckBox, QComboBox, QTextEdit, QLineEdit,
     QPushButton, QFileDialog, QMessageBox,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QKeySequence, QShortcut
 
 if TYPE_CHECKING:
@@ -144,9 +145,13 @@ class ChatTab(QWidget):
         self.send_btn = QPushButton("&Senden")
         self.send_btn.setAccessibleName("Nachricht senden")
         self.send_btn.clicked.connect(self._on_send)
+        self.improve_btn = QPushButton("&Verbessern")
+        self.improve_btn.setAccessibleName("Text verbessern")
+        self.improve_btn.clicked.connect(self._on_improve_text)
         self.char_count_label = QLabel("0 Zeichen")
         self.char_count_label.setAccessibleName("Zeichenanzahl")
         send_row.addWidget(self.send_btn)
+        send_row.addWidget(self.improve_btn)
         send_row.addWidget(self.char_count_label)
         send_row.addStretch()
         root.addLayout(send_row)
@@ -302,6 +307,37 @@ class ChatTab(QWidget):
                 self.window._chat_history.append(key, line, kind)
         except Exception:
             pass
+
+    # ------------------------------------------------------------------
+    # Improve text
+    # ------------------------------------------------------------------
+
+    def _on_improve_text(self) -> None:
+        """Verbessert den aktuellen Eingabetext via KI."""
+        text = self.chat_input.text()
+        if not text.strip():
+            return
+        self.improve_btn.setEnabled(False)
+
+        def _worker():
+            try:
+                result = self.window._ai_reply.improve_text(text)
+            except Exception:
+                result = None
+
+            def _done():
+                self.improve_btn.setEnabled(True)
+                if result:
+                    self.chat_input.setText(result)
+                    self.chat_input.setCursorPosition(len(result))
+                    try:
+                        self.window._sr_announce("Text verbessert")
+                    except Exception:
+                        pass
+
+            QTimer.singleShot(0, _done)
+
+        threading.Thread(target=_worker, daemon=True).start()
 
     # ------------------------------------------------------------------
     # Send

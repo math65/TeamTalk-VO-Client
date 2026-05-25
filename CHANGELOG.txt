@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2026-05-25 (v7.7.0)
+KI-Features: Antwortvorschläge (Qt), Verbindungs-Zusammenfassung, Formulierungshelfer
+
+- KI-Antwortvorschläge (Windows/Qt): NVDA-Nutzer erhalten jetzt den gleichen KI-Dialog
+  wie macOS – nach Erhalt einer Privatnachricht per Hotkey 3 Vorschläge generieren,
+  auswählen und direkt ins Eingabefeld übernehmen (Claude/Gemini/Ollama-Backend).
+- Verbindungs-Zusammenfassung: Beim Betreten eines Kanals fasst die KI automatisch
+  die letzten 2 Stunden Chat-Verlauf zusammen und liest ihn via VoiceOver/NVDA vor
+  (opt-in in Einstellungen › Chat & Automation).
+- KI-Formulierungshelfer: Neuer "Verbessern"-Button neben dem Chat-Eingabefeld –
+  tippt man einen Text und klickt "Verbessern", formuliert die KI ihn klarer und
+  natürlicher um (macOS + Windows, Claude/Gemini/Ollama).
+- Gilt für macOS (wxPython) und Windows/Linux (Qt/PySide6).
+
 2026-05-25 (v7.6.0)
 Barrierefreiheit & Übersetzungen: NVDA Live-Regions, Spanisch 100 %, Braille-Optimierungen
 

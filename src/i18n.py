@@ -578,6 +578,10 @@ _TRANSLATIONS: dict[str, str] = {
     "{n} Benutzer (Plural)": "{n} users",
     "{n} Datei": "{n} file",
     "{n} Dateien": "{n} files",
+    # KI-Formulierungshelfer
+    "Text verbessern": "Improve text",
+    "Text verbessert": "Text improved",
+    "&Verbessern": "&Improve",
 }
 
 # ---------------------------------------------------------------------------
@@ -717,6 +721,10 @@ _TRANSLATIONS_FR: dict[str, str] = {
     "Anzeige": "Affichage",
     "Verbindung...": "Connexion...",
     "Kein letzter Absender": "Aucun dernier expéditeur",
+    # KI-Formulierungshelfer
+    "Text verbessern": "Améliorer le texte",
+    "Text verbessert": "Texte amélioré",
+    "&Verbessern": "&Améliorer",
 }
 
 # ---------------------------------------------------------------------------
@@ -851,6 +859,10 @@ _TRANSLATIONS_ES: dict[str, str] = {
     "Englisch": "Inglés",
     "Französisch": "Francés",
     "Spanisch": "Español",
+    # KI-Formulierungshelfer
+    "Text verbessern": "Mejorar texto",
+    "Text verbessert": "Texto mejorado",
+    "&Verbessern": "&Mejorar",
 }
 
 
