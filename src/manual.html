@@ -35,7 +35,7 @@
 
 <h1>TeamTalk VoiceOver Client – Benutzerhandbuch</h1>
 <p>Barrierefreier TeamTalk-Client für VoiceOver (macOS), NVDA / JAWS (Windows) und Orca (Linux).<br>
-Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>7.5.5</strong></p>
+Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>7.5.6</strong></p>
 
 <!-- ============================================================ -->
 <div id="toc">
@@ -110,6 +110,15 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <p>Die App unterstützt vier Oberflächensprachen: <strong>Deutsch, English, Français, Español</strong>. Die Sprache kann unter <em>Einstellungen → Allgemein → App-Sprache</em> gewechselt werden; die App startet dann neu.</p>
 
 <h2>Was ist neu</h2>
+<div class="new">
+<strong>v7.5.6 (2026-05-25):</strong>
+<ul>
+  <li><strong>Auto-Abwesend: VoiceOver/NVDA-Ansagen</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: VoiceOver und NVDA sagen jetzt an, wenn der Abwesend-Status automatisch gesetzt oder aufgehoben wird.</li>
+  <li><strong>Chat-Suche: Trefferzahl angesagt</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: Nach einer Suche liest VoiceOver/NVDA die Anzahl der Treffer vor. Beim Navigieren in der Trefferliste kündigt VoiceOver Position und Text an ("Treffer 2 von 5: …").</li>
+  <li><strong>Qt-Timer-Bugfix</strong> <span class="platform win">Windows</span>: Der Auto-Abwesend-Countdown läuft jetzt korrekt ab dem letzten Tastendruck – der frühere Fehler ließ ihn unabhängig von der Benutzeraktivität periodisch feuern.</li>
+  <li>Abwesend-Status wird beim Trennen vom Server sauber zurückgesetzt. Aktivität wird jetzt auch beim Senden einer Chat-Nachricht und beim PTT erkannt.</li>
+</ul>
+</div>
 <div class="new">
 <strong>v7.5.5 (2026-05-25):</strong>
 <ul>
@@ -924,7 +933,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 </p>
 
 <hr>
-<p><em>TeamTalk VoiceOver Client v7.5.5 – Benutzerhandbuch. Hauptentwickler: Florian Lichteblau (Flarion). Inspirationsquellen: ttaccessible (Mathieu Ramage). Danksagungen: Garo, FVH, DHT, Korn, de Losse.</em></p>
+<p><em>TeamTalk VoiceOver Client v7.5.6 – Benutzerhandbuch. Hauptentwickler: Florian Lichteblau (Flarion). Inspirationsquellen: ttaccessible (Mathieu Ramage). Danksagungen: Garo, FVH, DHT, Korn, de Losse.</em></p>
 
 </body>
 </html>

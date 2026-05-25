@@ -351,6 +351,10 @@ class ChatTab(QWidget):
             cursor.setPosition(self._search_positions[0])
             self.chat_log.setTextCursor(cursor)
             self.chat_log.ensureCursorVisible()
+        try:
+            self.window._sr_announce(label)
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # History buttons

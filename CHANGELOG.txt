@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2026-05-25 (v7.5.6)
+Auto-Abwesend: VoiceOver/NVDA-Ansagen, Timer-Fix, Aktivitätserkennung
+
+- VoiceOver (macOS) und NVDA (Windows) sagen jetzt an, wenn der Abwesend-Status
+  automatisch gesetzt oder aufgehoben wird.
+- Chat-Suche: Anzahl der Treffer wird nach der Suche von VoiceOver/NVDA angesagt.
+  Beim Navigieren in der Trefferliste liest VoiceOver Text und Position vor
+  ("Treffer 2 von 5: …").
+- Qt/Windows: Timer-Fehler behoben – der Countdown läuft jetzt korrekt ab dem
+  letzten Tastendruck, nicht periodisch unabhängig von der Aktivität.
+- Abwesend-Status wird beim Trennen vom Server sauber zurückgesetzt.
+- Aktivität wird nun auch beim Senden einer Chat-Nachricht oder PTT erkannt.
+- Gilt für macOS (wxPython) und Windows/Linux (Qt/PySide6).
+
 2026-05-25 (v7.5.5)
 Fix: VoiceOver spricht jetzt Systemsprache statt immer Englisch
 

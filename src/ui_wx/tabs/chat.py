@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, List
 
 import wx
 
-from ui_wx.a11y import setup_list_accessible
+from ui_wx.a11y import post_voiceover_announcement, setup_list_accessible
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -361,6 +361,7 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
         msg = self.chat_input.GetValue().strip()
         if not msg:
             return
+        self.frame._bump_activity()
         # v4.5.0 – Emoji-Shortcodes expandieren
         msg = expand_emoji_shortcodes(msg)
 
@@ -463,11 +464,13 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
         total = len(hits)
         shown = len(display_hits)
         if total > shown:
-            self.search_count.SetLabel(f"{total} Treffer (zeige {shown})")
+            count_text = f"{total} Treffer (zeige {shown})"
         else:
-            self.search_count.SetLabel(f"{total} Treffer")
+            count_text = f"{total} Treffer"
+        self.search_count.SetLabel(count_text)
         if display_hits:
             self.search_results.SetSelection(0)
+        wx.CallAfter(post_voiceover_announcement, count_text)
 
     def _on_search_result_selected(self, _event) -> None:
         """Springt zur ausgewählten Fundstelle im Chat-Verlauf."""
@@ -478,6 +481,9 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
         self.chat_log.SetInsertionPoint(pos)
         self.chat_log.ShowPosition(pos)
         self.chat_log.SetFocus()
+        line_text = self.search_results.GetString(idx)
+        total = self.search_results.GetCount()
+        post_voiceover_announcement(f"Treffer {idx + 1} von {total}: {line_text}")
 
     def select_private_recipient(self, user_id: int) -> None:
         """Wählt den Nutzer im Privat-Chat-Dropdown aus (für Antwort-Hotkey)."""

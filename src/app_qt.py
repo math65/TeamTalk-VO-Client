@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "7.5.5"
+APP_VERSION = "7.5.6"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -304,8 +304,9 @@ class MainWindow(QMainWindow):
         self._reconnect_timer = QTimer(self)
         self._reconnect_timer.timeout.connect(self._on_reconnect_tick)
 
-        # Auto-away timer
+        # Auto-away timer (single-shot; restarted by _bump_activity on each user action)
         self._away_timer = QTimer(self)
+        self._away_timer.setSingleShot(True)
         self._away_timer.timeout.connect(self._on_away_check)
         self._away_active = False
         self._activity_time = time.time()
@@ -852,6 +853,8 @@ class MainWindow(QMainWindow):
         self._srv_disconnect_btn.setEnabled(connected)
 
     def _on_connection_lost(self) -> None:
+        self._away_timer.stop()
+        self._away_active = False
         self._update_conn_bar("Verbindung verloren")
         self.set_status("Verbindung verloren")
         _srv = str(self._current_server_key or "")
@@ -881,6 +884,9 @@ class MainWindow(QMainWindow):
             self._audit_log.log(A_SERVER_CONNECT)
             self._drain_offline_queue()
             self._refresh_channels()
+            _away_min = int(getattr(self.settings_store.settings, "away_timer_min", 0) or 0)
+            if _away_min > 0:
+                self._away_timer.start(_away_min * 60 * 1000)
             self.client.start_event_loop(self._handle_tt_message)
             # Zweiter Refresh nach 1 s – Timing-Fallback falls SDK-Cache noch nicht vollständig
             QTimer.singleShot(1000, self._refresh_channels)
@@ -1323,6 +1329,7 @@ class MainWindow(QMainWindow):
                 self.logger.write(f"Win32 globale Hotkeys: {exc}")
 
     def _on_global_ptt_down(self) -> None:
+        self._bump_activity()
         try:
             self.client.enable_voice_transmission(True)
             self.set_status("Sprechen (global)")
@@ -1517,7 +1524,7 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def send_chat_message(self, text: str, private: bool = False, target_id: int = 0) -> None:
-        self._reset_away()
+        self._bump_activity()
         if not self.client.is_connected():
             oq = self._offline_queue
             if private and target_id:
@@ -1976,14 +1983,26 @@ class MainWindow(QMainWindow):
     # Auto-away
     # ------------------------------------------------------------------
 
+    def _bump_activity(self) -> None:
+        """Registriert Benutzeraktivität: hebt Abwesend auf, startet Countdown neu."""
+        self._activity_time = time.time()
+        if self._away_active:
+            self._reset_away()
+        _away_min = int(getattr(self.settings_store.settings, "away_timer_min", 0) or 0)
+        if _away_min > 0 and self.client.is_connected():
+            self._away_timer.start(_away_min * 60 * 1000)
+
     def _on_away_check(self) -> None:
         if self._away_active:
             return
+        if not self.client.is_connected():
+            return
         try:
-            away_msg = getattr(self.settings_store.settings, "away_status", "") or "Abwesend"
+            away_msg = str(getattr(self.settings_store.settings, "away_status_message", "") or "") or "Abwesend"
             self.client.change_status(1, away_msg)
             self._away_active = True
-            self.set_status(f"Auto-Abwesend: {away_msg}")
+            self.set_status(f"Automatisch abwesend: {away_msg}")
+            self._sr_announce("Automatisch abwesend")
         except Exception:
             pass
 
@@ -1992,9 +2011,10 @@ class MainWindow(QMainWindow):
             try:
                 self.client.change_status(0, self._status_message)
                 self._away_active = False
+                self.set_status("Abwesend-Status aufgehoben")
+                self._sr_announce("Abwesend-Status aufgehoben")
             except Exception:
                 pass
-        self._activity_time = time.time()
 
     # ------------------------------------------------------------------
     # Tab change

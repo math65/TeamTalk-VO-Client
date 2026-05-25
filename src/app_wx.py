@@ -74,7 +74,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "7.5.5"
+APP_VERSION = "7.5.6"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -9380,14 +9380,7 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
 
     def on_key_hook(self, event):
-        self._last_activity_ts = time.time()
-        if self._away_set_by_timer and self._status_mode == 1:
-            self._away_set_by_timer = False
-            self._status_mode = 0
-            try:
-                self.client.change_status(0, self._status_message)
-            except Exception:
-                pass
+        self._bump_activity()
         key = event.GetKeyCode()
         if key == wx.WXK_F2:
             if self.client.is_connected():
@@ -9673,6 +9666,23 @@ class MainFrame(wx.Frame):
     # Push notifications
     # ------------------------------------------------------------------
 
+    def _bump_activity(self) -> None:
+        """Registriert Benutzeraktivität und hebt ggf. den Timer-Abwesend-Status auf."""
+        self._last_activity_ts = time.time()
+        if self._away_set_by_timer and self._status_mode == 1:
+            self._away_set_by_timer = False
+            self._status_mode = 0
+            try:
+                self.client.change_status(0, self._status_message)
+            except Exception:
+                pass
+            self.set_status("Abwesend-Status aufgehoben")
+            try:
+                from ui_wx.a11y import post_voiceover_announcement
+                post_voiceover_announcement("Abwesend-Status aufgehoben")
+            except Exception:
+                pass
+
     def _on_away_check_timer(self, _event) -> None:
         away_min = int(getattr(self.settings_store.settings, "away_timer_min", 0) or 0)
         if away_min <= 0:
@@ -9688,6 +9698,12 @@ class MainFrame(wx.Frame):
             try:
                 away_msg = str(getattr(self.settings_store.settings, "away_status_message", "") or "") or self._status_message
                 self.client.change_status(1, away_msg)
+            except Exception:
+                pass
+            self.set_status("Automatisch abwesend")
+            try:
+                from ui_wx.a11y import post_voiceover_announcement
+                post_voiceover_announcement("Automatisch abwesend")
             except Exception:
                 pass
 
@@ -9908,6 +9924,8 @@ class MainFrame(wx.Frame):
             wx.CallAfter(self.schedule_reconnect)
             self.bus.emit("connection_state_changed", connected=False, reason="failed")
         elif event == tt.ClientEvent.CLIENTEVENT_CON_LOST:
+            self._away_set_by_timer = False
+            self._status_mode = 0
             wx.CallAfter(self.set_status, "Verbindung verloren")
             self._analytics.on_error()
             self._analytics.on_disconnect()
