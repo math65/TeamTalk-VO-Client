@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2026-05-25 (v7.5.10)
+Französische Vollübersetzung (~100 %) dank @math65
+
+- Französisch (FR): Über 800 neue Strings übersetzt – Abdeckung von ~34 % auf ~100 %
+  gesteigert. Alle Tabs, Menüs, Dialoge und Fehlermeldungen sind jetzt auf Französisch
+  verfügbar. Die Sprache kann in Einstellungen › Sprache gewählt werden.
+- Beigetragen von @math65 (9 PRs: Audio, Chat, Plugins, Server, Video, TTS, KI,
+  Kanäle/Einstellungen, Abschluss-Batch).
+
 2026-05-25 (v7.5.9)
 5 neue Features: Begrüßung, PM-Verlauf, Status-Favoriten, Reconnect-Ansagen, PM-Fenster
 
