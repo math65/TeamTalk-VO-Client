@@ -35,7 +35,7 @@
 
 <h1>TeamTalk VoiceOver Client – Benutzerhandbuch</h1>
 <p>Barrierefreier TeamTalk-Client für VoiceOver (macOS), NVDA / JAWS (Windows) und Orca (Linux).<br>
-Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>7.5.4</strong></p>
+Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>7.5.5</strong></p>
 
 <!-- ============================================================ -->
 <div id="toc">
@@ -110,6 +110,12 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <p>Die App unterstützt vier Oberflächensprachen: <strong>Deutsch, English, Français, Español</strong>. Die Sprache kann unter <em>Einstellungen → Allgemein → App-Sprache</em> gewechselt werden; die App startet dann neu.</p>
 
 <h2>Was ist neu</h2>
+<div class="new">
+<strong>v7.5.5 (2026-05-25):</strong>
+<ul>
+  <li><strong>Fix: VoiceOver spricht Systemsprache</strong> <span class="platform mac">macOS</span>: Der App-Bundle fehlten <code>CFBundleDevelopmentRegion</code> und <code>CFBundleLocalizations</code> in der Info.plist. macOS hat deshalb Englisch als Fallback verwendet, auch auf deutschen, französischen und spanischen Systemen. Jetzt korrekt: <code>de</code> als Entwicklungsregion, alle vier Sprachen (de, en, fr, es) als Localizations deklariert. VoiceOver wählt automatisch die Sprache der Systemeinstellung.</li>
+</ul>
+</div>
 <div class="new">
 <strong>v7.5.4 (2026-05-24):</strong>
 <ul>
@@ -918,7 +924,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 </p>
 
 <hr>
-<p><em>TeamTalk VoiceOver Client v7.5.4 – Benutzerhandbuch. Hauptentwickler: Florian Lichteblau (Flarion). Inspirationsquellen: ttaccessible (Mathieu Ramage). Danksagungen: Garo, FVH, DHT, Korn, de Losse.</em></p>
+<p><em>TeamTalk VoiceOver Client v7.5.5 – Benutzerhandbuch. Hauptentwickler: Florian Lichteblau (Flarion). Inspirationsquellen: ttaccessible (Mathieu Ramage). Danksagungen: Garo, FVH, DHT, Korn, de Losse.</em></p>
 
 </body>
 </html>

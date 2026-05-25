@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2026-05-25 (v7.5.5)
+Fix: VoiceOver spricht jetzt Systemsprache statt immer Englisch
+
+- Info.plist fehlte CFBundleDevelopmentRegion und CFBundleLocalizations.
+  macOS hat deshalb Englisch als Fallback verwendet, auch auf deutschen Systemen.
+  Jetzt korrekt: CFBundleDevelopmentRegion=de, Localizations: de, en, fr, es.
+  VoiceOver wählt automatisch die passende Sprache laut Systemeinstellung.
+  (macOS)
+
 2026-05-24 (v7.5.4)
 Tastenkürzel-Tab: Kategorien, Suchfeld, Alle-zurücksetzen
 
