@@ -288,6 +288,8 @@ class AppSettings:
     eq_active_preset: str = "Standard"
     eq_mic_gain_pct: int = 50
     eq_out_volume_pct: int = 100
+    # Per-app audio capture (Windows, WASAPI Process Loopback)
+    app_audio_volume_pct: int = 100
     # v6.5.0 features
     watched_users: List[str] = field(default_factory=list)
     # v6.6.0 features
@@ -565,6 +567,7 @@ class SettingsStore:
             self.settings.eq_active_preset = str(data.get("eq_active_preset", "Standard") or "Standard")
             self.settings.eq_mic_gain_pct = int(data.get("eq_mic_gain_pct", 50) or 50)
             self.settings.eq_out_volume_pct = int(data.get("eq_out_volume_pct", 100) or 100)
+            self.settings.app_audio_volume_pct = int(data.get("app_audio_volume_pct", 100) or 100)
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -680,6 +683,7 @@ class SettingsStore:
             "eq_active_preset": str(self.settings.eq_active_preset or "Standard"),
             "eq_mic_gain_pct": int(self.settings.eq_mic_gain_pct or 50),
             "eq_out_volume_pct": int(self.settings.eq_out_volume_pct or 100),
+            "app_audio_volume_pct": int(getattr(self.settings, "app_audio_volume_pct", 100) or 100),
             # v2.4.0
             "user_volume_presets": dict(self.settings.user_volume_presets or {}),
             "noise_gate_enabled": bool(self.settings.noise_gate_enabled),

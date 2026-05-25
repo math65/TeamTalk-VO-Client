@@ -664,6 +664,10 @@ class MainWindow(QMainWindow):
         audio_m.addSeparator()
         self._add_action(audio_m, _("&Equalizer-Voreinstellungen..."), self.on_menu_equalizer)
         self._add_action(audio_m, _("&Per-Server-Soundprofile..."), self.on_menu_server_audio_profiles)
+        if sys.platform == "win32":
+            audio_m.addSeparator()
+            self._add_action(audio_m, _("&App-Audio aufnehmen..."),
+                             self.on_menu_app_audio_capture)
 
         # --- Chat ---
         chat_m = mb.addMenu(_("&Chat"))
@@ -3544,6 +3548,27 @@ class MainWindow(QMainWindow):
         self.set_status("Equalizer-Voreinstellungen: Einstellungen → Audio")
         self.on_menu_audio_settings()
 
+    def on_menu_app_audio_capture(self) -> None:
+        if sys.platform != "win32":
+            return
+        try:
+            from app_audio_capture import is_available, AppAudioMixer
+        except Exception as exc:
+            QMessageBox.warning(self, _("App-Audio aufnehmen"), str(exc))
+            return
+        if not is_available():
+            QMessageBox.warning(
+                self,
+                _("App-Audio aufnehmen"),
+                _("App-Audio benötigt Windows 10 Build 2004 oder neuer."),
+            )
+            return
+        if getattr(self, "_app_audio_mixer", None) is None:
+            self._app_audio_mixer = AppAudioMixer(self.client)
+        from ui_qt.app_audio_dialog import AppAudioDialog
+        dlg = AppAudioDialog(self, self._app_audio_mixer, self.settings_store)
+        dlg.exec()
+
     def on_menu_audio_refresh(self) -> None:
         try:
             self.audio_tab.refresh_devices()
@@ -4333,6 +4358,12 @@ class MainWindow(QMainWindow):
             pass
         try:
             self.media_tab.stop_all()
+        except Exception:
+            pass
+        try:
+            mixer = getattr(self, "_app_audio_mixer", None)
+            if mixer is not None:
+                mixer.stop_all()
         except Exception:
             pass
         try:

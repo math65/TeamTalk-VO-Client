@@ -15,6 +15,7 @@ a = Analysis(
         ('src/global_hotkeys.py', '.'),
         ('src/screen_capture.py', '.'),
         ('src/system_audio.py', '.'),
+        ('src/app_audio_capture.py', '.'),
         ('licenses', 'licenses'),
         ('CHANGELOG.txt', '.'),
         ('INSTALL_macOS.md', '.'),

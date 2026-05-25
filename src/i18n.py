@@ -4388,6 +4388,58 @@ _TRANSLATIONS_ES.update({
     "Übertragungsrechte": "Derechos de transmisión",
 })
 
+# ---- App-Audio (Windows WASAPI Process Loopback) ----
+_TRANSLATIONS.update({
+    "&App-Audio aufnehmen...": "&App audio capture...",
+    "App-Audio aufnehmen": "App audio capture",
+    "Anwendung auswählen": "Select application",
+    "Keine Audio-Anwendung gefunden": "No audio application found",
+    "App-Audio benötigt Windows 10 Build 2004 oder neuer.":
+        "App audio capture requires Windows 10 build 2004 or newer.",
+    "Für die App-Liste wird das Paket 'pycaw' benötigt.":
+        "The 'pycaw' package is required to list applications.",
+    "App-Audio aktiv: {n} Anwendung(en)": "App audio active: {n} application(s)",
+    "App-Audio gestoppt": "App audio stopped",
+    "Fehler beim Aktivieren der App-Audio-Erfassung":
+        "Failed to activate app audio capture",
+    "Hinweis: Konflikt möglich mit aktivem Medien-Streaming.":
+        "Note: may conflict with an active media stream.",
+})
+
+_TRANSLATIONS_FR.update({
+    "&App-Audio aufnehmen...": "Capture audio par &application...",
+    "App-Audio aufnehmen": "Capture audio par application",
+    "Anwendung auswählen": "Sélectionner l'application",
+    "Keine Audio-Anwendung gefunden": "Aucune application audio trouvée",
+    "App-Audio benötigt Windows 10 Build 2004 oder neuer.":
+        "La capture audio par application nécessite Windows 10 build 2004 ou plus récent.",
+    "Für die App-Liste wird das Paket 'pycaw' benötigt.":
+        "Le paquet 'pycaw' est requis pour lister les applications.",
+    "App-Audio aktiv: {n} Anwendung(en)": "Audio app actif : {n} application(s)",
+    "App-Audio gestoppt": "Audio app arrêté",
+    "Fehler beim Aktivieren der App-Audio-Erfassung":
+        "Échec de l'activation de la capture audio app",
+    "Hinweis: Konflikt möglich mit aktivem Medien-Streaming.":
+        "Remarque : conflit possible avec une diffusion média active.",
+})
+
+_TRANSLATIONS_ES.update({
+    "&App-Audio aufnehmen...": "Captura de audio por &aplicación...",
+    "App-Audio aufnehmen": "Captura de audio por aplicación",
+    "Anwendung auswählen": "Seleccionar aplicación",
+    "Keine Audio-Anwendung gefunden": "No se encontró aplicación de audio",
+    "App-Audio benötigt Windows 10 Build 2004 oder neuer.":
+        "La captura de audio por aplicación requiere Windows 10 build 2004 o más reciente.",
+    "Für die App-Liste wird das Paket 'pycaw' benötigt.":
+        "Se requiere el paquete 'pycaw' para listar las aplicaciones.",
+    "App-Audio aktiv: {n} Anwendung(en)": "Audio de aplicación activo: {n} aplicación(es)",
+    "App-Audio gestoppt": "Audio de aplicación detenido",
+    "Fehler beim Aktivieren der App-Audio-Erfassung":
+        "Error al activar la captura de audio de la aplicación",
+    "Hinweis: Konflikt möglich mit aktivem Medien-Streaming.":
+        "Nota: posible conflicto con una transmisión de medios activa.",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 

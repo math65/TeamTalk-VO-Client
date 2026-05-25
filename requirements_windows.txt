@@ -1,3 +1,6 @@
 -r requirements_base.txt
 pywin32>=306
 PySide6>=6.6
+# Optional: enumerate audio-producing processes for App-Audio dialog.
+# App-Audio capture works without pycaw but the process list will be empty.
+pycaw>=20240210
