@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "7.5.8"
+APP_VERSION = "7.5.9"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -694,6 +694,8 @@ class MainWindow(QMainWindow):
         self._add_action(server_m, _("&Wer-spricht-Protokoll..."), self.on_menu_speaking_log)
         self._add_action(server_m, _("&Sitzungsübersicht..."), self.on_menu_session_overview)
         server_m.addSeparator()
+        self._add_action(server_m, _("Privatnachrichten-&Verlauf..."), self.on_menu_pm_history)
+        server_m.addSeparator()
         self._add_action(server_m, _("&Ping ansagen"), self.on_menu_announce_ping, "Ctrl+P")
         self._add_action(server_m, _("Konfiguration &speichern"), self.on_menu_server_save_config)
 
@@ -876,6 +878,12 @@ class MainWindow(QMainWindow):
             nick = getattr(profile, "nickname", "") if profile else ""
             self._update_conn_bar(f"Verbunden: {server_name}  |  Nickname: {nick}", connected=True)
             self.set_status(f"Angemeldet an {server_name}")
+            if getattr(self, "_reconnect_attempts", 0) > 0:
+                try:
+                    self._sr_announce("Wiederverbindung erfolgreich")
+                except Exception:
+                    pass
+                self._reconnect_attempts = 0
             _srv = str(self._current_server_key or "")
             if self._notifications.allow_tts("connected", server=_srv):
                 self.tts.speak("Angemeldet", kind="system")
@@ -1018,6 +1026,14 @@ class MainWindow(QMainWindow):
                 self.tts.speak(announce, kind="system")
                 self._sr_announce(f"Kanal {announce}")
                 self._add_to_recent_channels(ch_id, self._current_channel_name)
+            if getattr(self.settings_store.settings, "auto_greeting_enabled", False):
+                _gt = str(getattr(self.settings_store.settings, "auto_greeting_text", "") or "").strip()
+                if _gt:
+                    try:
+                        import threading as _t
+                        _t.Thread(target=lambda ch=ch_id, m=_gt: self.client.send_channel_message(ch, m), daemon=True).start()
+                    except Exception:
+                        pass
         except Exception:
             pass
         self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
@@ -1973,10 +1989,20 @@ class MainWindow(QMainWindow):
 
     def _schedule_reconnect(self) -> None:
         delay = int(getattr(self.settings_store.settings, "reconnect_delay_seconds", 10) or 10)
+        self._reconnect_attempts = getattr(self, "_reconnect_attempts", 0) + 1
+        self.set_status(f"Wiederverbinden in {delay}s (Versuch {self._reconnect_attempts})")
+        try:
+            self._sr_announce(f"Wiederverbinden in {delay} Sekunden, Versuch {self._reconnect_attempts}")
+        except Exception:
+            pass
         self._reconnect_timer.start(delay * 1000)
 
     def _on_reconnect_tick(self) -> None:
         self._reconnect_timer.stop()
+        try:
+            self._sr_announce("Wiederverbindungsversuch wird gestartet")
+        except Exception:
+            pass
         self.reconnect()
 
     # ------------------------------------------------------------------
@@ -3228,10 +3254,18 @@ class MainWindow(QMainWindow):
     def on_menu_status(self) -> None:
         if not self._require_connected("Status setzen"):
             return
+        from PySide6.QtWidgets import (
+            QDialog, QFormLayout, QComboBox, QLineEdit, QDialogButtonBox,
+            QListWidget, QLabel, QPushButton, QVBoxLayout,
+        )
         dlg = QDialog(self)
         dlg.setWindowTitle("Status setzen")
-        layout = QFormLayout(dlg)
+        dlg.setAccessibleName("Status setzen")
+        root = QVBoxLayout(dlg)
+        form = QFormLayout()
+
         mode_cb = QComboBox()
+        mode_cb.setAccessibleName("Status-Modus")
         mode_cb.addItems(["Verfügbar", "Abwesend", "Frage"])
         current_mode = getattr(self, "_status_mode", 0)
         try:
@@ -3244,14 +3278,47 @@ class MainWindow(QMainWindow):
                 mode_cb.setCurrentIndex(0)
         except Exception:
             pass
+        form.addRow("Modus", mode_cb)
+
+        saved = list(getattr(self.settings_store.settings, "saved_statuses", []) or [])
         msg_edit = QLineEdit(getattr(self, "_status_message", ""))
-        layout.addRow("Modus", mode_cb)
-        layout.addRow("Nachricht", msg_edit)
+        msg_edit.setAccessibleName("Status-Nachricht")
+
+        if saved:
+            lw = QListWidget()
+            lw.setAccessibleName("Gespeicherte Status-Nachrichten")
+            lw.setMaximumHeight(100)
+            for s in saved:
+                lw.addItem(s)
+            lw.itemClicked.connect(lambda item: msg_edit.setText(item.text()))
+            form.addRow("Gespeicherte Nachrichten", lw)
+
+        form.addRow("Nachricht", msg_edit)
+
+        save_btn = QPushButton("Als &Favorit speichern")
+        save_btn.setAccessibleName("Als Favorit speichern")
+        def _save_preset():
+            text = msg_edit.text().strip()
+            if not text:
+                return
+            current = list(getattr(self.settings_store.settings, "saved_statuses", []) or [])
+            if text not in current:
+                current.append(text)
+                self.settings_store.settings.saved_statuses = current
+                try:
+                    self.settings_store.save()
+                except Exception:
+                    pass
+        save_btn.clicked.connect(_save_preset)
+        form.addRow("", save_btn)
+
+        root.addLayout(form)
         bb = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         bb.accepted.connect(dlg.accept)
         bb.rejected.connect(dlg.reject)
-        layout.addRow(bb)
+        root.addWidget(bb)
+
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
         try:
@@ -3270,6 +3337,10 @@ class MainWindow(QMainWindow):
                 self.set_status("Status konnte nicht gesetzt werden")
             else:
                 self.set_status(f"Status gesetzt: {message or mode_cb.currentText()}")
+                try:
+                    self._sr_announce(f"Status: {message or mode_cb.currentText()}")
+                except Exception:
+                    pass
         except Exception:
             pass
 
@@ -4125,6 +4196,17 @@ class MainWindow(QMainWindow):
         dlg = SavedMessagesDialog(self, self._saved_messages)
         dlg.exec()
         self._refocus_channel_list()
+
+    def on_menu_pm_history(self) -> None:
+        """Öffnet den Privatnachrichten-Verlauf-Browser."""
+        server_key = getattr(self, "_current_server_key", "") or ""
+        if not server_key:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.information(self, "PM-Verlauf", "Nicht verbunden oder kein Server ausgewählt.")
+            return
+        from ui_qt.pm_history_dialog import PMHistoryDialog
+        dlg = PMHistoryDialog(self, self._chat_history, server_key)
+        dlg.exec()
 
     def on_menu_update_manager(self) -> None:
         from ui_qt.update_dialog import UpdateManagerDialog

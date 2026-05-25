@@ -74,7 +74,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "7.5.8"
+APP_VERSION = "7.5.9"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -602,6 +602,7 @@ class MainFrame(wx.Frame):
         self.bus.on("user_left",              lambda **kw: self._macros.fire_event("user_leave",   **kw))
         self.bus.on("chat_message",           lambda **kw: self._macros.fire_event("chat_message", **kw))
         self.bus.on("channel_joined",         lambda **kw: self._macros.fire_event("channel_join", **kw))
+        self.bus.on("channel_joined",         lambda **kw: wx.CallAfter(self._on_channel_joined_greeting, **kw))
         self.bus.on("connection_state_changed",
                     lambda connected=False, **kw: self._macros.fire_event(
                         "connected" if connected else "disconnected", **kw))
@@ -2039,6 +2040,8 @@ class MainFrame(wx.Frame):
         server_menu.AppendSeparator()
         server_speaking_log = server_menu.Append(wx.ID_ANY, _("Wer-spricht-Protokoll..."))
         server_sessions = server_menu.Append(wx.ID_ANY, _("Sitzungsübersicht..."))
+        server_menu.AppendSeparator()
+        pm_hist_item = server_menu.Append(wx.ID_ANY, _("Privatnachrichten-&Verlauf..."))
         menubar.Append(server_menu, _("Server"))
 
         # Profil
@@ -2251,6 +2254,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_server_save_config, server_save_config)
         self.Bind(wx.EVT_MENU, self.on_menu_speaking_log, server_speaking_log)
         self.Bind(wx.EVT_MENU, self.on_menu_session_overview, server_sessions)
+        self.Bind(wx.EVT_MENU, self.on_menu_pm_history, pm_hist_item)
 
         self.Bind(wx.EVT_MENU, self.on_menu_change_nickname, profile_nick)
         self.Bind(wx.EVT_MENU, self.on_menu_change_status, profile_status)
@@ -3202,7 +3206,7 @@ class MainFrame(wx.Frame):
     def on_menu_change_status(self, _event):
         if not self._require_connected("Status setzen"):
             return
-        dlg = ChangeStatusDialog(self)
+        dlg = ChangeStatusDialog(self, self.settings_store)
         if dlg.ShowModal() == wx.ID_OK:
             idx, message = dlg.get_values()
             tt = self.client.tt
@@ -3859,15 +3863,19 @@ class MainFrame(wx.Frame):
         if not user:
             self.set_status("Kein Benutzer ausgewählt")
             return
-        nick = self.tt_str(getattr(user, "szNickname", "")) or self.tt_str(getattr(user, "szUsername", "")) or "Benutzer"
-        msg = self._ask_text("Private Nachricht", f"Nachricht an {nick}:")
-        if not msg:
-            return
-        if self.client.send_user_message(int(user.nUserID), msg):
-            self.chat_tab.append_chat(f"An {nick}: {msg}", kind="own")
-            self._analytics.on_message_sent()
-        else:
-            self.set_status("Nachricht konnte nicht gesendet werden")
+        self.open_private_chat(int(user.nUserID))
+
+    def open_private_chat(self, user_id: int) -> None:
+        """Open a dedicated private chat window for user_id (non-modal)."""
+        from ui_wx.private_chat_dialog import open_private_chat as _open
+        nick = ""
+        try:
+            u = self.client.get_user(user_id)
+            if u:
+                nick = self.tt_str(u.szNickname) or self.tt_str(u.szUsername)
+        except Exception:
+            pass
+        _open(self, user_id, nick)
 
     def on_menu_store_move_target(self, _event):
         if not self._require_connected("Zielkanal merken"):
@@ -8235,6 +8243,17 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
+    def on_menu_pm_history(self, _event) -> None:
+        """Öffnet den Privatnachrichten-Verlauf-Browser."""
+        server_key = self._get_server_key()
+        if not server_key:
+            wx.MessageBox("Nicht verbunden oder kein Server ausgewählt.", "PM-Verlauf", wx.ICON_INFORMATION)
+            return
+        from ui_wx.pm_history_dialog import PMHistoryDialog
+        dlg = PMHistoryDialog(self, self._chat_history, server_key)
+        dlg.ShowModal()
+        dlg.Destroy()
+
     def on_menu_changelog(self, _event):
         sections = self._build_changelog_sections()
         if not sections:
@@ -8405,6 +8424,12 @@ class MainFrame(wx.Frame):
             wx.CallAfter(self.connection_window.Hide)
             wx.CallAfter(self.Raise)
             wx.CallLater(400, self._focus_area, 1)
+            if self._reconnect_attempts > 0:
+                try:
+                    from ui_wx.a11y import post_voiceover_announcement
+                    post_voiceover_announcement("Wiederverbindung erfolgreich")
+                except Exception:
+                    pass
             self._reconnect_attempts = 0
             self._offline_buffering = False
             self._current_server_key = self._get_server_key()
@@ -8976,12 +9001,24 @@ class MainFrame(wx.Frame):
         max_attempts = int(s.reconnect_max_attempts or 0)
         if max_attempts > 0 and self._reconnect_attempts >= max_attempts:
             self.set_status(f"Maximale Wiederverbindungsversuche ({max_attempts}) erreicht")
+            try:
+                from ui_wx.a11y import post_voiceover_announcement
+                post_voiceover_announcement(f"Maximale Wiederverbindungsversuche erreicht")
+            except Exception:
+                pass
             return
         self._reconnect_attempts += 1
         min_delay_ms = max(1000, int(s.reconnect_delay_sec or 2) * 1000)
         delay = min(30000, min_delay_ms * (2 ** min(self._reconnect_attempts - 1, 4)))
         self._offline_buffering = True
         self.set_status(f"Wiederverbinden in {delay // 1000}s (Versuch {self._reconnect_attempts})")
+        try:
+            from ui_wx.a11y import post_voiceover_announcement
+            post_voiceover_announcement(
+                f"Wiederverbinden in {delay // 1000} Sekunden, Versuch {self._reconnect_attempts}"
+            )
+        except Exception:
+            pass
         wx.CallLater(delay, self.connect_with_form)
 
     def _update_speak_tab(self, api_key: str) -> None:
@@ -9663,6 +9700,15 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     # Push notifications
     # ------------------------------------------------------------------
+
+    def _on_channel_joined_greeting(self, channel_id=None, **_kw) -> None:
+        if not getattr(self.settings_store.settings, "auto_greeting_enabled", False):
+            return
+        text = str(getattr(self.settings_store.settings, "auto_greeting_text", "") or "").strip()
+        if not text or not channel_id:
+            return
+        import threading as _t
+        _t.Thread(target=lambda: self.client.send_channel_message(int(channel_id), text), daemon=True).start()
 
     def _bump_activity(self) -> None:
         """Registriert Benutzeraktivität und hebt ggf. den Timer-Abwesend-Status auf."""
@@ -10388,6 +10434,14 @@ class MainFrame(wx.Frame):
                         self._chat_history.append_private,
                         server_key, partner, f"{from_user}: {content}", kind,
                     )
+            # Route to open private chat window if one exists
+            if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and not is_own:
+                try:
+                    from ui_wx.private_chat_dialog import _open_dialogs
+                    if from_id in _open_dialogs and not _open_dialogs[from_id].IsBeingDeleted():
+                        wx.CallAfter(_open_dialogs[from_id].append_message, from_user, content, False)
+                except Exception:
+                    pass
             # Offline-Puffer für Chat-Nachrichten (bei Wiederverbindung)
             if msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL):
                 wx.CallAfter(self._buffer_offline_event, f"{from_user}: {content}", kind)

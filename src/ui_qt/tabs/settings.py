@@ -521,6 +521,20 @@ class SettingsTab(QWidget):
         self.ai_summary_enabled.stateChanged.connect(lambda v: self._save_bool("ai_summary_enabled", v))
         auto_form.addRow("", self.ai_summary_enabled)
 
+        self.auto_greeting_enabled = QCheckBox("Automatisch beim Kanalbetreten grüßen")
+        self.auto_greeting_enabled.setAccessibleName("Automatisch grüßen")
+        self.auto_greeting_enabled.setChecked(bool(getattr(s, "auto_greeting_enabled", False)))
+        self.auto_greeting_enabled.stateChanged.connect(lambda v: self._save_bool("auto_greeting_enabled", bool(v)))
+        auto_form.addRow("", self.auto_greeting_enabled)
+
+        self.auto_greeting_text = QLineEdit(str(getattr(s, "auto_greeting_text", "") or ""))
+        self.auto_greeting_text.setAccessibleName("Begrüßungstext")
+        self.auto_greeting_text.setPlaceholderText("z. B. Hallo zusammen!")
+        self.auto_greeting_text.editingFinished.connect(
+            lambda: self._save_str("auto_greeting_text", self.auto_greeting_text.text().strip())
+        )
+        auto_form.addRow("Begrüßungstext", self.auto_greeting_text)
+
         self.auto_reply_enabled = QCheckBox("Auto-Antwort aktivieren")
         self.auto_reply_enabled.setChecked(bool(getattr(s, "auto_reply_enabled", False)))
         self.auto_reply_enabled.stateChanged.connect(lambda v: self._save_bool("auto_reply_enabled", v))

@@ -252,6 +252,7 @@ class AppSettings:
     http_api_port: int = 8765
     # v2.8.0 features
     user_notes: Dict[str, str] = field(default_factory=dict)
+    saved_statuses: List[str] = field(default_factory=list)
     ptt_max_seconds: int = 0
     recent_channels: List[Dict[str, Any]] = field(default_factory=list)
     alert_keywords: List[str] = field(default_factory=list)
@@ -325,6 +326,9 @@ class AppSettings:
     user_stereo_prefs: Dict[str, str] = field(default_factory=dict)  # username → "normal"|"left"|"right"
     # v7.1.0 features
     notification_rules: List[Dict] = field(default_factory=list)
+    # auto-greeting
+    auto_greeting_enabled: bool = False
+    auto_greeting_text: str = ""
 
 
 class SettingsStore:
@@ -435,6 +439,8 @@ class SettingsStore:
             self.settings.gemini_api_key = str(data.get("gemini_api_key", "") or "")
             # v2.1.0
             self.settings.auto_reconnect_enabled = bool(data.get("auto_reconnect_enabled", True))
+            self.settings.auto_greeting_enabled = bool(data.get("auto_greeting_enabled", False))
+            self.settings.auto_greeting_text = str(data.get("auto_greeting_text", "") or "")
             self.settings.notifications_enabled = bool(data.get("notifications_enabled", True))
             # v2.2.0
             self.settings.tts_chat_rate = int(data.get("tts_chat_rate", 0) or 0)
@@ -485,6 +491,8 @@ class SettingsStore:
             # v2.8.0
             raw_un = data.get("user_notes", {})
             self.settings.user_notes = raw_un if isinstance(raw_un, dict) else {}
+            raw_ss = data.get("saved_statuses", [])
+            self.settings.saved_statuses = raw_ss if isinstance(raw_ss, list) else []
             self.settings.ptt_max_seconds = int(data.get("ptt_max_seconds", 0) or 0)
             raw_rc = data.get("recent_channels", [])
             self.settings.recent_channels = raw_rc if isinstance(raw_rc, list) else []
@@ -648,6 +656,8 @@ class SettingsStore:
             "gemini_api_key": str(self.settings.gemini_api_key or ""),
             # v2.1.0
             "auto_reconnect_enabled": bool(self.settings.auto_reconnect_enabled),
+            "auto_greeting_enabled": bool(self.settings.auto_greeting_enabled),
+            "auto_greeting_text": str(self.settings.auto_greeting_text or ""),
             "notifications_enabled": bool(self.settings.notifications_enabled),
             # v2.2.0
             "tts_chat_rate": int(self.settings.tts_chat_rate or 0),
@@ -693,6 +703,7 @@ class SettingsStore:
             "http_api_port": int(self.settings.http_api_port or 8765),
             # v2.8.0
             "user_notes": dict(self.settings.user_notes or {}),
+            "saved_statuses": list(self.settings.saved_statuses or []),
             "ptt_max_seconds": int(self.settings.ptt_max_seconds or 0),
             "recent_channels": list(self.settings.recent_channels or []),
             "alert_keywords": list(self.settings.alert_keywords or []),

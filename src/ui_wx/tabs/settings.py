@@ -1030,6 +1030,23 @@ class SettingsTab(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)
         s = self.frame.settings_store.settings
 
+        # ---- Automatische Begrüßung ----
+        greet_box = wx.StaticBox(panel, label="Automatische Begrüßung beim Kanalbetreten")
+        greet_sizer = wx.StaticBoxSizer(greet_box, wx.VERTICAL)
+
+        self._auto_greeting_enabled = wx.CheckBox(panel, label="&Automatisch beim Kanalbetreten grüßen")
+        self._auto_greeting_enabled.SetName("Automatisch grüßen")
+        self._auto_greeting_enabled.SetValue(bool(getattr(s, "auto_greeting_enabled", False)))
+        greet_sizer.Add(self._auto_greeting_enabled, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        greeting_row = wx.BoxSizer(wx.HORIZONTAL)
+        greeting_row.Add(wx.StaticText(panel, label="Begrüßungstext"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._auto_greeting_text = wx.TextCtrl(panel, value=str(getattr(s, "auto_greeting_text", "") or ""))
+        self._auto_greeting_text.SetName("Begrüßungstext")
+        greeting_row.Add(self._auto_greeting_text, 1, wx.EXPAND)
+        greet_sizer.Add(greeting_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        sizer.Add(greet_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
         # ---- Chat & Status StaticBox ----
         ar_box = wx.StaticBox(panel, label="Auto-Antwort auf Privatnachrichten")
         ar_sizer = wx.StaticBoxSizer(ar_box, wx.VERTICAL)
@@ -1855,6 +1872,8 @@ class SettingsTab(wx.Panel):
 
     def _on_save_chat_status(self, _event) -> None:
         s = self.frame.settings_store.settings
+        s.auto_greeting_enabled = self._auto_greeting_enabled.GetValue()
+        s.auto_greeting_text = self._auto_greeting_text.GetValue().strip()
         s.auto_reply_enabled = self._auto_reply_enabled.GetValue()
         s.auto_reply_message = self._auto_reply_message.GetValue().strip()
         templates = [line.strip() for line in self._status_templates.GetValue().splitlines() if line.strip()]

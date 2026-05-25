@@ -523,10 +523,7 @@ class ChannelsTab(wx.Panel):
             if node_type == _NODE_CHANNEL:
                 self.frame.join_channel(node_id)
             elif node_type == _NODE_USER:
-                try:
-                    self.frame.notebook.SetSelection(2)
-                except Exception:
-                    pass
+                wx.CallAfter(self.frame.open_private_chat, node_id)
         except Exception:
             pass
 
@@ -545,10 +542,7 @@ class ChannelsTab(wx.Panel):
                 if node_type == _NODE_CHANNEL:
                     self.frame.join_channel(node_id)
                 elif node_type == _NODE_USER:
-                    try:
-                        self.frame.notebook.SetSelection(2)
-                    except Exception:
-                        pass
+                    wx.CallAfter(self.frame.open_private_chat, node_id)
             return
         if key == wx.WXK_WINDOWS_MENU or (key == wx.WXK_F10 and event.ShiftDown()):
             idx = self.channel_list.GetSelection()

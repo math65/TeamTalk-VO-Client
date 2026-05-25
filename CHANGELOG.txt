@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-05-25 (v7.5.9)
+5 neue Features: Begrüßung, PM-Verlauf, Status-Favoriten, Reconnect-Ansagen, PM-Fenster
+
+- Automatische Begrüßungsnachricht: Beim Betreten eines Kanals wird automatisch
+  ein konfigurierbarer Text gesendet (ein/ausschaltbar in Einstellungen › Chat & Automation).
+- Privatnachrichten-Verlauf-Browser: Neuer Dialog (Menü "Server") zum Durchsuchen
+  gespeicherter PM-Verläufe nach Gesprächspartner, mit Exportfunktion.
+- Status-Favoriten: Im Status-Dialog können häufig verwendete Statusnachrichten als
+  Favoriten gespeichert und per Klick übernommen werden ("Als Favorit speichern"-Button).
+- Wiederverbindungs-Ansagen: VoiceOver (macOS) und NVDA (Windows) sagen jetzt bei
+  jedem Wiederverbindungsversuch den Countdown und den Versuchszähler an.
+- Wx Privat-Chat-Fenster: Auf macOS öffnet sich beim Anschreiben eines Nutzers
+  (Enter-Taste in der Benutzerliste oder Benutzer-Menü) ein dediziertes Chat-Fenster
+  pro Gesprächspartner – analog zur Qt/Windows-Variante (Verlauf, Export, Strg+W).
+- Gilt für macOS (wxPython) und Windows/Linux (Qt/PySide6) – jeweils beide UIs.
+
 2026-05-25 (v7.5.8)
 5 neue Features: Nachrichten, Statistik, Transfer, Verlauf, Kick
 
