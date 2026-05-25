@@ -114,6 +114,15 @@ class OfflineMessageQueue:
         self._prune_old()
         return list(self._items)
 
+    def remove_at(self, index: int) -> bool:
+        """Entfernt den Eintrag an Position ``index``. Gibt True bei Erfolg zurück."""
+        self._prune_old()
+        if 0 <= index < len(self._items):
+            del self._items[index]
+            self._save()
+            return True
+        return False
+
     def clear(self) -> None:
         self._items = []
         self._save()

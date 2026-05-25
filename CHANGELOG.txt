@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-05-25 (v7.5.7)
+Offline-Warteschlange verbessert: Einzellöschen, Senden, VoiceOver
+
+- "Eintrag entfernen": Einzelne Nachrichten können gezielt aus der Warteschlange
+  gelöscht werden (vorher nur "Alle verwerfen").
+- "Alle jetzt senden": Warteschlange manuell absenden wenn wieder verbunden
+  (Button ist nur aktiv wenn eine Verbindung besteht).
+- Korrekte Unterscheidung Kanal- vs. Privatnachricht beim Absenden.
+- VoiceOver-Ansagen bei Entfernen und Leeren der Warteschlange.
+- Qt-Bug behoben: Der einfache Dialog wurde durch den vollständigen ersetzt,
+  der zuvor nur existierte aber nicht geöffnet wurde.
+- Gilt für macOS (wxPython) und Windows/Linux (Qt/PySide6).
+
 2026-05-25 (v7.5.6)
 Auto-Abwesend: VoiceOver/NVDA-Ansagen, Timer-Fix, Aktivitätserkennung
 

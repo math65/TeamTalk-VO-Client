@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "7.5.6"
+APP_VERSION = "7.5.7"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -3656,8 +3656,8 @@ class MainWindow(QMainWindow):
         self._refocus_channel_list()
 
     def on_menu_offline_queue(self) -> None:
-        from ui_qt.dialogs import OfflineQueueDialog
-        dlg = OfflineQueueDialog(self, self._offline_queue)
+        from ui_qt.dialogs import OfflineQueueDialogFull
+        dlg = OfflineQueueDialogFull(self, self)
         dlg.exec()
         self._refocus_channel_list()
 

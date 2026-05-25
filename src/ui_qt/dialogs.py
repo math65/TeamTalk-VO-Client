@@ -1623,16 +1623,24 @@ class OfflineQueueDialogFull(QDialog):
             msgs = list(oq.peek() or [])
             for m in msgs:
                 try:
-                    target  = getattr(m, "target_name", None) or str(getattr(m, "target_id", "?"))
-                    text    = getattr(m, "text", "")
-                    preview = text[:50] + ("..." if len(text) > 50 else "")
-                    self._list.addItem(f"An: {target} — {preview}")
+                    target      = getattr(m, "target_name", None) or str(getattr(m, "target_id", "?"))
+                    text        = getattr(m, "text", "")
+                    target_type = getattr(m, "target_type", "channel")
+                    kind_label  = "Privat" if target_type == "private" else "Kanal"
+                    age         = getattr(m, "age_str", "?")
+                    preview     = text[:60] + ("…" if len(text) > 60 else "")
+                    self._list.addItem(f"[{age} alt, {kind_label} → {target}] {preview}")
                 except Exception:
                     self._list.addItem(str(m))
             count = len(msgs)
             self._status.setText(f"{count} Nachricht(en) ausstehend")
             if count == 0:
                 self._list.addItem("(Warteschlange leer)")
+            client = getattr(self._window, "_client", None) or getattr(self._window, "client", None)
+            connected = bool(client and client.is_connected())
+            for btn in self.findChildren(QPushButton):
+                if btn.text() in ("Alle &senden", "Alle senden"):
+                    btn.setEnabled(connected and count > 0)
         except Exception as exc:
             self._list.addItem(f"Fehler: {exc}")
 
@@ -1640,17 +1648,22 @@ class OfflineQueueDialogFull(QDialog):
         try:
             client = getattr(self._window, "_client", None) or getattr(self._window, "client", None)
             oq     = self._oq()
-            if oq is None or client is None:
-                QMessageBox.information(self, "Hinweis", "Nicht verbunden oder Queue nicht verfügbar.")
+            if oq is None or client is None or not client.is_connected():
+                QMessageBox.information(self, "Hinweis", "Nicht verbunden – Nachrichten können nicht gesendet werden.")
                 return
             msgs = list(oq.dequeue_all() or [])
             sent = 0
             for m in msgs:
                 try:
-                    target_id = int(getattr(m, "target_id", 0))
-                    text      = getattr(m, "text", "")
-                    client.send_user_message(target_id, text)
-                    sent += 1
+                    target_id   = int(getattr(m, "target_id", 0))
+                    text        = getattr(m, "text", "")
+                    target_type = getattr(m, "target_type", "channel")
+                    if target_type == "private":
+                        ok = client.send_user_message(target_id, text)
+                    else:
+                        ok = client.send_channel_message(target_id, text)
+                    if ok:
+                        sent += 1
                 except Exception:
                     pass
             self._fill()
@@ -1661,28 +1674,17 @@ class OfflineQueueDialogFull(QDialog):
     def _on_remove(self) -> None:
         row = self._list.currentRow()
         if row < 0:
+            QMessageBox.information(self, "Hinweis", "Bitte zuerst einen Eintrag auswählen.")
             return
         try:
             oq = self._oq()
             if oq is None:
                 return
-            msgs = list(oq.peek() or [])
-            if row < len(msgs):
-                # No direct remove-by-index API; dequeue all, drop selected, re-enqueue remainder
-                all_msgs = list(oq.dequeue_all() or [])
-                if row < len(all_msgs):
-                    del all_msgs[row]
-                for m in all_msgs:
-                    try:
-                        oq.enqueue(
-                            target_id=getattr(m, "target_id", 0),
-                            target_name=getattr(m, "target_name", ""),
-                            target_type=getattr(m, "target_type", "user"),
-                            text=getattr(m, "text", ""),
-                        )
-                    except Exception:
-                        pass
+            oq.remove_at(row)
             self._fill()
+            count = self._list.count()
+            if count > 0:
+                self._list.setCurrentRow(min(row, count - 1))
         except Exception as exc:
             QMessageBox.warning(self, "Fehler", str(exc))
 
