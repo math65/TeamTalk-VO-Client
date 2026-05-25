@@ -1,6 +1,23 @@
 Changelog
 =========
 
+2026-05-25 (v7.5.8)
+5 neue Features: Nachrichten, Statistik, Transfer, Verlauf, Kick
+
+- Gespeicherte Nachrichten: eigener Dialog mit Live-Suche, Einzellöschen,
+  Kopieren, VoiceOver-Ansagen. Qt-Bug behoben (Nachrichten wurden nicht angezeigt).
+- System-Tab: Sitzungsstatistik zeigt Verbindungsdauer, Nachrichten-Zähler
+  und Verbindungsanzahl; mit Aktualisieren- und Zurücksetzen-Button.
+- Dateien-Tab: Übertragungsgeschwindigkeit (KB/s) und geschätzte Restzeit (ETA)
+  werden während aktiver Dateiübertragungen angezeigt. VoiceOver/NVDA-Ansage
+  bei Abschluss einer Übertragung.
+- Sprechen-Tab: Textverlauf der letzten 10 ElevenLabs-Texte;
+  Doppelklick oder "Erneut sprechen"-Button für schnellen Zugriff.
+- Kick mit Begründung: Vor jedem Kick erscheint ein Eingabefeld für eine
+  Begründung. Diese wird als Kanal-Nachricht gesendet (Format:
+  "[Admin] Name wurde gekickt: Begründung"). VoiceOver/NVDA-Ankündigung.
+- Gilt für macOS (wxPython) und Windows/Linux (Qt/PySide6) – jeweils beide UIs.
+
 2026-05-25 (v7.5.7)
 Offline-Warteschlange verbessert: Einzellöschen, Senden, VoiceOver
 
