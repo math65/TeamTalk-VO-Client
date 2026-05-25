@@ -275,7 +275,7 @@ class AudioTab(wx.Panel):
         prefs_sizer.Add(self.auto_apply_prefs, 0, wx.ALL, 8)
 
         self.auto_apply_device_change = wx.CheckBox(self, label="Bei &Gerätewechsel automatisch anwenden")
-        self.auto_apply_device_change.SetName("Audio automatisch anwenden bei Gerätewechsel")
+        self.auto_apply_device_change.SetName("Auto-Anwenden bei Gerätewechsel")
         self.auto_apply_device_change.SetValue(
             bool(self.frame.settings_store.settings.auto_apply_audio_on_device_change)
         )

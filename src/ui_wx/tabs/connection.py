@@ -189,7 +189,8 @@ class ConnectionTab(wx.Panel):
         sizer.Add(server_sizer, 1, wx.ALL | wx.EXPAND, 8)
         self.SetSizer(sizer)
 
-
+        # Tab-Reihenfolge nach Layout-Initialisierung setzen
+        wx.CallAfter(self._set_tab_order)
 
         # Stats timer
         self._stats_timer = wx.Timer(self)
@@ -703,6 +704,8 @@ class ConnectionTab(wx.Panel):
 
     def _set_tab_order(self):
         order = [
+            # Filterzeile kommt zuerst – so landet der Fokus sinnvoll nach Tab-Header
+            self.server_group_choice, self.server_filter,
             self.server_list, self.server_add, self.server_edit, self.server_remove,
             self.host, self.tcp_port, self.udp_port, self.nickname, self.username,
             self.password, self.client_name, self.encrypted,

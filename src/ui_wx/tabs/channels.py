@@ -41,6 +41,8 @@ class ChannelsTab(wx.Panel):
         self._all_items: List[Tuple[str, int]] = []
         # v4.6.0 – Diff-Cache: zuletzt angezeigte Labels für diff-basiertes Update
         self._displayed_labels: List[str] = []
+        # Braillezeile: letzter angesagter Label (verhindert Doppel-Ansagen)
+        self._last_announced_label: str = ""
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -490,7 +492,9 @@ class ChannelsTab(wx.Panel):
                 self._selected_channel_id = node_id
                 self._selected_user_id = None
                 label = self.channel_list.GetString(idx).strip()
-                self.frame.tts.speak(label, kind="system")
+                if label != self._last_announced_label:
+                    self._last_announced_label = label
+                    self.frame.tts.speak(label, kind="system")
                 try:
                     self.frame.chat_tab.update_chat_target()
                 except Exception:
@@ -499,7 +503,10 @@ class ChannelsTab(wx.Panel):
                 self._selected_user_id = node_id
                 user = self._find_user(node_id)
                 if user:
-                    self.frame.tts.speak(self._format_user_label(user), kind="system")
+                    label = self._format_user_label(user)
+                    if label != self._last_announced_label:
+                        self._last_announced_label = label
+                        self.frame.tts.speak(label, kind="system")
                 for i, uid in enumerate(self._private_user_ids):
                     if uid == node_id:
                         try:

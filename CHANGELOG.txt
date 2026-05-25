@@ -1,6 +1,21 @@
 Changelog
 =========
 
+2026-05-25 (v7.6.0)
+Barrierefreiheit & Übersetzungen: NVDA Live-Regions, Spanisch 100 %, Braille-Optimierungen
+
+- Qt Live-Regions (NVDA/Windows): NVDA kündigt jetzt automatisch an wenn ein Benutzer
+  den Kanal betritt oder verlässt, eine neue Kanal- oder Privatnachricht eingeht,
+  Medien-Streaming startet oder stoppt, und beim eigenen Kanalwechsel – ohne Fokusbewegung.
+  Ankündigungen sind auf 80 Zeichen begrenzt; Privatnachrichten nennen nur den Absender
+  (kein Nachrichtentext, Datenschutz). Benutzer-Ereignisse nur im eigenen Kanal.
+- Spanische Vollübersetzung (100 %): Alle ~670 fehlenden Strings übersetzt – die App
+  ist jetzt vollständig auf Spanisch verfügbar (alle Tabs, Menüs, Dialoge, Fehlermeldungen).
+- Braille-Optimierungen (macOS): Doppel-Ansagen in der Kanalliste verhindert (nur bei
+  echtem Wechsel); Tab-Reihenfolge im Verbindungs-Tab korrigiert (Filter → Liste → Buttons);
+  accessible names für Braillezeile gekürzt (max. 50 Zeichen, keine Redundanzen).
+- Gilt für macOS (wxPython) und Windows/Linux (Qt/PySide6).
+
 2026-05-25 (v7.5.10)
 Französische Vollübersetzung (~100 %) dank @math65
 

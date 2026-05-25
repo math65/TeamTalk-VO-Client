@@ -254,7 +254,7 @@ class SettingsTab(wx.Panel):
         self._chat_show_timestamps.SetValue(bool(getattr(s, "chat_show_timestamps", False)))
         gen_sizer.Add(self._chat_show_timestamps, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        self._chat_relative_timestamps = wx.CheckBox(panel, label="Zeit&stempel als relative Angabe (gerade eben, vor X Min.)")
+        self._chat_relative_timestamps = wx.CheckBox(panel, label="&Relative Zeitstempel (gerade eben, vor X Min.)")
         self._chat_relative_timestamps.SetName("Relative Zeitstempel")
         self._chat_relative_timestamps.SetValue(bool(getattr(s, "chat_relative_timestamps", False)))
         gen_sizer.Add(self._chat_relative_timestamps, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)

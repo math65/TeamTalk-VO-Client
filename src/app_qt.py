@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "7.5.10"
+APP_VERSION = "7.6.0"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -845,6 +845,8 @@ class MainWindow(QMainWindow):
             call_after(self._on_user_statechange, msg)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_USER_TEXTMESSAGE):
             call_after(self._on_text_message, msg)
+        elif hasattr(tt.ClientEvent, "CLIENTEVENT_STREAM_MEDIAFILE") and mtype == int(tt.ClientEvent.CLIENTEVENT_STREAM_MEDIAFILE):
+            call_after(self._on_stream_mediafile, msg)
 
     # ------------------------------------------------------------------
     # Connection Events
@@ -950,7 +952,10 @@ class MainWindow(QMainWindow):
                 if (self.tts.settings.speak_user_join and not _tts_muted
                         and self._notifications.allow_tts("user_join", user=name, server=_srv, channel=_ch)):
                     self.tts.speak(_join_text, kind="user_join")
-                self._sr_announce(_join_text)
+                try:
+                    self._sr_announce(_join_text)
+                except Exception:
+                    pass
                 if self._notifications.allow_sound("user_join", user=name, server=_srv, channel=_ch):
                     self.sound_manager.play("user_join", self.settings_store.settings.sound_events.get("user_join"))
                 self._refresh_channels()
@@ -965,6 +970,8 @@ class MainWindow(QMainWindow):
             if uid == my_id:
                 return
             name = self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or f"User#{uid}"
+            ch_id = int(getattr(user, "nChannelID", 0) or 0)
+            my_ch = int(self.client.get_my_channel_id() or 0)
             _muted_raw = str(getattr(self.settings_store.settings, "tts_muted_join_users", "") or "")
             _muted_list = [u.strip().lower() for u in _muted_raw.split(",") if u.strip()]
             _tts_muted = name.lower() in _muted_list if _muted_list else False
@@ -973,7 +980,11 @@ class MainWindow(QMainWindow):
             if (self.tts.settings.speak_user_leave and not _tts_muted
                     and self._notifications.allow_tts("user_leave", user=name, server=_srv)):
                 self.tts.speak(_leave_text, kind="user_leave")
-            self._sr_announce(_leave_text)
+            if ch_id == my_ch:
+                try:
+                    self._sr_announce(_leave_text)
+                except Exception:
+                    pass
             if self._notifications.allow_sound("user_leave", user=name, server=_srv):
                 self.sound_manager.play("user_leave", self.settings_store.settings.sound_events.get("user_leave"))
             self._refresh_channels()
@@ -1024,7 +1035,11 @@ class MainWindow(QMainWindow):
                 if topic:
                     announce += f" — {topic}"
                 self.tts.speak(announce, kind="system")
-                self._sr_announce(f"Kanal {announce}")
+                try:
+                    _ch_announce = f"Kanal beigetreten: {self._current_channel_name}"
+                    self._sr_announce(_ch_announce[:100])
+                except Exception:
+                    pass
                 self._add_to_recent_channels(ch_id, self._current_channel_name)
             if getattr(self.settings_store.settings, "auto_greeting_enabled", False):
                 _gt = str(getattr(self.settings_store.settings, "auto_greeting_text", "") or "").strip()
@@ -1134,7 +1149,20 @@ class MainWindow(QMainWindow):
                                     break
                     if self._notifications.allow_tts(_notif_kind, user=from_user, server=_srv, message=str(content or "")):
                         self.tts.speak(speak_text, kind=kind)
-                    self._sr_announce(speak_text)
+                    try:
+                        if kind == "private":
+                            # Privacy: only announce sender, not the message text
+                            self._sr_announce(f"Privatnachricht von {from_user}"[:100])
+                        else:
+                            # Channel chat: only announce when not in the Kanäle+Chat tab (index 0)
+                            _cur_tab = self.notebook.currentIndex()
+                            if _cur_tab != 0:
+                                _chat_sr = f"Kanal-Chat von {from_user}: {str(content or '')[:80]}"
+                                if len(_chat_sr) > 100:
+                                    _chat_sr = _chat_sr[:99] + "…"
+                                self._sr_announce(_chat_sr)
+                    except Exception:
+                        pass
                 else:
                     if kind == "private":
                         self.sound_manager.play("msg_private_tx", self.settings_store.settings.sound_events.get("msg_private_tx"))
@@ -1173,6 +1201,27 @@ class MainWindow(QMainWindow):
                 if getattr(self.tts.settings, "speak_file_transfer", True):
                     name = self.tt_str(ft.szRemoteFileName)
                     self.tts.speak(f"Dateitransfer abgeschlossen: {name}", kind="system")
+        except Exception:
+            pass
+
+    def _on_stream_mediafile(self, msg) -> None:
+        """Handle CLIENTEVENT_STREAM_MEDIAFILE — announce stream start/stop via screen reader."""
+        try:
+            mfi = getattr(msg, "mediafileinfo", None)
+            if mfi is None:
+                return
+            # nStatus: 1=started/playing, 2=paused, 3=stopped/finished, 0=error
+            status = int(getattr(mfi, "nStatus", -1))
+            if status == 1:
+                try:
+                    self._sr_announce("Medien-Streaming gestartet")
+                except Exception:
+                    pass
+            elif status in (3, 0):
+                try:
+                    self._sr_announce("Medien-Streaming gestoppt")
+                except Exception:
+                    pass
         except Exception:
             pass
 
@@ -1696,6 +1745,10 @@ class MainWindow(QMainWindow):
             ok = self.client.start_streaming_media_to_channel(url, preamp_gain=gain)
             if ok:
                 self.set_status(f"Streaming gestartet: {url}")
+                try:
+                    self._sr_announce("Medien-Streaming gestartet")
+                except Exception:
+                    pass
             else:
                 self.set_status("Streaming konnte nicht gestartet werden")
         except Exception as exc:
@@ -1705,6 +1758,10 @@ class MainWindow(QMainWindow):
         try:
             self.client.stop_streaming_media()
             self.set_status("Streaming gestoppt")
+            try:
+                self._sr_announce("Medien-Streaming gestoppt")
+            except Exception:
+                pass
         except Exception:
             pass
 
