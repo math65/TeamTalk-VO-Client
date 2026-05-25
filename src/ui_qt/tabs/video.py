@@ -8,6 +8,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
+from i18n import _
+
 if TYPE_CHECKING:
     from app_qt import MainWindow
 
@@ -26,20 +28,20 @@ class VideoTab(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
 
         # ── Kamera-Gerät ──────────────────────────────────────────────────
-        dev_group = QGroupBox("Video-Gerät")
+        dev_group = QGroupBox(_("Video-Gerät"))
         dev_form = QFormLayout(dev_group)
 
         self.camera_choice = QComboBox()
-        self.camera_choice.setAccessibleName("Kamera")
+        self.camera_choice.setAccessibleName(_("Kamera"))
         self.camera_choice.currentIndexChanged.connect(self._on_device_changed)
-        dev_form.addRow(QLabel("Kamera"), self.camera_choice)
+        dev_form.addRow(QLabel(_("Kamera")), self.camera_choice)
 
         self.format_choice = QComboBox()
-        self.format_choice.setAccessibleName("Format")
-        dev_form.addRow(QLabel("Format"), self.format_choice)
+        self.format_choice.setAccessibleName(_("Format"))
+        dev_form.addRow(QLabel(_("Format")), self.format_choice)
 
         refresh_row = QHBoxLayout()
-        self.refresh_btn = QPushButton("Kamera a&ktualisieren")
+        self.refresh_btn = QPushButton(_("Kamera a&ktualisieren"))
         self.refresh_btn.clicked.connect(self.refresh_devices)
         refresh_row.addWidget(self.refresh_btn)
         refresh_row.addStretch()
@@ -47,7 +49,7 @@ class VideoTab(QWidget):
         root.addWidget(dev_group)
 
         # ── Einstellungen ─────────────────────────────────────────────────
-        settings_group = QGroupBox("Einstellungen")
+        settings_group = QGroupBox(_("Einstellungen"))
         settings_form = QFormLayout(settings_group)
 
         self.fps_choice = QComboBox()
@@ -57,12 +59,12 @@ class VideoTab(QWidget):
         settings_form.addRow(QLabel("FPS"), self.fps_choice)
 
         self.resolution_choice = QComboBox()
-        self.resolution_choice.setAccessibleName("Auflösung")
+        self.resolution_choice.setAccessibleName(_("Auflösung"))
         self.resolution_choice.addItems(
             ["320x240", "640x480", "1280x720", "1920x1080"]
         )
         self.resolution_choice.setCurrentIndex(1)  # default 640x480
-        settings_form.addRow(QLabel("Auflösung"), self.resolution_choice)
+        settings_form.addRow(QLabel(_("Auflösung")), self.resolution_choice)
 
         self.codec_choice = QComboBox()
         self.codec_choice.setAccessibleName("Codec")
@@ -94,25 +96,25 @@ class VideoTab(QWidget):
         self.bitrate_slider.valueChanged.connect(self._on_bitrate_changed)
         bitrate_row.addWidget(self.bitrate_slider)
         bitrate_row.addWidget(self.bitrate_label)
-        settings_form.addRow(QLabel("Bitrate (100–2000 kbps)"), bitrate_row)
+        settings_form.addRow(QLabel(_("Bitrate (100–2000 kbps)")), bitrate_row)
 
         root.addWidget(settings_group)
 
         # ── Video senden ──────────────────────────────────────────────────
-        tx_group = QGroupBox("Video senden")
+        tx_group = QGroupBox(_("Video senden"))
         tx_layout = QVBoxLayout(tx_group)
 
         apply_row = QHBoxLayout()
-        self.apply_btn = QPushButton("Video an&wenden")
+        self.apply_btn = QPushButton(_("Video an&wenden"))
         self.apply_btn.clicked.connect(self.on_apply)
         apply_row.addWidget(self.apply_btn)
         apply_row.addStretch()
         tx_layout.addLayout(apply_row)
 
         tx_btn_row = QHBoxLayout()
-        self.start_btn = QPushButton("&Video senden")
+        self.start_btn = QPushButton(_("&Video senden"))
         self.start_btn.clicked.connect(self.on_start_video)
-        self.stop_btn = QPushButton("&Stopp")
+        self.stop_btn = QPushButton(_("&Stopp"))
         self.stop_btn.clicked.connect(self.on_stop_video)
         tx_btn_row.addWidget(self.start_btn)
         tx_btn_row.addWidget(self.stop_btn)
@@ -120,16 +122,16 @@ class VideoTab(QWidget):
         tx_layout.addLayout(tx_btn_row)
 
         self.stats_label = QLabel("")
-        self.stats_label.setAccessibleName("Video-Statistik")
+        self.stats_label.setAccessibleName(_("Video-Statistik"))
         self.stats_label.setWordWrap(True)
         tx_layout.addWidget(self.stats_label)
 
         root.addWidget(tx_group)
 
         # ── Aufzeichnung ──────────────────────────────────────────────────
-        rec_group = QGroupBox("Aufzeichnung")
+        rec_group = QGroupBox(_("Aufzeichnung"))
         rec_layout = QHBoxLayout(rec_group)
-        self.record_btn = QPushButton("A&ufzeichnen")
+        self.record_btn = QPushButton(_("A&ufzeichnen"))
         self.record_btn.clicked.connect(self._on_record)
         rec_layout.addWidget(self.record_btn)
         rec_layout.addStretch()
@@ -159,7 +161,7 @@ class VideoTab(QWidget):
         self.camera_choice.blockSignals(True)
         self.camera_choice.clear()
         if not self._devices:
-            self.camera_choice.addItem("Kein Gerät gefunden")
+            self.camera_choice.addItem(_("Kein Gerät gefunden"))
             self.camera_choice.setEnabled(False)
             self.format_choice.clear()
             self.format_choice.setEnabled(False)
@@ -224,7 +226,7 @@ class VideoTab(QWidget):
             return
 
         self.format_choice.setEnabled(True)
-        for _, label in self._formats:
+        for _fmt, label in self._formats:
             self.format_choice.addItem(label)
         saved_idx = int(
             getattr(self.window.settings_store.settings, "video_format_index", 0)
@@ -246,17 +248,17 @@ class VideoTab(QWidget):
 
     def on_apply(self) -> None:
         if not self._devices:
-            self.window.set_status("Kein Video-Gerät")
+            self.window.set_status(_("Kein Video-Gerät"))
             return
         dev_idx = self.camera_choice.currentIndex()
         if dev_idx < 0 or dev_idx >= len(self._devices):
-            self.window.set_status("Bitte Video-Gerät auswählen")
+            self.window.set_status(_("Bitte Video-Gerät auswählen"))
             return
         dev = self._devices[dev_idx]
         device_id = self.window.tt_str(dev.szDeviceID)
         fmt = self._selected_format()
         if fmt is None:
-            self.window.set_status("Kein Video-Format")
+            self.window.set_status(_("Kein Video-Format"))
             return
         try:
             self.window.client.close_video_capture_device()
@@ -274,31 +276,31 @@ class VideoTab(QWidget):
             settings.video_bitrate_kbps = self.bitrate_slider.value()
             settings.video_codec = self.codec_choice.currentText()
             self.window.settings_store.save()
-            self.window.set_status("Video-Gerät angewendet")
+            self.window.set_status(_("Video-Gerät angewendet"))
         else:
-            self.window.set_status("Video-Gerät konnte nicht initialisiert werden")
+            self.window.set_status(_("Video-Gerät konnte nicht initialisiert werden"))
 
     # ── Transmission ──────────────────────────────────────────────────────
 
     def on_start_video(self) -> None:
         if not self._devices:
-            self.window.set_status("Kein Video-Gerät")
+            self.window.set_status(_("Kein Video-Gerät"))
             return
         # Ensure device is initialized first
         dev_idx = self.camera_choice.currentIndex()
         if dev_idx < 0 or dev_idx >= len(self._devices):
-            self.window.set_status("Bitte Video-Gerät auswählen")
+            self.window.set_status(_("Bitte Video-Gerät auswählen"))
             return
         fmt = self._selected_format()
         if fmt is None:
-            self.window.set_status("Kein Video-Format")
+            self.window.set_status(_("Kein Video-Format"))
             return
         dev = self._devices[dev_idx]
         device_id = self.window.tt_str(dev.szDeviceID)
         try:
             self.window.client.close_video_capture_device()
             if not self.window.client.init_video_capture_device(device_id, fmt):
-                self.window.set_status("Video-Gerät konnte nicht initialisiert werden")
+                self.window.set_status(_("Video-Gerät konnte nicht initialisiert werden"))
                 return
         except Exception as exc:
             self.window.set_status(f"Video-Init Fehler: {exc}")
@@ -313,10 +315,10 @@ class VideoTab(QWidget):
             return
         if ok:
             self._tx_enabled = True
-            self.stats_label.setText("Video-Übertragung aktiv")
-            self.window.set_status("Video senden aktiviert")
+            self.stats_label.setText(_("Video-Übertragung aktiv"))
+            self.window.set_status(_("Video senden aktiviert"))
         else:
-            self.window.set_status("Video senden fehlgeschlagen")
+            self.window.set_status(_("Video senden fehlgeschlagen"))
 
     def on_stop_video(self) -> None:
         try:
@@ -325,7 +327,7 @@ class VideoTab(QWidget):
             pass
         self._tx_enabled = False
         self.stats_label.setText("")
-        self.window.set_status("Video senden deaktiviert")
+        self.window.set_status(_("Video senden deaktiviert"))
 
     # ── Recording ─────────────────────────────────────────────────────────
 
@@ -334,11 +336,11 @@ class VideoTab(QWidget):
             if hasattr(self.window.client, "start_video_recording"):
                 ok = self.window.client.start_video_recording()
                 if ok:
-                    self.window.set_status("Video-Aufzeichnung gestartet")
+                    self.window.set_status(_("Video-Aufzeichnung gestartet"))
                     return
         except Exception:
             pass
-        self.window.set_status("Video-Aufzeichnung nicht verfügbar")
+        self.window.set_status(_("Video-Aufzeichnung nicht verfügbar"))
 
     # ── Settings change handlers ──────────────────────────────────────────
 

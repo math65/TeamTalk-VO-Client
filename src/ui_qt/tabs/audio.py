@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer
 
 import system_audio as sa
+from i18n import _
 
 if TYPE_CHECKING:
     from app_qt import MainWindow
@@ -41,28 +42,28 @@ class AudioTab(QWidget):
         outer.addWidget(scroll)
 
         # ── Geräte ───────────────────────────────────────────────────────
-        dev_group = QGroupBox("Geräte")
+        dev_group = QGroupBox(_("Geräte"))
         dev_form = QFormLayout(dev_group)
         self.input_device = QComboBox()
-        self.input_device.setAccessibleName("Eingabegerät")
+        self.input_device.setAccessibleName(_("Eingabegerät"))
         self.output_device = QComboBox()
-        self.output_device.setAccessibleName("Ausgabegerät")
-        dev_form.addRow(QLabel("Eingabegerät"), self.input_device)
-        dev_form.addRow(QLabel("Ausgabegerät"), self.output_device)
+        self.output_device.setAccessibleName(_("Ausgabegerät"))
+        dev_form.addRow(QLabel(_("Eingabegerät")), self.input_device)
+        dev_form.addRow(QLabel(_("Ausgabegerät")), self.output_device)
         root.addWidget(dev_group)
 
         # ── Systemton ────────────────────────────────────────────────────
-        sys_group = QGroupBox("Systemton")
+        sys_group = QGroupBox(_("Systemton"))
         sys_v = QVBoxLayout(sys_group)
         self.sys_hint_label = QLabel(sa.loopback_hint())
         self.sys_hint_label.setWordWrap(True)
         sys_v.addWidget(self.sys_hint_label)
         sys_btn_row = QHBoxLayout()
         if _IS_MAC:
-            self.sys_install_btn = QPushButton("BlackHole &installieren")
+            self.sys_install_btn = QPushButton(_("BlackHole &installieren"))
             self.sys_install_btn.clicked.connect(self._on_install_loopback)
             sys_btn_row.addWidget(self.sys_install_btn)
-        self.sys_refresh_hint_btn = QPushButton("Status aktuali&sieren")
+        self.sys_refresh_hint_btn = QPushButton(_("Status aktuali&sieren"))
         self.sys_refresh_hint_btn.clicked.connect(self._on_refresh_sys_hint)
         sys_btn_row.addWidget(self.sys_refresh_hint_btn)
         sys_btn_row.addStretch()
@@ -70,37 +71,37 @@ class AudioTab(QWidget):
         root.addWidget(sys_group)
 
         # ── Sprachaktivierung ────────────────────────────────────────────
-        va_group = QGroupBox("Sprachaktivierung")
+        va_group = QGroupBox(_("Sprachaktivierung"))
         va_form = QFormLayout(va_group)
-        self.voice_activation = QCheckBox("&Sprachaktivierung")
-        self.voice_activation.setAccessibleName("Sprachaktivierung")
+        self.voice_activation = QCheckBox(_("&Sprachaktivierung"))
+        self.voice_activation.setAccessibleName(_("Sprachaktivierung"))
         self.voice_activation.stateChanged.connect(self.on_voice_activation)
-        va_form.addRow(QLabel("Sprachaktivierung"), self.voice_activation)
+        va_form.addRow(QLabel(_("Sprachaktivierung")), self.voice_activation)
         self.voice_level = QSpinBox()
         self.voice_level.setRange(0, 100)
         self.voice_level.setValue(30)
-        self.voice_level.setAccessibleName("Aktivierungspegel")
+        self.voice_level.setAccessibleName(_("Aktivierungspegel"))
         self.voice_level.valueChanged.connect(self.on_voice_level)
-        va_form.addRow(QLabel("Aktivierungspegel (0–100)"), self.voice_level)
+        va_form.addRow(QLabel(_("Aktivierungspegel (0–100)")), self.voice_level)
         self.va_delay = QSpinBox()
         self.va_delay.setRange(0, 5000)
         self.va_delay.setValue(0)
-        self.va_delay.setAccessibleName("Nachlauf")
+        self.va_delay.setAccessibleName(_("Nachlauf"))
         self.va_delay.valueChanged.connect(self.on_va_delay)
-        va_form.addRow(QLabel("Nachlauf (ms, 0–5000)"), self.va_delay)
+        va_form.addRow(QLabel(_("Nachlauf (ms, 0–5000)")), self.va_delay)
         root.addWidget(va_group)
 
         # ── Aussteuerungsanzeige ─────────────────────────────────────────
-        vu_group = QGroupBox("Aussteuerungsanzeige")
+        vu_group = QGroupBox(_("Aussteuerungsanzeige"))
         vu_v = QVBoxLayout(vu_group)
         self.vu_bar = QProgressBar()
         self.vu_bar.setRange(0, 100)
-        self.vu_bar.setAccessibleName("VU-Meter")
+        self.vu_bar.setAccessibleName(_("VU-Meter"))
         vu_v.addWidget(self.vu_bar)
         root.addWidget(vu_group)
 
         # ── Pegel und Lautstärke ─────────────────────────────────────────
-        levels_group = QGroupBox("Pegel und Lautstärke")
+        levels_group = QGroupBox(_("Pegel und Lautstärke"))
         levels_form = QFormLayout(levels_group)
 
         master_row = QHBoxLayout()
@@ -109,13 +110,13 @@ class AudioTab(QWidget):
         self.master_volume_slider.setValue(
             int(getattr(window.settings_store.settings, "master_volume", 100))
         )
-        self.master_volume_slider.setAccessibleName("Ausgabe-Lautstärke")
+        self.master_volume_slider.setAccessibleName(_("Ausgabe-Lautstärke"))
         self.master_volume_label = QLabel(str(self.master_volume_slider.value()))
-        self.master_volume_label.setAccessibleName("Ausgabe-Lautstärke Wert")
+        self.master_volume_label.setAccessibleName(_("Ausgabe-Lautstärke Wert"))
         self.master_volume_slider.valueChanged.connect(self._on_master_volume_changed)
         master_row.addWidget(self.master_volume_slider)
         master_row.addWidget(self.master_volume_label)
-        levels_form.addRow(QLabel("Ausgabe-Lautstärke (0–200)"), master_row)
+        levels_form.addRow(QLabel(_("Ausgabe-Lautstärke (0–200)")), master_row)
 
         mic_gain_row = QHBoxLayout()
         self.mic_gain_slider = QSlider(Qt.Horizontal)
@@ -123,76 +124,76 @@ class AudioTab(QWidget):
         self.mic_gain_slider.setValue(
             int(getattr(window.settings_store.settings, "mic_gain", 100))
         )
-        self.mic_gain_slider.setAccessibleName("Mikrofonverstärkung")
+        self.mic_gain_slider.setAccessibleName(_("Mikrofonverstärkung"))
         self.mic_gain_label = QLabel(str(self.mic_gain_slider.value()))
-        self.mic_gain_label.setAccessibleName("Mikrofonverstärkung Wert")
+        self.mic_gain_label.setAccessibleName(_("Mikrofonverstärkung Wert"))
         self.mic_gain_slider.valueChanged.connect(self._on_mic_gain_changed)
         mic_gain_row.addWidget(self.mic_gain_slider)
         mic_gain_row.addWidget(self.mic_gain_label)
-        levels_form.addRow(QLabel("Mikrofonverstärkung (0–200)"), mic_gain_row)
+        levels_form.addRow(QLabel(_("Mikrofonverstärkung (0–200)")), mic_gain_row)
 
-        self.output_mute = QCheckBox("&Ausgabe stummschalten")
-        self.output_mute.setAccessibleName("Ausgabe stummschalten")
+        self.output_mute = QCheckBox(_("&Ausgabe stummschalten"))
+        self.output_mute.setAccessibleName(_("Ausgabe stummschalten"))
         self.output_mute.stateChanged.connect(self._on_output_mute)
-        levels_form.addRow(QLabel("Ausgabe"), self.output_mute)
+        levels_form.addRow(QLabel(_("Ausgabe")), self.output_mute)
         root.addWidget(levels_group)
 
         # ── Geräteeffekte ────────────────────────────────────────────────
-        effects_group = QGroupBox("Geräteeffekte")
+        effects_group = QGroupBox(_("Geräteeffekte"))
         effects_v = QVBoxLayout(effects_group)
-        self.agc_check = QCheckBox("Automatische Lautstärke&regelung (AGC)")
-        self.agc_check.setAccessibleName("Automatische Lautstärkeregelung (AGC)")
+        self.agc_check = QCheckBox(_("Automatische Lautstärke&regelung (AGC)"))
+        self.agc_check.setAccessibleName(_("Automatische Lautstärkeregelung (AGC)"))
         self.agc_check.setChecked(bool(getattr(window.settings_store.settings, "agc", False)))
         self.agc_check.stateChanged.connect(self._on_preprocess_changed)
         effects_v.addWidget(self.agc_check)
-        self.denoise_check = QCheckBox("&Rauschunterdrückung")
-        self.denoise_check.setAccessibleName("Rauschunterdrückung")
+        self.denoise_check = QCheckBox(_("&Rauschunterdrückung"))
+        self.denoise_check.setAccessibleName(_("Rauschunterdrückung"))
         self.denoise_check.setChecked(bool(getattr(window.settings_store.settings, "denoise", False)))
         self.denoise_check.stateChanged.connect(self._on_preprocess_changed)
         effects_v.addWidget(self.denoise_check)
-        self.echo_check = QCheckBox("&Echounterdrückung")
-        self.echo_check.setAccessibleName("Echounterdrückung")
+        self.echo_check = QCheckBox(_("&Echounterdrückung"))
+        self.echo_check.setAccessibleName(_("Echounterdrückung"))
         self.echo_check.setChecked(bool(getattr(window.settings_store.settings, "echo_cancel", False)))
         self.echo_check.stateChanged.connect(self._on_preprocess_changed)
         effects_v.addWidget(self.echo_check)
-        self.apply_effects_btn = QPushButton("E&ffekte anwenden")
+        self.apply_effects_btn = QPushButton(_("E&ffekte anwenden"))
         self.apply_effects_btn.clicked.connect(self.on_apply_effects)
         effects_v.addWidget(self.apply_effects_btn)
         root.addWidget(effects_group)
 
         # ── Vorverarbeitung ──────────────────────────────────────────────
-        preprocess_group = QGroupBox("Vorverarbeitung")
+        preprocess_group = QGroupBox(_("Vorverarbeitung"))
         preprocess_form = QFormLayout(preprocess_group)
         self.preprocess_choice = QComboBox()
-        self.preprocess_choice.addItems(["Keine", "SpeexDSP", "WebRTC"])
-        self.preprocess_choice.setAccessibleName("Vorverarbeitung")
+        self.preprocess_choice.addItems([_("Keine"), "SpeexDSP", "WebRTC"])
+        self.preprocess_choice.setAccessibleName(_("Vorverarbeitung"))
         self.preprocess_choice.currentIndexChanged.connect(self.on_preprocess_changed)
-        preprocess_form.addRow(QLabel("Vorverarbeitung"), self.preprocess_choice)
+        preprocess_form.addRow(QLabel(_("Vorverarbeitung")), self.preprocess_choice)
         root.addWidget(preprocess_group)
 
         # ── Mikrofon-Verarbeitung ────────────────────────────────────────
-        mgp_group = QGroupBox("Mikrofon-Verarbeitung")
+        mgp_group = QGroupBox(_("Mikrofon-Verarbeitung"))
         mgp_v = QVBoxLayout(mgp_group)
         mgp_form = QFormLayout()
         self.mgp_mode = QComboBox()
-        self.mgp_mode.addItems(["Keine", "Noise Gate", "Expander", "Limiter", "Expander + Limiter"])
-        self.mgp_mode.setAccessibleName("Mikrofon-Verarbeitungsmodus")
-        mgp_form.addRow(QLabel("Modus"), self.mgp_mode)
+        self.mgp_mode.addItems([_("Keine"), "Noise Gate", "Expander", "Limiter", "Expander + Limiter"])
+        self.mgp_mode.setAccessibleName(_("Mikrofon-Verarbeitungsmodus"))
+        mgp_form.addRow(QLabel(_("Modus")), self.mgp_mode)
         self.mgp_threshold = QSpinBox()
         self.mgp_threshold.setRange(0, 100)
         self.mgp_threshold.setValue(30)
-        self.mgp_threshold.setAccessibleName("Verarbeitungs-Schwellwert")
-        mgp_form.addRow(QLabel("Schwellwert (0–100)"), self.mgp_threshold)
+        self.mgp_threshold.setAccessibleName(_("Verarbeitungs-Schwellwert"))
+        mgp_form.addRow(QLabel(_("Schwellwert (0–100)")), self.mgp_threshold)
         self.mgp_suppress_db = QSpinBox()
         self.mgp_suppress_db.setRange(5, 60)
         self.mgp_suppress_db.setValue(30)
-        self.mgp_suppress_db.setAccessibleName("Rauschunterdrückung dB")
-        mgp_form.addRow(QLabel("Rauschunterdrückung (5–60 dB)"), self.mgp_suppress_db)
+        self.mgp_suppress_db.setAccessibleName(_("Rauschunterdrückung dB"))
+        mgp_form.addRow(QLabel(_("Rauschunterdrückung (5–60 dB)")), self.mgp_suppress_db)
         mgp_v.addLayout(mgp_form)
         mgp_btn_row = QHBoxLayout()
-        self.mgp_apply_btn = QPushButton("Verarbeitung &anwenden")
+        self.mgp_apply_btn = QPushButton(_("Verarbeitung &anwenden"))
         self.mgp_apply_btn.clicked.connect(self.on_apply_processing)
-        self.mgp_preview_btn = QPushButton("&Vorschau starten")
+        self.mgp_preview_btn = QPushButton(_("&Vorschau starten"))
         self.mgp_preview_btn.clicked.connect(self.on_mic_preview)
         mgp_btn_row.addWidget(self.mgp_apply_btn)
         mgp_btn_row.addWidget(self.mgp_preview_btn)
@@ -201,24 +202,24 @@ class AudioTab(QWidget):
         root.addWidget(mgp_group)
 
         # ── Aktionen ─────────────────────────────────────────────────────
-        actions_group = QGroupBox("Aktionen")
+        actions_group = QGroupBox(_("Aktionen"))
         actions_v = QVBoxLayout(actions_group)
-        self.duplex_mode = QCheckBox("&Duplex-Modus verwenden (Eingabe/Ausgabe gekoppelt)")
-        self.duplex_mode.setAccessibleName("Duplex-Modus verwenden (Eingabe/Ausgabe gekoppelt)")
+        self.duplex_mode = QCheckBox(_("&Duplex-Modus verwenden (Eingabe/Ausgabe gekoppelt)"))
+        self.duplex_mode.setAccessibleName(_("Duplex-Modus verwenden (Eingabe/Ausgabe gekoppelt)"))
         actions_v.addWidget(self.duplex_mode)
-        self.ptt_toggle = QCheckBox("&Push-to-Talk")
-        self.ptt_toggle.setAccessibleName("Push-to-Talk")
+        self.ptt_toggle = QCheckBox(_("&Push-to-Talk"))
+        self.ptt_toggle.setAccessibleName(_("Push-to-Talk"))
         self.ptt_toggle.setChecked(bool(window._ptt_enabled))
         self.ptt_toggle.stateChanged.connect(self._on_ptt_toggle)
         actions_v.addWidget(self.ptt_toggle)
-        self.loopback_check = QCheckBox("&Mikrofontest")
-        self.loopback_check.setAccessibleName("Mikrofontest")
+        self.loopback_check = QCheckBox(_("&Mikrofontest"))
+        self.loopback_check.setAccessibleName(_("Mikrofontest"))
         self.loopback_check.stateChanged.connect(self._on_loopback_toggle)
         actions_v.addWidget(self.loopback_check)
         action_btn_row = QHBoxLayout()
-        self.refresh_btn = QPushButton("Geräte a&ktualisieren")
+        self.refresh_btn = QPushButton(_("Geräte a&ktualisieren"))
         self.refresh_btn.clicked.connect(self.refresh_devices)
-        self.apply_btn = QPushButton("Audio &anwenden")
+        self.apply_btn = QPushButton(_("Audio &anwenden"))
         self.apply_btn.clicked.connect(self.on_apply)
         action_btn_row.addWidget(self.refresh_btn)
         action_btn_row.addWidget(self.apply_btn)
@@ -227,41 +228,41 @@ class AudioTab(QWidget):
         root.addWidget(actions_group)
 
         # ── PTT-Hotkey ───────────────────────────────────────────────────
-        hotkey_group = QGroupBox("PTT-Hotkey")
+        hotkey_group = QGroupBox(_("PTT-Hotkey"))
         hotkey_v = QVBoxLayout(hotkey_group)
         hotkey_row = QHBoxLayout()
-        self.ptt_hotkey_label = QLabel("PTT-Hotkey: –")
+        self.ptt_hotkey_label = QLabel(_("PTT-Hotkey: –"))
         hotkey_row.addWidget(self.ptt_hotkey_label, 1)
-        self.ptt_hotkey_btn = QPushButton("&Hotkey aufnehmen")
+        self.ptt_hotkey_btn = QPushButton(_("&Hotkey aufnehmen"))
         self.ptt_hotkey_btn.clicked.connect(self._on_capture_hotkey)
         hotkey_row.addWidget(self.ptt_hotkey_btn)
         hotkey_v.addLayout(hotkey_row)
-        hotkey_v.addWidget(QLabel("Hinweis: Der Hotkey funktioniert nur innerhalb der App."))
+        hotkey_v.addWidget(QLabel(_("Hinweis: Der Hotkey funktioniert nur innerhalb der App.")))
         root.addWidget(hotkey_group)
 
         # ── Audioeinstellungen speichern ─────────────────────────────────
-        prefs_group = QGroupBox("Audioeinstellungen speichern")
+        prefs_group = QGroupBox(_("Audioeinstellungen speichern"))
         prefs_v = QVBoxLayout(prefs_group)
-        self.auto_apply_prefs = QCheckBox("Audioeinstellungen beim &Start anwenden")
-        self.auto_apply_prefs.setAccessibleName("Audioeinstellungen beim Start anwenden")
+        self.auto_apply_prefs = QCheckBox(_("Audioeinstellungen beim &Start anwenden"))
+        self.auto_apply_prefs.setAccessibleName(_("Audioeinstellungen beim Start anwenden"))
         self.auto_apply_prefs.setChecked(
             bool(getattr(window.settings_store.settings, "auto_apply_audio", False))
         )
         self.auto_apply_prefs.stateChanged.connect(self._on_pref_auto_apply)
         prefs_v.addWidget(self.auto_apply_prefs)
-        self.auto_apply_device_change = QCheckBox("Bei &Gerätewechsel automatisch anwenden")
-        self.auto_apply_device_change.setAccessibleName("Bei Gerätewechsel automatisch anwenden")
+        self.auto_apply_device_change = QCheckBox(_("Bei &Gerätewechsel automatisch anwenden"))
+        self.auto_apply_device_change.setAccessibleName(_("Bei Gerätewechsel automatisch anwenden"))
         self.auto_apply_device_change.setChecked(
             bool(getattr(window.settings_store.settings, "auto_apply_audio_on_device_change", False))
         )
         self.auto_apply_device_change.stateChanged.connect(self._on_pref_auto_apply_device_change)
         prefs_v.addWidget(self.auto_apply_device_change)
         prefs_btn_row = QHBoxLayout()
-        self.save_prefs_btn = QPushButton("Aktuelle Einstellungen s&peichern")
+        self.save_prefs_btn = QPushButton(_("Aktuelle Einstellungen s&peichern"))
         self.save_prefs_btn.clicked.connect(self._on_pref_save)
-        self.apply_prefs_btn = QPushButton("Gespeicherte Einstellungen an&wenden")
+        self.apply_prefs_btn = QPushButton(_("Gespeicherte Einstellungen an&wenden"))
         self.apply_prefs_btn.clicked.connect(self._on_pref_apply)
-        self.clear_prefs_btn = QPushButton("Gespeicherte Einstellungen &löschen")
+        self.clear_prefs_btn = QPushButton(_("Gespeicherte Einstellungen &löschen"))
         self.clear_prefs_btn.clicked.connect(self._on_pref_clear)
         prefs_btn_row.addWidget(self.save_prefs_btn)
         prefs_btn_row.addWidget(self.apply_prefs_btn)
@@ -271,24 +272,24 @@ class AudioTab(QWidget):
         root.addWidget(prefs_group)
 
         # ── Lokale Wiedergabe ─────────────────────────────────────────────
-        lp_group = QGroupBox("Lokale Wiedergabe")
+        lp_group = QGroupBox(_("Lokale Wiedergabe"))
         lp_v = QVBoxLayout(lp_group)
         lp_file_row = QHBoxLayout()
-        lp_file_row.addWidget(QLabel("Datei"))
+        lp_file_row.addWidget(QLabel(_("Datei")))
         self.lp_file_edit = QLineEdit()
-        self.lp_file_edit.setAccessibleName("Wiedergabe-Datei")
+        self.lp_file_edit.setAccessibleName(_("Wiedergabe-Datei"))
         lp_file_row.addWidget(self.lp_file_edit, 1)
-        self.lp_browse_btn = QPushButton("&Durchsuchen...")
+        self.lp_browse_btn = QPushButton(_("&Durchsuchen..."))
         self.lp_browse_btn.clicked.connect(self._on_lp_browse)
         lp_file_row.addWidget(self.lp_browse_btn)
         lp_v.addLayout(lp_file_row)
         lp_btn_row = QHBoxLayout()
-        self.lp_play_btn = QPushButton("&Abspielen")
+        self.lp_play_btn = QPushButton(_("&Abspielen"))
         self.lp_play_btn.clicked.connect(self._on_lp_play)
-        self.lp_pause_btn = QPushButton("&Pause")
+        self.lp_pause_btn = QPushButton(_("&Pause"))
         self.lp_pause_btn.clicked.connect(self._on_lp_pause)
         self.lp_pause_btn.setEnabled(False)
-        self.lp_stop_btn = QPushButton("&Stopp")
+        self.lp_stop_btn = QPushButton(_("&Stopp"))
         self.lp_stop_btn.clicked.connect(self._on_lp_stop)
         self.lp_stop_btn.setEnabled(False)
         lp_btn_row.addWidget(self.lp_play_btn)
@@ -443,7 +444,7 @@ class AudioTab(QWidget):
             except Exception:
                 pass
 
-            self.window.set_status("Audio-Einstellungen übernommen")
+            self.window.set_status(_("Audio-Einstellungen übernommen"))
         except Exception as exc:
             self.window.set_status(f"Audio-Fehler: {exc}")
 
@@ -459,7 +460,7 @@ class AudioTab(QWidget):
                 self.window.client.enable_voice_transmission(False)
         except Exception:
             pass
-        self.window.set_status("Sprachaktivierung an" if enabled else "Sprachaktivierung aus")
+        self.window.set_status(_("Sprachaktivierung an") if enabled else _("Sprachaktivierung aus"))
 
     def on_voice_level(self, value: int) -> None:
         try:
@@ -481,7 +482,7 @@ class AudioTab(QWidget):
             self.window.client.set_sound_output_mute(muted)
         except Exception:
             pass
-        self.window.set_status("Ausgabe stummgeschaltet" if muted else "Ausgabe aktiv")
+        self.window.set_status(_("Ausgabe stummgeschaltet") if muted else _("Ausgabe aktiv"))
 
     def _on_master_volume_changed(self, value: int) -> None:
         self.master_volume_label.setText(str(value))
@@ -518,20 +519,20 @@ class AudioTab(QWidget):
 
     def on_apply_effects(self) -> None:
         self._on_preprocess_changed()
-        self.window.set_status("Geräteeffekte angewendet")
+        self.window.set_status(_("Geräteeffekte angewendet"))
 
     def on_preprocess_changed(self, idx: int) -> None:
         client = self.window.client
         try:
             if idx == 0:
                 client.set_sound_input_preprocess_none()
-                self.window.set_status("Vorverarbeitung deaktiviert")
+                self.window.set_status(_("Vorverarbeitung deaktiviert"))
             elif idx == 1:
                 client.set_sound_input_preprocess_speexdsp()
-                self.window.set_status("SpeexDSP Vorverarbeitung aktiv")
+                self.window.set_status(_("SpeexDSP Vorverarbeitung aktiv"))
             elif idx == 2:
                 client.set_sound_input_preprocess_webrtc()
-                self.window.set_status("WebRTC Vorverarbeitung aktiv")
+                self.window.set_status(_("WebRTC Vorverarbeitung aktiv"))
         except Exception:
             pass
 
@@ -548,7 +549,7 @@ class AudioTab(QWidget):
                 client.enable_voice_activation(False)
                 self.voice_activation.setChecked(False)
                 self.preprocess_choice.setCurrentIndex(0)
-                self.window.set_status("Mikrofon-Verarbeitung deaktiviert")
+                self.window.set_status(_("Mikrofon-Verarbeitung deaktiviert"))
             elif mode == 1:
                 client.enable_voice_activation(True)
                 client.set_voice_activation_level(threshold)
@@ -590,8 +591,8 @@ class AudioTab(QWidget):
             self.loopback_check.blockSignals(True)
             self.loopback_check.setChecked(False)
             self.loopback_check.blockSignals(False)
-            self.mgp_preview_btn.setText("&Vorschau starten")
-            self.window.set_status("Mikrofon-Vorschau beendet")
+            self.mgp_preview_btn.setText(_("&Vorschau starten"))
+            self.window.set_status(_("Mikrofon-Vorschau beendet"))
         else:
             in_idx = self.input_device.currentIndex()
             out_idx = self.output_device.currentIndex()
@@ -599,7 +600,7 @@ class AudioTab(QWidget):
                 not self._input_devices or not (0 <= in_idx < len(self._input_devices))
                 or not self._output_devices or not (0 <= out_idx < len(self._output_devices))
             ):
-                self.window.set_status("Bitte zuerst Geräte wählen")
+                self.window.set_status(_("Bitte zuerst Geräte wählen"))
                 return
             try:
                 handle = self.window.client.start_sound_loopback_test(
@@ -611,10 +612,10 @@ class AudioTab(QWidget):
                     self.loopback_check.blockSignals(True)
                     self.loopback_check.setChecked(True)
                     self.loopback_check.blockSignals(False)
-                    self.mgp_preview_btn.setText("&Vorschau stoppen")
-                    self.window.set_status("Mikrofon-Vorschau aktiv – du hörst dich selbst")
+                    self.mgp_preview_btn.setText(_("&Vorschau stoppen"))
+                    self.window.set_status(_("Mikrofon-Vorschau aktiv – du hörst dich selbst"))
                 else:
-                    self.window.set_status("Mikrofon-Vorschau konnte nicht gestartet werden")
+                    self.window.set_status(_("Mikrofon-Vorschau konnte nicht gestartet werden"))
             except Exception as exc:
                 self.window.set_status(f"Vorschau Fehler: {exc}")
 
@@ -633,7 +634,7 @@ class AudioTab(QWidget):
             self.window._ptt_action.blockSignals(True)
             self.window._ptt_action.setChecked(enabled)
             self.window._ptt_action.blockSignals(False)
-        self.window.set_status("Push-to-Talk aktiviert" if enabled else "Push-to-Talk deaktiviert")
+        self.window.set_status(_("Push-to-Talk aktiviert") if enabled else _("Push-to-Talk deaktiviert"))
 
     # ── Loopback ──────────────────────────────────────────────────────────
 
@@ -646,7 +647,7 @@ class AudioTab(QWidget):
                 not self._input_devices or not (0 <= in_idx < len(self._input_devices))
                 or not self._output_devices or not (0 <= out_idx < len(self._output_devices))
             ):
-                self.window.set_status("Bitte zuerst Geräte wählen und anwenden")
+                self.window.set_status(_("Bitte zuerst Geräte wählen und anwenden"))
                 self.loopback_check.blockSignals(True)
                 self.loopback_check.setChecked(False)
                 self.loopback_check.blockSignals(False)
@@ -658,9 +659,9 @@ class AudioTab(QWidget):
                 )
                 if handle:
                     self._loopback_handle = handle
-                    self.window.set_status("Mikrofontest gestartet")
+                    self.window.set_status(_("Mikrofontest gestartet"))
                 else:
-                    self.window.set_status("Mikrofontest konnte nicht gestartet werden")
+                    self.window.set_status(_("Mikrofontest konnte nicht gestartet werden"))
                     self.loopback_check.blockSignals(True)
                     self.loopback_check.setChecked(False)
                     self.loopback_check.blockSignals(False)
@@ -676,7 +677,7 @@ class AudioTab(QWidget):
                 except Exception:
                     pass
                 self._loopback_handle = None
-            self.window.set_status("Mikrofontest beendet")
+            self.window.set_status(_("Mikrofontest beendet"))
 
     # ── Systemton ─────────────────────────────────────────────────────────
 
@@ -690,14 +691,14 @@ class AudioTab(QWidget):
         self.sys_hint_label.setText(sa.loopback_hint())
         if _IS_MAC and hasattr(self, "sys_install_btn"):
             self.sys_install_btn.setEnabled(not sa.is_blackhole_installed())
-        self.window.set_status("Systemton-Status aktualisiert")
+        self.window.set_status(_("Systemton-Status aktualisiert"))
 
     # ── PTT-Hotkey ────────────────────────────────────────────────────────
 
     def _on_capture_hotkey(self) -> None:
         self.window.start_hotkey_capture("ptt_key")
-        self.ptt_hotkey_label.setText("PTT-Hotkey: (Taste drücken...)")
-        self.window.set_status("PTT-Hotkey Aufnahme gestartet")
+        self.ptt_hotkey_label.setText(_("PTT-Hotkey: (Taste drücken...)"))
+        self.window.set_status(_("PTT-Hotkey Aufnahme gestartet"))
 
     def update_ptt_hotkey_label(self) -> None:
         key = getattr(self.window.settings_store.settings, "ptt_key", None)
@@ -706,7 +707,7 @@ class AudioTab(QWidget):
 
     def _format_keycode(self, key: int) -> str:
         if key == Qt.Key_Space:
-            return "Leertaste"
+            return _("Leertaste")
         if Qt.Key_F1 <= key <= Qt.Key_F24:
             return f"F{key - Qt.Key_F1 + 1}"
         if 0x20 <= key <= 0x7E:
@@ -742,7 +743,7 @@ class AudioTab(QWidget):
     def apply_audio_prefs(self, prefs: dict, announce: bool = True) -> None:
         if not isinstance(prefs, dict) or not prefs:
             if announce:
-                self.window.set_status("Keine Audioeinstellungen vorhanden")
+                self.window.set_status(_("Keine Audioeinstellungen vorhanden"))
             return
 
         in_id = prefs.get("input_device_id")
@@ -799,44 +800,44 @@ class AudioTab(QWidget):
             self.on_apply_processing()
 
         if announce:
-            self.window.set_status("Audioeinstellungen geladen")
+            self.window.set_status(_("Audioeinstellungen geladen"))
 
     def _on_pref_auto_apply(self, state: int) -> None:
         val = bool(state)
         setattr(self.window.settings_store.settings, "auto_apply_audio", val)
         self.window.settings_store.save()
-        self.window.set_status("Auto-Anwenden beim Start " + ("aktiviert" if val else "deaktiviert"))
+        self.window.set_status(_("Auto-Anwenden beim Start ") + (_("aktiviert") if val else _("deaktiviert")))
 
     def _on_pref_auto_apply_device_change(self, state: int) -> None:
         val = bool(state)
         setattr(self.window.settings_store.settings, "auto_apply_audio_on_device_change", val)
         self.window.settings_store.save()
-        self.window.set_status("Auto-Anwenden bei Gerätewechsel " + ("aktiviert" if val else "deaktiviert"))
+        self.window.set_status(_("Auto-Anwenden bei Gerätewechsel ") + (_("aktiviert") if val else _("deaktiviert")))
 
     def _on_pref_save(self) -> None:
         prefs = self.get_audio_prefs()
         self.window.settings_store.settings.audio_prefs = prefs
         self.window.settings_store.save()
-        self.window.set_status("Audioeinstellungen gespeichert")
+        self.window.set_status(_("Audioeinstellungen gespeichert"))
 
     def _on_pref_apply(self) -> None:
         prefs = getattr(self.window.settings_store.settings, "audio_prefs", None) or {}
         if not prefs:
-            self.window.set_status("Keine gespeicherten Audioeinstellungen")
+            self.window.set_status(_("Keine gespeicherten Audioeinstellungen"))
             return
         self.apply_audio_prefs(prefs, announce=True)
 
     def _on_pref_clear(self) -> None:
         self.window.settings_store.settings.audio_prefs = {}
         self.window.settings_store.save()
-        self.window.set_status("Gespeicherte Audioeinstellungen gelöscht")
+        self.window.set_status(_("Gespeicherte Audioeinstellungen gelöscht"))
 
     # ── Lokale Wiedergabe ─────────────────────────────────────────────────
 
     def _on_lp_browse(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Audiodatei auswählen", "",
-            "Audiodateien (*.mp3 *.wav *.ogg *.flac *.m4a);;Alle Dateien (*)"
+        path, _flt = QFileDialog.getOpenFileName(
+            self, _("Audiodatei auswählen"), "",
+            _("Audiodateien (*.mp3 *.wav *.ogg *.flac *.m4a);;Alle Dateien (*)")
         )
         if path:
             self.lp_file_edit.setText(path)
@@ -844,7 +845,7 @@ class AudioTab(QWidget):
     def _on_lp_play(self) -> None:
         filepath = self.lp_file_edit.text().strip()
         if not filepath:
-            self.window.set_status("Bitte zuerst eine Datei auswählen")
+            self.window.set_status(_("Bitte zuerst eine Datei auswählen"))
             return
         if self._lp_session_id is not None:
             try:
@@ -859,10 +860,10 @@ class AudioTab(QWidget):
                 self._lp_paused = False
                 self.lp_pause_btn.setEnabled(True)
                 self.lp_stop_btn.setEnabled(True)
-                self.lp_pause_btn.setText("&Pause")
-                self.window.set_status("Lokale Wiedergabe gestartet")
+                self.lp_pause_btn.setText(_("&Pause"))
+                self.window.set_status(_("Lokale Wiedergabe gestartet"))
             else:
-                self.window.set_status("Lokale Wiedergabe konnte nicht gestartet werden")
+                self.window.set_status(_("Lokale Wiedergabe konnte nicht gestartet werden"))
         except Exception as exc:
             self.window.set_status(f"Wiedergabe Fehler: {exc}")
 
@@ -875,11 +876,11 @@ class AudioTab(QWidget):
         except Exception:
             pass
         if self._lp_paused:
-            self.lp_pause_btn.setText("&Fortsetzen")
-            self.window.set_status("Lokale Wiedergabe pausiert")
+            self.lp_pause_btn.setText(_("&Fortsetzen"))
+            self.window.set_status(_("Lokale Wiedergabe pausiert"))
         else:
-            self.lp_pause_btn.setText("&Pause")
-            self.window.set_status("Lokale Wiedergabe fortgesetzt")
+            self.lp_pause_btn.setText(_("&Pause"))
+            self.window.set_status(_("Lokale Wiedergabe fortgesetzt"))
 
     def _on_lp_stop(self) -> None:
         if self._lp_session_id is None:
@@ -892,8 +893,8 @@ class AudioTab(QWidget):
         self._lp_paused = False
         self.lp_pause_btn.setEnabled(False)
         self.lp_stop_btn.setEnabled(False)
-        self.lp_pause_btn.setText("&Pause")
-        self.window.set_status("Lokale Wiedergabe gestoppt")
+        self.lp_pause_btn.setText(_("&Pause"))
+        self.window.set_status(_("Lokale Wiedergabe gestoppt"))
 
     # ── Legacy delegates ──────────────────────────────────────────────────
 

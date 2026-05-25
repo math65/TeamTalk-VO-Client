@@ -13,6 +13,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 
+from i18n import _
+
 if TYPE_CHECKING:
     from app_qt import MainWindow
 
@@ -67,12 +69,12 @@ class _HotkeyRow(QWidget):
         self._window = window
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        lbl = QLabel(label)
+        lbl = QLabel(_(label))
         lbl.setMinimumWidth(260)
-        self.status = QLabel("(nicht gesetzt)")
-        self.status.setAccessibleName(f"{label} Hotkey")
-        btn = QPushButton("&Hotkey aufnehmen")
-        btn.setAccessibleName(f"{label} Hotkey aufnehmen")
+        self.status = QLabel(_("(nicht gesetzt)"))
+        self.status.setAccessibleName(f"{_(label)} Hotkey")
+        btn = QPushButton(_("&Hotkey aufnehmen"))
+        btn.setAccessibleName(f"{_(label)} Hotkey aufnehmen")
         if global_key:
             btn.clicked.connect(lambda: window.start_global_hotkey_capture(key))
         else:
@@ -97,13 +99,13 @@ class ShortcutsTab(QWidget):
 
         # --- Search field ---
         search_row = QHBoxLayout()
-        search_lbl = QLabel("Suche:")
+        search_lbl = QLabel(_("Suche:"))
         self._search = QLineEdit()
-        self._search.setPlaceholderText("Stichwort zum Filtern…")
-        self._search.setAccessibleName("Tastenkürzel suchen")
+        self._search.setPlaceholderText(_("Stichwort zum Filtern…"))
+        self._search.setAccessibleName(_("Tastenkürzel suchen"))
         self._search.textChanged.connect(self._on_search_changed)
-        clear_btn = QPushButton("Such&e löschen")
-        clear_btn.setAccessibleName("Suche löschen")
+        clear_btn = QPushButton(_("Such&e löschen"))
+        clear_btn.setAccessibleName(_("Suche löschen"))
         clear_btn.clicked.connect(self._search.clear)
         search_row.addWidget(search_lbl)
         search_row.addWidget(self._search, 1)
@@ -117,8 +119,9 @@ class ShortcutsTab(QWidget):
         inner_layout = QVBoxLayout(inner)
 
         for cat_name, entries in _INAPP_CATEGORIES:
-            group = QGroupBox(cat_name)
-            group.setAccessibleName(cat_name)
+            tr_cat = _(cat_name)
+            group = QGroupBox(tr_cat)
+            group.setAccessibleName(tr_cat)
             group_layout = QVBoxLayout(group)
             cat_rows = []
             for label, key in entries:
@@ -132,14 +135,14 @@ class ShortcutsTab(QWidget):
         # --- Global hotkeys (macOS only) ---
         if sys.platform == "darwin":
             from PySide6.QtWidgets import QCheckBox
-            global_group = QGroupBox("Globale Hotkeys (systemweit, auch wenn App im Hintergrund)")
+            global_group = QGroupBox(_("Globale Hotkeys (systemweit, auch wenn App im Hintergrund)"))
             global_layout = QVBoxLayout(global_group)
-            self._global_enable = QCheckBox("&Globale Hotkeys aktivieren")
+            self._global_enable = QCheckBox(_("&Globale Hotkeys aktivieren"))
             self._global_enable.setChecked(bool(window.settings_store.settings.global_hotkeys_enabled))
             self._global_enable.stateChanged.connect(self._on_global_enable_changed)
             global_layout.addWidget(self._global_enable)
-            for label, key in [("PTT (Sprechtaste)", "global_hotkey_ptt"),
-                                ("Stummschalten umschalten", "global_hotkey_mute")]:
+            for label, key in [(_("PTT (Sprechtaste)"), "global_hotkey_ptt"),
+                                (_("Stummschalten umschalten"), "global_hotkey_mute")]:
                 row = _HotkeyRow(global_group, label, key, True, window)
                 global_layout.addWidget(row)
                 self._global_rows.append(row)
@@ -151,14 +154,14 @@ class ShortcutsTab(QWidget):
 
         # --- Bottom toolbar ---
         bottom_row = QHBoxLayout()
-        export_btn = QPushButton("Profil &exportieren")
-        export_btn.setAccessibleName("Tastenkürzel-Profil exportieren")
+        export_btn = QPushButton(_("Profil &exportieren"))
+        export_btn.setAccessibleName(_("Tastenkürzel-Profil exportieren"))
         export_btn.clicked.connect(self._on_export_profile)
-        import_btn = QPushButton("Profil &importieren")
-        import_btn.setAccessibleName("Tastenkürzel-Profil importieren")
+        import_btn = QPushButton(_("Profil &importieren"))
+        import_btn.setAccessibleName(_("Tastenkürzel-Profil importieren"))
         import_btn.clicked.connect(self._on_import_profile)
-        reset_all_btn = QPushButton("A&lle zurücksetzen")
-        reset_all_btn.setAccessibleName("Alle Tastenkürzel zurücksetzen")
+        reset_all_btn = QPushButton(_("A&lle zurücksetzen"))
+        reset_all_btn.setAccessibleName(_("Alle Tastenkürzel zurücksetzen"))
         reset_all_btn.clicked.connect(self._on_reset_all)
         bottom_row.addWidget(export_btn)
         bottom_row.addWidget(import_btn)
@@ -191,7 +194,7 @@ class ShortcutsTab(QWidget):
     def set_capture_label(self, key: str, capturing: bool) -> None:
         for row in self._rows:
             if row._key == key:
-                row.status.setText("(Taste drücken...)" if capturing else "(nicht gesetzt)")
+                row.status.setText(_("(Taste drücken...)") if capturing else _("(nicht gesetzt)"))
                 if not capturing:
                     self.update_labels()
                 return
@@ -199,7 +202,7 @@ class ShortcutsTab(QWidget):
     def set_global_capture_label(self, key: str, capturing: bool) -> None:
         for row in self._global_rows:
             if row._key == key:
-                row.status.setText("(Taste drücken...)" if capturing else "(nicht gesetzt)")
+                row.status.setText(_("(Taste drücken...)") if capturing else _("(nicht gesetzt)"))
                 if not capturing:
                     self.update_labels()
                 return
@@ -212,10 +215,10 @@ class ShortcutsTab(QWidget):
 
     def _format_keycode(self, keycode: int) -> str:
         if not keycode:
-            return "(nicht gesetzt)"
+            return _("(nicht gesetzt)")
         key = Qt.Key(keycode)
         if key == Qt.Key.Key_Space:
-            return "Leertaste"
+            return _("Leertaste")
         if Qt.Key.Key_F1 <= key <= Qt.Key.Key_F24:
             return f"F{keycode - Qt.Key.Key_F1.value + 1}"
         if 0x20 <= keycode <= 0x7E:
@@ -224,7 +227,7 @@ class ShortcutsTab(QWidget):
 
     def _format_vk(self, vk: int) -> str:
         if not vk:
-            return "(nicht gesetzt)"
+            return _("(nicht gesetzt)")
         if sys.platform == "win32":
             try:
                 from win32_hotkeys import win32_vk_to_name
@@ -239,8 +242,8 @@ class ShortcutsTab(QWidget):
 
     def _on_reset_all(self) -> None:
         answer = QMessageBox.question(
-            self, "Alle zurücksetzen",
-            "Alle Tastenkürzel auf '(nicht gesetzt)' zurücksetzen?",
+            self, _("Alle zurücksetzen"),
+            _("Alle Tastenkürzel auf '(nicht gesetzt)' zurücksetzen?"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -252,7 +255,7 @@ class ShortcutsTab(QWidget):
                 setattr(s, f.name, 0)
         self.window.settings_store.save()
         self.update_labels()
-        self.window.set_status("Alle Tastenkürzel zurückgesetzt")
+        self.window.set_status(_("Alle Tastenkürzel zurückgesetzt"))
 
     def _on_export_profile(self) -> None:
         s = self.window.settings_store.settings
@@ -261,9 +264,9 @@ class ShortcutsTab(QWidget):
             for f in dataclasses.fields(s)
             if f.name.startswith("hotkey_") or f.name.startswith("global_hotkey_")
         }
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Tastenkürzel-Profil exportieren", "shortcuts_profil.json",
-            "JSON-Profil (*.json);;Alle Dateien (*.*)"
+        path, _flt = QFileDialog.getSaveFileName(
+            self, _("Tastenkürzel-Profil exportieren"), "shortcuts_profil.json",
+            _("JSON-Profil (*.json);;Alle Dateien (*.*)")
         )
         if not path:
             return
@@ -275,9 +278,9 @@ class ShortcutsTab(QWidget):
             self.window.set_status(f"Export fehlgeschlagen: {exc}")
 
     def _on_import_profile(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Tastenkürzel-Profil importieren", "",
-            "JSON-Profil (*.json);;Alle Dateien (*.*)"
+        path, _flt = QFileDialog.getOpenFileName(
+            self, _("Tastenkürzel-Profil importieren"), "",
+            _("JSON-Profil (*.json);;Alle Dateien (*.*)")
         )
         if not path:
             return

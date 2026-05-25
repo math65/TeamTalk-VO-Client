@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from ui_qt.call_after import call_after
+from i18n import _
 
 if TYPE_CHECKING:
     from app_qt import MainWindow
@@ -44,28 +45,28 @@ class AdminTab(QWidget):
 
         root = QVBoxLayout(self)
         root.setContentsMargins(8, 8, 8, 8)
-        root.addWidget(QLabel("Administrationsfunktionen (nur für Admins)"))
+        root.addWidget(QLabel(_("Administrationsfunktionen (nur für Admins)")))
 
         # ------------------------------------------------------------------ #
         # Section 1: Benutzerkonten
         # ------------------------------------------------------------------ #
-        acc_group = QGroupBox("Benutzerkonten")
+        acc_group = QGroupBox(_("Benutzerkonten"))
         acc_layout = QVBoxLayout(acc_group)
 
-        acc_layout.addWidget(QLabel("Benutzername, Typ"))
+        acc_layout.addWidget(QLabel(_("Benutzername, Typ")))
         self.account_list = QListWidget()
-        self.account_list.setAccessibleName("Benutzerkonten")
+        self.account_list.setAccessibleName(_("Benutzerkonten"))
         self.account_list.currentRowChanged.connect(self._on_account_selected)
         acc_layout.addWidget(self.account_list, 1)
 
         acc_btn_row = QHBoxLayout()
-        self.load_accounts_btn = QPushButton("&Laden")
+        self.load_accounts_btn = QPushButton(_("&Laden"))
         self.load_accounts_btn.clicked.connect(self.on_load_accounts)
-        self.new_account_btn = QPushButton("&Neu")
+        self.new_account_btn = QPushButton(_("&Neu"))
         self.new_account_btn.clicked.connect(self.on_new_account)
-        self.edit_account_btn = QPushButton("&Bearbeiten")
+        self.edit_account_btn = QPushButton(_("&Bearbeiten"))
         self.edit_account_btn.clicked.connect(self.on_edit_account)
-        self.del_account_btn = QPushButton("&Löschen")
+        self.del_account_btn = QPushButton(_("&Löschen"))
         self.del_account_btn.clicked.connect(self.on_del_account)
         for btn in (self.load_accounts_btn, self.new_account_btn,
                     self.edit_account_btn, self.del_account_btn):
@@ -74,39 +75,39 @@ class AdminTab(QWidget):
         acc_layout.addLayout(acc_btn_row)
 
         # Account edit form (hidden until needed)
-        self._account_form_group = QGroupBox("Kontodetails")
+        self._account_form_group = QGroupBox(_("Kontodetails"))
         form_layout = QFormLayout(self._account_form_group)
 
         self._acc_username = QLineEdit()
-        self._acc_username.setAccessibleName("Benutzername")
-        form_layout.addRow("Benutzername:", self._acc_username)
+        self._acc_username.setAccessibleName(_("Benutzername"))
+        form_layout.addRow(_("Benutzername:"), self._acc_username)
 
         self._acc_password = QLineEdit()
         self._acc_password.setEchoMode(QLineEdit.EchoMode.Password)
-        self._acc_password.setAccessibleName("Passwort")
-        form_layout.addRow("Passwort:", self._acc_password)
+        self._acc_password.setAccessibleName(_("Passwort"))
+        form_layout.addRow(_("Passwort:"), self._acc_password)
 
         self._acc_usertype = QComboBox()
-        self._acc_usertype.addItems(["Standard", "Administrator", "Gesperrt"])
-        self._acc_usertype.setAccessibleName("Benutzertyp")
-        form_layout.addRow("Benutzertyp:", self._acc_usertype)
+        self._acc_usertype.addItems([_("Standard"), _("Administrator"), _("Gesperrt")])
+        self._acc_usertype.setAccessibleName(_("Benutzertyp"))
+        form_layout.addRow(_("Benutzertyp:"), self._acc_usertype)
 
-        rights_label = QLabel("Rechte:")
+        rights_label = QLabel(_("Rechte:"))
         form_layout.addRow(rights_label)
 
-        self._cb_create_channel = QCheckBox("Kanal erstellen")
-        self._cb_broadcast      = QCheckBox("Broadcast senden")
-        self._cb_operator       = QCheckBox("Kanal-Operator")
-        self._cb_record         = QCheckBox("Aufnahme erlaubt")
-        self._cb_upload         = QCheckBox("Upload erlaubt")
-        self._cb_download       = QCheckBox("Download erlaubt")
+        self._cb_create_channel = QCheckBox(_("Kanal erstellen"))
+        self._cb_broadcast      = QCheckBox(_("Broadcast senden"))
+        self._cb_operator       = QCheckBox(_("Kanal-Operator"))
+        self._cb_record         = QCheckBox(_("Aufnahme erlaubt"))
+        self._cb_upload         = QCheckBox(_("Upload erlaubt"))
+        self._cb_download       = QCheckBox(_("Download erlaubt"))
         for cb in (self._cb_create_channel, self._cb_broadcast, self._cb_operator,
                    self._cb_record, self._cb_upload, self._cb_download):
             form_layout.addRow("", cb)
 
         form_btn_row = QHBoxLayout()
-        self._save_account_btn   = QPushButton("&Speichern")
-        self._cancel_account_btn = QPushButton("&Abbrechen")
+        self._save_account_btn   = QPushButton(_("&Speichern"))
+        self._cancel_account_btn = QPushButton(_("&Abbrechen"))
         self._save_account_btn.clicked.connect(self._on_save_account)
         self._cancel_account_btn.clicked.connect(self._on_cancel_account)
         form_btn_row.addWidget(self._save_account_btn)
@@ -122,18 +123,18 @@ class AdminTab(QWidget):
         # ------------------------------------------------------------------ #
         # Section 2: Sperrliste
         # ------------------------------------------------------------------ #
-        ban_group = QGroupBox("Sperrliste (Server-Bans)")
+        ban_group = QGroupBox(_("Sperrliste (Server-Bans)"))
         ban_layout = QVBoxLayout(ban_group)
 
-        ban_layout.addWidget(QLabel("IP-Adresse, Benutzername"))
+        ban_layout.addWidget(QLabel(_("IP-Adresse, Benutzername")))
         self.ban_list = QListWidget()
-        self.ban_list.setAccessibleName("Sperrliste")
+        self.ban_list.setAccessibleName(_("Sperrliste"))
         ban_layout.addWidget(self.ban_list, 1)
 
         ban_btn_row = QHBoxLayout()
-        self.load_bans_btn = QPushButton("&Laden")
+        self.load_bans_btn = QPushButton(_("&Laden"))
         self.load_bans_btn.clicked.connect(self.on_load_bans)
-        self.unban_btn = QPushButton("&Entsperren")
+        self.unban_btn = QPushButton(_("&Entsperren"))
         self.unban_btn.clicked.connect(self.on_unban)
         for btn in (self.load_bans_btn, self.unban_btn):
             ban_btn_row.addWidget(btn)
@@ -145,28 +146,28 @@ class AdminTab(QWidget):
         # ------------------------------------------------------------------ #
         # Section 3: Server-Eigenschaften
         # ------------------------------------------------------------------ #
-        srv_group = QGroupBox("Server-Eigenschaften")
+        srv_group = QGroupBox(_("Server-Eigenschaften"))
         srv_form = QFormLayout(srv_group)
 
         self.srv_name = QLineEdit()
-        self.srv_name.setAccessibleName("Servername")
-        srv_form.addRow("Servername:", self.srv_name)
+        self.srv_name.setAccessibleName(_("Servername"))
+        srv_form.addRow(_("Servername:"), self.srv_name)
 
         self.srv_motd = QTextEdit()
-        self.srv_motd.setAccessibleName("Willkommensnachricht")
+        self.srv_motd.setAccessibleName(_("Willkommensnachricht"))
         self.srv_motd.setMaximumHeight(80)
-        srv_form.addRow("Willkommensnachricht:", self.srv_motd)
+        srv_form.addRow(_("Willkommensnachricht:"), self.srv_motd)
 
         self.srv_maxusers = QSpinBox()
         self.srv_maxusers.setRange(1, 1000)
         self.srv_maxusers.setValue(100)
-        self.srv_maxusers.setAccessibleName("Max. Benutzer")
-        srv_form.addRow("Max. Benutzer:", self.srv_maxusers)
+        self.srv_maxusers.setAccessibleName(_("Max. Benutzer"))
+        srv_form.addRow(_("Max. Benutzer:"), self.srv_maxusers)
 
         srv_btn_row = QHBoxLayout()
-        self.load_props_btn  = QPushButton("&Laden")
-        self.save_props_btn  = QPushButton("&Speichern")
-        self.save_config_btn = QPushButton("&Konfiguration speichern")
+        self.load_props_btn  = QPushButton(_("&Laden"))
+        self.save_props_btn  = QPushButton(_("&Speichern"))
+        self.save_config_btn = QPushButton(_("&Konfiguration speichern"))
         self.load_props_btn.clicked.connect(self.on_load_props)
         self.save_props_btn.clicked.connect(self.on_save_props)
         self.save_config_btn.clicked.connect(self.on_save_config)
@@ -315,7 +316,7 @@ class AdminTab(QWidget):
         username = self._acc_username.text().strip()
         password = self._acc_password.text().strip()
         if not username:
-            QMessageBox.warning(self, "Fehler", "Benutzername darf nicht leer sein.")
+            QMessageBox.warning(self, _("Fehler"), _("Benutzername darf nicht leer sein."))
             return
         utype_idx = self._acc_usertype.currentIndex()
         if utype_idx == 1:
@@ -363,7 +364,7 @@ class AdminTab(QWidget):
             return
         username = self._tt_str(self._accounts[row].szUsername)
         reply = QMessageBox.question(
-            self, "Konto löschen",
+            self, _("Konto löschen"),
             f"Konto '{username}' wirklich löschen?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,

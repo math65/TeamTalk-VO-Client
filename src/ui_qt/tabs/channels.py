@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeyEvent, QFont, QColor
 
+from i18n import _
+
 if TYPE_CHECKING:
     from app_qt import MainWindow
 
@@ -40,23 +42,23 @@ class ChannelsTab(QWidget):
         root.setContentsMargins(4, 4, 4, 4)
 
         search_row = QHBoxLayout()
-        search_row.addWidget(QLabel("Suche:"))
+        search_row.addWidget(QLabel(_("Suche:")))
         self._channel_search = QLineEdit()
-        self._channel_search.setAccessibleName("Kanal suchen")
+        self._channel_search.setAccessibleName(_("Kanal suchen"))
         self._channel_search.setAccessibleDescription(
-            "Eingabe filtert die Kanalliste. Leer lassen für alle Kanäle."
+            _("Eingabe filtert die Kanalliste. Leer lassen für alle Kanäle.")
         )
-        self._channel_search.setPlaceholderText("Kanalnamen filtern …")
+        self._channel_search.setPlaceholderText(_("Kanalnamen filtern …"))
         self._channel_search.textChanged.connect(self._on_channel_search)
         search_row.addWidget(self._channel_search)
         root.addLayout(search_row)
 
         self.channel_list = QListWidget()
-        self.channel_list.setAccessibleName("Kanäle und Benutzer")
+        self.channel_list.setAccessibleName(_("Kanäle und Benutzer"))
         self.channel_list.setAccessibleDescription(
-            "Liste aller Kanäle und verbundenen Benutzer. "
-            "Enter: Kanal beitreten oder privaten Chat öffnen. "
-            "Shift+F10 oder Kontextmenü-Taste: Aktionen."
+            _("Liste aller Kanäle und verbundenen Benutzer. "
+              "Enter: Kanal beitreten oder privaten Chat öffnen. "
+              "Shift+F10 oder Kontextmenü-Taste: Aktionen.")
         )
         self.channel_list.setStyleSheet(
             "QListWidget::item { padding: 3px 6px; }"
@@ -70,14 +72,14 @@ class ChannelsTab(QWidget):
         root.addWidget(self.channel_list, 1)
 
         btn_row = QHBoxLayout()
-        self.join_btn = QPushButton("&Kanal beitreten")
-        self.join_btn.setAccessibleName("Ausgewählten Kanal beitreten")
+        self.join_btn = QPushButton(_("&Kanal beitreten"))
+        self.join_btn.setAccessibleName(_("Ausgewählten Kanal beitreten"))
         self.join_btn.clicked.connect(self._on_join_btn)
         btn_row.addWidget(self.join_btn, 1)
 
-        self.refresh_btn = QPushButton("&Aktualisieren")
-        self.refresh_btn.setAccessibleName("Kanalliste aktualisieren")
-        self.refresh_btn.setToolTip("Kanal- und Nutzerliste neu laden")
+        self.refresh_btn = QPushButton(_("&Aktualisieren"))
+        self.refresh_btn.setAccessibleName(_("Kanalliste aktualisieren"))
+        self.refresh_btn.setToolTip(_("Kanal- und Nutzerliste neu laden"))
         self.refresh_btn.clicked.connect(self.refresh_channels_and_users)
         btn_row.addWidget(self.refresh_btn)
         root.addLayout(btn_row)
@@ -190,7 +192,7 @@ class ChannelsTab(QWidget):
         if search:
             filtered_labels, filtered_items = self._filter_by_search(labels, items, search)
             self.channel_list.clear()
-            for lbl, (ntype, _) in zip(filtered_labels, filtered_items):
+            for lbl, (ntype, _nid) in zip(filtered_labels, filtered_items):
                 self.channel_list.addItem(self._make_list_item(lbl, ntype))
             self._items = filtered_items
         else:
@@ -471,19 +473,19 @@ class ChannelsTab(QWidget):
     def _show_channel_context_menu_for(self, channel_id: int) -> None:
         menu = QMenu(self)
 
-        join_action = menu.addAction("Kanal &beitreten")
-        leave_action = menu.addAction("Kanal &verlassen")
+        join_action = menu.addAction(_("Kanal &beitreten"))
+        leave_action = menu.addAction(_("Kanal &verlassen"))
         menu.addSeparator()
-        create_action = menu.addAction("Kanal &erstellen...")
-        edit_action = menu.addAction("Kanal &bearbeiten...")
-        delete_action = menu.addAction("Kanal &löschen")
+        create_action = menu.addAction(_("Kanal &erstellen..."))
+        edit_action = menu.addAction(_("Kanal &bearbeiten..."))
+        delete_action = menu.addAction(_("Kanal &löschen"))
         menu.addSeparator()
-        info_action = menu.addAction("Kanal-&Info...")
-        url_action = menu.addAction("TT-URL &kopieren")
+        info_action = menu.addAction(_("Kanal-&Info..."))
+        url_action = menu.addAction(_("TT-URL &kopieren"))
         menu.addSeparator()
-        speak_info_action = menu.addAction("Kanalinfo &sprechen")
+        speak_info_action = menu.addAction(_("Kanalinfo &sprechen"))
         menu.addSeparator()
-        ban_list_action = menu.addAction("&Sperrliste anzeigen...")
+        ban_list_action = menu.addAction(_("&Sperrliste anzeigen..."))
 
         action = menu.exec(self.channel_list.mapToGlobal(
             self.channel_list.visualItemRect(
@@ -518,7 +520,7 @@ class ChannelsTab(QWidget):
                 ch = c
                 break
         if ch is None:
-            QMessageBox.information(self, "Kanal-Info", "Kanal nicht gefunden")
+            QMessageBox.information(self, _("Kanal-Info"), _("Kanal nicht gefunden"))
             return
         name = tt_str(ch.szName)
         topic = tt_str(ch.szTopic)
@@ -534,7 +536,7 @@ class ChannelsTab(QWidget):
             f"Nutzer: {user_count}",
             f"ID: {channel_id}",
         ]
-        QMessageBox.information(self, "Kanal-Info", "\n".join(lines))
+        QMessageBox.information(self, _("Kanal-Info"), "\n".join(lines))
 
     def _channel_of_user(self, user_id: int) -> int:
         for u in self._all_users:
@@ -597,10 +599,10 @@ class ChannelsTab(QWidget):
 
         menu = QMenu(self)
 
-        info_action = menu.addAction("Benutzerinfo &sprechen")
-        pm_action = menu.addAction("&Private Nachricht...")
+        info_action = menu.addAction(_("Benutzerinfo &sprechen"))
+        pm_action = menu.addAction(_("&Private Nachricht..."))
         menu.addSeparator()
-        vol_action = menu.addAction("&Lautstärke...")
+        vol_action = menu.addAction(_("&Lautstärke..."))
 
         # Mute state
         voice_muted = False
@@ -609,7 +611,7 @@ class ChannelsTab(QWidget):
                 voice_muted = bool(user.uUserState & tt.UserState.USERSTATE_MUTE_VOICE)
         except Exception:
             pass
-        mute_label = "Mikrofon &entstummen" if voice_muted else "Mikrofon &stummschalten"
+        mute_label = _("Mikrofon &entstummen") if voice_muted else _("Mikrofon &stummschalten")
         mute_action = menu.addAction(mute_label)
 
         # Media mute state
@@ -619,23 +621,23 @@ class ChannelsTab(QWidget):
                 media_muted = bool(user.uUserState & tt.UserState.USERSTATE_MUTE_MEDIAFILE)
         except Exception:
             media_muted = self.window._user_media_muted.get(user_id, False)
-        media_mute_label = "Medienstream &entstummen" if media_muted else "Medienstream &stummschalten"
+        media_mute_label = _("Medienstream &entstummen") if media_muted else _("Medienstream &stummschalten")
         media_mute_action = menu.addAction(media_mute_label)
-        media_vol_action = menu.addAction("Medienstream-&Lautstärke...")
+        media_vol_action = menu.addAction(_("Medienstream-&Lautstärke..."))
         menu.addSeparator()
 
         # Subscription submenu
-        sub_menu = menu.addMenu("&Abonnements")
+        sub_menu = menu.addMenu(_("&Abonnements"))
         sub_actions = []
         if tt:
             sub_flags = [
-                ("Sprache", "SUBSCRIBE_VOICE"),
-                ("Video", "SUBSCRIBE_VIDEOCAPTURE"),
-                ("Mediendatei", "SUBSCRIBE_MEDIAFILE"),
-                ("Benutzernachrichten", "SUBSCRIBE_USER_MSG"),
-                ("Kanalnachrichten", "SUBSCRIBE_CHANNEL_MSG"),
-                ("Sprache abfangen", "SUBSCRIBE_INTERCEPT_VOICE"),
-                ("Mediendatei abfangen", "SUBSCRIBE_INTERCEPT_MEDIAFILE"),
+                (_("Sprache"), "SUBSCRIBE_VOICE"),
+                (_("Video"), "SUBSCRIBE_VIDEOCAPTURE"),
+                (_("Mediendatei"), "SUBSCRIBE_MEDIAFILE"),
+                (_("Benutzernachrichten"), "SUBSCRIBE_USER_MSG"),
+                (_("Kanalnachrichten"), "SUBSCRIBE_CHANNEL_MSG"),
+                (_("Sprache abfangen"), "SUBSCRIBE_INTERCEPT_VOICE"),
+                (_("Mediendatei abfangen"), "SUBSCRIBE_INTERCEPT_MEDIAFILE"),
             ]
             current_subs = int(getattr(user, "uLocalSubscriptions", 0) or 0)
             for label, flag_name in sub_flags:
@@ -659,18 +661,18 @@ class ChannelsTab(QWidget):
             is_op = bool(self.window.client.is_channel_operator(my_ch, user_id)) if my_ch else False
         except Exception:
             pass
-        op_label = "Operator &entfernen" if is_op else "Zum &Operator machen"
+        op_label = _("Operator &entfernen") if is_op else _("Zum &Operator machen")
         op_action = menu.addAction(op_label)
         menu.addSeparator()
 
-        move_action = menu.addAction("Benutzer &verschieben...")
+        move_action = menu.addAction(_("Benutzer &verschieben..."))
         menu.addSeparator()
-        kick_action = menu.addAction("Aus Kanal &kicken...")
-        kick_ban_action = menu.addAction("Aus Kanal kicken + &Bannen...")
-        kick_server_action = menu.addAction("Vom &Server kicken...")
+        kick_action = menu.addAction(_("Aus Kanal &kicken..."))
+        kick_ban_action = menu.addAction(_("Aus Kanal kicken + &Bannen..."))
+        kick_server_action = menu.addAction(_("Vom &Server kicken..."))
         menu.addSeparator()
 
-        note_action = menu.addAction("&Notiz bearbeiten...")
+        note_action = menu.addAction(_("&Notiz bearbeiten..."))
 
         action = menu.exec(self.channel_list.mapToGlobal(
             self.channel_list.visualItemRect(
@@ -725,10 +727,10 @@ class ChannelsTab(QWidget):
                     try:
                         if now_checked:
                             self.window.client.do_subscribe(user_id, flag_val)
-                            self.window.set_status("Abonnement aktiviert")
+                            self.window.set_status(_("Abonnement aktiviert"))
                         else:
                             self.window.client.do_unsubscribe(user_id, flag_val)
-                            self.window.set_status("Abonnement deaktiviert")
+                            self.window.set_status(_("Abonnement deaktiviert"))
                     except Exception as exc:
                         self.window.set_status(f"Abonnement fehlgeschlagen: {exc}")
                     break
@@ -744,7 +746,7 @@ class ChannelsTab(QWidget):
             tt_str = self.window.tt_str
             name = tt_str(user.szNickname) or tt_str(user.szUsername) or f"User#{user_id}"
         msg, ok = QInputDialog.getText(
-            self, "Private Nachricht", f"Nachricht an {name}:"
+            self, _("Private Nachricht"), f"Nachricht an {name}:"
         )
         if ok and msg.strip():
             self.window.send_chat_message(msg.strip(), private=True, target_id=user_id)
@@ -754,11 +756,11 @@ class ChannelsTab(QWidget):
             tt = self.window.client.tt
             stream_type = int(tt.StreamType.STREAMTYPE_VOICE)
         except Exception:
-            self.window.set_status("Lautstärke: SDK nicht verfügbar")
+            self.window.set_status(_("Lautstärke: SDK nicht verfügbar"))
             return
         current = self.window._user_volume_levels.get(user_id, 16384)
         vol, ok = QInputDialog.getInt(
-            self, "Lautstärke", "Lautstärke (0–32000):", current, 0, 32000, 100
+            self, _("Lautstärke"), _("Lautstärke (0–32000):"), current, 0, 32000, 100
         )
         if ok:
             try:
@@ -773,7 +775,7 @@ class ChannelsTab(QWidget):
             tt = self.window.client.tt
             stream_type = int(tt.StreamType.STREAMTYPE_VOICE)
             self.window.client.set_user_mute(user_id, stream_type, mute)
-            self.window.set_status("Stummgeschaltet" if mute else "Entstummt")
+            self.window.set_status(_("Stummgeschaltet") if mute else _("Entstummt"))
         except Exception as exc:
             self.window.set_status(f"Stummschalten fehlgeschlagen: {exc}")
 
@@ -783,7 +785,7 @@ class ChannelsTab(QWidget):
             stream_type = int(tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO)
             self.window.client.set_user_mute(user_id, stream_type, mute)
             self.window._user_media_muted[user_id] = mute
-            self.window.set_status("Medienstream stummgeschaltet" if mute else "Medienstream entstummt")
+            self.window.set_status(_("Medienstream stummgeschaltet") if mute else _("Medienstream entstummt"))
         except Exception as exc:
             self.window.set_status(f"Medien-Stummschalten fehlgeschlagen: {exc}")
 
@@ -792,11 +794,11 @@ class ChannelsTab(QWidget):
             tt = self.window.client.tt
             stream_type = int(tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO)
         except Exception:
-            self.window.set_status("Medien-Lautstärke: SDK nicht verfügbar")
+            self.window.set_status(_("Medien-Lautstärke: SDK nicht verfügbar"))
             return
         current = self.window._user_media_volumes.get(user_id, 16384)
         vol, ok = QInputDialog.getInt(
-            self, "Medienstream-Lautstärke", "Lautstärke (0–32000):", current, 0, 32000, 500
+            self, _("Medienstream-Lautstärke"), _("Lautstärke (0–32000):"), current, 0, 32000, 500
         )
         if ok:
             try:
@@ -808,34 +810,34 @@ class ChannelsTab(QWidget):
 
     def _toggle_channel_op(self, user_id: int, channel_id: int, make_op: bool) -> None:
         if not channel_id:
-            self.window.set_status("Kein eigener Kanal")
+            self.window.set_status(_("Kein eigener Kanal"))
             return
         try:
             self.window.client.do_channel_op(channel_id, user_id, make_op)
-            self.window.set_status("Operator gesetzt" if make_op else "Operator entzogen")
+            self.window.set_status(_("Operator gesetzt") if make_op else _("Operator entzogen"))
         except Exception as exc:
             self.window.set_status(f"Operator fehlgeschlagen: {exc}")
 
     def _kick_user_from_channel(self, user_id: int, channel_id: int) -> None:
         if not channel_id:
-            self.window.set_status("Kein eigener Kanal")
+            self.window.set_status(_("Kein eigener Kanal"))
             return
         reply = QMessageBox.question(
-            self, "Kicken", "Benutzer wirklich aus dem Kanal kicken?",
+            self, _("Kicken"), _("Benutzer wirklich aus dem Kanal kicken?"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
         if reply == QMessageBox.StandardButton.Yes:
             try:
                 self.window.client.do_kick_user(user_id, channel_id)
-                self.window.set_status("Benutzer gekickt")
+                self.window.set_status(_("Benutzer gekickt"))
             except Exception as exc:
                 self.window.set_status(f"Kick fehlgeschlagen: {exc}")
 
     def _kick_ban_user(self, user_id: int) -> None:
         user = self._find_user(user_id)
         reply = QMessageBox.question(
-            self, "Kicken + Bannen", "Benutzer wirklich kicken und bannen?",
+            self, _("Kicken + Bannen"), _("Benutzer wirklich kicken und bannen?"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -848,20 +850,20 @@ class ChannelsTab(QWidget):
             ch_id = int(getattr(user, "nChannelID", 0) or 0) if user else 0
             if ch_id > 0:
                 self.window.client.do_kick_user(user_id, ch_id)
-            self.window.set_status("Benutzer gekickt und gebannt")
+            self.window.set_status(_("Benutzer gekickt und gebannt"))
         except Exception as exc:
             self.window.set_status(f"Kick+Bann fehlgeschlagen: {exc}")
 
     def _kick_user_from_server(self, user_id: int) -> None:
         reply = QMessageBox.question(
-            self, "Vom Server kicken", "Benutzer wirklich vom Server kicken?",
+            self, _("Vom Server kicken"), _("Benutzer wirklich vom Server kicken?"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
         if reply == QMessageBox.StandardButton.Yes:
             try:
                 self.window.client.do_kick_user(user_id, 0)
-                self.window.set_status("Benutzer vom Server gekickt")
+                self.window.set_status(_("Benutzer vom Server gekickt"))
             except Exception as exc:
                 self.window.set_status(f"Server-Kick fehlgeschlagen: {exc}")
 
@@ -876,7 +878,7 @@ class ChannelsTab(QWidget):
         notes = getattr(self.window.settings_store.settings, "user_notes", {}) or {}
         current_note = notes.get(username, "")
         note, ok = QInputDialog.getText(
-            self, "Notiz bearbeiten", f"Notiz für {name}:", text=current_note
+            self, _("Notiz bearbeiten"), f"Notiz für {name}:", text=current_note
         )
         if ok:
             if not isinstance(getattr(self.window.settings_store.settings, "user_notes", None), dict):
@@ -886,7 +888,7 @@ class ChannelsTab(QWidget):
             else:
                 self.window.settings_store.settings.user_notes.pop(username, None)
             self.window.settings_store.save()
-            self.window.set_status("Notiz gespeichert")
+            self.window.set_status(_("Notiz gespeichert"))
 
     # ------------------------------------------------------------------
     # Navigation helpers
@@ -898,13 +900,13 @@ class ChannelsTab(QWidget):
     def _on_join_btn(self) -> None:
         row = self.channel_list.currentRow()
         if row < 0 or row >= len(self._items):
-            self.window.set_status("Bitte zuerst einen Kanal in der Liste auswählen")
+            self.window.set_status(_("Bitte zuerst einen Kanal in der Liste auswählen"))
             return
         node_type, node_id = self._items[row]
         if node_type == _NODE_CHANNEL:
             self.window.join_channel(node_id)
         else:
-            self.window.set_status("Bitte einen Kanal (nicht Nutzer) auswählen")
+            self.window.set_status(_("Bitte einen Kanal (nicht Nutzer) auswählen"))
 
     def _on_channel_search(self, text: str) -> None:
         search = text.strip().lower()
@@ -916,7 +918,7 @@ class ChannelsTab(QWidget):
                 self._all_labels, self._all_items, search
             )
             self.channel_list.clear()
-            for lbl, (ntype, _) in zip(filtered_labels, filtered_items):
+            for lbl, (ntype, _nid) in zip(filtered_labels, filtered_items):
                 self.channel_list.addItem(self._make_list_item(lbl, ntype))
             self._items = filtered_items
 

@@ -9,6 +9,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
+from i18n import _
+
 if TYPE_CHECKING:
     from app_qt import MainWindow
 
@@ -34,7 +36,7 @@ class ChannelDialog(QDialog):
         edit_mode: bool = False,
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle(title)
+        self.setWindowTitle(_(title))
         self.setMinimumWidth(460)
         self.resize(520, 640)
         self._window = parent
@@ -49,73 +51,73 @@ class ChannelDialog(QDialog):
         outer.addWidget(scroll, 1)
 
         # ── Grunddaten ────────────────────────────────────────────────
-        base_group = QGroupBox("Grunddaten")
+        base_group = QGroupBox(_("Grunddaten"))
         base_form = QFormLayout(base_group)
 
         self.name_edit = QLineEdit(name)
-        self.name_edit.setPlaceholderText("Kanalname (Pflichtfeld)")
-        self.name_edit.setAccessibleName("Kanalname")
-        base_form.addRow(QLabel("Name"), self.name_edit)
+        self.name_edit.setPlaceholderText(_("Kanalname (Pflichtfeld)"))
+        self.name_edit.setAccessibleName(_("Kanalname"))
+        base_form.addRow(QLabel(_("Name")), self.name_edit)
 
         self.topic_edit = QLineEdit(topic)
-        self.topic_edit.setAccessibleName("Kanalthema")
-        base_form.addRow(QLabel("Thema"), self.topic_edit)
+        self.topic_edit.setAccessibleName(_("Kanalthema"))
+        base_form.addRow(QLabel(_("Thema")), self.topic_edit)
 
         if allow_password:
-            self.pw_check = QCheckBox("Passwort setzen")
-            self.pw_check.setAccessibleName("Passwort setzen")
+            self.pw_check = QCheckBox(_("Passwort setzen"))
+            self.pw_check.setAccessibleName(_("Passwort setzen"))
             base_form.addRow(QLabel(""), self.pw_check)
             self.pw_edit = QLineEdit()
             self.pw_edit.setEchoMode(QLineEdit.EchoMode.Password)
-            self.pw_edit.setAccessibleName("Kanalpasswort")
+            self.pw_edit.setAccessibleName(_("Kanalpasswort"))
             self.pw_edit.setEnabled(False)
             self.pw_check.stateChanged.connect(
                 lambda s: self.pw_edit.setEnabled(bool(s))
             )
-            base_form.addRow(QLabel("Passwort"), self.pw_edit)
+            base_form.addRow(QLabel(_("Passwort")), self.pw_edit)
         else:
             self.pw_check = None
             self.pw_edit = None
 
-        self.perm_check = QCheckBox("Permanent")
+        self.perm_check = QCheckBox(_("Permanent"))
         self.perm_check.setChecked(permanent)
-        self.perm_check.setAccessibleName("Permanenter Kanal")
+        self.perm_check.setAccessibleName(_("Permanenter Kanal"))
         base_form.addRow(QLabel(""), self.perm_check)
         root.addWidget(base_group)
 
         # ── Limits ────────────────────────────────────────────────────
-        limits_group = QGroupBox("Limits")
+        limits_group = QGroupBox(_("Limits"))
         limits_form = QFormLayout(limits_group)
 
         self.quota_spin = QSpinBox()
         self.quota_spin.setRange(0, 1024 * 1024)
         self.quota_spin.setValue(int(disk_quota_mb))
-        self.quota_spin.setAccessibleName("Datei-Quota MB")
-        limits_form.addRow(QLabel("Datei-Quota (MB, 0=aus)"), self.quota_spin)
+        self.quota_spin.setAccessibleName(_("Datei-Quota MB"))
+        limits_form.addRow(QLabel(_("Datei-Quota (MB, 0=aus)")), self.quota_spin)
 
         self.maxusers_spin = QSpinBox()
         self.maxusers_spin.setRange(0, 10000)
         self.maxusers_spin.setValue(int(max_users))
-        self.maxusers_spin.setAccessibleName("Maximale Nutzerzahl")
-        limits_form.addRow(QLabel("Max. Benutzer (0=Server)"), self.maxusers_spin)
+        self.maxusers_spin.setAccessibleName(_("Maximale Nutzerzahl"))
+        limits_form.addRow(QLabel(_("Max. Benutzer (0=Server)")), self.maxusers_spin)
 
         self.op_pw_edit = QLineEdit(op_password)
-        self.op_pw_edit.setAccessibleName("Operator-Passwort")
-        limits_form.addRow(QLabel("Operator-Passwort"), self.op_pw_edit)
+        self.op_pw_edit.setAccessibleName(_("Operator-Passwort"))
+        limits_form.addRow(QLabel(_("Operator-Passwort")), self.op_pw_edit)
         root.addWidget(limits_group)
 
         # ── Kanaltyp ──────────────────────────────────────────────────
-        type_group = QGroupBox("Kanaltyp")
+        type_group = QGroupBox(_("Kanaltyp"))
         type_v = QVBoxLayout(type_group)
         tt = parent.client.tt
         self._type_flags: list[tuple[QCheckBox, int]] = []
         for label, flag_attr in [
-            ("Nur ein Sprecher gleichzeitig (Solo)", "CHANNEL_SOLO_TRANSMIT"),
-            ("Unterrichtsmodus (Operator steuert Sprecher)", "CHANNEL_CLASSROOM"),
-            ("Operator nur Empfang", "CHANNEL_OPERATOR_RECVONLY"),
-            ("Keine Sprachaktivierung", "CHANNEL_NO_VOICEACTIVATION"),
-            ("Keine Aufnahmen", "CHANNEL_NO_RECORDING"),
-            ("Versteckter Kanal", "CHANNEL_HIDDEN"),
+            (_("Nur ein Sprecher gleichzeitig (Solo)"), "CHANNEL_SOLO_TRANSMIT"),
+            (_("Unterrichtsmodus (Operator steuert Sprecher)"), "CHANNEL_CLASSROOM"),
+            (_("Operator nur Empfang"), "CHANNEL_OPERATOR_RECVONLY"),
+            (_("Keine Sprachaktivierung"), "CHANNEL_NO_VOICEACTIVATION"),
+            (_("Keine Aufnahmen"), "CHANNEL_NO_RECORDING"),
+            (_("Versteckter Kanal"), "CHANNEL_HIDDEN"),
         ]:
             flag_val = int(getattr(tt.ChannelType, flag_attr, 0))
             cb = QCheckBox(label)
@@ -126,86 +128,86 @@ class ChannelDialog(QDialog):
         root.addWidget(type_group)
 
         # ── Audio-Codec ───────────────────────────────────────────────
-        codec_group = QGroupBox("Audio-Codec")
+        codec_group = QGroupBox(_("Audio-Codec"))
         codec_v = QVBoxLayout(codec_group)
         self._codec_choices = [
-            ("Vom Elternkanal übernehmen", "inherit"),
-            ("Opus (Standard)", "opus"),
-            ("Speex (Standard)", "speex"),
-            ("Speex VBR (Standard)", "speex_vbr"),
-            ("Kein Audio", "none"),
+            (_("Vom Elternkanal übernehmen"), "inherit"),
+            (_("Opus (Standard)"), "opus"),
+            (_("Speex (Standard)"), "speex"),
+            (_("Speex VBR (Standard)"), "speex_vbr"),
+            (_("Kein Audio"), "none"),
         ]
         if edit_mode:
-            self._codec_choices.insert(0, ("Aktueller Codec beibehalten", "keep"))
+            self._codec_choices.insert(0, (_("Aktueller Codec beibehalten"), "keep"))
         self.codec_combo = QComboBox()
-        self.codec_combo.setAccessibleName("Audio-Codec")
-        for label, _ in self._codec_choices:
+        self.codec_combo.setAccessibleName(_("Audio-Codec"))
+        for label, _key in self._codec_choices:
             self.codec_combo.addItem(label)
         # Set initial selection
-        for idx, (_, key) in enumerate(self._codec_choices):
+        for idx, (_label, key) in enumerate(self._codec_choices):
             if key == audio_codec_mode:
                 self.codec_combo.setCurrentIndex(idx)
                 break
         self.codec_combo.setEnabled(not audio_codec_locked)
         codec_v.addWidget(self.codec_combo)
         if audio_codec_locked:
-            note = QLabel("Audio-Codec kann nicht geändert werden, wenn Nutzer im Kanal sind.")
+            note = QLabel(_("Audio-Codec kann nicht geändert werden, wenn Nutzer im Kanal sind."))
             note.setWordWrap(True)
             codec_v.addWidget(note)
 
         # Opus settings
-        self._opus_group = QGroupBox("OPUS Einstellungen")
+        self._opus_group = QGroupBox(_("OPUS Einstellungen"))
         opus_form = QFormLayout(self._opus_group)
         self.opus_app = QComboBox()
-        self.opus_app.addItems(["VoIP", "Musik"])
-        opus_form.addRow(QLabel("Anwendung"), self.opus_app)
+        self.opus_app.addItems([_("VoIP"), _("Musik")])
+        opus_form.addRow(QLabel(_("Anwendung")), self.opus_app)
         self.opus_sr = QComboBox()
         self.opus_sr.addItems(["8000", "12000", "16000", "24000", "48000"])
         self.opus_sr.setCurrentText("48000")
-        opus_form.addRow(QLabel("Samplerate (Hz)"), self.opus_sr)
+        opus_form.addRow(QLabel(_("Samplerate (Hz)")), self.opus_sr)
         self.opus_ch = QComboBox()
-        self.opus_ch.addItems(["Mono", "Stereo"])
-        opus_form.addRow(QLabel("Kanäle"), self.opus_ch)
+        self.opus_ch.addItems([_("Mono"), _("Stereo")])
+        opus_form.addRow(QLabel(_("Kanäle")), self.opus_ch)
         self.opus_br = QSpinBox()
         self.opus_br.setRange(6, 510)
         self.opus_br.setValue(64)
-        opus_form.addRow(QLabel("Bitrate (kbps)"), self.opus_br)
-        self.opus_vbr = QCheckBox("Variable Bitrate (VBR)")
+        opus_form.addRow(QLabel(_("Bitrate (kbps)")), self.opus_br)
+        self.opus_vbr = QCheckBox(_("Variable Bitrate (VBR)"))
         self.opus_vbr.setChecked(True)
         opus_form.addRow(QLabel(""), self.opus_vbr)
-        self.opus_dtx = QCheckBox("Stille ignorieren (DTX)")
+        self.opus_dtx = QCheckBox(_("Stille ignorieren (DTX)"))
         opus_form.addRow(QLabel(""), self.opus_dtx)
         self.opus_tx = QSpinBox()
         self.opus_tx.setRange(20, 1000)
         self.opus_tx.setValue(40)
-        opus_form.addRow(QLabel("Intervall (ms)"), self.opus_tx)
+        opus_form.addRow(QLabel(_("Intervall (ms)")), self.opus_tx)
         self.opus_frame = QSpinBox()
         self.opus_frame.setRange(2, 60)
         self.opus_frame.setValue(20)
-        opus_form.addRow(QLabel("Framegröße (ms)"), self.opus_frame)
+        opus_form.addRow(QLabel(_("Framegröße (ms)")), self.opus_frame)
         codec_v.addWidget(self._opus_group)
 
         # Speex settings
-        self._speex_group = QGroupBox("Speex Einstellungen")
+        self._speex_group = QGroupBox(_("Speex Einstellungen"))
         speex_form = QFormLayout(self._speex_group)
         self.spx_sr = QComboBox()
         self.spx_sr.addItems(["8000", "16000", "32000"])
         self.spx_sr.setCurrentText("16000")
-        speex_form.addRow(QLabel("Samplerate (Hz)"), self.spx_sr)
+        speex_form.addRow(QLabel(_("Samplerate (Hz)")), self.spx_sr)
         self.spx_quality = QSpinBox()
         self.spx_quality.setRange(0, 10)
         self.spx_quality.setValue(4)
-        speex_form.addRow(QLabel("Qualität (0–10)"), self.spx_quality)
+        speex_form.addRow(QLabel(_("Qualität (0–10)")), self.spx_quality)
         self.spx_tx = QSpinBox()
         self.spx_tx.setRange(20, 1000)
         self.spx_tx.setValue(40)
-        speex_form.addRow(QLabel("Intervall (ms)"), self.spx_tx)
+        speex_form.addRow(QLabel(_("Intervall (ms)")), self.spx_tx)
         self.spx_maxbr = QSpinBox()
         self.spx_maxbr.setRange(0, 128000)
         self.spx_maxbr.setValue(0)
-        self.spx_maxbr.setAccessibleName("Max. Bitrate (nur VBR)")
-        speex_form.addRow(QLabel("Max. Bitrate (VBR, 0=aus)"), self.spx_maxbr)
-        self.spx_dtx = QCheckBox("Stille ignorieren (DTX)")
+        self.spx_maxbr.setAccessibleName(_("Max. Bitrate (nur VBR)"))
+        speex_form.addRow(QLabel(_("Max. Bitrate (VBR, 0=aus)")), self.spx_maxbr)
+        self.spx_dtx = QCheckBox(_("Stille ignorieren (DTX)"))
         speex_form.addRow(QLabel(""), self.spx_dtx)
         codec_v.addWidget(self._speex_group)
         root.addWidget(codec_group)
@@ -279,16 +281,16 @@ class MoveUserDialog(QDialog):
 
     def __init__(self, parent: "MainWindow") -> None:
         super().__init__(parent)
-        self.setWindowTitle("Benutzer verschieben")
+        self.setWindowTitle(_("Benutzer verschieben"))
         self.setMinimumWidth(320)
         self.resize(360, 400)
         self._window = parent
         self._channel_ids: list[int] = []
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Zielkanal wählen:"))
+        layout.addWidget(QLabel(_("Zielkanal wählen:")))
         self.channel_list = QListWidget()
-        self.channel_list.setAccessibleName("Kanalliste")
+        self.channel_list.setAccessibleName(_("Kanalliste"))
         self.channel_list.itemActivated.connect(self._on_activate)
         layout.addWidget(self.channel_list, 1)
 

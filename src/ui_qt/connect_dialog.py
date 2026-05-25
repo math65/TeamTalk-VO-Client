@@ -13,6 +13,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QTimer
 
+from i18n import _
+
 if TYPE_CHECKING:
     from app_qt import MainWindow
 
@@ -23,7 +25,7 @@ class ConnectDialog(QDialog):
     def __init__(self, parent: "MainWindow") -> None:
         super().__init__(parent)
         self.window = parent
-        self.setWindowTitle("Verbinden")
+        self.setWindowTitle(_("Verbinden"))
         self.resize(740, 620)
         self._profiles: list = []
         self._filter_text: str = ""
@@ -33,37 +35,37 @@ class ConnectDialog(QDialog):
         layout = QVBoxLayout(self)
 
         # ── Server list ───────────────────────────────────────────────────
-        list_group = QGroupBox("Gespeicherte Server")
+        list_group = QGroupBox(_("Gespeicherte Server"))
         list_inner = QVBoxLayout(list_group)
 
         # Filter
         filter_row = QHBoxLayout()
-        filter_row.addWidget(QLabel("Filter:"))
+        filter_row.addWidget(QLabel(_("Filter:")))
         self.filter_field = QLineEdit()
-        self.filter_field.setPlaceholderText("Servername filtern …")
+        self.filter_field.setPlaceholderText(_("Servername filtern …"))
         self.filter_field.textChanged.connect(self._on_filter_changed)
         filter_row.addWidget(self.filter_field, 1)
         list_inner.addLayout(filter_row)
 
         self.server_list = QListWidget()
         self.server_list.currentRowChanged.connect(self._on_select)
-        self.server_list.itemActivated.connect(lambda _: self.on_connect())
+        self.server_list.itemActivated.connect(lambda _item: self.on_connect())
         list_inner.addWidget(self.server_list, 1)
 
         btn_row = QHBoxLayout()
         for label, slot in [
-            ("&Neu", self._on_new),
-            ("&Speichern", self._on_save),
-            ("&Entfernen", self._on_delete),
-            (".tt &importieren", self._on_import),
-            (".tt e&xportieren", self._on_export_tt),
-            ("TT-&Datei speichern", self._on_save_tt_file),
-            ("TT-&URL kopieren", self._on_copy_url),
+            (_("&Neu"), self._on_new),
+            (_("&Speichern"), self._on_save),
+            (_("&Entfernen"), self._on_delete),
+            (_(".tt &importieren"), self._on_import),
+            (_(".tt e&xportieren"), self._on_export_tt),
+            (_("TT-&Datei speichern"), self._on_save_tt_file),
+            (_("TT-&URL kopieren"), self._on_copy_url),
         ]:
             btn = QPushButton(label)
             btn.clicked.connect(slot)
             btn_row.addWidget(btn)
-        self._status_check_btn = QPushButton("Status &prüfen")
+        self._status_check_btn = QPushButton(_("Status &prüfen"))
         self._status_check_btn.clicked.connect(self._on_check_status)
         btn_row.addWidget(self._status_check_btn)
         btn_row.addStretch()
@@ -71,88 +73,88 @@ class ConnectDialog(QDialog):
         layout.addWidget(list_group)
 
         # ── Connection form ───────────────────────────────────────────────
-        form_group = QGroupBox("Verbindungsdetails")
+        form_group = QGroupBox(_("Verbindungsdetails"))
         form = QFormLayout(form_group)
 
         self.name_field = QLineEdit()
-        self.name_field.setPlaceholderText("Anzeigename")
-        form.addRow("Name", self.name_field)
+        self.name_field.setPlaceholderText(_("Anzeigename"))
+        form.addRow(_("Name"), self.name_field)
 
         self.host_field = QLineEdit()
-        self.host_field.setPlaceholderText("Server-Adresse oder IP")
-        form.addRow("Server", self.host_field)
+        self.host_field.setPlaceholderText(_("Server-Adresse oder IP"))
+        form.addRow(_("Server"), self.host_field)
 
         port_row = QHBoxLayout()
         self.tcp_field = QSpinBox()
         self.tcp_field.setRange(1, 65535)
         self.tcp_field.setValue(10333)
         port_row.addWidget(self.tcp_field)
-        port_row.addWidget(QLabel("UDP"))
+        port_row.addWidget(QLabel(_("UDP")))
         self.udp_field = QSpinBox()
         self.udp_field.setRange(1, 65535)
         self.udp_field.setValue(10333)
         port_row.addWidget(self.udp_field)
-        form.addRow("TCP-Port", port_row)
+        form.addRow(_("TCP-Port"), port_row)
 
         self.nick_field = QLineEdit()
-        self.nick_field.setPlaceholderText("Nickname")
-        form.addRow("Nickname", self.nick_field)
+        self.nick_field.setPlaceholderText(_("Nickname"))
+        form.addRow(_("Nickname"), self.nick_field)
 
         self.user_field = QLineEdit()
-        form.addRow("Benutzername", self.user_field)
+        form.addRow(_("Benutzername"), self.user_field)
 
         self.pass_field = QLineEdit()
         self.pass_field.setEchoMode(QLineEdit.EchoMode.Password)
-        form.addRow("Passwort", self.pass_field)
+        form.addRow(_("Passwort"), self.pass_field)
 
         self.client_name_field = QLineEdit()
         self.client_name_field.setPlaceholderText("TeamTalk VO Client")
-        form.addRow("Client-Name", self.client_name_field)
+        form.addRow(_("Client-Name"), self.client_name_field)
 
         self.channel_field = QLineEdit()
-        self.channel_field.setPlaceholderText("/kanalname (optional)")
-        form.addRow("Kanal", self.channel_field)
+        self.channel_field.setPlaceholderText(_("/kanalname (optional)"))
+        form.addRow(_("Kanal"), self.channel_field)
 
         self.ch_pass_field = QLineEdit()
         self.ch_pass_field.setEchoMode(QLineEdit.EchoMode.Password)
-        form.addRow("Kanal-Passwort", self.ch_pass_field)
+        form.addRow(_("Kanal-Passwort"), self.ch_pass_field)
 
-        self.encrypted_check = QCheckBox("Verschlüsselt (TLS)")
+        self.encrypted_check = QCheckBox(_("Verschlüsselt (TLS)"))
         form.addRow("", self.encrypted_check)
 
         layout.addWidget(form_group)
 
         # ── Action buttons ────────────────────────────────────────────────
-        action_group = QGroupBox("Aktionen")
+        action_group = QGroupBox(_("Aktionen"))
         action_layout = QVBoxLayout(action_group)
 
         action_row1 = QHBoxLayout()
-        self.connect_btn = QPushButton("&Verbinden")
+        self.connect_btn = QPushButton(_("&Verbinden"))
         self.connect_btn.setDefault(True)
         self.connect_btn.clicked.connect(self.on_connect)
         action_row1.addWidget(self.connect_btn)
 
-        self._reconnect_btn = QPushButton("Neu verbin&den")
+        self._reconnect_btn = QPushButton(_("Neu verbin&den"))
         self._reconnect_btn.clicked.connect(self._on_reconnect)
         action_row1.addWidget(self._reconnect_btn)
 
-        self._server_check_btn = QPushButton("&Server prüfen")
+        self._server_check_btn = QPushButton(_("&Server prüfen"))
         self._server_check_btn.clicked.connect(self._on_server_check)
         action_row1.addWidget(self._server_check_btn)
 
-        self._join_root_btn = QPushButton("&Root-Kanal beitreten")
+        self._join_root_btn = QPushButton(_("&Root-Kanal beitreten"))
         self._join_root_btn.clicked.connect(self._on_join_root)
         action_row1.addWidget(self._join_root_btn)
 
-        self._leave_btn = QPushButton("Kanal &verlassen")
+        self._leave_btn = QPushButton(_("Kanal &verlassen"))
         self._leave_btn.clicked.connect(self._on_leave_channel)
         action_row1.addWidget(self._leave_btn)
 
-        self._logout_btn = QPushButton("&Abmelden")
+        self._logout_btn = QPushButton(_("&Abmelden"))
         self._logout_btn.clicked.connect(self._on_logout)
         action_row1.addWidget(self._logout_btn)
 
-        self._auto_reconnect_cb = QCheckBox("Automatisch neu verbinden")
+        self._auto_reconnect_cb = QCheckBox(_("Automatisch neu verbinden"))
         self._auto_reconnect_cb.setChecked(
             bool(getattr(self.window.settings_store.settings, "auto_reconnect_enabled", True))
         )
@@ -160,7 +162,7 @@ class ConnectDialog(QDialog):
         action_row1.addWidget(self._auto_reconnect_cb)
         action_row1.addStretch()
 
-        close_btn = QPushButton("&Schließen")
+        close_btn = QPushButton(_("&Schließen"))
         close_btn.clicked.connect(self.reject)
         action_row1.addWidget(close_btn)
         action_layout.addLayout(action_row1)
@@ -293,7 +295,7 @@ class ConnectDialog(QDialog):
     def _on_save(self) -> None:
         p = self._profile_from_form()
         if not p.host:
-            QMessageBox.warning(self, "Speichern", "Bitte Server-Adresse eingeben.")
+            QMessageBox.warning(self, _("Speichern"), _("Bitte Server-Adresse eingeben."))
             return
         row = self.server_list.currentRow()
         real = self._real_index(row)
@@ -309,7 +311,7 @@ class ConnectDialog(QDialog):
             except Exception:
                 pass
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
     def _on_delete(self) -> None:
         row = self.server_list.currentRow()
@@ -317,7 +319,7 @@ class ConnectDialog(QDialog):
         if real is None:
             return
         name = self._profiles[real].name if self._profiles else "?"
-        if QMessageBox.question(self, "Entfernen", f"Server '{name}' wirklich entfernen?") \
+        if QMessageBox.question(self, _("Entfernen"), f"Server '{name}' wirklich entfernen?") \
                 == QMessageBox.StandardButton.Yes:
             try:
                 self.window.store.remove(real)
@@ -327,13 +329,13 @@ class ConnectDialog(QDialog):
                 except Exception:
                     pass
             except Exception as exc:
-                QMessageBox.warning(self, "Fehler", str(exc))
+                QMessageBox.warning(self, _("Fehler"), str(exc))
 
     # ── Import / Export ───────────────────────────────────────────────────
 
     def _on_import(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self, "TeamTalk-Datei importieren", "",
+        path, _filter = QFileDialog.getOpenFileName(
+            self, _("TeamTalk-Datei importieren"), "",
             "TeamTalk-Dateien (*.tt);;Alle Dateien (*.*)"
         )
         if not path:
@@ -349,18 +351,18 @@ class ConnectDialog(QDialog):
                 self._load_profiles()
                 self.window.set_status(f"Importiert: {Path(path).name}")
         except Exception as exc:
-            QMessageBox.warning(self, "Import fehlgeschlagen", str(exc))
+            QMessageBox.warning(self, _("Import fehlgeschlagen"), str(exc))
 
     def _on_export_tt(self) -> None:
         row = self.server_list.currentRow()
         real = self._real_index(row)
         if real is None:
-            QMessageBox.warning(self, "Exportieren", "Bitte einen Server auswählen.")
+            QMessageBox.warning(self, _("Exportieren"), _("Bitte einen Server auswählen."))
             return
         profile = self._profiles[real]
         default_name = f"{profile.name or profile.host}.tt"
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Server als TT-Datei exportieren", default_name,
+        path, _filter = QFileDialog.getSaveFileName(
+            self, _("Server als TT-Datei exportieren"), default_name,
             "TeamTalk-Dateien (*.tt);;Alle Dateien (*.*)"
         )
         if not path:
@@ -377,12 +379,12 @@ class ConnectDialog(QDialog):
     def _on_save_tt_file(self) -> None:
         p = self._profile_from_form()
         if not p.host:
-            QMessageBox.warning(self, "Speichern", "Bitte Server-Adresse eingeben.")
+            QMessageBox.warning(self, _("Speichern"), _("Bitte Server-Adresse eingeben."))
             return
         channel_path = self._get_channel_path()
         default_name = f"{p.name or p.host}.tt"
-        path, _ = QFileDialog.getSaveFileName(
-            self, "TT-Datei speichern", default_name,
+        path, _filter = QFileDialog.getSaveFileName(
+            self, _("TT-Datei speichern"), default_name,
             "TeamTalk-Dateien (*.tt);;Alle Dateien (*.*)"
         )
         if not path:
@@ -467,7 +469,7 @@ class ConnectDialog(QDialog):
         host = self.host_field.text().strip()
         port = self.tcp_field.value()
         if not host:
-            QMessageBox.warning(self, "Server prüfen", "Bitte Server-Adresse eingeben.")
+            QMessageBox.warning(self, _("Server prüfen"), _("Bitte Server-Adresse eingeben."))
             return
         self._server_check_btn.setEnabled(False)
         self.window.set_status(f"Prüfe {host}:{port}…")
@@ -489,11 +491,11 @@ class ConnectDialog(QDialog):
         if ok:
             msg = f"Server erreichbar: {host}:{port}"
             self.window.set_status(msg)
-            QMessageBox.information(self, "Server prüfen", msg)
+            QMessageBox.information(self, _("Server prüfen"), msg)
         else:
             msg = f"Server nicht erreichbar: {host}:{port}"
             self.window.set_status(msg)
-            QMessageBox.warning(self, "Server prüfen", msg)
+            QMessageBox.warning(self, _("Server prüfen"), msg)
 
     def _on_join_root(self) -> None:
         self.accept()
@@ -546,7 +548,7 @@ class ConnectDialog(QDialog):
     def on_connect(self) -> None:
         p = self._profile_from_form()
         if not p.host:
-            QMessageBox.warning(self, "Verbinden", "Bitte Server-Adresse eingeben.")
+            QMessageBox.warning(self, _("Verbinden"), _("Bitte Server-Adresse eingeben."))
             return
         self._ping_timer.stop()
         self.window.connect_to_server(p)
