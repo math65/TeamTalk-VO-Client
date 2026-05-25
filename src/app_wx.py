@@ -4143,8 +4143,26 @@ class MainFrame(wx.Frame):
                 dlg.Destroy()
                 return
             dlg.Destroy()
+        username = self.tt_str(getattr(user, "szNickname", "")) or self.tt_str(getattr(user, "szUsername", "")) or f"Benutzer {int(user.nUserID)}"
+        reason_dlg = wx.TextEntryDialog(
+            self,
+            f"Begründung für Kick von '{username}' (leer = ohne Begründung):",
+            "Kick mit Begründung",
+            "",
+        )
+        reason_dlg.SetName("Kick-Begründung")
+        if reason_dlg.ShowModal() == wx.ID_OK:
+            reason = reason_dlg.GetValue().strip()
+            if reason:
+                self.client.send_channel_message(int(my_ch), f"[Admin] {username} wurde gekickt: {reason}")
+        reason_dlg.Destroy()
         self.client.do_kick_user(int(user.nUserID), int(my_ch))
-        self.set_status("Benutzer gekickt")
+        self.set_status(f"{username} wurde gekickt")
+        try:
+            from ui_wx.a11y import post_voiceover_announcement
+            post_voiceover_announcement(f"{username} wurde gekickt")
+        except Exception:
+            pass
 
     def on_menu_user_ban(self, _event):
         if not self._require_connected("Benutzer bannen"):
@@ -4175,11 +4193,29 @@ class MainFrame(wx.Frame):
             dlg.Destroy()
             return
         dlg.Destroy()
-        self.client.do_ban_user_ex(int(user.nUserID), int(ban_types))
+        username = self.tt_str(getattr(user, "szNickname", "")) or self.tt_str(getattr(user, "szUsername", "")) or f"Benutzer {int(user.nUserID)}"
         channel_id = int(getattr(user, "nChannelID", 0) or 0)
+        reason_dlg = wx.TextEntryDialog(
+            self,
+            f"Begründung für Kick+Bann von '{username}' (leer = ohne Begründung):",
+            "Kick mit Begründung",
+            "",
+        )
+        reason_dlg.SetName("Kick-Begründung")
+        if reason_dlg.ShowModal() == wx.ID_OK:
+            reason = reason_dlg.GetValue().strip()
+            if reason and channel_id:
+                self.client.send_channel_message(channel_id, f"[Admin] {username} wurde gekickt und gebannt: {reason}")
+        reason_dlg.Destroy()
+        self.client.do_ban_user_ex(int(user.nUserID), int(ban_types))
         if channel_id:
             self.client.do_kick_user(int(user.nUserID), channel_id)
-        self.set_status("Benutzer gekickt und gebannt")
+        self.set_status(f"{username} wurde gekickt und gebannt")
+        try:
+            from ui_wx.a11y import post_voiceover_announcement
+            post_voiceover_announcement(f"{username} wurde gekickt und gebannt")
+        except Exception:
+            pass
 
     def on_menu_user_kick_server(self, _event):
         if not self._require_connected("Vom Server kicken"):
@@ -4194,9 +4230,28 @@ class MainFrame(wx.Frame):
             dlg.Destroy()
             return
         dlg.Destroy()
+        username = self.tt_str(getattr(user, "szNickname", "")) or self.tt_str(getattr(user, "szUsername", "")) or f"Benutzer {int(user.nUserID)}"
+        channel_id = int(getattr(user, "nChannelID", 0) or 0)
+        reason_dlg = wx.TextEntryDialog(
+            self,
+            f"Begründung für Server-Kick von '{username}' (leer = ohne Begründung):",
+            "Kick mit Begründung",
+            "",
+        )
+        reason_dlg.SetName("Kick-Begründung")
+        if reason_dlg.ShowModal() == wx.ID_OK:
+            reason = reason_dlg.GetValue().strip()
+            if reason and channel_id:
+                self.client.send_channel_message(channel_id, f"[Admin] {username} wurde vom Server gekickt: {reason}")
+        reason_dlg.Destroy()
         # channel_id=0 bedeutet Server-Kick laut TeamTalk SDK
         self.client.do_kick_user(int(user.nUserID), 0)
-        self.set_status("Benutzer vom Server gekickt")
+        self.set_status(f"{username} wurde vom Server gekickt")
+        try:
+            from ui_wx.a11y import post_voiceover_announcement
+            post_voiceover_announcement(f"{username} wurde vom Server gekickt")
+        except Exception:
+            pass
 
     def on_menu_user_kick_ban_server(self, _event):
         if not self._require_connected("Vom Server kicken + Bannen"):
@@ -4214,9 +4269,28 @@ class MainFrame(wx.Frame):
             dlg.Destroy()
             return
         dlg.Destroy()
+        username = self.tt_str(getattr(user, "szNickname", "")) or self.tt_str(getattr(user, "szUsername", "")) or f"Benutzer {int(user.nUserID)}"
+        channel_id = int(getattr(user, "nChannelID", 0) or 0)
+        reason_dlg = wx.TextEntryDialog(
+            self,
+            f"Begründung für Server-Kick+Bann von '{username}' (leer = ohne Begründung):",
+            "Kick mit Begründung",
+            "",
+        )
+        reason_dlg.SetName("Kick-Begründung")
+        if reason_dlg.ShowModal() == wx.ID_OK:
+            reason = reason_dlg.GetValue().strip()
+            if reason and channel_id:
+                self.client.send_channel_message(channel_id, f"[Admin] {username} wurde vom Server gekickt und gebannt: {reason}")
+        reason_dlg.Destroy()
         self.client.do_ban_user_ex(int(user.nUserID), int(ban_types))
         self.client.do_kick_user(int(user.nUserID), 0)
-        self.set_status("Benutzer vom Server gekickt und gebannt")
+        self.set_status(f"{username} wurde vom Server gekickt und gebannt")
+        try:
+            from ui_wx.a11y import post_voiceover_announcement
+            post_voiceover_announcement(f"{username} wurde vom Server gekickt und gebannt")
+        except Exception:
+            pass
 
     def on_menu_user_tx_toggle(self, kind: str, _event):
         if not self._require_connected("Sendekontrolle"):
@@ -8156,84 +8230,8 @@ class MainFrame(wx.Frame):
 
     def on_menu_saved_messages(self, _event) -> None:
         """Zeigt gespeicherte Chat-Nachrichten in einem Dialog an."""
-        items = self._saved_messages.items()
-        dlg = wx.Dialog(self, title="Gespeicherte Nachrichten", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
-        dlg.SetMinSize((680, 440))
-        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
-        dlg.SetAcceleratorTable(accel)
-        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
-
-        root = wx.BoxSizer(wx.VERTICAL)
-        if not items:
-            root.Add(wx.StaticText(dlg, label="Keine gespeicherten Nachrichten."), 0, wx.ALL, 16)
-        else:
-            lbl = wx.StaticText(dlg, label=f"{len(items)} gespeicherte Nachricht(en):")
-            root.Add(lbl, 0, wx.ALL, 8)
-            lb = wx.ListBox(dlg)
-            lb.SetName("Gespeicherte Nachrichten Liste")
-            from ui_wx.a11y import setup_list_accessible
-            setup_list_accessible(lb)
-            for m in items:
-                srv = f" [{m.server}]" if m.server else ""
-                lb.Append(f"{m.time_str}{srv}: {m.text[:120]}")
-            lb.SetMinSize((-1, 280))
-            root.Add(lb, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
-
-            btn_row = wx.BoxSizer(wx.HORIZONTAL)
-            del_btn = wx.Button(dlg, label="&Löschen")
-            del_btn.SetName("Ausgewählte Nachricht löschen")
-            clear_btn = wx.Button(dlg, label="&Alle löschen")
-            clear_btn.SetName("Alle gespeicherten Nachrichten löschen")
-            copy_btn = wx.Button(dlg, label="&Kopieren")
-            copy_btn.SetName("Nachricht kopieren")
-            btn_row.Add(del_btn, 0, wx.RIGHT, 8)
-            btn_row.Add(clear_btn, 0, wx.RIGHT, 8)
-            btn_row.Add(copy_btn, 0)
-            root.Add(btn_row, 0, wx.ALL, 8)
-
-            def _on_delete(_e):
-                idx = lb.GetSelection()
-                if idx == wx.NOT_FOUND:
-                    return
-                self._saved_messages.remove(idx)
-                lb.Delete(idx)
-                if lb.GetCount() > 0:
-                    lb.SetSelection(min(idx, lb.GetCount() - 1))
-
-            def _on_clear(_e):
-                confirm = wx.MessageDialog(
-                    dlg, "Alle gespeicherten Nachrichten wirklich löschen?",
-                    "Alle löschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
-                )
-                if confirm.ShowModal() == wx.ID_YES:
-                    self._saved_messages.clear()
-                    lb.Clear()
-                confirm.Destroy()
-
-            def _on_copy(_e):
-                idx = lb.GetSelection()
-                if idx == wx.NOT_FOUND:
-                    return
-                saved_items = self._saved_messages.items()
-                if idx < len(saved_items):
-                    text = saved_items[idx].text
-                    if wx.TheClipboard.Open():
-                        wx.TheClipboard.SetData(wx.TextDataObject(text))
-                        wx.TheClipboard.Close()
-                        self.set_status("Nachricht in Zwischenablage kopiert")
-
-            del_btn.Bind(wx.EVT_BUTTON, _on_delete)
-            clear_btn.Bind(wx.EVT_BUTTON, _on_clear)
-            copy_btn.Bind(wx.EVT_BUTTON, _on_copy)
-
-        btn_sizer = wx.StdDialogButtonSizer()
-        ok_btn = wx.Button(dlg, wx.ID_OK)
-        btn_sizer.AddButton(ok_btn)
-        btn_sizer.Realize()
-        root.Add(btn_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
-
-        dlg.SetSizer(root)
-        dlg.CentreOnParent()
+        from ui_wx.saved_messages_dialog import SavedMessagesDialog
+        dlg = SavedMessagesDialog(self, self._saved_messages)
         dlg.ShowModal()
         dlg.Destroy()
 

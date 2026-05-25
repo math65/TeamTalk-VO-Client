@@ -6,6 +6,7 @@ import threading
 from typing import List, Optional, TYPE_CHECKING
 
 import wx
+from ui_wx.a11y import setup_list_accessible
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -25,6 +26,7 @@ class SpeakTab(wx.Panel):
         self._generating = False
         self._temp_file: Optional[str] = None
         self._streaming_temp_file: Optional[str] = None
+        self._history: List[str] = []
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -119,6 +121,22 @@ class SpeakTab(wx.Panel):
         btn_row.Add(self.status_label, 1, wx.ALIGN_CENTER_VERTICAL)
 
         tts_sizer.Add(btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # --- Textverlauf ---
+        tts_sizer.Add(wx.StaticText(self, label="Verlauf (letzte Texte):"), 0, wx.LEFT | wx.TOP, 8)
+        self.history_lb = wx.ListBox(self, style=wx.LB_SINGLE)
+        self.history_lb.SetName("Textverlauf")
+        setup_list_accessible(self.history_lb)
+        self.history_lb.SetMinSize((-1, 80))
+        self.history_lb.Bind(wx.EVT_LISTBOX_DCLICK, self._on_history_select)
+        tts_sizer.Add(self.history_lb, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
+
+        history_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.repeat_btn = wx.Button(self, label="&Erneut sprechen")
+        self.repeat_btn.SetName("Erneut sprechen")
+        self.repeat_btn.Bind(wx.EVT_BUTTON, self._on_repeat)
+        history_btn_row.Add(self.repeat_btn, 0)
+        tts_sizer.Add(history_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         sizer.Add(tts_sizer, 1, wx.ALL | wx.EXPAND, 8)
         self.SetSizer(sizer)
@@ -234,6 +252,12 @@ class SpeakTab(wx.Panel):
         style = self.style_slider.GetValue() / 100.0
         use_boost = self.speaker_boost.GetValue()
 
+        # Verlauf aktualisieren (Duplikate vermeiden, neuester Eintrag oben)
+        if text not in self._history:
+            self._history.insert(0, text)
+            self._history = self._history[:10]
+            self._refresh_history()
+
         self._generating = True
         self.speak_btn.Disable()
 
@@ -252,6 +276,27 @@ class SpeakTab(wx.Panel):
                 args=(text, voice_id, model_id, stability, similarity, style, use_boost),
                 daemon=True,
             ).start()
+
+    def _refresh_history(self) -> None:
+        self.history_lb.Clear()
+        for entry in self._history:
+            display = entry if len(entry) <= 60 else entry[:57] + "..."
+            self.history_lb.Append(display)
+
+    def _on_history_select(self, _event) -> None:
+        idx = self.history_lb.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._history):
+            return
+        self.text_input.SetValue(self._history[idx])
+        self.text_input.SetFocus()
+
+    def _on_repeat(self, _event) -> None:
+        idx = self.history_lb.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._history):
+            self._set_status("Kein Verlaufseintrag ausgewählt")
+            return
+        self.text_input.SetValue(self._history[idx])
+        self.on_speak(_event)
 
     def _speak_worker(
         self,

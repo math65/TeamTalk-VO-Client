@@ -809,8 +809,27 @@ class ChannelsTab(wx.Panel):
             dlg.Destroy()
             return
         dlg.Destroy()
+        user = self._find_user(user_id)
+        username = (self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or f"Benutzer {user_id}") if user else f"Benutzer {user_id}"
+        reason_dlg = wx.TextEntryDialog(
+            self,
+            f"Begründung für Kick von '{username}' (leer = ohne Begründung):",
+            "Kick mit Begründung",
+            "",
+        )
+        reason_dlg.SetName("Kick-Begründung")
+        if reason_dlg.ShowModal() == wx.ID_OK:
+            reason = reason_dlg.GetValue().strip()
+            if reason:
+                self.frame.client.send_channel_message(int(my_ch), f"[Admin] {username} wurde gekickt: {reason}")
+        reason_dlg.Destroy()
         self.frame.client.do_kick_user(user_id, int(my_ch))
-        self.frame.set_status("Benutzer gekickt")
+        self.frame.set_status(f"{username} wurde gekickt")
+        try:
+            from ui_wx.a11y import post_voiceover_announcement
+            post_voiceover_announcement(f"{username} wurde gekickt")
+        except Exception:
+            pass
 
     def _on_user_kick_ban(self, user_id: int) -> None:
         user = self._find_user(user_id)
@@ -829,12 +848,31 @@ class ChannelsTab(wx.Panel):
             dlg.Destroy()
             return
         dlg.Destroy()
+        username = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or f"Benutzer {user_id}"
+        channel_id = int(getattr(user, "nChannelID", 0) or 0)
+        reason_dlg = wx.TextEntryDialog(
+            self,
+            f"Begründung für Kick+Bann von '{username}' (leer = ohne Begründung):",
+            "Kick mit Begründung",
+            "",
+        )
+        reason_dlg.SetName("Kick-Begründung")
+        if reason_dlg.ShowModal() == wx.ID_OK:
+            reason = reason_dlg.GetValue().strip()
+            if reason and channel_id:
+                self.frame.client.send_channel_message(channel_id, f"[Admin] {username} wurde gekickt und gebannt: {reason}")
+        reason_dlg.Destroy()
         self.frame.client.do_ban_user_ex(user_id, ban_types)
-        if int(getattr(user, "nChannelID", 0) or 0) > 0:
-            self.frame.client.do_kick_user(user_id, int(user.nChannelID))
-            self.frame.set_status("Benutzer gekickt und gebannt")
+        if channel_id > 0:
+            self.frame.client.do_kick_user(user_id, channel_id)
+            self.frame.set_status(f"{username} wurde gekickt und gebannt")
+            try:
+                from ui_wx.a11y import post_voiceover_announcement
+                post_voiceover_announcement(f"{username} wurde gekickt und gebannt")
+            except Exception:
+                pass
         else:
-            self.frame.set_status("Benutzer gebannt")
+            self.frame.set_status(f"{username} wurde gebannt")
 
     def _on_user_subscribe_toggle(self, user_id: int, flag: int, checked: bool) -> None:
         if checked:

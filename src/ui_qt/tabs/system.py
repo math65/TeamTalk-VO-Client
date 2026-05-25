@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import (
@@ -10,6 +11,17 @@ from PySide6.QtWidgets import (
 
 if TYPE_CHECKING:
     from app_qt import MainWindow
+
+
+def _format_uptime(seconds: float) -> str:
+    s = int(seconds)
+    h, r = divmod(s, 3600)
+    m, s = divmod(r, 60)
+    if h > 0:
+        return f"{h}h {m}m {s}s"
+    if m > 0:
+        return f"{m}m {s}s"
+    return f"{s}s"
 
 
 class SystemTab(QWidget):
@@ -23,6 +35,30 @@ class SystemTab(QWidget):
 
         root = QVBoxLayout(self)
         root.setContentsMargins(8, 8, 8, 8)
+
+        # Sitzungsstatistik
+        stats_group = QGroupBox("Sitzungsstatistik")
+        stats_form = QFormLayout(stats_group)
+        self._stat_uptime = QLabel("–")
+        self._stat_uptime.setAccessibleName("Verbindungsdauer")
+        stats_form.addRow("Verbindungsdauer:", self._stat_uptime)
+        self._stat_sent = QLabel("–")
+        self._stat_sent.setAccessibleName("Gesendete Nachrichten")
+        stats_form.addRow("Gesendete Nachrichten:", self._stat_sent)
+        self._stat_received = QLabel("–")
+        self._stat_received.setAccessibleName("Empfangene Nachrichten")
+        stats_form.addRow("Empfangene Nachrichten:", self._stat_received)
+        self._stat_connects = QLabel("–")
+        self._stat_connects.setAccessibleName("Verbindungsanzahl")
+        stats_form.addRow("Verbindungsanzahl:", self._stat_connects)
+        stats_btn_row = QHBoxLayout()
+        self._btn_stats_refresh = QPushButton("Statistik &aktualisieren")
+        self._btn_stats_reset = QPushButton("Statistik &zurücksetzen")
+        stats_btn_row.addWidget(self._btn_stats_refresh)
+        stats_btn_row.addWidget(self._btn_stats_reset)
+        stats_btn_row.addStretch()
+        stats_form.addRow(stats_btn_row)
+        root.addWidget(stats_group)
 
         # System log
         sys_group = QGroupBox("Systemmeldungen")
@@ -149,6 +185,7 @@ class SystemTab(QWidget):
 
         self._bind_events()
         self._sync_from_manager()
+        self._refresh_stats()
 
     def _bind_events(self) -> None:
         self.tts_enabled.stateChanged.connect(self._on_enable_changed)
@@ -170,6 +207,8 @@ class SystemTab(QWidget):
         self.tts_path.textChanged.connect(self._apply_settings)
         self.tts_refresh.clicked.connect(lambda: self._refresh_voices(force=True))
         self.tts_test.clicked.connect(self._on_test)
+        self._btn_stats_refresh.clicked.connect(self._refresh_stats)
+        self._btn_stats_reset.clicked.connect(self._reset_stats)
         self.tts_chat_rate.valueChanged.connect(self._apply_settings)
         self.tts_system_rate.valueChanged.connect(self._apply_settings)
         self.tts_channel_rate.valueChanged.connect(self._apply_settings)
@@ -373,6 +412,53 @@ class SystemTab(QWidget):
 
     def _on_test(self) -> None:
         self.window.tts.speak("Das ist ein TTS Test", kind="system")
+
+    def _refresh_stats(self) -> None:
+        """Aktualisiert die Sitzungsstatistik-Anzeige."""
+        analytics = getattr(self.window, "_analytics", None)
+        current = getattr(analytics, "_current", None)
+
+        # Verbindungsdauer
+        if current is not None:
+            elapsed = time.time() - current.connected_at
+            self._stat_uptime.setText(_format_uptime(elapsed))
+        else:
+            session_start = getattr(self.window, "_session_start", None)
+            if session_start is not None:
+                elapsed = time.time() - session_start
+                self._stat_uptime.setText(_format_uptime(elapsed))
+            else:
+                self._stat_uptime.setText("Nicht verbunden")
+
+        # Gesendete Nachrichten
+        if current is not None:
+            self._stat_sent.setText(str(current.messages_sent))
+        else:
+            self._stat_sent.setText("–")
+
+        # Empfangene Nachrichten
+        if current is not None:
+            self._stat_received.setText(str(current.messages_received))
+        else:
+            self._stat_received.setText("–")
+
+        # Verbindungsanzahl (abgeschlossene + laufende Sitzung)
+        if analytics is not None:
+            sessions = getattr(analytics, "_sessions", [])
+            count = len(sessions) + (1 if current is not None else 0)
+            self._stat_connects.setText(str(count))
+        else:
+            self._stat_connects.setText("–")
+
+    def _reset_stats(self) -> None:
+        """Setzt die Sitzungsstatistik der aktuellen Verbindung zurück."""
+        analytics = getattr(self.window, "_analytics", None)
+        current = getattr(analytics, "_current", None)
+        if current is not None:
+            current.messages_sent = 0
+            current.messages_received = 0
+            current.connected_at = time.time()
+        self._refresh_stats()
 
     def append_system(self, text: str) -> None:
         self.system_log.append(text)

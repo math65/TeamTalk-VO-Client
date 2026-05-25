@@ -8,7 +8,7 @@ from typing import List, Optional, TYPE_CHECKING
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout,
     QLabel, QLineEdit, QTextEdit, QComboBox, QSpinBox,
-    QCheckBox, QPushButton,
+    QCheckBox, QPushButton, QListWidget, QAbstractItemView,
 )
 
 if TYPE_CHECKING:
@@ -27,6 +27,7 @@ class SpeakTab(QWidget):
         self._generating = False
         self._temp_file: Optional[str] = None
         self._streaming_temp_file: Optional[str] = None
+        self._history: List[str] = []
 
         root = QVBoxLayout(self)
         root.setContentsMargins(8, 8, 8, 8)
@@ -103,6 +104,22 @@ class SpeakTab(QWidget):
         self.status_label = QLabel("Bereit")
         btn_row.addWidget(self.status_label)
         tts_layout.addLayout(btn_row)
+
+        # --- Textverlauf ---
+        tts_layout.addWidget(QLabel("Verlauf (letzte Texte):"))
+        self.history_lw = QListWidget()
+        self.history_lw.setAccessibleName("Textverlauf")
+        self.history_lw.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.history_lw.setMinimumHeight(80)
+        self.history_lw.itemDoubleClicked.connect(self._on_history_double_clicked)
+        tts_layout.addWidget(self.history_lw)
+
+        history_btn_row = QHBoxLayout()
+        self.repeat_btn = QPushButton("&Erneut sprechen")
+        self.repeat_btn.clicked.connect(self._on_repeat)
+        history_btn_row.addWidget(self.repeat_btn)
+        history_btn_row.addStretch()
+        tts_layout.addLayout(history_btn_row)
 
         root.addWidget(tts_group)
 
@@ -221,6 +238,12 @@ class SpeakTab(QWidget):
         use_boost = self.speaker_boost.isChecked()
         use_streaming = self.streaming_check.isChecked() and self._can_stream(model_id)
 
+        # Verlauf aktualisieren (Duplikate vermeiden, neuester Eintrag oben)
+        if text not in self._history:
+            self._history.insert(0, text)
+            self._history = self._history[:10]
+            self._refresh_history()
+
         self._generating = True
         self.speak_btn.setEnabled(False)
         if use_streaming:
@@ -237,6 +260,26 @@ class SpeakTab(QWidget):
                 args=(text, voice_id, model_id, stability, similarity, style, use_boost),
                 daemon=True,
             ).start()
+
+    def _refresh_history(self) -> None:
+        self.history_lw.clear()
+        for entry in self._history:
+            display = entry if len(entry) <= 60 else entry[:57] + "..."
+            self.history_lw.addItem(display)
+
+    def _on_history_double_clicked(self, item) -> None:
+        idx = self.history_lw.row(item)
+        if 0 <= idx < len(self._history):
+            self.text_input.setPlainText(self._history[idx])
+            self.text_input.setFocus()
+
+    def _on_repeat(self) -> None:
+        idx = self.history_lw.currentRow()
+        if idx < 0 or idx >= len(self._history):
+            self._set_status("Kein Verlaufseintrag ausgewählt")
+            return
+        self.text_input.setPlainText(self._history[idx])
+        self.on_speak()
 
     def _speak_worker(self, text, voice_id, model_id, stability, similarity, style, use_boost) -> None:
         from ui_qt.call_after import call_after

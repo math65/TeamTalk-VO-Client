@@ -1150,12 +1150,12 @@ class MainWindow(QMainWindow):
     def _on_file_transfer(self, msg) -> None:
         try:
             ft = msg.filetransfer
+            self.files_tab.on_file_transfer_update(ft)
             pct = int(ft.nTransferred * 100 / max(1, ft.nFileSize))
-            name = self.tt_str(ft.szRemoteFileName)
-            self.files_tab.update_transfer_progress(name, pct)
             if pct >= 100:
                 self.sound_manager.play("file_transfer", self.settings_store.settings.sound_events.get("file_transfer"))
                 if getattr(self.tts.settings, "speak_file_transfer", True):
+                    name = self.tt_str(ft.szRemoteFileName)
                     self.tts.speak(f"Dateitransfer abgeschlossen: {name}", kind="system")
         except Exception:
             pass
@@ -2855,8 +2855,23 @@ class MainWindow(QMainWindow):
             return
         try:
             ch_id = int(self.client.get_my_channel_id() or 0)
+            user = self.client.get_user(uid)
+            username = (self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or f"User#{uid}") if user else f"User#{uid}"
+            reason, ok = QInputDialog.getText(
+                self,
+                "Kick mit Begründung",
+                f"Begründung für Kick von '{username}' (leer = ohne Begründung):",
+            )
+            if ok:
+                reason = reason.strip()
+                if reason and ch_id:
+                    self.client.send_channel_message(ch_id, f"[Admin] {username} wurde gekickt: {reason}")
             self.client.do_kick_user(uid, ch_id)
-            self.set_status(f"User#{uid} gekickt")
+            self.set_status(f"{username} wurde gekickt")
+            try:
+                self._sr_announce(f"{username} wurde gekickt")
+            except Exception:
+                pass
         except Exception as exc:
             self.set_status(f"Kick Fehler: {exc}")
 
@@ -2868,10 +2883,25 @@ class MainWindow(QMainWindow):
             tt = self.client.tt
             ch_id = int(self.client.get_my_channel_id() or 0)
             ban_types = int(tt.BanType.BANTYPE_USERNAME)
+            user = self.client.get_user(uid)
+            username = (self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or f"User#{uid}") if user else f"User#{uid}"
+            reason, ok = QInputDialog.getText(
+                self,
+                "Kick mit Begründung",
+                f"Begründung für Kick+Bann von '{username}' (leer = ohne Begründung):",
+            )
+            if ok:
+                reason = reason.strip()
+                if reason and ch_id:
+                    self.client.send_channel_message(ch_id, f"[Admin] {username} wurde gekickt und gebannt: {reason}")
             self.client.do_ban_user_ex(uid, ban_types)
             if ch_id:
                 self.client.do_kick_user(uid, ch_id)
-            self.set_status(f"User#{uid} gekickt und gesperrt")
+            self.set_status(f"{username} wurde gekickt und gesperrt")
+            try:
+                self._sr_announce(f"{username} wurde gekickt und gesperrt")
+            except Exception:
+                pass
         except Exception as exc:
             self.set_status(f"Kick+Ban Fehler: {exc}")
 
@@ -2881,8 +2911,24 @@ class MainWindow(QMainWindow):
             self.set_status("Bitte Benutzer auswählen")
             return
         try:
+            user = self.client.get_user(uid)
+            username = (self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or f"User#{uid}") if user else f"User#{uid}"
+            channel_id = int(getattr(user, "nChannelID", 0) or 0) if user else 0
+            reason, ok = QInputDialog.getText(
+                self,
+                "Kick mit Begründung",
+                f"Begründung für Server-Kick von '{username}' (leer = ohne Begründung):",
+            )
+            if ok:
+                reason = reason.strip()
+                if reason and channel_id:
+                    self.client.send_channel_message(channel_id, f"[Admin] {username} wurde vom Server gekickt: {reason}")
             self.client.do_kick_user(uid, 0)
-            self.set_status(f"User#{uid} vom Server gekickt")
+            self.set_status(f"{username} wurde vom Server gekickt")
+            try:
+                self._sr_announce(f"{username} wurde vom Server gekickt")
+            except Exception:
+                pass
         except Exception as exc:
             self.set_status(f"Kick Fehler: {exc}")
 
@@ -2900,9 +2946,25 @@ class MainWindow(QMainWindow):
         try:
             tt = self.client.tt
             ban_types = int(tt.BanType.BANTYPE_USERNAME)
+            user = self.client.get_user(uid)
+            username = (self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or f"User#{uid}") if user else f"User#{uid}"
+            channel_id = int(getattr(user, "nChannelID", 0) or 0) if user else 0
+            reason, ok = QInputDialog.getText(
+                self,
+                "Kick mit Begründung",
+                f"Begründung für Server-Kick+Bann von '{username}' (leer = ohne Begründung):",
+            )
+            if ok:
+                reason = reason.strip()
+                if reason and channel_id:
+                    self.client.send_channel_message(channel_id, f"[Admin] {username} wurde vom Server gekickt und gebannt: {reason}")
             self.client.do_ban_user_ex(uid, ban_types)
             self.client.do_kick_user(uid, 0)
-            self.set_status(f"User#{uid} vom Server gekickt und gebannt")
+            self.set_status(f"{username} wurde vom Server gekickt und gebannt")
+            try:
+                self._sr_announce(f"{username} wurde vom Server gekickt und gebannt")
+            except Exception:
+                pass
         except Exception as exc:
             self.set_status(f"Kick+Ban Server Fehler: {exc}")
 
@@ -4059,21 +4121,8 @@ class MainWindow(QMainWindow):
             self.set_status("Statistik nicht verfügbar")
 
     def on_menu_saved_messages(self) -> None:
-        try:
-            msgs = self._saved_messages.get_all()
-        except Exception:
-            msgs = []
-        dlg = QDialog(self)
-        dlg.setWindowTitle("Gespeicherte Nachrichten")
-        layout = QVBoxLayout(dlg)
-        lw = QListWidget()
-        for m in (msgs or []):
-            lw.addItem(str(m)[:120])
-        layout.addWidget(lw, 1)
-        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        bb.rejected.connect(dlg.reject)
-        layout.addWidget(bb)
-        dlg.resize(500, 350)
+        from ui_qt.saved_messages_dialog import SavedMessagesDialog
+        dlg = SavedMessagesDialog(self, self._saved_messages)
         dlg.exec()
         self._refocus_channel_list()
 

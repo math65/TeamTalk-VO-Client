@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING
 
 import wx
@@ -8,6 +9,17 @@ from ui_wx.a11y import setup_list_accessible
 
 if TYPE_CHECKING:
     from app import MainFrame
+
+
+def _format_uptime(seconds: float) -> str:
+    s = int(seconds)
+    h, r = divmod(s, 3600)
+    m, s = divmod(r, 60)
+    if h > 0:
+        return f"{h}h {m}m {s}s"
+    if m > 0:
+        return f"{m}m {s}s"
+    return f"{s}s"
 
 
 class SystemTab(wx.Panel):
@@ -21,6 +33,45 @@ class SystemTab(wx.Panel):
         self._voice_label_to_id = {}
 
         sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Sitzungsstatistik
+        stats_box = wx.StaticBox(self, label="Sitzungsstatistik")
+        stats_sizer = wx.StaticBoxSizer(stats_box, wx.VERTICAL)
+        stats_grid = wx.FlexGridSizer(cols=2, vgap=4, hgap=8)
+        stats_grid.AddGrowableCol(1)
+
+        stats_grid.Add(wx.StaticText(self, label="Verbindungsdauer:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._stat_uptime = wx.StaticText(self, label="–")
+        self._stat_uptime.SetName("Verbindungsdauer")
+        stats_grid.Add(self._stat_uptime, 0)
+
+        stats_grid.Add(wx.StaticText(self, label="Gesendete Nachrichten:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._stat_sent = wx.StaticText(self, label="–")
+        self._stat_sent.SetName("Gesendete Nachrichten")
+        stats_grid.Add(self._stat_sent, 0)
+
+        stats_grid.Add(wx.StaticText(self, label="Empfangene Nachrichten:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._stat_received = wx.StaticText(self, label="–")
+        self._stat_received.SetName("Empfangene Nachrichten")
+        stats_grid.Add(self._stat_received, 0)
+
+        stats_grid.Add(wx.StaticText(self, label="Verbindungsanzahl:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._stat_connects = wx.StaticText(self, label="–")
+        self._stat_connects.SetName("Verbindungsanzahl")
+        stats_grid.Add(self._stat_connects, 0)
+
+        stats_sizer.Add(stats_grid, 0, wx.ALL | wx.EXPAND, 6)
+
+        stats_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._btn_stats_refresh = wx.Button(self, label="Statistik &aktualisieren")
+        self._btn_stats_refresh.SetName("Statistik aktualisieren")
+        self._btn_stats_reset = wx.Button(self, label="Statistik &zurücksetzen")
+        self._btn_stats_reset.SetName("Statistik zurücksetzen")
+        stats_btn_row.Add(self._btn_stats_refresh, 0, wx.RIGHT, 8)
+        stats_btn_row.Add(self._btn_stats_reset, 0)
+        stats_sizer.Add(stats_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
+
+        sizer.Add(stats_sizer, 0, wx.ALL | wx.EXPAND, 8)
 
         # System log
         sys_box = wx.StaticBox(self, label="Systemmeldungen")
@@ -180,6 +231,7 @@ class SystemTab(wx.Panel):
 
         self._bind_events()
         self._sync_from_manager()
+        self._refresh_stats()
 
     def _bind_events(self):
         self.tts_enabled.Bind(wx.EVT_CHECKBOX, self._on_enable_changed)
@@ -212,6 +264,8 @@ class SystemTab(wx.Panel):
             self.tts_macos_volume.Bind(wx.EVT_SLIDER, self._apply_settings)
         self.tts_refresh.Bind(wx.EVT_BUTTON, lambda e: self._refresh_voices(e, force=True))
         self.tts_test.Bind(wx.EVT_BUTTON, self._on_test)
+        self._btn_stats_refresh.Bind(wx.EVT_BUTTON, lambda e: self._refresh_stats())
+        self._btn_stats_reset.Bind(wx.EVT_BUTTON, lambda e: self._reset_stats())
 
     def _sync_from_manager(self):
         s = self.frame.tts.settings
@@ -465,6 +519,53 @@ class SystemTab(wx.Panel):
                 self.tts_macos_voice.SetSelection(i + 1)
                 return
         self.tts_macos_voice.SetSelection(0)
+
+    def _refresh_stats(self) -> None:
+        """Aktualisiert die Sitzungsstatistik-Anzeige."""
+        analytics = getattr(self.frame, "_analytics", None)
+        current = getattr(analytics, "_current", None)
+
+        # Verbindungsdauer
+        if current is not None:
+            elapsed = time.time() - current.connected_at
+            self._stat_uptime.SetLabel(_format_uptime(elapsed))
+        else:
+            session_start = getattr(self.frame, "_session_start", None)
+            if session_start is not None:
+                elapsed = time.time() - session_start
+                self._stat_uptime.SetLabel(_format_uptime(elapsed))
+            else:
+                self._stat_uptime.SetLabel("Nicht verbunden")
+
+        # Gesendete Nachrichten
+        if current is not None:
+            self._stat_sent.SetLabel(str(current.messages_sent))
+        else:
+            self._stat_sent.SetLabel("–")
+
+        # Empfangene Nachrichten
+        if current is not None:
+            self._stat_received.SetLabel(str(current.messages_received))
+        else:
+            self._stat_received.SetLabel("–")
+
+        # Verbindungsanzahl (abgeschlossene + laufende Sitzung)
+        if analytics is not None:
+            sessions = getattr(analytics, "_sessions", [])
+            count = len(sessions) + (1 if current is not None else 0)
+            self._stat_connects.SetLabel(str(count))
+        else:
+            self._stat_connects.SetLabel("–")
+
+    def _reset_stats(self) -> None:
+        """Setzt die Sitzungsstatistik der aktuellen Verbindung zurück."""
+        analytics = getattr(self.frame, "_analytics", None)
+        current = getattr(analytics, "_current", None)
+        if current is not None:
+            current.messages_sent = 0
+            current.messages_received = 0
+            current.connected_at = time.time()
+        self._refresh_stats()
 
     def append_system(self, text: str) -> None:
         self.system_log.AppendText(text + "\n")

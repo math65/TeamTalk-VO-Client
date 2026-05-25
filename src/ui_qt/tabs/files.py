@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import time
 from datetime import datetime
 from typing import List, TYPE_CHECKING
 
@@ -27,6 +28,9 @@ class FilesTab(QWidget):
         self._active_transfer_id    = 0
         self._active_transfer_name  = ""
         self._history: List[dict]   = []   # local transfer log
+        self._transfer_start_time: float = 0.0
+        self._transfer_start_bytes: int = 0
+        self._transfer_file_size: int = 0
 
         root = QVBoxLayout(self)
         root.setContentsMargins(8, 8, 8, 8)
@@ -80,14 +84,83 @@ class FilesTab(QWidget):
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
         self.progress_bar.setVisible(False)
+        self.speed_label = QLabel("")
+        self.speed_label.setAccessibleName("Übertragungsgeschwindigkeit")
         action_layout.addWidget(self.progress_label)
         action_layout.addWidget(self.progress_bar)
+        action_layout.addWidget(self.speed_label)
 
         root.addWidget(action_group)
 
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _format_speed(bps: float) -> str:
+        kbps = bps / 1024
+        if kbps >= 1024:
+            return f"{kbps / 1024:.1f} MB/s"
+        return f"{kbps:.1f} KB/s"
+
+    @staticmethod
+    def _format_eta(remaining_bytes: int, bps: float) -> str:
+        if bps <= 0:
+            return "…"
+        secs = int(remaining_bytes / bps)
+        if secs >= 3600:
+            return f"noch ca. {secs // 3600}h {(secs % 3600) // 60}m"
+        if secs >= 60:
+            return f"noch ca. {secs // 60}m {secs % 60}s"
+        return f"noch ca. {secs}s"
+
+    def on_file_transfer_update(self, ft) -> None:
+        """Called from MainWindow with the raw filetransfer object."""
+        try:
+            total = int(ft.nFileSize)
+            transferred = int(ft.nTransferred)
+            name = ""
+            try:
+                name = self.window.tt_str(ft.szRemoteFileName)
+            except Exception:
+                pass
+        except Exception:
+            return
+
+        # Initialise tracking on first call for this transfer
+        if self._transfer_file_size != total or self._transfer_start_time == 0.0:
+            self._transfer_start_time = time.monotonic()
+            self._transfer_start_bytes = transferred
+            self._transfer_file_size = total
+
+        pct = min(100, int(transferred * 100 / max(1, total)))
+        self.progress_label.setText(f"Übertragung: {name} ({pct}%)")
+        self.progress_bar.setValue(pct)
+        self.progress_bar.setVisible(True)
+
+        # Compute speed and ETA
+        elapsed = time.monotonic() - self._transfer_start_time
+        if elapsed > 0.5:
+            bps = max(0.0, (transferred - self._transfer_start_bytes) / elapsed)
+            remaining = max(0, total - transferred)
+            speed_str = self._format_speed(bps)
+            eta_str = self._format_eta(remaining, bps)
+            self.speed_label.setText(f"{speed_str} — {eta_str}")
+        else:
+            self.speed_label.setText("Geschwindigkeit wird berechnet …")
+
+        if pct >= 100:
+            self.progress_bar.setVisible(False)
+            self.progress_label.setText("")
+            self.speed_label.setText("Abgeschlossen")
+            self._transfer_start_time = 0.0
+            self._transfer_start_bytes = 0
+            self._transfer_file_size = 0
+            if name:
+                try:
+                    self.window._sr_announce(f"{name} übertragen")
+                except Exception:
+                    pass
 
     def _set_status(self, text: str) -> None:
         try:

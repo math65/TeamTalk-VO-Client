@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING
 
 import wx
@@ -19,6 +20,9 @@ class FilesTab(wx.Panel):
         self.SetName("Dateien")
         self._active_transfer_id = 0
         self._active_transfer_name = ""
+        self._transfer_start_time: float = 0.0
+        self._transfer_start_bytes: int = 0
+        self._transfer_file_size: int = 0
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -63,6 +67,9 @@ class FilesTab(wx.Panel):
         self.transfer_gauge = wx.Gauge(transfer_box, range=100)
         self.transfer_gauge.SetName("Übertragungsfortschritt")
         transfer_sizer.Add(self.transfer_gauge, 0, wx.ALL | wx.EXPAND, 8)
+        self._speed_label = wx.StaticText(transfer_box, label="")
+        self._speed_label.SetName("Übertragungsgeschwindigkeit")
+        transfer_sizer.Add(self._speed_label, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         sizer.Add(transfer_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
@@ -70,6 +77,24 @@ class FilesTab(wx.Panel):
 
         self._file_ids: list = []    # parallel to list rows
         self._file_names: list = []  # parallel to list rows
+
+    @staticmethod
+    def _format_speed(bps: float) -> str:
+        kbps = bps / 1024
+        if kbps >= 1024:
+            return f"{kbps / 1024:.1f} MB/s"
+        return f"{kbps:.1f} KB/s"
+
+    @staticmethod
+    def _format_eta(remaining_bytes: int, bps: float) -> str:
+        if bps <= 0:
+            return "…"
+        secs = int(remaining_bytes / bps)
+        if secs >= 3600:
+            return f"noch ca. {secs // 3600}h {(secs % 3600) // 60}m"
+        if secs >= 60:
+            return f"noch ca. {secs // 60}m {secs % 60}s"
+        return f"noch ca. {secs}s"
 
     def _format_size(self, size_bytes: int) -> str:
         if size_bytes < 1024:
@@ -204,19 +229,53 @@ class FilesTab(wx.Panel):
             self.frame.set_status("Löschen fehlgeschlagen – keine Berechtigung?")
 
     def on_file_transfer_update(self, transfer_id: int):
-        ft = self.frame.client.get_file_transfer_info(transfer_id)
+        try:
+            ft = self.frame.client.get_file_transfer_info(transfer_id)
+        except Exception:
+            ft = None
         if ft is None:
             return
-        total = int(ft.nFileSize)
-        transferred = int(ft.nTransferred)
+        try:
+            total = int(ft.nFileSize)
+            transferred = int(ft.nTransferred)
+        except Exception:
+            return
+
+        # Initialise tracking on first call for this transfer
+        if self._transfer_file_size != total or self._transfer_start_time == 0.0:
+            self._transfer_start_time = time.monotonic()
+            self._transfer_start_bytes = transferred
+            self._transfer_file_size = total
+
         if total > 0:
             pct = min(100, int(transferred * 100 / total))
             self.transfer_gauge.SetValue(pct)
+
+        # Compute speed and ETA
+        elapsed = time.monotonic() - self._transfer_start_time
+        if elapsed > 0.5:
+            bps = max(0.0, (transferred - self._transfer_start_bytes) / elapsed)
+            remaining = max(0, total - transferred)
+            speed_str = self._format_speed(bps)
+            eta_str = self._format_eta(remaining, bps)
+            self._speed_label.SetLabel(f"{speed_str} — {eta_str}")
+        else:
+            self._speed_label.SetLabel("Geschwindigkeit wird berechnet …")
+
         # Check completion
         if transferred >= total and total > 0:
             self.transfer_gauge.SetValue(100)
+            self._speed_label.SetLabel("Abgeschlossen")
+            self._transfer_start_time = 0.0
+            self._transfer_start_bytes = 0
+            self._transfer_file_size = 0
             if self._active_transfer_name:
                 self.frame._file_manager.mark_completed(self._active_transfer_name)
+                try:
+                    from ui_wx.a11y import post_voiceover_announcement
+                    post_voiceover_announcement(f"{self._active_transfer_name} übertragen")
+                except Exception:
+                    pass
             self.frame.set_status("Dateitransfer abgeschlossen")
             wx.CallLater(500, self.refresh_file_list)
 
