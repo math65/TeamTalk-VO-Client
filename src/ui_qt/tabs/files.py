@@ -13,6 +13,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 
+from i18n import _
+
 if TYPE_CHECKING:
     from app_qt import MainWindow
 
@@ -38,25 +40,25 @@ class FilesTab(QWidget):
         # ------------------------------------------------------------------ #
         # File list
         # ------------------------------------------------------------------ #
-        list_group = QGroupBox("Dateien im aktuellen Kanal")
+        list_group = QGroupBox(_("Dateien im aktuellen Kanal"))
         list_layout = QVBoxLayout(list_group)
-        list_layout.addWidget(QLabel("Dateiname (Größe) [Kanal]"))
+        list_layout.addWidget(QLabel(_("Dateiname (Größe) [Kanal]")))
         self.file_list = QListWidget()
-        self.file_list.setAccessibleName("Dateien im Kanal")
+        self.file_list.setAccessibleName(_("Dateien im Kanal"))
         list_layout.addWidget(self.file_list, 1)
         root.addWidget(list_group, 1)
 
         # ------------------------------------------------------------------ #
         # Action buttons
         # ------------------------------------------------------------------ #
-        action_group = QGroupBox("Aktionen")
+        action_group = QGroupBox(_("Aktionen"))
         action_layout = QVBoxLayout(action_group)
 
         btn_row1 = QHBoxLayout()
-        self.upload_btn       = QPushButton("&Hochladen")
-        self.download_btn     = QPushButton("He&runterladen")
-        self.delete_btn       = QPushButton("&Löschen")
-        self.refresh_btn      = QPushButton("&Aktualisieren")
+        self.upload_btn       = QPushButton(_("&Hochladen"))
+        self.download_btn     = QPushButton(_("He&runterladen"))
+        self.delete_btn       = QPushButton(_("&Löschen"))
+        self.refresh_btn      = QPushButton(_("&Aktualisieren"))
         self.upload_btn.clicked.connect(self.on_upload)
         self.download_btn.clicked.connect(self.on_download)
         self.delete_btn.clicked.connect(self.on_delete)
@@ -67,9 +69,9 @@ class FilesTab(QWidget):
         action_layout.addLayout(btn_row1)
 
         btn_row2 = QHBoxLayout()
-        self.download_all_btn = QPushButton("Alle he&runterladen")
-        self.open_folder_btn  = QPushButton("Ordner &öffnen")
-        self.history_btn      = QPushButton("Ver&lauf anzeigen...")
+        self.download_all_btn = QPushButton(_("Alle he&runterladen"))
+        self.open_folder_btn  = QPushButton(_("Ordner &öffnen"))
+        self.history_btn      = QPushButton(_("Ver&lauf anzeigen..."))
         self.download_all_btn.clicked.connect(self.on_download_all)
         self.open_folder_btn.clicked.connect(self.on_open_folder)
         self.history_btn.clicked.connect(self.on_history)
@@ -85,7 +87,7 @@ class FilesTab(QWidget):
         self.progress_bar.setValue(0)
         self.progress_bar.setVisible(False)
         self.speed_label = QLabel("")
-        self.speed_label.setAccessibleName("Übertragungsgeschwindigkeit")
+        self.speed_label.setAccessibleName(_("Übertragungsgeschwindigkeit"))
         action_layout.addWidget(self.progress_label)
         action_layout.addWidget(self.progress_bar)
         action_layout.addWidget(self.speed_label)
@@ -147,12 +149,12 @@ class FilesTab(QWidget):
             eta_str = self._format_eta(remaining, bps)
             self.speed_label.setText(f"{speed_str} — {eta_str}")
         else:
-            self.speed_label.setText("Geschwindigkeit wird berechnet …")
+            self.speed_label.setText(_("Geschwindigkeit wird berechnet …"))
 
         if pct >= 100:
             self.progress_bar.setVisible(False)
             self.progress_label.setText("")
-            self.speed_label.setText("Abgeschlossen")
+            self.speed_label.setText(_("Abgeschlossen"))
             self._transfer_start_time = 0.0
             self._transfer_start_bytes = 0
             self._transfer_file_size = 0
@@ -244,10 +246,10 @@ class FilesTab(QWidget):
 
     def on_refresh(self) -> None:
         self.window.refresh_files()
-        self._set_status("Dateiliste aktualisiert")
+        self._set_status(_("Dateiliste aktualisiert"))
 
     def on_upload(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "Datei hochladen", "", "Alle Dateien (*.*)")
+        path, _flt = QFileDialog.getOpenFileName(self, _("Datei hochladen"), "", _("Alle Dateien (*.*)"))
         if path:
             name = os.path.basename(path)
             try:
@@ -261,12 +263,12 @@ class FilesTab(QWidget):
     def on_download(self) -> None:
         row = self.file_list.currentRow()
         if row < 0 or row >= len(self._file_ids):
-            self._set_status("Bitte eine Datei auswählen")
+            self._set_status(_("Bitte eine Datei auswählen"))
             return
         file_id   = self._file_ids[row]
         default   = self._file_names[row] if row < len(self._file_names) else ""
-        save_path, _ = QFileDialog.getSaveFileName(
-            self, "Datei speichern unter",
+        save_path, _flt = QFileDialog.getSaveFileName(
+            self, _("Datei speichern unter"),
             os.path.join(self._get_download_dir(), default),
         )
         if save_path:
@@ -277,11 +279,11 @@ class FilesTab(QWidget):
     def on_delete(self) -> None:
         row = self.file_list.currentRow()
         if row < 0 or row >= len(self._file_ids):
-            self._set_status("Bitte eine Datei auswählen")
+            self._set_status(_("Bitte eine Datei auswählen"))
             return
         name = self._file_names[row] if row < len(self._file_names) else "?"
         reply = QMessageBox.question(
-            self, "Datei löschen",
+            self, _("Datei löschen"),
             f"Datei '{name}' wirklich löschen?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
@@ -292,10 +294,10 @@ class FilesTab(QWidget):
 
     def on_download_all(self) -> None:
         if not self._file_ids:
-            self._set_status("Keine Dateien zum Herunterladen")
+            self._set_status(_("Keine Dateien zum Herunterladen"))
             return
         save_dir = QFileDialog.getExistingDirectory(
-            self, "Zielordner für alle Dateien wählen", self._get_download_dir()
+            self, _("Zielordner für alle Dateien wählen"), self._get_download_dir()
         )
         if not save_dir:
             return
@@ -327,14 +329,14 @@ class _FileHistoryDialog(QDialog):
 
     def __init__(self, parent: QWidget, history: list) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Dateiübertragungsverlauf")
+        self.setWindowTitle(_("Dateiübertragungsverlauf"))
         self.resize(700, 450)
 
         layout = QVBoxLayout(self)
 
         self._text = QTextEdit()
         self._text.setReadOnly(True)
-        self._text.setAccessibleName("Dateiübertragungsverlauf")
+        self._text.setAccessibleName(_("Dateiübertragungsverlauf"))
 
         if history:
             lines = []
@@ -354,12 +356,12 @@ class _FileHistoryDialog(QDialog):
                 lines.append(f"[{ts}] {direction} {name} ({size_str}){ch_str} — {state}")
             self._text.setPlainText("\n".join(lines))
         else:
-            self._text.setPlainText("Noch kein Dateiübertragungsverlauf vorhanden.")
+            self._text.setPlainText(_("Noch kein Dateiübertragungsverlauf vorhanden."))
 
         layout.addWidget(self._text, 1)
 
         btn_row = QHBoxLayout()
-        close_btn = QPushButton("&Schließen")
+        close_btn = QPushButton(_("&Schließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addStretch()
         btn_row.addWidget(close_btn)

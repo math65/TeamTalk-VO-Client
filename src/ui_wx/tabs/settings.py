@@ -343,6 +343,12 @@ class SettingsTab(wx.Panel):
         self._show_event_log.Bind(wx.EVT_CHECKBOX, self._on_event_log_changed)
         disp_sizer.Add(self._show_event_log, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+        self._show_advanced_tabs = wx.CheckBox(panel, label=_("Erweiterte Tabs anzeigen (Admin, Desktop, Video, ElevenLabs)"))
+        self._show_advanced_tabs.SetName("Erweiterte Tabs anzeigen")
+        self._show_advanced_tabs.SetValue(bool(getattr(s, "show_advanced_tabs", False)))
+        self._show_advanced_tabs.Bind(wx.EVT_CHECKBOX, self._on_advanced_tabs_changed)
+        disp_sizer.Add(self._show_advanced_tabs, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
         self._notifications_enabled = wx.CheckBox(panel, label="Desktop-&Benachrichtigungen aktivieren")
         self._notifications_enabled.SetName("Desktop-Benachrichtigungen aktivieren")
         self._notifications_enabled.SetValue(bool(getattr(s, "notifications_enabled", True)))
@@ -1365,6 +1371,7 @@ class SettingsTab(wx.Panel):
         s.show_toolbar = self._show_toolbar.GetValue()
         s.show_event_log = self._show_event_log.GetValue()
         s.show_vu_meter = self._show_vu_meter.GetValue()
+        s.show_advanced_tabs = self._show_advanced_tabs.GetValue()
         s.notifications_enabled = self._notifications_enabled.GetValue()
         _notif_modes = ["off", "notification", "tts", "voiceover"]
         _pi = self._notify_bg_private.GetSelection()
@@ -1377,6 +1384,11 @@ class SettingsTab(wx.Panel):
         self.frame.apply_display_settings()
         self._on_vu_meter_changed(None)
         self.frame.set_status("Anzeigeeinstellungen gespeichert")
+
+    def _on_advanced_tabs_changed(self, _event):
+        self.frame.settings_store.settings.show_advanced_tabs = self._show_advanced_tabs.GetValue()
+        self.frame.settings_store.save()
+        self.frame._apply_tab_visibility()
 
     def _on_toolbar_changed(self, _event):
         self.frame.qa_panel.Show(self._show_toolbar.GetValue())

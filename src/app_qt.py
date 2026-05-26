@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "7.7.0"
+APP_VERSION = "7.8.0"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -294,6 +294,8 @@ class MainWindow(QMainWindow):
         # Show Sprechen tab only when ElevenLabs API key is configured
         _eleven_key = getattr(self.settings_store.settings, "elevenlabs_api_key", "") or ""
         self._update_speak_tab(_eleven_key)
+        # Apply advanced-tab visibility (hides Admin/Desktop/Sprechen by default)
+        self._apply_tab_visibility()
 
         # Status bar
         self._status_bar = QStatusBar()
@@ -360,9 +362,9 @@ class MainWindow(QMainWindow):
 
         # Connection status bar
         status_bar = QHBoxLayout()
-        self._conn_label = QLabel("Nicht verbunden")
+        self._conn_label = QLabel(_("Nicht verbunden"))
         self._conn_label.setAccessibleName("Verbindungsstatus")
-        self._srv_disconnect_btn = QPushButton("&Trennen")
+        self._srv_disconnect_btn = QPushButton(_("&Trennen"))
         self._srv_disconnect_btn.setAccessibleName("Vom Server trennen")
         self._srv_disconnect_btn.clicked.connect(self.on_menu_disconnect)
         self._srv_disconnect_btn.setEnabled(False)
@@ -389,7 +391,7 @@ class MainWindow(QMainWindow):
         self._tb_va.toggled.connect(self._on_toggle_va)
         tb_layout.addWidget(self._tb_va)
 
-        self._tb_mute = QPushButton("Stumm")
+        self._tb_mute = QPushButton(_("Stumm"))
         self._tb_mute.setCheckable(True)
         self._tb_mute.setFixedWidth(60)
         self._tb_mute.setAccessibleName("Alle stummschalten")
@@ -397,14 +399,14 @@ class MainWindow(QMainWindow):
         self._tb_mute.toggled.connect(self._on_toggle_mute_all)
         tb_layout.addWidget(self._tb_mute)
 
-        self._tb_record = QPushButton("Aufn.")
+        self._tb_record = QPushButton(_("Aufn."))
         self._tb_record.setCheckable(True)
         self._tb_record.setFixedWidth(55)
         self._tb_record.setAccessibleName("Aufnahme starten oder stoppen")
         self._tb_record.toggled.connect(self._on_tb_record)
         tb_layout.addWidget(self._tb_record)
 
-        self._tb_question = QPushButton("Frage")
+        self._tb_question = QPushButton(_("Frage"))
         self._tb_question.setCheckable(True)
         self._tb_question.setFixedWidth(60)
         self._tb_question.setAccessibleName("Fragenmodus umschalten")
@@ -412,7 +414,7 @@ class MainWindow(QMainWindow):
         self._tb_question.toggled.connect(self._on_toggle_question_mode)
         tb_layout.addWidget(self._tb_question)
 
-        vol_lbl = QLabel("Vol:")
+        vol_lbl = QLabel(_("Vol:"))
         vol_lbl.setAccessibleName("Lautstärke")
         tb_layout.addWidget(vol_lbl)
         self._vol_slider = QSlider(Qt.Orientation.Horizontal)
@@ -424,7 +426,7 @@ class MainWindow(QMainWindow):
         self._vol_slider.valueChanged.connect(self._on_master_volume)
         tb_layout.addWidget(self._vol_slider)
 
-        mic_lbl = QLabel("Mic:")
+        mic_lbl = QLabel(_("Mic:"))
         mic_lbl.setAccessibleName("Mikrofon")
         tb_layout.addWidget(mic_lbl)
         self._mic_slider = QSlider(Qt.Orientation.Horizontal)
@@ -448,19 +450,19 @@ class MainWindow(QMainWindow):
         self._cc_tab = ChannelsChatTab(self.notebook, self)
         self.channels_tab = self._cc_tab.channels_tab
         self.chat_tab = self._cc_tab.chat_tab
-        self.notebook.addTab(self._cc_tab, "Kanäle && Chat")
+        self.notebook.addTab(self._cc_tab, _("Kanäle && Chat"))
 
         # Media
         self.media_tab = MediaTab(self.notebook, self)
-        self.notebook.addTab(self.media_tab, "Medien")
+        self.notebook.addTab(self.media_tab, _("Medien"))
 
         # Files
         self.files_tab = FilesTab(self.notebook, self)
-        self.notebook.addTab(self.files_tab, "Dateien")
+        self.notebook.addTab(self.files_tab, _("Dateien"))
 
         # Admin
         self.admin_tab = AdminTab(self.notebook, self)
-        self.notebook.addTab(self.admin_tab, "Administration")
+        self.notebook.addTab(self.admin_tab, _("Administration"))
 
         # Speak (ElevenLabs) — added/removed dynamically by _update_speak_tab
         self.speak_tab = SpeakTab(self.notebook, self)
@@ -468,7 +470,7 @@ class MainWindow(QMainWindow):
 
         # Desktop share
         self.desktop_tab = DesktopTab(self.notebook, self)
-        self.notebook.addTab(self.desktop_tab, "Desktop")
+        self.notebook.addTab(self.desktop_tab, _("Desktop"))
 
         # Settings — kein Tab mehr, sondern eigenständiges Fenster (Strg+,)
         self.settings_tab_widget = SettingsTab(self, self)
@@ -478,7 +480,7 @@ class MainWindow(QMainWindow):
         self.system_tab = self.settings_tab_widget.system_tab
         from PySide6.QtWidgets import QDialog, QDialogButtonBox
         self._settings_dialog = QDialog(self)
-        self._settings_dialog.setWindowTitle("Einstellungen")
+        self._settings_dialog.setWindowTitle(_("Einstellungen"))
         self._settings_dialog.resize(860, 640)
         _sdlg_layout = QVBoxLayout(self._settings_dialog)
         _sdlg_layout.addWidget(self.settings_tab_widget, 1)
@@ -725,6 +727,12 @@ class MainWindow(QMainWindow):
         auto_m.addSeparator()
         self._add_action(auto_m, _("&Plugin-Manager..."), self.on_menu_plugin_manager)
         self._add_action(auto_m, _("Per-Server-&Soundprofile..."), self.on_menu_server_audio_profiles)
+        auto_m.addSeparator()
+        self._advanced_tabs_action = self._add_checkable(
+            auto_m, _("Erweiterte Tabs anzeigen"),
+            self._on_toggle_advanced_tabs,
+            bool(getattr(self.settings_store.settings, "show_advanced_tabs", False)),
+        )
         auto_m.addSeparator()
         self._add_action(auto_m, _("&Einstellungen..."), self.on_menu_settings, "F4")
 
@@ -1412,6 +1420,8 @@ class MainWindow(QMainWindow):
 
     def _on_global_ptt_down(self) -> None:
         self._bump_activity()
+        if not self._check_input_device_configured():
+            return
         try:
             self.client.enable_voice_transmission(True)
             self.set_status("Sprechen (global)")
@@ -1533,6 +1543,8 @@ class MainWindow(QMainWindow):
         # Hold-to-Talk PTT-Taste
         ptt_key = getattr(self.settings_store.settings, "ptt_key", None)
         if ptt_key and key == ptt_key and not event.isAutoRepeat() and not self._ptt_active:
+            if not self._check_input_device_configured():
+                return
             self._ptt_active = True
             try:
                 self.client.enable_voice_transmission(True)
@@ -1896,9 +1908,9 @@ class MainWindow(QMainWindow):
                 # Insert before Desktop so order stays: ..., Sprechen, Desktop
                 desktop_idx = self.notebook.indexOf(self.desktop_tab)
                 if desktop_idx >= 0:
-                    self.notebook.insertTab(desktop_idx, self.speak_tab, "Sprechen")
+                    self.notebook.insertTab(desktop_idx, self.speak_tab, _("Sprechen"))
                 else:
-                    self.notebook.addTab(self.speak_tab, "Sprechen")
+                    self.notebook.addTab(self.speak_tab, _("Sprechen"))
                 self._speak_tab_added = True
         else:
             if self._speak_tab_added:
@@ -1906,6 +1918,56 @@ class MainWindow(QMainWindow):
                 if idx >= 0:
                     self.notebook.removeTab(idx)
                 self._speak_tab_added = False
+
+    # ------------------------------------------------------------------
+    # Advanced Tab Visibility
+    # ------------------------------------------------------------------
+
+    # Tabs that are only shown when show_advanced_tabs is True.
+    # "Sprechen" is managed separately by _update_speak_tab (API-key gated),
+    # so it is excluded here — it stays hidden regardless when advanced=False.
+    _ADVANCED_TAB_LABELS = ("Administration", "Desktop")
+
+    def _apply_tab_visibility(self) -> None:
+        """Show or hide advanced tabs based on the show_advanced_tabs setting."""
+        show = bool(getattr(self.settings_store.settings, "show_advanced_tabs", False))
+        advanced_tab_map = [
+            (self.admin_tab, _("Administration")),
+            (self.desktop_tab, _("Desktop")),
+        ]
+        for widget, label in advanced_tab_map:
+            currently_in = self.notebook.indexOf(widget) >= 0
+            if show and not currently_in:
+                # Re-insert at a stable position: after Dateien, before Sprechen/end.
+                files_idx = self.notebook.indexOf(self.files_tab)
+                insert_pos = files_idx + 1 if files_idx >= 0 else self.notebook.count()
+                if widget is self.desktop_tab:
+                    # Desktop goes after Administration
+                    admin_idx = self.notebook.indexOf(self.admin_tab)
+                    insert_pos = (admin_idx + 1) if admin_idx >= 0 else insert_pos
+                self.notebook.insertTab(insert_pos, widget, label)
+            elif not show and currently_in:
+                self.notebook.removeTab(self.notebook.indexOf(widget))
+        # Also hide Sprechen tab when advanced tabs are off
+        if not show and self._speak_tab_added:
+            idx = self.notebook.indexOf(self.speak_tab)
+            if idx >= 0:
+                self.notebook.removeTab(idx)
+            self._speak_tab_added = False
+        elif show:
+            # Re-apply speak tab state from API key
+            _eleven_key = getattr(self.settings_store.settings, "elevenlabs_api_key", "") or ""
+            self._update_speak_tab(_eleven_key)
+        # Sync menu checkbox
+        if hasattr(self, "_advanced_tabs_action"):
+            self._advanced_tabs_action.setChecked(show)
+
+    def _on_toggle_advanced_tabs(self, checked: bool) -> None:
+        self.settings_store.settings.show_advanced_tabs = bool(checked)
+        self.settings_store.save()
+        self._apply_tab_visibility()
+        label = _("Erweiterte Tabs anzeigen") if checked else _("Erweiterte Tabs ausblenden")
+        self._sr_announce(label)
 
     def refresh_elevenlabs_voices(self, tab=None) -> None:
         try:
@@ -3493,7 +3555,30 @@ class MainWindow(QMainWindow):
     # Audio-Menü
     # ------------------------------------------------------------------
 
+    def _check_input_device_configured(self) -> bool:
+        """Gibt True zurück wenn ein Eingabegerät konfiguriert wurde, sonst False mit SR-Meldung."""
+        prefs = getattr(self.settings_store.settings, "audio_prefs", None) or {}
+        if not prefs.get("input_device_id"):
+            msg = _("Kein Eingabegerät konfiguriert. Bitte Gerät auswählen und Audio anwenden.")
+            try:
+                self._sr_announce(msg)
+            except Exception:
+                pass
+            self.set_status(msg)
+            return False
+        return True
+
     def _on_toggle_ptt(self, checked: bool) -> None:
+        if checked and not self._check_input_device_configured():
+            # Widget-Zustand zurücksetzen ohne erneutes Signal
+            for _w in (self._ptt_action, self._tb_ptt):
+                try:
+                    _w.blockSignals(True)
+                    _w.setChecked(False)
+                    _w.blockSignals(False)
+                except Exception:
+                    pass
+            return
         self._ptt_enabled = checked
         for _w in (self._ptt_action, self._tb_ptt):
             try:
@@ -3515,6 +3600,15 @@ class MainWindow(QMainWindow):
                 pass
 
     def _on_toggle_va(self, checked: bool) -> None:
+        if checked and not self._check_input_device_configured():
+            # VA-Checkbox zurücksetzen
+            try:
+                self._va_action.blockSignals(True)
+                self._va_action.setChecked(False)
+                self._va_action.blockSignals(False)
+            except Exception:
+                pass
+            return
         self.set_voice_activation(checked)
         try:
             self.settings_store.settings.voice_activation = checked

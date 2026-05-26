@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-05-26 (v7.8.0)
+WASAPI Per-App Audio, i18n-Vollständigkeit, PTT-Guard, UI-Entschlackung
+
+- WASAPI Per-App Audio (Windows 10 2004+): Spotify, Firefox, Spiele o.ä. direkt in
+  den Kanal streamen – ohne virtuellen Loopback-Treiber (BlackHole, VB-Cable usw.).
+  Menü: Audio › App-Audio aufnehmen. Beitrag von @math65.
+- i18n Call-Sites: ~940 Qt-Widget-Strings jetzt mit _() gewrappt – FR/ES-Nutzer
+  sehen die Oberfläche jetzt tatsächlich in ihrer Sprache (Dialoge, Menüs, Tabs).
+  Beitrag von @math65 (PR #26) + automatischer Scan.
+- PTT/VA-Guard: Beim ersten PTT- oder Sprachaktivierungs-Versuch ohne konfiguriertes
+  Eingabegerät erscheint jetzt eine klare VoiceOver/NVDA-Ansage statt Stille.
+- Erweiterte Tabs (opt-in): Admin, Desktop und Sprechen sind standardmäßig
+  ausgeblendet. Einschalten via Menü › Erweiterte Tabs anzeigen. Reduziert
+  Tab-Reihenfolge für Screen-Reader-Nutzer erheblich.
+- Gilt für macOS (wxPython) und Windows/Linux (Qt/PySide6).
+
 2026-05-25 (v7.7.0)
 KI-Features: Antwortvorschläge (Qt), Verbindungs-Zusammenfassung, Formulierungshelfer
 

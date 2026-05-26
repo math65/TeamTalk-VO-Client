@@ -19,6 +19,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from i18n import _
+
 if TYPE_CHECKING:
     from saved_messages import SavedMessageManager
 
@@ -33,7 +35,7 @@ class SavedMessagesDialog(QDialog):
         # Parallele Index-Liste: mappt Listwidget-Position → Original-Index in manager
         self._filtered_indices: List[int] = []
 
-        self.setWindowTitle("Gespeicherte Nachrichten")
+        self.setWindowTitle(_("Gespeicherte Nachrichten"))
         self.resize(680, 520)
 
         # Cmd+W / Ctrl+W schließt den Dialog
@@ -44,39 +46,39 @@ class SavedMessagesDialog(QDialog):
 
         # Suchfeld
         search_row = QHBoxLayout()
-        search_lbl = QLabel("Suche:")
+        search_lbl = QLabel(_("Suche:"))
         self._search = QLineEdit()
-        self._search.setPlaceholderText("Nach Nachrichtentext filtern …")
-        self._search.setAccessibleName("Suchfeld")
+        self._search.setPlaceholderText(_("Nach Nachrichtentext filtern …"))
+        self._search.setAccessibleName(_("Suchfeld"))
         search_row.addWidget(search_lbl)
         search_row.addWidget(self._search, 1)
         root.addLayout(search_row)
 
         # Zähler-Label
         self._count_lbl = QLabel("")
-        self._count_lbl.setAccessibleName("Anzahl Nachrichten")
+        self._count_lbl.setAccessibleName(_("Anzahl Nachrichten"))
         root.addWidget(self._count_lbl)
 
         # Nachrichten-Liste
         self._lw = QListWidget()
-        self._lw.setAccessibleName("Gespeicherte Nachrichten")
+        self._lw.setAccessibleName(_("Gespeicherte Nachrichten"))
         root.addWidget(self._lw, 1)
 
         # Volltext-Anzeige
         self._detail = QTextEdit()
         self._detail.setReadOnly(True)
-        self._detail.setAccessibleName("Vollständiger Nachrichtentext")
+        self._detail.setAccessibleName(_("Vollständiger Nachrichtentext"))
         self._detail.setMaximumHeight(90)
         root.addWidget(self._detail)
 
         # Buttons
         btn_row = QHBoxLayout()
-        self._copy_btn  = QPushButton("Kopieren")
-        self._copy_btn.setAccessibleName("Nachricht kopieren")
-        self._del_btn   = QPushButton("Löschen")
-        self._del_btn.setAccessibleName("Ausgewählte Nachricht löschen")
-        self._clear_btn = QPushButton("Alle löschen")
-        self._clear_btn.setAccessibleName("Alle gespeicherten Nachrichten löschen")
+        self._copy_btn  = QPushButton(_("Kopieren"))
+        self._copy_btn.setAccessibleName(_("Nachricht kopieren"))
+        self._del_btn   = QPushButton(_("Löschen"))
+        self._del_btn.setAccessibleName(_("Ausgewählte Nachricht löschen"))
+        self._clear_btn = QPushButton(_("Alle löschen"))
+        self._clear_btn.setAccessibleName(_("Alle gespeicherten Nachrichten löschen"))
         btn_row.addWidget(self._copy_btn)
         btn_row.addWidget(self._del_btn)
         btn_row.addWidget(self._clear_btn)
@@ -207,8 +209,8 @@ class SavedMessagesDialog(QDialog):
             return
         result = QMessageBox.question(
             self,
-            "Alle löschen",
-            "Alle gespeicherten Nachrichten wirklich löschen?",
+            _("Alle löschen"),
+            _("Alle gespeicherten Nachrichten wirklich löschen?"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )

@@ -35,7 +35,7 @@
 
 <h1>TeamTalk VoiceOver Client – Benutzerhandbuch</h1>
 <p>Barrierefreier TeamTalk-Client für VoiceOver (macOS), NVDA / JAWS (Windows) und Orca (Linux).<br>
-Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>7.7.0</strong></p>
+Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>7.8.0</strong></p>
 
 <!-- ============================================================ -->
 <div id="toc">
@@ -110,6 +110,15 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <p>Die App unterstützt vier Oberflächensprachen: <strong>Deutsch, English, Français, Español</strong>. Die Sprache kann unter <em>Einstellungen → Allgemein → App-Sprache</em> gewechselt werden; die App startet dann neu.</p>
 
 <h2>Was ist neu</h2>
+<div class="new">
+<strong>v7.8.0 (2026-05-26):</strong>
+<ul>
+  <li><strong>WASAPI Per-App Audio</strong> <span class="platform win">Windows</span>: Spotify, Firefox, Spiele u.a. ohne virtuellen Loopback-Treiber in den Kanal streamen. Menü: Audio › App-Audio aufnehmen. Beitrag von <strong>@math65</strong>.</li>
+  <li><strong>i18n-Vollständigkeit</strong> <span class="platform win">Windows</span>: ~940 Qt-Strings jetzt korrekt übersetzt – FR/ES-Nutzer sehen die Oberfläche endlich in ihrer Sprache. Beitrag von <strong>@math65</strong> (PR #26).</li>
+  <li><strong>PTT/VA-Guard</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: Klare VoiceOver/NVDA-Ansage wenn PTT oder Sprachaktivierung ohne konfiguriertes Eingabegerät ausgelöst wird.</li>
+  <li><strong>Erweiterte Tabs (opt-in)</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: Admin, Desktop und Sprechen sind standardmäßig ausgeblendet. Einschalten via Menü › Erweiterte Tabs anzeigen.</li>
+</ul>
+</div>
 <div class="new">
 <strong>v7.7.0 (2026-05-25):</strong>
 <ul>

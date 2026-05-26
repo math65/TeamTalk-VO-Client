@@ -333,6 +333,8 @@ class AppSettings:
     auto_greeting_text: str = ""
     # v7.5.x features
     auto_summary_on_connect: bool = False
+    # v7.6.0 features
+    show_advanced_tabs: bool = False
 
 
 class SettingsStore:
@@ -446,6 +448,7 @@ class SettingsStore:
             self.settings.auto_greeting_enabled = bool(data.get("auto_greeting_enabled", False))
             self.settings.auto_greeting_text = str(data.get("auto_greeting_text", "") or "")
             self.settings.auto_summary_on_connect = bool(data.get("auto_summary_on_connect", False))
+            self.settings.show_advanced_tabs = bool(data.get("show_advanced_tabs", False))
             self.settings.notifications_enabled = bool(data.get("notifications_enabled", True))
             # v2.2.0
             self.settings.tts_chat_rate = int(data.get("tts_chat_rate", 0) or 0)
@@ -665,6 +668,7 @@ class SettingsStore:
             "auto_greeting_enabled": bool(self.settings.auto_greeting_enabled),
             "auto_greeting_text": str(self.settings.auto_greeting_text or ""),
             "auto_summary_on_connect": bool(self.settings.auto_summary_on_connect),
+            "show_advanced_tabs": bool(self.settings.show_advanced_tabs),
             "notifications_enabled": bool(self.settings.notifications_enabled),
             # v2.2.0
             "tts_chat_rate": int(self.settings.tts_chat_rate or 0),

@@ -17,6 +17,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTime, QUrl
 from PySide6.QtGui import QDesktopServices
 
+from i18n import _
+
 if TYPE_CHECKING:
     pass
 
@@ -26,7 +28,7 @@ class TTSTranscriptDialog(QDialog):
 
     def __init__(self, parent, tts) -> None:
         super().__init__(parent)
-        self.setWindowTitle("TTS-Mitschrift")
+        self.setWindowTitle(_("TTS-Mitschrift"))
         self.resize(600, 400)
         self._tts = tts
 
@@ -35,11 +37,11 @@ class TTSTranscriptDialog(QDialog):
         layout.addWidget(self._lb, 1)
 
         btn_row = QHBoxLayout()
-        self._refresh_btn = QPushButton("&Aktualisieren")
+        self._refresh_btn = QPushButton(_("&Aktualisieren"))
         self._refresh_btn.clicked.connect(self._fill)
-        self._clear_btn = QPushButton("&Leeren")
+        self._clear_btn = QPushButton(_("&Leeren"))
         self._clear_btn.clicked.connect(self._on_clear)
-        close_btn = QPushButton("&Schließen")
+        close_btn = QPushButton(_("&Schließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(self._refresh_btn)
         btn_row.addWidget(self._clear_btn)
@@ -69,7 +71,7 @@ class ChatSearchDialog(QDialog):
 
     def __init__(self, parent, chat_history, current_server_key: str) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Chat-Suche")
+        self.setWindowTitle(_("Chat-Suche"))
         self.resize(700, 500)
         self._chm = chat_history
         self._server_key = current_server_key
@@ -77,11 +79,11 @@ class ChatSearchDialog(QDialog):
         layout = QVBoxLayout(self)
 
         search_row = QHBoxLayout()
-        search_row.addWidget(QLabel("Suche:"))
+        search_row.addWidget(QLabel(_("Suche:")))
         self._search_field = QLineEdit()
         self._search_field.returnPressed.connect(self._on_search)
         search_row.addWidget(self._search_field, 1)
-        self._search_btn = QPushButton("&Suchen")
+        self._search_btn = QPushButton(_("&Suchen"))
         self._search_btn.clicked.connect(self._on_search)
         search_row.addWidget(self._search_btn)
         layout.addLayout(search_row)
@@ -89,7 +91,7 @@ class ChatSearchDialog(QDialog):
         self._results = QListWidget()
         layout.addWidget(self._results, 1)
 
-        close_btn = QPushButton("&Schließen")
+        close_btn = QPushButton(_("&Schließen"))
         close_btn.clicked.connect(self.accept)
         layout.addWidget(close_btn)
 
@@ -118,12 +120,12 @@ class UserWatcherDialog(QDialog):
 
     def __init__(self, parent, settings_store) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Nutzerwatcher")
+        self.setWindowTitle(_("Nutzerwatcher"))
         self.resize(400, 350)
         self._store = settings_store
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Beobachtete Nutzer (einer pro Zeile):"))
+        layout.addWidget(QLabel(_("Beobachtete Nutzer (einer pro Zeile):")))
 
         self._list = QListWidget()
         watched = list(getattr(settings_store.settings, "watched_users", []) or [])
@@ -133,20 +135,20 @@ class UserWatcherDialog(QDialog):
 
         input_row = QHBoxLayout()
         self._input = QLineEdit()
-        self._input.setPlaceholderText("Nutzername hinzufügen...")
+        self._input.setPlaceholderText(_("Nutzername hinzufügen..."))
         self._input.returnPressed.connect(self._on_add)
         input_row.addWidget(self._input, 1)
-        add_btn = QPushButton("&Hinzufügen")
+        add_btn = QPushButton(_("&Hinzufügen"))
         add_btn.clicked.connect(self._on_add)
         input_row.addWidget(add_btn)
         layout.addLayout(input_row)
 
         btn_row = QHBoxLayout()
-        remove_btn = QPushButton("&Entfernen")
+        remove_btn = QPushButton(_("&Entfernen"))
         remove_btn.clicked.connect(self._on_remove)
-        save_btn = QPushButton("&Speichern")
+        save_btn = QPushButton(_("&Speichern"))
         save_btn.clicked.connect(self._on_save)
-        close_btn = QPushButton("&Schließen")
+        close_btn = QPushButton(_("&Schließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(remove_btn)
         btn_row.addWidget(save_btn)
@@ -174,7 +176,7 @@ class UserWatcherDialog(QDialog):
             self._store.settings.watched_users = names
             self._store.save()
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
 
 class OfflineQueueDialog(QDialog):
@@ -182,7 +184,7 @@ class OfflineQueueDialog(QDialog):
 
     def __init__(self, parent, offline_queue) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Offline-Warteschlange")
+        self.setWindowTitle(_("Offline-Warteschlange"))
         self.resize(500, 350)
         self._oq = offline_queue
 
@@ -192,9 +194,9 @@ class OfflineQueueDialog(QDialog):
         layout.addWidget(self._list, 1)
 
         btn_row = QHBoxLayout()
-        clear_btn = QPushButton("&Leeren")
+        clear_btn = QPushButton(_("&Leeren"))
         clear_btn.clicked.connect(self._on_clear)
-        close_btn = QPushButton("&Schließen")
+        close_btn = QPushButton(_("&Schließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(clear_btn)
         btn_row.addStretch()
@@ -226,20 +228,20 @@ class ServerAudioProfileDialog(QDialog):
 
     def __init__(self, parent, settings_store) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Per-Server-Soundprofile")
+        self.setWindowTitle(_("Per-Server-Soundprofile"))
         self.resize(500, 350)
         self._store = settings_store
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Server → Sound-Profil Zuordnung:"))
+        layout.addWidget(QLabel(_("Server → Sound-Profil Zuordnung:")))
         self._list = QListWidget()
         self._fill()
         layout.addWidget(self._list, 1)
 
         btn_row = QHBoxLayout()
-        save_btn = QPushButton("&Speichern")
+        save_btn = QPushButton(_("&Speichern"))
         save_btn.clicked.connect(self._on_save)
-        close_btn = QPushButton("&Schließen")
+        close_btn = QPushButton(_("&Schließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(save_btn)
         btn_row.addStretch()
@@ -262,7 +264,7 @@ class ServerAudioProfileDialog(QDialog):
             self._store.save()
             self.accept()
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
 
 class OnlineUsersDialog(QDialog):
@@ -274,7 +276,7 @@ class OnlineUsersDialog(QDialog):
 
     def __init__(self, parent, client, tt_str, tts=None, window=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Online-Nutzer")
+        self.setWindowTitle(_("Online-Nutzer"))
         self.resize(560, 480)
         self._client   = client
         self._tt_str   = tt_str
@@ -285,28 +287,28 @@ class OnlineUsersDialog(QDialog):
         layout = QVBoxLayout(self)
 
         search_row = QHBoxLayout()
-        search_row.addWidget(QLabel("Suche:"))
+        search_row.addWidget(QLabel(_("Suche:")))
         self._search = QLineEdit()
-        self._search.setPlaceholderText("Nick oder Benutzername...")
+        self._search.setPlaceholderText(_("Nick oder Benutzername..."))
         self._search.textChanged.connect(self._apply_filter)
         search_row.addWidget(self._search, 1)
         layout.addLayout(search_row)
 
         self._list = QListWidget()
-        self._list.setAccessibleName("Online-Nutzer Liste")
+        self._list.setAccessibleName(_("Online-Nutzer Liste"))
         layout.addWidget(self._list, 1)
 
         self._count_label = QLabel("")
         layout.addWidget(self._count_label)
 
         btn_row = QHBoxLayout()
-        refresh_btn = QPushButton("&Aktualisieren")
+        refresh_btn = QPushButton(_("&Aktualisieren"))
         refresh_btn.clicked.connect(self._fill)
-        self._tts_btn = QPushButton("Info &sprechen")
+        self._tts_btn = QPushButton(_("Info &sprechen"))
         self._tts_btn.clicked.connect(self._on_speak)
-        self._pm_btn  = QPushButton("&Private Nachricht")
+        self._pm_btn  = QPushButton(_("&Private Nachricht"))
         self._pm_btn.clicked.connect(self._on_private_message)
-        close_btn = QPushButton("Sc&hließen")
+        close_btn = QPushButton(_("Sc&hließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(refresh_btn)
         btn_row.addWidget(self._tts_btn)
@@ -341,7 +343,7 @@ class OnlineUsersDialog(QDialog):
         self._list.clear()
         q     = text.strip().lower()
         shown = 0
-        for nick, username, ch_name, _ in self._all_items:
+        for nick, username, ch_name, _user in self._all_items:
             if not q or q in nick.lower() or q in username.lower():
                 suffix  = f" ({username})" if username and username != nick else ""
                 ch_part = f" — {ch_name}" if ch_name else ""
@@ -368,7 +370,7 @@ class OnlineUsersDialog(QDialog):
         item = self._get_selected()
         if item is None:
             return
-        nick, username, ch_name, _ = item
+        nick, username, ch_name, _user = item
         text = f"{nick}"
         if username and username != nick:
             text += f", Benutzername {username}"
@@ -383,17 +385,17 @@ class OnlineUsersDialog(QDialog):
     def _on_private_message(self) -> None:
         item = self._get_selected()
         if item is None:
-            QMessageBox.information(self, "Hinweis", "Bitte einen Nutzer auswählen.")
+            QMessageBox.information(self, _("Hinweis"), _("Bitte einen Nutzer auswählen."))
             return
-        nick, _, _, user_obj = item
+        nick, _u, _c, user_obj = item
         if user_obj is None:
             return
-        msg, ok = QInputDialog.getText(self, "Private Nachricht", f"Nachricht an {nick}:")
+        msg, ok = QInputDialog.getText(self, _("Private Nachricht"), f"Nachricht an {nick}:")
         if ok and msg.strip():
             try:
                 self._client.send_user_message(int(user_obj.nUserID), msg.strip())
             except Exception as exc:
-                QMessageBox.warning(self, "Fehler", f"Senden fehlgeschlagen: {exc}")
+                QMessageBox.warning(self, _("Fehler"), f"Senden fehlgeschlagen: {exc}")
 
 
 class BanListDialog(QDialog):
@@ -405,28 +407,28 @@ class BanListDialog(QDialog):
 
     def __init__(self, parent, client, tt_str) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Sperrliste")
+        self.setWindowTitle(_("Sperrliste"))
         self.resize(560, 420)
         self._client = client
         self._tt_str = tt_str
         self._bans: list = []
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("IP-Adresse, Benutzername, Typ"))
+        layout.addWidget(QLabel(_("IP-Adresse, Benutzername, Typ")))
 
         self._list = QListWidget()
-        self._list.setAccessibleName("Sperrliste")
+        self._list.setAccessibleName(_("Sperrliste"))
         layout.addWidget(self._list, 1)
 
         self._status = QLabel("")
         layout.addWidget(self._status)
 
         btn_row = QHBoxLayout()
-        load_btn  = QPushButton("&Sperren laden")
+        load_btn  = QPushButton(_("&Sperren laden"))
         load_btn.clicked.connect(self._on_load)
-        self._unban_btn = QPushButton("&Entsperren")
+        self._unban_btn = QPushButton(_("&Entsperren"))
         self._unban_btn.clicked.connect(self._on_unban)
-        close_btn = QPushButton("Sc&hließen")
+        close_btn = QPushButton(_("Sc&hließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(load_btn)
         btn_row.addWidget(self._unban_btn)
@@ -437,10 +439,10 @@ class BanListDialog(QDialog):
     def _on_load(self) -> None:
         self._list.clear()
         self._bans = []
-        self._status.setText("Sperren werden geladen...")
+        self._status.setText(_("Sperren werden geladen..."))
         try:
             self._client.do_list_bans()
-            self._status.setText("Sperren geladen — Warte auf Serverdaten...")
+            self._status.setText(_("Sperren geladen — Warte auf Serverdaten..."))
         except Exception as exc:
             self._status.setText(f"Fehler: {exc}")
 
@@ -462,12 +464,12 @@ class BanListDialog(QDialog):
     def _on_unban(self) -> None:
         row = self._list.currentRow()
         if row < 0 or row >= len(self._bans):
-            QMessageBox.information(self, "Hinweis", "Bitte eine Sperre auswählen.")
+            QMessageBox.information(self, _("Hinweis"), _("Bitte eine Sperre auswählen."))
             return
         ban = self._bans[row]
         ip  = self._tt_str(ban.szIPAddress) if hasattr(ban, "szIPAddress") else ""
         if not ip:
-            QMessageBox.warning(self, "Fehler", "Keine IP-Adresse verfügbar.")
+            QMessageBox.warning(self, _("Fehler"), _("Keine IP-Adresse verfügbar."))
             return
         try:
             cmd_id = self._client.do_unban_user(ip)
@@ -486,20 +488,20 @@ class ServerStatsDialog(QDialog):
 
     def __init__(self, parent, client) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Server-Statistiken")
+        self.setWindowTitle(_("Server-Statistiken"))
         self.resize(460, 400)
         self._client = client
 
         layout = QVBoxLayout(self)
         self._text = QTextEdit()
         self._text.setReadOnly(True)
-        self._text.setAccessibleName("Serverstatistiken")
+        self._text.setAccessibleName(_("Serverstatistiken"))
         layout.addWidget(self._text, 1)
 
         btn_row = QHBoxLayout()
-        refresh_btn = QPushButton("&Aktualisieren")
+        refresh_btn = QPushButton(_("&Aktualisieren"))
         refresh_btn.clicked.connect(self._fill)
-        close_btn   = QPushButton("Sc&hließen")
+        close_btn   = QPushButton(_("Sc&hließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(refresh_btn)
         btn_row.addStretch()
@@ -616,7 +618,7 @@ class UserInfoDialog(QDialog):
 
     def __init__(self, parent, user, client, tt_str, is_admin: bool = False) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Benutzerinfo")
+        self.setWindowTitle(_("Benutzerinfo"))
         self.resize(400, 300)
 
         layout = QVBoxLayout(self)
@@ -640,34 +642,34 @@ class UserInfoDialog(QDialog):
             # Decode status mode (bit flags from SDK)
             status_parts = []
             if status & 0x00000001:
-                status_parts.append("Abwesend")
+                status_parts.append(_("Abwesend"))
             if status & 0x00000004:
-                status_parts.append("Beschäftigt")
-            status_text = ", ".join(status_parts) if status_parts else "Verfügbar"
+                status_parts.append(_("Beschäftigt"))
+            status_text = ", ".join(status_parts) if status_parts else _("Verfügbar")
 
             # Decode user state (speaking, microphone muted, etc.)
             state_parts = []
             if ustate & 0x0001:
-                state_parts.append("Spricht")
+                state_parts.append(_("Spricht"))
             if ustate & 0x0100:
-                state_parts.append("Mikrofon stummgeschaltet")
+                state_parts.append(_("Mikrofon stummgeschaltet"))
             if ustate & 0x0200:
-                state_parts.append("Lautsprecher stummgeschaltet")
+                state_parts.append(_("Lautsprecher stummgeschaltet"))
             state_text = ", ".join(state_parts) if state_parts else "-"
 
             lines = [
-                ("Nickname",     nick),
-                ("Benutzername", username),
-                ("Benutzer-ID",  str(user_id)),
-                ("Kanal",        ch_name),
-                ("Status",       status_text),
-                ("Zustand",      state_text),
+                (_("Nickname"),     nick),
+                (_("Benutzername"), username),
+                (_("Benutzer-ID"),  str(user_id)),
+                (_("Kanal"),        ch_name),
+                (_("Status"),       status_text),
+                (_("Zustand"),      state_text),
             ]
 
             # Show IP only for admins
             if is_admin:
                 ip = tt_str(getattr(user, "szIPAddress", "")) or "-"
-                lines.append(("IP-Adresse", ip))
+                lines.append((_("IP-Adresse"), ip))
 
             for label, value in lines:
                 row = QHBoxLayout()
@@ -685,7 +687,7 @@ class UserInfoDialog(QDialog):
         layout.addStretch()
 
         btn_row = QHBoxLayout()
-        close_btn = QPushButton("Sc&hließen")
+        close_btn = QPushButton(_("Sc&hließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addStretch()
         btn_row.addWidget(close_btn)
@@ -701,23 +703,23 @@ class SpeakingLogDialog(QDialog):
 
     def __init__(self, parent, speaking_log: list) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Wer hat gesprochen")
+        self.setWindowTitle(_("Wer hat gesprochen"))
         self.resize(500, 420)
         self._log = speaking_log
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Sprechprotokoll:"))
+        layout.addWidget(QLabel(_("Sprechprotokoll:")))
 
         self._list = QListWidget()
-        self._list.setAccessibleName("Sprechprotokoll")
+        self._list.setAccessibleName(_("Sprechprotokoll"))
         layout.addWidget(self._list, 1)
 
         btn_row = QHBoxLayout()
-        refresh_btn = QPushButton("&Aktualisieren")
+        refresh_btn = QPushButton(_("&Aktualisieren"))
         refresh_btn.clicked.connect(self._fill)
-        clear_btn   = QPushButton("&Leeren")
+        clear_btn   = QPushButton(_("&Leeren"))
         clear_btn.clicked.connect(self._on_clear)
-        close_btn   = QPushButton("Sc&hließen")
+        close_btn   = QPushButton(_("Sc&hließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(refresh_btn)
         btn_row.addWidget(clear_btn)
@@ -754,23 +756,23 @@ class MacroManagerDialog(QDialog):
 
     def __init__(self, parent, macro_manager) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Makro-Manager")
+        self.setWindowTitle(_("Makro-Manager"))
         self.resize(500, 400)
         self._mgr = macro_manager
         self._macros: list = []
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Verfügbare Makros:"))
+        layout.addWidget(QLabel(_("Verfügbare Makros:")))
 
         self._list = QListWidget()
         layout.addWidget(self._list, 1)
 
         btn_row = QHBoxLayout()
-        run_btn     = QPushButton("&Ausführen")
+        run_btn     = QPushButton(_("&Ausführen"))
         run_btn.clicked.connect(self._on_run)
-        refresh_btn = QPushButton("&Aktualisieren")
+        refresh_btn = QPushButton(_("&Aktualisieren"))
         refresh_btn.clicked.connect(self._fill)
-        close_btn   = QPushButton("&Schließen")
+        close_btn   = QPushButton(_("&Schließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(run_btn)
         btn_row.addWidget(refresh_btn)
@@ -801,7 +803,7 @@ class MacroManagerDialog(QDialog):
         try:
             self._mgr.execute(self._macros[row])
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
 
 # ---------------------------------------------------------------------------
@@ -813,27 +815,27 @@ class EqPresetsDialog(QDialog):
 
     def __init__(self, parent, window) -> None:
         super().__init__(parent)
-        self.setWindowTitle("EQ-Voreinstellungen")
+        self.setWindowTitle(_("EQ-Voreinstellungen"))
         self.resize(480, 380)
         self._window = window
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Verfügbare EQ-Voreinstellungen:"))
+        layout.addWidget(QLabel(_("Verfügbare EQ-Voreinstellungen:")))
 
         self._list = QListWidget()
-        self._list.setAccessibleName("EQ-Voreinstellungen Liste")
+        self._list.setAccessibleName(_("EQ-Voreinstellungen Liste"))
         layout.addWidget(self._list, 1)
 
         btn_row = QHBoxLayout()
-        load_btn    = QPushButton("&Laden")
+        load_btn    = QPushButton(_("&Laden"))
         load_btn.clicked.connect(self._on_load)
-        save_btn    = QPushButton("Speichern &als...")
+        save_btn    = QPushButton(_("Speichern &als..."))
         save_btn.clicked.connect(self._on_save_as)
-        delete_btn  = QPushButton("&Löschen")
+        delete_btn  = QPushButton(_("&Löschen"))
         delete_btn.clicked.connect(self._on_delete)
-        apply_btn   = QPushButton("&Anwenden")
+        apply_btn   = QPushButton(_("&Anwenden"))
         apply_btn.clicked.connect(self._on_apply)
-        close_btn   = QPushButton("Sc&hließen")
+        close_btn   = QPushButton(_("Sc&hließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(load_btn)
         btn_row.addWidget(save_btn)
@@ -875,7 +877,7 @@ class EqPresetsDialog(QDialog):
         self._fill()
 
     def _on_save_as(self) -> None:
-        name, ok = QInputDialog.getText(self, "Voreinstellung speichern", "Name:")
+        name, ok = QInputDialog.getText(self, _("Voreinstellung speichern"), _("Name:"))
         if not ok or not name.strip():
             return
         try:
@@ -893,7 +895,7 @@ class EqPresetsDialog(QDialog):
             mgr.add_or_update(name.strip(), mic_gain, out_vol)
             self._fill()
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
     def _on_delete(self) -> None:
         name = self._selected_name()
@@ -906,7 +908,7 @@ class EqPresetsDialog(QDialog):
             mgr.remove(name)
             self._fill()
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
     def _on_apply(self) -> None:
         name = self._selected_name()
@@ -929,7 +931,7 @@ class EqPresetsDialog(QDialog):
             except Exception:
                 pass
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
 
 # ---------------------------------------------------------------------------
@@ -943,28 +945,28 @@ class ScheduledRecordingsDialog(QDialog):
 
     def __init__(self, parent, window) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Geplante Aufnahmen")
+        self.setWindowTitle(_("Geplante Aufnahmen"))
         self.resize(560, 520)
         self._window = window
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Geplante Aufnahmen:"))
+        layout.addWidget(QLabel(_("Geplante Aufnahmen:")))
 
         self._list = QListWidget()
-        self._list.setAccessibleName("Geplante Aufnahmen Liste")
+        self._list.setAccessibleName(_("Geplante Aufnahmen Liste"))
         layout.addWidget(self._list, 1)
 
         # Form group
-        form_group = QGroupBox("Neue Aufnahme hinzufügen")
+        form_group = QGroupBox(_("Neue Aufnahme hinzufügen"))
         form_layout = QFormLayout(form_group)
 
         self._label_edit = QLineEdit()
-        self._label_edit.setPlaceholderText("Bezeichnung...")
-        form_layout.addRow("Bezeichnung:", self._label_edit)
+        self._label_edit.setPlaceholderText(_("Bezeichnung..."))
+        form_layout.addRow(_("Bezeichnung:"), self._label_edit)
 
         self._time_edit = QTimeEdit()
         self._time_edit.setDisplayFormat("HH:mm")
-        form_layout.addRow("Startzeit:", self._time_edit)
+        form_layout.addRow(_("Startzeit:"), self._time_edit)
 
         # Weekday checkboxes
         wd_widget_layout = QHBoxLayout()
@@ -977,24 +979,24 @@ class ScheduledRecordingsDialog(QDialog):
         from PySide6.QtWidgets import QWidget
         wd_container = QWidget()
         wd_container.setLayout(wd_widget_layout)
-        form_layout.addRow("Wochentage:", wd_container)
+        form_layout.addRow(_("Wochentage:"), wd_container)
 
         self._duration_spin = QSpinBox()
         self._duration_spin.setRange(1, 1440)
         self._duration_spin.setValue(60)
         self._duration_spin.setSuffix(" min")
-        form_layout.addRow("Dauer:", self._duration_spin)
+        form_layout.addRow(_("Dauer:"), self._duration_spin)
 
         layout.addWidget(form_group)
 
         btn_row = QHBoxLayout()
-        add_btn    = QPushButton("&Hinzufügen")
+        add_btn    = QPushButton(_("&Hinzufügen"))
         add_btn.clicked.connect(self._on_add)
-        remove_btn = QPushButton("&Entfernen")
+        remove_btn = QPushButton(_("&Entfernen"))
         remove_btn.clicked.connect(self._on_remove)
-        toggle_btn = QPushButton("Aktivieren/&Deaktivieren")
+        toggle_btn = QPushButton(_("Aktivieren/&Deaktivieren"))
         toggle_btn.clicked.connect(self._on_toggle)
-        close_btn  = QPushButton("Sc&hließen")
+        close_btn  = QPushButton(_("Sc&hließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(add_btn)
         btn_row.addWidget(remove_btn)
@@ -1026,7 +1028,7 @@ class ScheduledRecordingsDialog(QDialog):
             self._list.addItem(f"Fehler: {exc}")
 
     def _on_add(self) -> None:
-        label = self._label_edit.text().strip() or "Aufnahme"
+        label = self._label_edit.text().strip() or _("Aufnahme")
         time_str = self._time_edit.time().toString("HH:mm")
         weekdays = [i for i, cb in enumerate(self._wd_checks) if cb.isChecked()]
         duration = self._duration_spin.value()
@@ -1041,7 +1043,7 @@ class ScheduledRecordingsDialog(QDialog):
             self._fill()
             self._label_edit.clear()
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
     def _on_remove(self) -> None:
         row = self._list.currentRow()
@@ -1057,7 +1059,7 @@ class ScheduledRecordingsDialog(QDialog):
                 mgr.save()
                 self._fill()
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
     def _on_toggle(self) -> None:
         row = self._list.currentRow()
@@ -1073,7 +1075,7 @@ class ScheduledRecordingsDialog(QDialog):
                 mgr.save()
                 self._fill()
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
 
 # ---------------------------------------------------------------------------
@@ -1085,27 +1087,27 @@ class RecordingsBrowserDialog(QDialog):
 
     def __init__(self, parent, window) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Aufnahmen durchsuchen")
+        self.setWindowTitle(_("Aufnahmen durchsuchen"))
         self.resize(600, 460)
         self._window = window
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Aufnahmedateien:"))
+        layout.addWidget(QLabel(_("Aufnahmedateien:")))
 
         self._list = QListWidget()
-        self._list.setAccessibleName("Aufnahmen Liste")
+        self._list.setAccessibleName(_("Aufnahmen Liste"))
         layout.addWidget(self._list, 1)
 
         btn_row = QHBoxLayout()
-        open_btn    = QPushButton("&Ordner öffnen")
+        open_btn    = QPushButton(_("&Ordner öffnen"))
         open_btn.clicked.connect(self._on_open_folder)
-        play_btn    = QPushButton("&Abspielen")
+        play_btn    = QPushButton(_("&Abspielen"))
         play_btn.clicked.connect(self._on_play)
-        delete_btn  = QPushButton("&Löschen")
+        delete_btn  = QPushButton(_("&Löschen"))
         delete_btn.clicked.connect(self._on_delete)
-        refresh_btn = QPushButton("A&ktualisieren")
+        refresh_btn = QPushButton(_("A&ktualisieren"))
         refresh_btn.clicked.connect(self._fill)
-        close_btn   = QPushButton("Sc&hließen")
+        close_btn   = QPushButton(_("Sc&hließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(open_btn)
         btn_row.addWidget(play_btn)
@@ -1181,14 +1183,14 @@ class RecordingsBrowserDialog(QDialog):
             else:
                 subprocess.Popen(["xdg-open", str(path)])
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", f"Abspielen fehlgeschlagen: {exc}")
+            QMessageBox.warning(self, _("Fehler"), f"Abspielen fehlgeschlagen: {exc}")
 
     def _on_delete(self) -> None:
         path = self._selected_file()
         if path is None:
             return
         answer = QMessageBox.question(
-            self, "Löschen bestätigen",
+            self, _("Löschen bestätigen"),
             f"'{path.name}' wirklich löschen?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
@@ -1197,7 +1199,7 @@ class RecordingsBrowserDialog(QDialog):
                 path.unlink()
                 self._fill()
             except Exception as exc:
-                QMessageBox.warning(self, "Fehler", str(exc))
+                QMessageBox.warning(self, _("Fehler"), str(exc))
 
 
 # ---------------------------------------------------------------------------
@@ -1209,51 +1211,51 @@ class ServerAudioProfilesDialog(QDialog):
 
     def __init__(self, parent, window) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Server-Audioprofile")
+        self.setWindowTitle(_("Server-Audioprofile"))
         self.resize(520, 480)
         self._window = window
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Server → Audio-Profil Zuordnung:"))
+        layout.addWidget(QLabel(_("Server → Audio-Profil Zuordnung:")))
 
         self._list = QListWidget()
-        self._list.setAccessibleName("Server-Audioprofile Liste")
+        self._list.setAccessibleName(_("Server-Audioprofile Liste"))
         layout.addWidget(self._list, 1)
 
         # Form for new/edit entry
-        form_group = QGroupBox("Profil-Einstellungen")
+        form_group = QGroupBox(_("Profil-Einstellungen"))
         form = QFormLayout(form_group)
 
         self._name_edit = QLineEdit()
-        self._name_edit.setPlaceholderText("Profilname...")
-        form.addRow("Profilname:", self._name_edit)
+        self._name_edit.setPlaceholderText(_("Profilname..."))
+        form.addRow(_("Profilname:"), self._name_edit)
 
         self._server_edit = QLineEdit()
-        self._server_edit.setPlaceholderText("host:port oder Schlüssel")
-        form.addRow("Server-Schlüssel:", self._server_edit)
+        self._server_edit.setPlaceholderText(_("host:port oder Schlüssel"))
+        form.addRow(_("Server-Schlüssel:"), self._server_edit)
 
         self._mic_spin = QSpinBox()
         self._mic_spin.setRange(0, 200)
         self._mic_spin.setValue(100)
         self._mic_spin.setSuffix(" %")
-        form.addRow("Mikrofon-Verstärkung:", self._mic_spin)
+        form.addRow(_("Mikrofon-Verstärkung:"), self._mic_spin)
 
         self._out_spin = QSpinBox()
         self._out_spin.setRange(0, 200)
         self._out_spin.setValue(100)
         self._out_spin.setSuffix(" %")
-        form.addRow("Ausgabelautstärke:", self._out_spin)
+        form.addRow(_("Ausgabelautstärke:"), self._out_spin)
 
         layout.addWidget(form_group)
 
         btn_row = QHBoxLayout()
-        new_btn    = QPushButton("&Neu / Aktualisieren")
+        new_btn    = QPushButton(_("&Neu / Aktualisieren"))
         new_btn.clicked.connect(self._on_new)
-        apply_btn  = QPushButton("&Anwenden")
+        apply_btn  = QPushButton(_("&Anwenden"))
         apply_btn.clicked.connect(self._on_apply)
-        delete_btn = QPushButton("&Löschen")
+        delete_btn = QPushButton(_("&Löschen"))
         delete_btn.clicked.connect(self._on_delete)
-        close_btn  = QPushButton("Sc&hließen")
+        close_btn  = QPushButton(_("Sc&hließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(new_btn)
         btn_row.addWidget(apply_btn)
@@ -1309,7 +1311,7 @@ class ServerAudioProfilesDialog(QDialog):
         key  = self._server_edit.text().strip()
         name = self._name_edit.text().strip()
         if not key:
-            QMessageBox.information(self, "Hinweis", "Bitte Server-Schlüssel eingeben.")
+            QMessageBox.information(self, _("Hinweis"), _("Bitte Server-Schlüssel eingeben."))
             return
         entry = {
             "name": name or key,
@@ -1326,7 +1328,7 @@ class ServerAudioProfilesDialog(QDialog):
             store.save()
             self._fill()
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
     def _on_apply(self) -> None:
         row = self._list.currentRow()
@@ -1340,7 +1342,7 @@ class ServerAudioProfilesDialog(QDialog):
             if callable(apply_fn):
                 apply_fn(val)
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
     def _on_delete(self) -> None:
         row = self._list.currentRow()
@@ -1358,7 +1360,7 @@ class ServerAudioProfilesDialog(QDialog):
             store.save()
             self._fill()
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
 
 # ---------------------------------------------------------------------------
@@ -1370,30 +1372,30 @@ class UserWatcherDialogFull(QDialog):
 
     def __init__(self, parent, window) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Nutzerwatcher")
+        self.setWindowTitle(_("Nutzerwatcher"))
         self.resize(420, 400)
         self._window = window
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Benachrichtigung wenn Nutzer sich verbindet/trennt:"))
+        layout.addWidget(QLabel(_("Benachrichtigung wenn Nutzer sich verbindet/trennt:")))
 
         self._list = QListWidget()
-        self._list.setAccessibleName("Beobachtete Nutzer Liste")
+        self._list.setAccessibleName(_("Beobachtete Nutzer Liste"))
         layout.addWidget(self._list, 1)
         self._fill_list()
 
         input_row = QHBoxLayout()
         self._input = QLineEdit()
-        self._input.setPlaceholderText("Nutzername hinzufügen...")
+        self._input.setPlaceholderText(_("Nutzername hinzufügen..."))
         self._input.returnPressed.connect(self._on_add)
         input_row.addWidget(self._input, 1)
-        add_btn = QPushButton("&Hinzufügen")
+        add_btn = QPushButton(_("&Hinzufügen"))
         add_btn.clicked.connect(self._on_add)
         input_row.addWidget(add_btn)
         layout.addLayout(input_row)
 
-        self._cb_join  = QCheckBox("TTS-Ansage bei Beitritt")
-        self._cb_leave = QCheckBox("TTS-Ansage bei Verlassen")
+        self._cb_join  = QCheckBox(_("TTS-Ansage bei Beitritt"))
+        self._cb_leave = QCheckBox(_("TTS-Ansage bei Verlassen"))
         try:
             settings = getattr(self._window, "settings_store", None)
             if settings is not None:
@@ -1405,11 +1407,11 @@ class UserWatcherDialogFull(QDialog):
         layout.addWidget(self._cb_leave)
 
         btn_row = QHBoxLayout()
-        remove_btn = QPushButton("&Entfernen")
+        remove_btn = QPushButton(_("&Entfernen"))
         remove_btn.clicked.connect(self._on_remove)
-        save_btn   = QPushButton("&Speichern")
+        save_btn   = QPushButton(_("&Speichern"))
         save_btn.clicked.connect(self._on_save)
-        close_btn  = QPushButton("Sc&hließen")
+        close_btn  = QPushButton(_("Sc&hließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(remove_btn)
         btn_row.addWidget(save_btn)
@@ -1473,7 +1475,7 @@ class UserWatcherDialogFull(QDialog):
                 for added in new_set - existing:
                     watched_users[added] = {}
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
 
 # ---------------------------------------------------------------------------
@@ -1485,7 +1487,7 @@ class TtsTranscriptDialogFull(QDialog):
 
     def __init__(self, parent, window) -> None:
         super().__init__(parent)
-        self.setWindowTitle("TTS-Mitschrift")
+        self.setWindowTitle(_("TTS-Mitschrift"))
         self.resize(620, 460)
         self._window = window
         # Non-modal
@@ -1495,17 +1497,17 @@ class TtsTranscriptDialogFull(QDialog):
 
         self._text = QTextEdit()
         self._text.setReadOnly(True)
-        self._text.setAccessibleName("TTS-Mitschrift Text")
+        self._text.setAccessibleName(_("TTS-Mitschrift Text"))
         layout.addWidget(self._text, 1)
 
         btn_row = QHBoxLayout()
-        export_btn  = QPushButton("&Exportieren")
+        export_btn  = QPushButton(_("&Exportieren"))
         export_btn.clicked.connect(self._on_export)
-        clear_btn   = QPushButton("&Leeren")
+        clear_btn   = QPushButton(_("&Leeren"))
         clear_btn.clicked.connect(self._on_clear)
-        refresh_btn = QPushButton("A&ktualisieren")
+        refresh_btn = QPushButton(_("A&ktualisieren"))
         refresh_btn.clicked.connect(self._fill)
-        close_btn   = QPushButton("Sc&hließen")
+        close_btn   = QPushButton(_("Sc&hließen"))
         close_btn.clicked.connect(self.close)
         btn_row.addWidget(export_btn)
         btn_row.addWidget(clear_btn)
@@ -1555,10 +1557,10 @@ class TtsTranscriptDialogFull(QDialog):
     def _on_export(self) -> None:
         lines = self._transcript()
         if not lines:
-            QMessageBox.information(self, "Hinweis", "Keine Einträge zum Exportieren.")
+            QMessageBox.information(self, _("Hinweis"), _("Keine Einträge zum Exportieren."))
             return
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Mitschrift exportieren", "tts_mitschrift.txt",
+        path, _filter = QFileDialog.getSaveFileName(
+            self, _("Mitschrift exportieren"), "tts_mitschrift.txt",
             "Textdateien (*.txt);;Alle Dateien (*)"
         )
         if not path:
@@ -1566,7 +1568,7 @@ class TtsTranscriptDialogFull(QDialog):
         try:
             Path(path).write_text("\n".join(lines), encoding="utf-8")
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
 
 # ---------------------------------------------------------------------------
@@ -1578,28 +1580,28 @@ class OfflineQueueDialogFull(QDialog):
 
     def __init__(self, parent, window) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Offline-Nachrichtenwarteschlange")
+        self.setWindowTitle(_("Offline-Nachrichtenwarteschlange"))
         self.resize(540, 400)
         self._window = window
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Nachrichten, die im Offline-Modus gepuffert wurden:"))
+        layout.addWidget(QLabel(_("Nachrichten, die im Offline-Modus gepuffert wurden:")))
 
         self._list = QListWidget()
-        self._list.setAccessibleName("Offline-Warteschlange Liste")
+        self._list.setAccessibleName(_("Offline-Warteschlange Liste"))
         layout.addWidget(self._list, 1)
 
         self._status = QLabel("")
         layout.addWidget(self._status)
 
         btn_row = QHBoxLayout()
-        send_btn   = QPushButton("Alle &senden")
+        send_btn   = QPushButton(_("Alle &senden"))
         send_btn.clicked.connect(self._on_send_all)
-        remove_btn = QPushButton("&Entfernen")
+        remove_btn = QPushButton(_("&Entfernen"))
         remove_btn.clicked.connect(self._on_remove)
-        clear_btn  = QPushButton("&Leeren")
+        clear_btn  = QPushButton(_("&Leeren"))
         clear_btn.clicked.connect(self._on_clear)
-        close_btn  = QPushButton("Sc&hließen")
+        close_btn  = QPushButton(_("Sc&hließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(send_btn)
         btn_row.addWidget(remove_btn)
@@ -1639,7 +1641,7 @@ class OfflineQueueDialogFull(QDialog):
             client = getattr(self._window, "_client", None) or getattr(self._window, "client", None)
             connected = bool(client and client.is_connected())
             for btn in self.findChildren(QPushButton):
-                if btn.text() in ("Alle &senden", "Alle senden"):
+                if btn.text() in (_("Alle &senden"), _("Alle senden"), "Alle &senden", "Alle senden"):
                     btn.setEnabled(connected and count > 0)
         except Exception as exc:
             self._list.addItem(f"Fehler: {exc}")
@@ -1649,7 +1651,7 @@ class OfflineQueueDialogFull(QDialog):
             client = getattr(self._window, "_client", None) or getattr(self._window, "client", None)
             oq     = self._oq()
             if oq is None or client is None or not client.is_connected():
-                QMessageBox.information(self, "Hinweis", "Nicht verbunden – Nachrichten können nicht gesendet werden.")
+                QMessageBox.information(self, _("Hinweis"), _("Nicht verbunden – Nachrichten können nicht gesendet werden."))
                 return
             msgs = list(oq.dequeue_all() or [])
             sent = 0
@@ -1669,12 +1671,12 @@ class OfflineQueueDialogFull(QDialog):
             self._fill()
             self._status.setText(f"{sent} von {len(msgs)} Nachricht(en) gesendet")
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
     def _on_remove(self) -> None:
         row = self._list.currentRow()
         if row < 0:
-            QMessageBox.information(self, "Hinweis", "Bitte zuerst einen Eintrag auswählen.")
+            QMessageBox.information(self, _("Hinweis"), _("Bitte zuerst einen Eintrag auswählen."))
             return
         try:
             oq = self._oq()
@@ -1686,7 +1688,7 @@ class OfflineQueueDialogFull(QDialog):
             if count > 0:
                 self._list.setCurrentRow(min(row, count - 1))
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
     def _on_clear(self) -> None:
         try:
@@ -1707,7 +1709,7 @@ class PluginManagerDialogQt(QDialog):
 
     def __init__(self, parent, window) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Plugin-Manager")
+        self.setWindowTitle(_("Plugin-Manager"))
         self.resize(580, 460)
         self._window = window
 
@@ -1723,25 +1725,25 @@ class PluginManagerDialogQt(QDialog):
         layout.addWidget(QLabel(f"Plugin-Verzeichnis: {plugins_dir}"))
 
         self._list = QListWidget()
-        self._list.setAccessibleName("Plugin-Liste")
+        self._list.setAccessibleName(_("Plugin-Liste"))
         layout.addWidget(self._list, 1)
 
         self._detail = QTextEdit()
         self._detail.setReadOnly(True)
-        self._detail.setAccessibleName("Plugin-Details")
+        self._detail.setAccessibleName(_("Plugin-Details"))
         self._detail.setMaximumHeight(100)
         layout.addWidget(self._detail)
 
         self._list.currentRowChanged.connect(self._on_select)
 
         btn_row = QHBoxLayout()
-        self._toggle_btn = QPushButton("&Aktivieren/Deaktivieren")
+        self._toggle_btn = QPushButton(_("&Aktivieren/Deaktivieren"))
         self._toggle_btn.clicked.connect(self._on_toggle)
-        reload_btn  = QPushButton("Neu &laden")
+        reload_btn  = QPushButton(_("Neu &laden"))
         reload_btn.clicked.connect(self._on_reload)
-        open_dir_btn = QPushButton("&Ordner öffnen")
+        open_dir_btn = QPushButton(_("&Ordner öffnen"))
         open_dir_btn.clicked.connect(self._on_open_dir)
-        close_btn   = QPushButton("Sc&hließen")
+        close_btn   = QPushButton(_("Sc&hließen"))
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(self._toggle_btn)
         btn_row.addWidget(reload_btn)
@@ -1808,7 +1810,7 @@ class PluginManagerDialogQt(QDialog):
                 f"Status:       {'Deaktiviert (wirkt beim nächsten Start)' if is_dis else 'Aktiv'}",
             ]
             self._detail.setPlainText("\n".join(lines))
-            self._toggle_btn.setText("&Aktivieren" if is_dis else "&Deaktivieren")
+            self._toggle_btn.setText(_("&Aktivieren") if is_dis else _("&Deaktivieren"))
         except Exception as exc:
             self._detail.setPlainText(f"Fehler: {exc}")
 
@@ -1832,7 +1834,7 @@ class PluginManagerDialogQt(QDialog):
             if row < self._list.count():
                 self._list.setCurrentRow(row)
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
     def _on_reload(self) -> None:
         row = self._list.currentRow()
@@ -1850,11 +1852,11 @@ class PluginManagerDialogQt(QDialog):
                     self._list.setCurrentRow(row)
             else:
                 errors = loader.get_errors()
-                err = errors.get(filename, "Unbekannter Fehler")
-                QMessageBox.warning(self, "Plugin-Fehler",
+                err = errors.get(filename, _("Unbekannter Fehler"))
+                QMessageBox.warning(self, _("Plugin-Fehler"),
                                     f"Fehler beim Neu-Laden von {filename}:\n\n{err[:500]}")
         except Exception as exc:
-            QMessageBox.warning(self, "Fehler", str(exc))
+            QMessageBox.warning(self, _("Fehler"), str(exc))
 
     def _on_open_dir(self) -> None:
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(self._plugins_dir)))

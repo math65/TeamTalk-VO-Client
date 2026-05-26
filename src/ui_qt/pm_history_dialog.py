@@ -7,6 +7,9 @@ from PySide6.QtWidgets import (
     QFileDialog, QMessageBox,
 )
 from PySide6.QtCore import Qt
+
+from i18n import _
+
 if TYPE_CHECKING:
     from app_qt import MainWindow
     from chat_history import ChatHistoryManager
@@ -17,8 +20,8 @@ class PMHistoryDialog(QDialog):
 
     def __init__(self, window: "MainWindow", chat_history: "ChatHistoryManager", server_key: str) -> None:
         super().__init__(window)
-        self.setWindowTitle("Privatnachrichten-Verlauf")
-        self.setAccessibleName("Privatnachrichten-Verlauf")
+        self.setWindowTitle(_("Privatnachrichten-Verlauf"))
+        self.setAccessibleName(_("Privatnachrichten-Verlauf"))
         self.resize(700, 500)
         self._history = chat_history
         self._server_key = server_key
@@ -31,10 +34,10 @@ class PMHistoryDialog(QDialog):
 
         # Filter
         filter_row = QHBoxLayout()
-        filter_row.addWidget(QLabel("Suche:"))
+        filter_row.addWidget(QLabel(_("Suche:")))
         self._filter = QLineEdit()
-        self._filter.setAccessibleName("Partner suchen")
-        self._filter.setPlaceholderText("Name eingeben …")
+        self._filter.setAccessibleName(_("Partner suchen"))
+        self._filter.setPlaceholderText(_("Name eingeben …"))
         self._filter.textChanged.connect(self._on_filter)
         filter_row.addWidget(self._filter, 1)
         root.addLayout(filter_row)
@@ -45,9 +48,9 @@ class PMHistoryDialog(QDialog):
         left = QWidget()
         ll = QVBoxLayout(left)
         ll.setContentsMargins(0, 0, 0, 0)
-        ll.addWidget(QLabel("Gesprächspartner"))
+        ll.addWidget(QLabel(_("Gesprächspartner")))
         self._partner_lw = QListWidget()
-        self._partner_lw.setAccessibleName("Gesprächspartner-Liste")
+        self._partner_lw.setAccessibleName(_("Gesprächspartner-Liste"))
         self._partner_lw.currentRowChanged.connect(self._on_partner_selected)
         ll.addWidget(self._partner_lw)
 
@@ -55,16 +58,16 @@ class PMHistoryDialog(QDialog):
         right = QWidget()
         rl = QVBoxLayout(right)
         rl.setContentsMargins(0, 0, 0, 0)
-        self._partner_label = QLabel("Kein Gesprächspartner gewählt")
+        self._partner_label = QLabel(_("Kein Gesprächspartner gewählt"))
         rl.addWidget(self._partner_label)
         self._msg_view = QTextEdit()
         self._msg_view.setReadOnly(True)
-        self._msg_view.setAccessibleName("Nachrichten")
+        self._msg_view.setAccessibleName(_("Nachrichten"))
         rl.addWidget(self._msg_view, 1)
 
         btn_row = QHBoxLayout()
-        self._export_btn = QPushButton("&Exportieren")
-        self._export_btn.setAccessibleName("Verlauf exportieren")
+        self._export_btn = QPushButton(_("&Exportieren"))
+        self._export_btn.setAccessibleName(_("Verlauf exportieren"))
         self._export_btn.setEnabled(False)
         self._export_btn.clicked.connect(self._on_export)
         btn_row.addWidget(self._export_btn)
@@ -104,7 +107,7 @@ class PMHistoryDialog(QDialog):
         for p in filtered:
             self._partner_lw.addItem(p)
         self._msg_view.clear()
-        self._partner_label.setText("Kein Gesprächspartner gewählt")
+        self._partner_label.setText(_("Kein Gesprächspartner gewählt"))
         self._export_btn.setEnabled(False)
 
     def _on_partner_selected(self, row: int) -> None:
@@ -134,8 +137,8 @@ class PMHistoryDialog(QDialog):
         if row < 0 or row >= len(self._partners):
             return
         partner = self._partners[row]
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Verlauf exportieren", f"privat_{partner}.txt",
+        path, _filter = QFileDialog.getSaveFileName(
+            self, _("Verlauf exportieren"), f"privat_{partner}.txt",
             "Textdateien (*.txt)"
         )
         if path:
@@ -154,4 +157,4 @@ class PMHistoryDialog(QDialog):
                 except Exception:
                     pass
             except Exception as ex:
-                QMessageBox.critical(self, "Fehler", str(ex))
+                QMessageBox.critical(self, _("Fehler"), str(ex))

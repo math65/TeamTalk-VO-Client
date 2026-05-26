@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from notification_manager import EVENTS, SCOPES, ACTIONS, rule_label
+from i18n import _
 
 
 class NotificationRulesDialog(QDialog):
@@ -19,7 +20,7 @@ class NotificationRulesDialog(QDialog):
 
     def __init__(self, parent, rules: list) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Benachrichtigungs-Regeln")
+        self.setWindowTitle(_("Benachrichtigungs-Regeln"))
         self.resize(660, 520)
         self._rules = list(rules)
         self._editing_idx: int | None = None
@@ -27,67 +28,67 @@ class NotificationRulesDialog(QDialog):
         layout = QVBoxLayout(self)
 
         # ── Regelliste ──────────────────────────────────────────────────────
-        layout.addWidget(QLabel(
+        layout.addWidget(QLabel(_(
             "Regeln (spezifischere Regeln überschreiben allgemeinere):"
-        ))
+        )))
         self._list = QListWidget()
-        self._list.setAccessibleName("Regelliste")
+        self._list.setAccessibleName(_("Regelliste"))
         layout.addWidget(self._list, 1)
 
         btn_row = QHBoxLayout()
-        self._add_btn = QPushButton("Hinzufügen")
-        self._add_btn.setAccessibleName("Neue Regel")
-        self._del_btn = QPushButton("Löschen")
-        self._del_btn.setAccessibleName("Regel löschen")
-        self._up_btn = QPushButton("Nach oben")
-        self._up_btn.setAccessibleName("Regel nach oben")
-        self._down_btn = QPushButton("Nach unten")
-        self._down_btn.setAccessibleName("Regel nach unten")
+        self._add_btn = QPushButton(_("Hinzufügen"))
+        self._add_btn.setAccessibleName(_("Neue Regel"))
+        self._del_btn = QPushButton(_("Löschen"))
+        self._del_btn.setAccessibleName(_("Regel löschen"))
+        self._up_btn = QPushButton(_("Nach oben"))
+        self._up_btn.setAccessibleName(_("Regel nach oben"))
+        self._down_btn = QPushButton(_("Nach unten"))
+        self._down_btn.setAccessibleName(_("Regel nach unten"))
         for b in (self._add_btn, self._del_btn, self._up_btn, self._down_btn):
             btn_row.addWidget(b)
         btn_row.addStretch()
         layout.addLayout(btn_row)
 
         # ── Regel-Editor ────────────────────────────────────────────────────
-        editor_box = QGroupBox("Regel bearbeiten")
+        editor_box = QGroupBox(_("Regel bearbeiten"))
         editor_layout = QVBoxLayout(editor_box)
 
         form = QFormLayout()
         form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
 
         self._event_cb = QComboBox()
-        self._event_cb.setAccessibleName("Ereignis")
-        self._event_cb.addItem("(Alle Ereignisse)", "")
+        self._event_cb.setAccessibleName(_("Ereignis"))
+        self._event_cb.addItem(_("(Alle Ereignisse)"), "")
         for key, lbl in EVENTS:
             self._event_cb.addItem(lbl, key)
-        form.addRow("Ereignis:", self._event_cb)
+        form.addRow(_("Ereignis:"), self._event_cb)
 
         self._keyword_le = QLineEdit()
-        self._keyword_le.setAccessibleName("Stichwort (nur für Nachrichten)")
-        self._keyword_le.setPlaceholderText("Leer = alle Nachrichten")
-        form.addRow("Stichwort:", self._keyword_le)
+        self._keyword_le.setAccessibleName(_("Stichwort (nur für Nachrichten)"))
+        self._keyword_le.setPlaceholderText(_("Leer = alle Nachrichten"))
+        form.addRow(_("Stichwort:"), self._keyword_le)
 
         self._scope_cb = QComboBox()
-        self._scope_cb.setAccessibleName("Geltungsbereich")
+        self._scope_cb.setAccessibleName(_("Geltungsbereich"))
         for key, lbl in SCOPES:
             self._scope_cb.addItem(lbl, key)
-        form.addRow("Geltungsbereich:", self._scope_cb)
+        form.addRow(_("Geltungsbereich:"), self._scope_cb)
 
         self._value_le = QLineEdit()
-        self._value_le.setAccessibleName("Wert (Server / Kanal / Benutzer)")
-        self._value_le.setPlaceholderText("Bei 'Global' leer lassen")
-        form.addRow("Wert:", self._value_le)
+        self._value_le.setAccessibleName(_("Wert (Server / Kanal / Benutzer)"))
+        self._value_le.setPlaceholderText(_("Bei 'Global' leer lassen"))
+        form.addRow(_("Wert:"), self._value_le)
 
         self._action_cb = QComboBox()
-        self._action_cb.setAccessibleName("Aktion")
+        self._action_cb.setAccessibleName(_("Aktion"))
         for key, lbl in ACTIONS:
             self._action_cb.addItem(lbl, key)
-        form.addRow("Aktion:", self._action_cb)
+        form.addRow(_("Aktion:"), self._action_cb)
 
         editor_layout.addLayout(form)
 
-        self._save_btn = QPushButton("Regel speichern")
-        self._save_btn.setAccessibleName("Regel speichern")
+        self._save_btn = QPushButton(_("Regel speichern"))
+        self._save_btn.setAccessibleName(_("Regel speichern"))
         editor_layout.addWidget(self._save_btn)
 
         layout.addWidget(editor_box)
@@ -212,8 +213,8 @@ class NotificationRulesDialog(QDialog):
             self._refresh_list()
             self._list.setCurrentRow(self._editing_idx)
         else:
-            QMessageBox.information(self, "Kein Ziel",
-                                    "Bitte erst 'Hinzufügen' drücken oder eine Regel auswählen.")
+            QMessageBox.information(self, _("Kein Ziel"),
+                                    _("Bitte erst 'Hinzufügen' drücken oder eine Regel auswählen."))
 
     def get_rules(self) -> list:
         return list(self._rules)

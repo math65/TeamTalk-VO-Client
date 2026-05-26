@@ -9,6 +9,8 @@ from PySide6.QtWidgets import (
     QPushButton, QFormLayout, QScrollArea,
 )
 
+from i18n import _
+
 if TYPE_CHECKING:
     from app_qt import MainWindow
 
@@ -37,23 +39,23 @@ class SystemTab(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
 
         # Sitzungsstatistik
-        stats_group = QGroupBox("Sitzungsstatistik")
+        stats_group = QGroupBox(_("Sitzungsstatistik"))
         stats_form = QFormLayout(stats_group)
         self._stat_uptime = QLabel("–")
-        self._stat_uptime.setAccessibleName("Verbindungsdauer")
-        stats_form.addRow("Verbindungsdauer:", self._stat_uptime)
+        self._stat_uptime.setAccessibleName(_("Verbindungsdauer"))
+        stats_form.addRow(_("Verbindungsdauer:"), self._stat_uptime)
         self._stat_sent = QLabel("–")
-        self._stat_sent.setAccessibleName("Gesendete Nachrichten")
-        stats_form.addRow("Gesendete Nachrichten:", self._stat_sent)
+        self._stat_sent.setAccessibleName(_("Gesendete Nachrichten"))
+        stats_form.addRow(_("Gesendete Nachrichten:"), self._stat_sent)
         self._stat_received = QLabel("–")
-        self._stat_received.setAccessibleName("Empfangene Nachrichten")
-        stats_form.addRow("Empfangene Nachrichten:", self._stat_received)
+        self._stat_received.setAccessibleName(_("Empfangene Nachrichten"))
+        stats_form.addRow(_("Empfangene Nachrichten:"), self._stat_received)
         self._stat_connects = QLabel("–")
-        self._stat_connects.setAccessibleName("Verbindungsanzahl")
-        stats_form.addRow("Verbindungsanzahl:", self._stat_connects)
+        self._stat_connects.setAccessibleName(_("Verbindungsanzahl"))
+        stats_form.addRow(_("Verbindungsanzahl:"), self._stat_connects)
         stats_btn_row = QHBoxLayout()
-        self._btn_stats_refresh = QPushButton("Statistik &aktualisieren")
-        self._btn_stats_reset = QPushButton("Statistik &zurücksetzen")
+        self._btn_stats_refresh = QPushButton(_("Statistik &aktualisieren"))
+        self._btn_stats_reset = QPushButton(_("Statistik &zurücksetzen"))
         stats_btn_row.addWidget(self._btn_stats_refresh)
         stats_btn_row.addWidget(self._btn_stats_reset)
         stats_btn_row.addStretch()
@@ -61,42 +63,42 @@ class SystemTab(QWidget):
         root.addWidget(stats_group)
 
         # System log
-        sys_group = QGroupBox("Systemmeldungen")
+        sys_group = QGroupBox(_("Systemmeldungen"))
         sys_layout = QVBoxLayout(sys_group)
         self.system_log = QTextEdit()
         self.system_log.setReadOnly(True)
-        self.system_log.setAccessibleName("Systemmeldungen")
+        self.system_log.setAccessibleName(_("Systemmeldungen"))
         sys_layout.addWidget(self.system_log)
         root.addWidget(sys_group, 1)
 
         # TTS settings
-        tts_group = QGroupBox("Sprachausgabe (espeak-ng)")
+        tts_group = QGroupBox(_("Sprachausgabe (espeak-ng)"))
         tts_layout = QVBoxLayout(tts_group)
 
         row1 = QHBoxLayout()
-        self.tts_enabled = QCheckBox("&TTS aktiv")
-        self.tts_interrupt = QCheckBox("&Neue Meldung unterbricht")
+        self.tts_enabled = QCheckBox(_("&TTS aktiv"))
+        self.tts_interrupt = QCheckBox(_("&Neue Meldung unterbricht"))
         row1.addWidget(self.tts_enabled)
         row1.addWidget(self.tts_interrupt)
         row1.addStretch()
         tts_layout.addLayout(row1)
 
         row2 = QHBoxLayout()
-        self.tts_chat = QCheckBox("&Chat vorlesen")
-        self.tts_private = QCheckBox("&Privat vorlesen")
-        self.tts_system = QCheckBox("&System vorlesen")
-        self.tts_own = QCheckBox("&Eigene Nachrichten vorlesen")
+        self.tts_chat = QCheckBox(_("&Chat vorlesen"))
+        self.tts_private = QCheckBox(_("&Privat vorlesen"))
+        self.tts_system = QCheckBox(_("&System vorlesen"))
+        self.tts_own = QCheckBox(_("&Eigene Nachrichten vorlesen"))
         for cb in (self.tts_chat, self.tts_private, self.tts_system, self.tts_own):
             row2.addWidget(cb)
         row2.addStretch()
         tts_layout.addLayout(row2)
 
         row3 = QHBoxLayout()
-        self.tts_user_join = QCheckBox("&Beitritt")
-        self.tts_user_leave = QCheckBox("Ab&gang")
-        self.tts_file_transfer = QCheckBox("&Dateitransfer")
-        self.tts_channel_topic = QCheckBox("Kanal-&Thema")
-        self.tts_connect_announce = QCheckBox("&Verbindung")
+        self.tts_user_join = QCheckBox(_("&Beitritt"))
+        self.tts_user_leave = QCheckBox(_("Ab&gang"))
+        self.tts_file_transfer = QCheckBox(_("&Dateitransfer"))
+        self.tts_channel_topic = QCheckBox(_("Kanal-&Thema"))
+        self.tts_connect_announce = QCheckBox(_("&Verbindung"))
         for cb in (self.tts_user_join, self.tts_user_leave,
                    self.tts_file_transfer, self.tts_channel_topic,
                    self.tts_connect_announce):
@@ -106,38 +108,38 @@ class SystemTab(QWidget):
 
         form = QFormLayout()
         self.tts_language = QComboBox()
-        self.tts_language.setAccessibleName("TTS Sprache")
-        form.addRow(QLabel("Sprache"), self.tts_language)
+        self.tts_language.setAccessibleName(_("TTS Sprache"))
+        form.addRow(QLabel(_("Sprache")), self.tts_language)
 
         self.tts_voice_filter = QLineEdit()
-        self.tts_voice_filter.setAccessibleName("TTS Stimme Filter")
-        form.addRow(QLabel("Stimmenfilter"), self.tts_voice_filter)
+        self.tts_voice_filter.setAccessibleName(_("TTS Stimme Filter"))
+        form.addRow(QLabel(_("Stimmenfilter")), self.tts_voice_filter)
 
         self.tts_voice = QListWidget()
-        self.tts_voice.setAccessibleName("TTS Stimme")
-        form.addRow(QLabel("Stimme"), self.tts_voice)
+        self.tts_voice.setAccessibleName(_("TTS Stimme"))
+        form.addRow(QLabel(_("Stimme")), self.tts_voice)
 
         self.tts_rate = QSpinBox()
         self.tts_rate.setRange(80, 400)
         self.tts_rate.setValue(175)
-        self.tts_rate.setAccessibleName("TTS Sprechtempo")
-        form.addRow(QLabel("Sprechtempo (80–400)"), self.tts_rate)
+        self.tts_rate.setAccessibleName(_("TTS Sprechtempo"))
+        form.addRow(QLabel(_("Sprechtempo (80–400)")), self.tts_rate)
 
         self.tts_volume = QSpinBox()
         self.tts_volume.setRange(0, 200)
         self.tts_volume.setValue(100)
-        self.tts_volume.setAccessibleName("TTS Lautstärke")
-        form.addRow(QLabel("Lautstärke (0–200)"), self.tts_volume)
+        self.tts_volume.setAccessibleName(_("TTS Lautstärke"))
+        form.addRow(QLabel(_("Lautstärke (0–200)")), self.tts_volume)
 
         self.tts_path = QLineEdit()
-        self.tts_path.setAccessibleName("espeak-ng Pfad")
-        form.addRow(QLabel("espeak-ng Pfad"), self.tts_path)
+        self.tts_path.setAccessibleName(_("espeak-ng Pfad"))
+        form.addRow(QLabel(_("espeak-ng Pfad")), self.tts_path)
 
         tts_layout.addLayout(form)
 
         btn_row = QHBoxLayout()
-        self.tts_refresh = QPushButton("St&immen aktualisieren")
-        self.tts_test = QPushButton("Test vo&rlesen")
+        self.tts_refresh = QPushButton(_("St&immen aktualisieren"))
+        self.tts_test = QPushButton(_("Test vo&rlesen"))
         btn_row.addWidget(self.tts_refresh)
         btn_row.addWidget(self.tts_test)
         btn_row.addStretch()
@@ -146,39 +148,39 @@ class SystemTab(QWidget):
         root.addWidget(tts_group)
 
         # TTS per-context rates + voices
-        ctx_group = QGroupBox("Sprechgeschwindigkeit je Kontext (0 = global)")
+        ctx_group = QGroupBox(_("Sprechgeschwindigkeit je Kontext (0 = global)"))
         ctx_form = QFormLayout(ctx_group)
         self.tts_chat_rate = QSpinBox()
         self.tts_chat_rate.setRange(0, 400)
-        self.tts_chat_rate.setAccessibleName("TTS Chat-/Privat-Rate")
-        ctx_form.addRow("Chat / Privat (Wörter/Min, 0=global)", self.tts_chat_rate)
+        self.tts_chat_rate.setAccessibleName(_("TTS Chat-/Privat-Rate"))
+        ctx_form.addRow(_("Chat / Privat (Wörter/Min, 0=global)"), self.tts_chat_rate)
         self.tts_system_rate = QSpinBox()
         self.tts_system_rate.setRange(0, 400)
-        self.tts_system_rate.setAccessibleName("TTS System-Rate")
-        ctx_form.addRow("Systemmeldungen (0=global)", self.tts_system_rate)
+        self.tts_system_rate.setAccessibleName(_("TTS System-Rate"))
+        ctx_form.addRow(_("Systemmeldungen (0=global)"), self.tts_system_rate)
         self.tts_channel_rate = QSpinBox()
         self.tts_channel_rate.setRange(0, 400)
-        self.tts_channel_rate.setAccessibleName("TTS Kanal-Rate")
-        ctx_form.addRow("Kanal-Thema / Beitritt (0=global)", self.tts_channel_rate)
+        self.tts_channel_rate.setAccessibleName(_("TTS Kanal-Rate"))
+        ctx_form.addRow(_("Kanal-Thema / Beitritt (0=global)"), self.tts_channel_rate)
         self.tts_chat_voice = QLineEdit()
-        self.tts_chat_voice.setPlaceholderText("leer = global")
-        self.tts_chat_voice.setAccessibleName("TTS Chat-Stimme")
-        ctx_form.addRow("Chat-Stimme (leer=global)", self.tts_chat_voice)
+        self.tts_chat_voice.setPlaceholderText(_("leer = global"))
+        self.tts_chat_voice.setAccessibleName(_("TTS Chat-Stimme"))
+        ctx_form.addRow(_("Chat-Stimme (leer=global)"), self.tts_chat_voice)
         self.tts_system_voice = QLineEdit()
-        self.tts_system_voice.setPlaceholderText("leer = global")
-        self.tts_system_voice.setAccessibleName("TTS System-Stimme")
-        ctx_form.addRow("System-Stimme (leer=global)", self.tts_system_voice)
+        self.tts_system_voice.setPlaceholderText(_("leer = global"))
+        self.tts_system_voice.setAccessibleName(_("TTS System-Stimme"))
+        ctx_form.addRow(_("System-Stimme (leer=global)"), self.tts_system_voice)
         root.addWidget(ctx_group)
 
         # Pronunciation dictionary
-        pron_group = QGroupBox("Aussprache-Wörterbuch (Wort=Ersatz, eine Regel pro Zeile)")
+        pron_group = QGroupBox(_("Aussprache-Wörterbuch (Wort=Ersatz, eine Regel pro Zeile)"))
         pron_layout = QVBoxLayout(pron_group)
-        pron_layout.addWidget(QLabel("Beispiel: TeamTalk=Timtock"))
+        pron_layout.addWidget(QLabel(_("Beispiel: TeamTalk=Timtock")))
         self.pron_edit = QTextEdit()
-        self.pron_edit.setAccessibleName("Aussprache-Wörterbuch")
+        self.pron_edit.setAccessibleName(_("Aussprache-Wörterbuch"))
         self.pron_edit.setMaximumHeight(120)
         pron_layout.addWidget(self.pron_edit)
-        pron_save = QPushButton("Aussprache-Regeln &speichern")
+        pron_save = QPushButton(_("Aussprache-Regeln &speichern"))
         pron_save.clicked.connect(self._save_pronunciation)
         pron_layout.addWidget(pron_save)
         root.addWidget(pron_group)
@@ -399,7 +401,7 @@ class SystemTab(QWidget):
         for line in self.pron_edit.toPlainText().splitlines():
             line = line.strip()
             if "=" in line:
-                k, _, v = line.partition("=")
+                k, _sep, v = line.partition("=")
                 k, v = k.strip(), v.strip()
                 if k:
                     rules[k] = v
@@ -411,7 +413,7 @@ class SystemTab(QWidget):
             pm._rules = rules
 
     def _on_test(self) -> None:
-        self.window.tts.speak("Das ist ein TTS Test", kind="system")
+        self.window.tts.speak(_("Das ist ein TTS Test"), kind="system")
 
     def _refresh_stats(self) -> None:
         """Aktualisiert die Sitzungsstatistik-Anzeige."""
@@ -428,7 +430,7 @@ class SystemTab(QWidget):
                 elapsed = time.time() - session_start
                 self._stat_uptime.setText(_format_uptime(elapsed))
             else:
-                self._stat_uptime.setText("Nicht verbunden")
+                self._stat_uptime.setText(_("Nicht verbunden"))
 
         # Gesendete Nachrichten
         if current is not None:

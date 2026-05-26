@@ -74,7 +74,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "7.7.0"
+APP_VERSION = "7.8.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -879,6 +879,8 @@ class MainFrame(wx.Frame):
 
         # Anzeigeeinstellungen sofort anwenden (Toolbar/Log standardmaessig versteckt).
         self.apply_display_settings()
+        # Erweiterte Tabs standardmäßig ausblenden (Admin, Desktop, Sprechen).
+        self._apply_tab_visibility()
 
         # Apply saved audio prefs (if enabled) after UI is ready.
         wx.CallLater(300, self._apply_saved_audio_prefs_on_startup)
@@ -997,8 +999,33 @@ class MainFrame(wx.Frame):
     # Toolbar / Quick-Actions handlers
     # ------------------------------------------------------------------
 
+    def _check_input_device_configured(self) -> bool:
+        """Gibt True zurück wenn ein Eingabegerät konfiguriert wurde, sonst False mit Ansage."""
+        prefs = getattr(self.settings_store.settings, "audio_prefs", None) or {}
+        if not prefs.get("input_device_id"):
+            msg = _("Kein Eingabegerät konfiguriert. Bitte Gerät auswählen und Audio anwenden.")
+            try:
+                from ui.a11y import post_voiceover_announcement
+                post_voiceover_announcement(msg)
+            except Exception:
+                pass
+            try:
+                self.tts.speak(msg, kind="system")
+            except Exception:
+                pass
+            self.set_status(msg)
+            return False
+        return True
+
     def _on_tb_ptt(self, event):
         val = event.GetEventObject().GetValue()
+        if val and not self._check_input_device_configured():
+            event.GetEventObject().SetValue(False)
+            try:
+                self.audio_tab.ptt_toggle.SetValue(False)
+            except Exception:
+                pass
+            return
         self._ptt_enabled = val
         if not val and self._ptt_active:
             self._ptt_active = False
@@ -1623,6 +1650,71 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
+    # Advanced panels are hidden from the tab_choice when show_advanced_tabs is False.
+    _ADVANCED_PANEL_LABELS = ("Desktop", "Administration", "Sprechen")
+
+    def _apply_tab_visibility(self) -> None:
+        """Zeigt oder versteckt erweiterte Tabs (Desktop, Administration, Sprechen)."""
+        show = bool(getattr(self.settings_store.settings, "show_advanced_tabs", False))
+        changed = False
+        if show:
+            # Re-insert advanced panels that are currently missing from the order.
+            # Desired order: Kanäle und Chat, Aufnahme und Medien, Desktop, Dateien, Administration
+            # Sprechen is handled by _update_speak_tab separately; only restore if API key set.
+            desired_order = [
+                "Kanäle und Chat", "Aufnahme und Medien", "Desktop", "Dateien", "Administration"
+            ]
+            if self._speak_tab_added:
+                desired_order.insert(1, "Sprechen")
+            new_order = []
+            for lbl in desired_order:
+                if lbl in self._panels:
+                    new_order.append(lbl)
+            # Also keep any labels already in _panel_order that are not in desired (shouldn't happen)
+            for lbl in self._panel_order:
+                if lbl not in new_order:
+                    new_order.append(lbl)
+            if new_order != self._panel_order:
+                self._panel_order = new_order
+                changed = True
+        else:
+            # Remove advanced panels from the choice list (but keep them in _panels dict).
+            new_order = [lbl for lbl in self._panel_order if lbl not in self._ADVANCED_PANEL_LABELS]
+            if new_order != self._panel_order:
+                self._panel_order = new_order
+                changed = True
+            # If current selection is now gone, switch to first panel.
+        if changed:
+            current_sel = self.tab_choice.GetSelection()
+            try:
+                current_label = self._panel_order[current_sel] if 0 <= current_sel < len(self._panel_order) else ""
+            except Exception:
+                current_label = ""
+            self._refresh_panel_choice_labels(current_label or (self._panel_order[0] if self._panel_order else None))
+            # Ensure the visible panel is actually in the new order.
+            sizer = self.content_panel.GetSizer()
+            visible_label = None
+            for lbl, p in self._panels.items():
+                if p is not None and sizer.IsShown(p):
+                    visible_label = lbl
+                    break
+            if visible_label not in self._panel_order and self._panel_order:
+                self._switch_to_panel(self._panel_order[0])
+                self.tab_choice.SetSelection(0)
+        # Sync menu item
+        try:
+            self._menu_advanced_tabs.Check(show)
+        except Exception:
+            pass
+
+    def _on_menu_toggle_advanced_tabs(self, _event) -> None:
+        show = not bool(getattr(self.settings_store.settings, "show_advanced_tabs", False))
+        self.settings_store.settings.show_advanced_tabs = show
+        self.settings_store.save()
+        self._apply_tab_visibility()
+        label = _("Erweiterte Tabs anzeigen") if show else _("Erweiterte Tabs ausblenden")
+        self.set_status(label)
+
     def apply_display_settings(self) -> None:
         """Wendet Anzeigeeinstellungen auf das Hauptfenster an (Toolbar, Log, Immer-vorne)."""
         s = self.settings_store.settings
@@ -1803,6 +1895,8 @@ class MainFrame(wx.Frame):
 
     def _on_global_ptt_down(self) -> None:
         if not self.client.is_connected():
+            return
+        if not self._check_input_device_configured():
             return
         if not self._ptt_active:
             self._ptt_active = True
@@ -2123,6 +2217,9 @@ class MainFrame(wx.Frame):
         auto_server_audio = auto_menu.Append(wx.ID_ANY, _("Per-Server-Soundprofile..."))
         auto_menu.AppendSeparator()
         auto_plugin_manager = auto_menu.Append(wx.ID_ANY, _("Plugin-Manager..."))
+        auto_menu.AppendSeparator()
+        self._menu_advanced_tabs = auto_menu.AppendCheckItem(wx.ID_ANY, _("Erweiterte Tabs anzeigen"))
+        self._menu_advanced_tabs.Check(bool(getattr(self.settings_store.settings, "show_advanced_tabs", False)))
         menubar.Append(auto_menu, _("Automation"))
 
         # Hilfe
@@ -2307,6 +2404,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_offline_queue, auto_offline_queue)
         self.Bind(wx.EVT_MENU, self.on_menu_server_audio_profiles, auto_server_audio)
         self.Bind(wx.EVT_MENU, self.on_menu_plugin_manager, auto_plugin_manager)
+        self.Bind(wx.EVT_MENU, self._on_menu_toggle_advanced_tabs, self._menu_advanced_tabs)
 
         self.Bind(wx.EVT_MENU, self.on_menu_settings, help_settings)
         self.Bind(wx.EVT_MENU, self.on_menu_export_logs, help_logs)
@@ -4752,11 +4850,16 @@ class MainFrame(wx.Frame):
 
     def on_menu_audio_ptt(self, _event):
         at = self.audio_tab
-        at.ptt_toggle.SetValue(not at.ptt_toggle.GetValue())
+        new_val = not at.ptt_toggle.GetValue()
+        if new_val and not self._check_input_device_configured():
+            return
+        at.ptt_toggle.SetValue(new_val)
         at.on_ptt_toggle(None)
 
     def on_menu_audio_va(self, _event):
         enabled = not self.audio_tab.voice_activation.GetValue()
+        if enabled and not self._check_input_device_configured():
+            return
         self.audio_tab.voice_activation.SetValue(enabled)
         self.client.enable_voice_activation(enabled)
         if enabled and not self._ptt_enabled:

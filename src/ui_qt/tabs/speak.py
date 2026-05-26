@@ -5,6 +5,8 @@ import tempfile
 import threading
 from typing import List, Optional, TYPE_CHECKING
 
+from i18n import _
+
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout,
     QLabel, QLineEdit, QTextEdit, QComboBox, QSpinBox,
@@ -32,25 +34,25 @@ class SpeakTab(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(8, 8, 8, 8)
 
-        tts_group = QGroupBox("ElevenLabs Text-to-Speech")
+        tts_group = QGroupBox(_("ElevenLabs Text-to-Speech"))
         tts_layout = QVBoxLayout(tts_group)
 
         sel_form = QFormLayout()
         voice_row = QHBoxLayout()
         self.voice_choice = QComboBox()
         self.voice_choice.setAccessibleName("Stimme")
-        self.refresh_btn = QPushButton("&Aktualisieren")
+        self.refresh_btn = QPushButton(_("&Aktualisieren"))
         self.refresh_btn.clicked.connect(self.on_refresh)
         voice_row.addWidget(self.voice_choice, 1)
         voice_row.addWidget(self.refresh_btn)
-        sel_form.addRow("Stimme", voice_row)
+        sel_form.addRow(_("Stimme"), voice_row)
 
         self.model_choice = QComboBox()
         self.model_choice.setAccessibleName("Modell")
         self.model_choice.currentIndexChanged.connect(self.on_model_changed)
-        sel_form.addRow("Modell", self.model_choice)
+        sel_form.addRow(_("Modell"), self.model_choice)
 
-        self.streaming_check = QCheckBox("&Echtzeit-Streaming")
+        self.streaming_check = QCheckBox(_("&Echtzeit-Streaming"))
         self.streaming_check.setAccessibleName("Echtzeit-Streaming")
         sel_form.addRow("", self.streaming_check)
         tts_layout.addLayout(sel_form)
@@ -60,21 +62,21 @@ class SpeakTab(QWidget):
         self.stability_slider.setRange(0, 100)
         self.stability_slider.setValue(50)
         self.stability_slider.setAccessibleName("Stabilität (0–100)")
-        settings_form.addRow("Stabilität (0–100)", self.stability_slider)
+        settings_form.addRow(_("Stabilität (0–100)"), self.stability_slider)
 
         self.similarity_slider = QSpinBox()
         self.similarity_slider.setRange(0, 100)
         self.similarity_slider.setValue(75)
         self.similarity_slider.setAccessibleName("Ähnlichkeit (0–100)")
-        settings_form.addRow("Ähnlichkeit (0–100)", self.similarity_slider)
+        settings_form.addRow(_("Ähnlichkeit (0–100)"), self.similarity_slider)
 
         self.style_slider = QSpinBox()
         self.style_slider.setRange(0, 100)
         self.style_slider.setValue(0)
         self.style_slider.setAccessibleName("Stil (0–100)")
-        settings_form.addRow("Stil (0–100)", self.style_slider)
+        settings_form.addRow(_("Stil (0–100)"), self.style_slider)
 
-        self.speaker_boost = QCheckBox("&Sprecher-Boost")
+        self.speaker_boost = QCheckBox(_("&Sprecher-Boost"))
         self.speaker_boost.setAccessibleName("Sprecher-Boost")
         self.speaker_boost.setChecked(True)
         settings_form.addRow("", self.speaker_boost)
@@ -82,31 +84,31 @@ class SpeakTab(QWidget):
         self.api_key_field = QLineEdit()
         self.api_key_field.setEchoMode(QLineEdit.EchoMode.Password)
         self.api_key_field.setPlaceholderText("API-Key eingeben...")
-        settings_form.addRow("API-Key", self.api_key_field)
+        settings_form.addRow(_("API-Key"), self.api_key_field)
         tts_layout.addLayout(settings_form)
 
-        tts_layout.addWidget(QLabel("Text zum Sprechen"))
+        tts_layout.addWidget(QLabel(_("Text zum Sprechen")))
         self.text_input = QTextEdit()
         self.text_input.setPlaceholderText("Text hier eingeben...")
         tts_layout.addWidget(self.text_input, 1)
 
         btn_row = QHBoxLayout()
-        self.speak_btn = QPushButton("S&prechen")
+        self.speak_btn = QPushButton(_("S&prechen"))
         self.speak_btn.clicked.connect(self.on_speak)
-        self.stop_btn = QPushButton("S&topp")
+        self.stop_btn = QPushButton(_("S&topp"))
         self.stop_btn.clicked.connect(self.on_stop)
-        self.save_key_btn = QPushButton("API-Key &speichern")
+        self.save_key_btn = QPushButton(_("API-Key &speichern"))
         self.save_key_btn.clicked.connect(self.on_save_api_key)
         btn_row.addWidget(self.speak_btn)
         btn_row.addWidget(self.stop_btn)
         btn_row.addWidget(self.save_key_btn)
         btn_row.addStretch()
-        self.status_label = QLabel("Bereit")
+        self.status_label = QLabel(_("Bereit"))
         btn_row.addWidget(self.status_label)
         tts_layout.addLayout(btn_row)
 
         # --- Textverlauf ---
-        tts_layout.addWidget(QLabel("Verlauf (letzte Texte):"))
+        tts_layout.addWidget(QLabel(_("Verlauf (letzte Texte):")))
         self.history_lw = QListWidget()
         self.history_lw.setAccessibleName("Textverlauf")
         self.history_lw.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -115,7 +117,7 @@ class SpeakTab(QWidget):
         tts_layout.addWidget(self.history_lw)
 
         history_btn_row = QHBoxLayout()
-        self.repeat_btn = QPushButton("&Erneut sprechen")
+        self.repeat_btn = QPushButton(_("&Erneut sprechen"))
         self.repeat_btn.clicked.connect(self._on_repeat)
         history_btn_row.addWidget(self.repeat_btn)
         history_btn_row.addStretch()

@@ -21,6 +21,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
+from i18n import _
+
 if TYPE_CHECKING:
     from app_qt import MainWindow
 
@@ -104,10 +106,10 @@ class MediaTab(QWidget):
 
         # ── Streaming-Quelle: Auswahlmenü ────────────────────────────
         src_row = QHBoxLayout()
-        src_row.addWidget(QLabel("Streaming-Quelle:"))
+        src_row.addWidget(QLabel(_("Streaming-Quelle:")))
         self._source_combo = QComboBox()
-        self._source_combo.setAccessibleName("Streaming-Quelle")
-        for _src_name in ("URL / Datei", "YouTube / yt-dlp", "Webradio", "Podcasts", "Playlist"):
+        self._source_combo.setAccessibleName(_("Streaming-Quelle"))
+        for _src_name in (_("URL / Datei"), _("YouTube / yt-dlp"), _("Webradio"), _("Podcasts"), _("Playlist")):
             self._source_combo.addItem(_src_name)
         src_row.addWidget(self._source_combo, 1)
         root.addLayout(src_row)
@@ -130,18 +132,18 @@ class MediaTab(QWidget):
         w = QWidget()
         layout = QVBoxLayout(w)
 
-        rec_group = QGroupBox("Kanal aufnehmen")
+        rec_group = QGroupBox(_("Kanal aufnehmen"))
         rec_form = QFormLayout(rec_group)
         self.rec_format = QComboBox()
         self.rec_format.addItems(["WAV", "MP3 16k", "MP3 32k", "MP3 64k", "MP3 128k", "MP3 256k", "MP3 320k"])
-        self.rec_format.setAccessibleName("Aufnahmeformat")
-        rec_form.addRow("Format", self.rec_format)
+        self.rec_format.setAccessibleName(_("Aufnahmeformat"))
+        rec_form.addRow(_("Format"), self.rec_format)
         layout.addWidget(rec_group)
 
         rec_btn_row = QHBoxLayout()
-        self.rec_start_btn = QPushButton("&Aufnahme starten")
+        self.rec_start_btn = QPushButton(_("&Aufnahme starten"))
         self.rec_start_btn.clicked.connect(self.on_rec_start)
-        self.rec_stop_btn = QPushButton("Aufnahme &stoppen")
+        self.rec_stop_btn = QPushButton(_("Aufnahme &stoppen"))
         self.rec_stop_btn.clicked.connect(self.on_rec_stop)
         self.rec_stop_btn.setEnabled(False)
         rec_btn_row.addWidget(self.rec_start_btn)
@@ -149,30 +151,30 @@ class MediaTab(QWidget):
         rec_btn_row.addStretch()
         layout.addLayout(rec_btn_row)
 
-        convo_group = QGroupBox("Konversationen aufzeichnen")
+        convo_group = QGroupBox(_("Konversationen aufzeichnen"))
         convo_form = QFormLayout(convo_group)
-        self.user_rec_enable = QCheckBox("&Automatisch aufzeichnen")
-        self.user_rec_enable.setAccessibleName("Automatisch aufzeichnen")
+        self.user_rec_enable = QCheckBox(_("&Automatisch aufzeichnen"))
+        self.user_rec_enable.setAccessibleName(_("Automatisch aufzeichnen"))
         convo_form.addRow("", self.user_rec_enable)
         self.user_rec_dir = QLineEdit()
-        self.user_rec_dir.setPlaceholderText("Zielordner...")
-        dir_btn = QPushButton("Wählen…")
+        self.user_rec_dir.setPlaceholderText(_("Zielordner..."))
+        dir_btn = QPushButton(_("Wählen…"))
         dir_btn.clicked.connect(self._on_browse_user_rec_dir)
         dir_row = QHBoxLayout()
         dir_row.addWidget(self.user_rec_dir, 1)
         dir_row.addWidget(dir_btn)
-        convo_form.addRow("Zielordner", dir_row)
+        convo_form.addRow(_("Zielordner"), dir_row)
         self.user_rec_pattern = QLineEdit("%Y%m%d-%H%M%S #%userid% %username%")
-        convo_form.addRow("Dateiname", self.user_rec_pattern)
+        convo_form.addRow(_("Dateiname"), self.user_rec_pattern)
         self.user_rec_format = QComboBox()
         self.user_rec_format.addItems(["WAV", "MP3 128k", "MP3 256k"])
-        self.user_rec_format.setAccessibleName("Konversations-Aufnahmeformat")
-        convo_form.addRow("Format", self.user_rec_format)
-        self.user_rec_include_self = QCheckBox("&Eigene Stimme mit aufnehmen")
-        self.user_rec_include_self.setAccessibleName("Eigene Stimme mit aufnehmen")
+        self.user_rec_format.setAccessibleName(_("Konversations-Aufnahmeformat"))
+        convo_form.addRow(_("Format"), self.user_rec_format)
+        self.user_rec_include_self = QCheckBox(_("&Eigene Stimme mit aufnehmen"))
+        self.user_rec_include_self.setAccessibleName(_("Eigene Stimme mit aufnehmen"))
         self.user_rec_include_self.setChecked(True)
         convo_form.addRow("", self.user_rec_include_self)
-        apply_btn = QPushButton("An&wenden")
+        apply_btn = QPushButton(_("An&wenden"))
         apply_btn.clicked.connect(self.on_user_record_apply)
         convo_form.addRow("", apply_btn)
         layout.addWidget(convo_group)
@@ -183,28 +185,28 @@ class MediaTab(QWidget):
         w = QWidget()
         layout = QVBoxLayout(w)
 
-        url_group = QGroupBox("URL / Datei streamen")
+        url_group = QGroupBox(_("URL / Datei streamen"))
         url_form = QFormLayout(url_group)
         url_row = QHBoxLayout()
         self.stream_url = QLineEdit()
-        self.stream_url.setPlaceholderText("https://... oder Pfad zur Mediendatei")
-        browse_btn = QPushButton("Datei…")
+        self.stream_url.setPlaceholderText(_("https://... oder Pfad zur Mediendatei"))
+        browse_btn = QPushButton(_("Datei…"))
         browse_btn.clicked.connect(self._on_browse_stream)
         url_row.addWidget(self.stream_url, 1)
         url_row.addWidget(browse_btn)
-        url_form.addRow("URL / Pfad", url_row)
+        url_form.addRow(_("URL / Pfad"), url_row)
         self.stream_gain = QSpinBox()
         self.stream_gain.setRange(10, 400)
         self.stream_gain.setValue(50)
-        url_form.addRow("Lautstärke (10–400, Std: 50)", self.stream_gain)
+        url_form.addRow(_("Lautstärke (10–400, Std: 50)"), self.stream_gain)
         layout.addWidget(url_group)
 
         btn_row = QHBoxLayout()
-        self.stream_start_btn = QPushButton("&Streamen starten")
+        self.stream_start_btn = QPushButton(_("&Streamen starten"))
         self.stream_start_btn.clicked.connect(self.on_start_stream)
-        self.stream_pause_btn = QPushButton("&Pause")
+        self.stream_pause_btn = QPushButton(_("&Pause"))
         self.stream_pause_btn.clicked.connect(self.on_pause_stream)
-        self.stream_stop_btn = QPushButton("St&opp")
+        self.stream_stop_btn = QPushButton(_("St&opp"))
         self.stream_stop_btn.clicked.connect(self.on_stop_stream)
         btn_row.addWidget(self.stream_start_btn)
         btn_row.addWidget(self.stream_pause_btn)
@@ -219,48 +221,48 @@ class MediaTab(QWidget):
         layout = QVBoxLayout(w)
 
         src_row = QHBoxLayout()
-        src_row.addWidget(QLabel("Quelle:"))
+        src_row.addWidget(QLabel(_("Quelle:")))
         self.yt_source = QComboBox()
-        self.yt_source.setAccessibleName("yt-dlp Quelle")
-        for name, _ in _YT_SOURCES:
+        self.yt_source.setAccessibleName(_("yt-dlp Quelle"))
+        for name, _prefix in _YT_SOURCES:
             self.yt_source.addItem(name)
         self.yt_source.currentIndexChanged.connect(self._on_yt_source_changed)
         src_row.addWidget(self.yt_source, 1)
         layout.addLayout(src_row)
 
-        search_group = QGroupBox("Suche")
+        search_group = QGroupBox(_("Suche"))
         search_inner = QVBoxLayout(search_group)
         search_row = QHBoxLayout()
-        search_row.addWidget(QLabel("Suche:"))
+        search_row.addWidget(QLabel(_("Suche:")))
         self.yt_search = QLineEdit()
-        self.yt_search.setPlaceholderText("Suchbegriff eingeben")
+        self.yt_search.setPlaceholderText(_("Suchbegriff eingeben"))
         self.yt_search.returnPressed.connect(self.on_yt_search)
-        self.yt_search_btn = QPushButton("&Suchen")
+        self.yt_search_btn = QPushButton(_("&Suchen"))
         self.yt_search_btn.clicked.connect(self.on_yt_search)
         search_row.addWidget(self.yt_search, 1)
         search_row.addWidget(self.yt_search_btn)
         search_inner.addLayout(search_row)
         self.yt_results = QListWidget()
-        self.yt_results.setAccessibleName("Suchergebnisse")
+        self.yt_results.setAccessibleName(_("Suchergebnisse"))
         search_inner.addWidget(self.yt_results, 1)
         layout.addWidget(search_group, 1)
 
         url_row = QHBoxLayout()
-        url_row.addWidget(QLabel("Link:"))
+        url_row.addWidget(QLabel(_("Link:")))
         self.yt_url = QLineEdit()
-        self.yt_url.setPlaceholderText("URL direkt eingeben oder aus Suche übernehmen")
+        self.yt_url.setPlaceholderText(_("URL direkt eingeben oder aus Suche übernehmen"))
         url_row.addWidget(self.yt_url, 1)
         layout.addLayout(url_row)
 
-        self.yt_status = QLabel("Status: bereit")
+        self.yt_status = QLabel(_("Status: bereit"))
         layout.addWidget(self.yt_status)
 
         ctrl_row = QHBoxLayout()
-        self.yt_stream_btn = QPushButton("St&reamen")
+        self.yt_stream_btn = QPushButton(_("St&reamen"))
         self.yt_stream_btn.clicked.connect(self.on_yt_stream)
-        self.yt_stop_btn = QPushButton("St&opp")
+        self.yt_stop_btn = QPushButton(_("St&opp"))
         self.yt_stop_btn.clicked.connect(self.on_stop_stream)
-        yt_gain_lbl = QLabel("Lautstärke:")
+        yt_gain_lbl = QLabel(_("Lautstärke:"))
         self.yt_gain = QSpinBox()
         self.yt_gain.setRange(10, 400)
         self.yt_gain.setValue(50)
@@ -279,36 +281,36 @@ class MediaTab(QWidget):
         w = QWidget()
         layout = QVBoxLayout(w)
 
-        search_group = QGroupBox("Online-Suche (radio-browser.info)")
+        search_group = QGroupBox(_("Online-Suche (radio-browser.info)"))
         search_inner = QVBoxLayout(search_group)
         s_row = QHBoxLayout()
-        s_row.addWidget(QLabel("Suche:"))
+        s_row.addWidget(QLabel(_("Suche:")))
         self.radio_search = QLineEdit()
-        self.radio_search.setPlaceholderText("Sendername...")
+        self.radio_search.setPlaceholderText(_("Sendername..."))
         self.radio_search.returnPressed.connect(self.on_radio_search)
-        self.radio_search_btn = QPushButton("&Suchen")
+        self.radio_search_btn = QPushButton(_("&Suchen"))
         self.radio_search_btn.clicked.connect(self.on_radio_search)
         s_row.addWidget(self.radio_search, 1)
         s_row.addWidget(self.radio_search_btn)
         search_inner.addLayout(s_row)
         self.radio_search_results = QListWidget()
-        self.radio_search_results.setAccessibleName("Webradio Suchergebnisse")
+        self.radio_search_results.setAccessibleName(_("Webradio Suchergebnisse"))
         self.radio_search_results.currentRowChanged.connect(self._on_radio_search_select)
         search_inner.addWidget(self.radio_search_results, 1)
         layout.addWidget(search_group)
 
-        preset_group = QGroupBox("Senderliste")
+        preset_group = QGroupBox(_("Senderliste"))
         preset_inner = QVBoxLayout(preset_group)
         self.radio_list = QListWidget()
-        self.radio_list.setAccessibleName("Webradio Senderliste")
-        for name, _ in _RADIO_ENTRIES:
+        self.radio_list.setAccessibleName(_("Webradio Senderliste"))
+        for name, _url in _RADIO_ENTRIES:
             self.radio_list.addItem(name)
         self.radio_list.currentRowChanged.connect(self._on_radio_preset_select)
         preset_inner.addWidget(self.radio_list, 1)
         layout.addWidget(preset_group, 1)
 
         url_row = QHBoxLayout()
-        url_row.addWidget(QLabel("Stream-URL:"))
+        url_row.addWidget(QLabel(_("Stream-URL:")))
         self.radio_url = QLineEdit()
         url_row.addWidget(self.radio_url, 1)
         layout.addLayout(url_row)
@@ -317,14 +319,14 @@ class MediaTab(QWidget):
         self.radio_gain = QSpinBox()
         self.radio_gain.setRange(10, 400)
         self.radio_gain.setValue(50)
-        self.radio_play_btn = QPushButton("&Abspielen")
+        self.radio_play_btn = QPushButton(_("&Abspielen"))
         self.radio_play_btn.clicked.connect(self.on_radio_stream)
-        self.radio_stop_btn = QPushButton("St&opp")
+        self.radio_stop_btn = QPushButton(_("St&opp"))
         self.radio_stop_btn.clicked.connect(self.on_stop_stream)
         gain_row.addWidget(self.radio_play_btn)
         gain_row.addWidget(self.radio_stop_btn)
         gain_row.addStretch()
-        gain_row.addWidget(QLabel("Lautstärke:"))
+        gain_row.addWidget(QLabel(_("Lautstärke:")))
         gain_row.addWidget(self.radio_gain)
         layout.addLayout(gain_row)
         return w
@@ -333,44 +335,44 @@ class MediaTab(QWidget):
         w = QWidget()
         layout = QVBoxLayout(w)
 
-        search_group = QGroupBox("Podcast-Suche (iTunes)")
+        search_group = QGroupBox(_("Podcast-Suche (iTunes)"))
         search_inner = QVBoxLayout(search_group)
         s_row = QHBoxLayout()
-        s_row.addWidget(QLabel("Suche:"))
+        s_row.addWidget(QLabel(_("Suche:")))
         self.podcast_search = QLineEdit()
         self.podcast_search.returnPressed.connect(self.on_podcast_search)
-        self.podcast_search_btn = QPushButton("&Suchen")
+        self.podcast_search_btn = QPushButton(_("&Suchen"))
         self.podcast_search_btn.clicked.connect(self.on_podcast_search)
         s_row.addWidget(self.podcast_search, 1)
         s_row.addWidget(self.podcast_search_btn)
         search_inner.addLayout(s_row)
         self.podcast_list = QListWidget()
-        self.podcast_list.setAccessibleName("Podcast Suchergebnisse")
+        self.podcast_list.setAccessibleName(_("Podcast Suchergebnisse"))
         self.podcast_list.currentRowChanged.connect(self._on_podcast_select)
         search_inner.addWidget(self.podcast_list, 1)
         layout.addWidget(search_group)
 
-        feed_group = QGroupBox("Feed-URL")
+        feed_group = QGroupBox(_("Feed-URL"))
         feed_inner = QHBoxLayout(feed_group)
         self.podcast_feed = QLineEdit()
-        self.podcast_feed.setPlaceholderText("RSS/Atom Feed-URL...")
-        self.podcast_feed_btn = QPushButton("&Feed laden")
+        self.podcast_feed.setPlaceholderText(_("RSS/Atom Feed-URL..."))
+        self.podcast_feed_btn = QPushButton(_("&Feed laden"))
         self.podcast_feed_btn.clicked.connect(self.on_podcast_feed_load)
         feed_inner.addWidget(self.podcast_feed, 1)
         feed_inner.addWidget(self.podcast_feed_btn)
         layout.addWidget(feed_group)
 
-        episode_group = QGroupBox("Episoden")
+        episode_group = QGroupBox(_("Episoden"))
         episode_inner = QVBoxLayout(episode_group)
         self.episode_list = QListWidget()
-        self.episode_list.setAccessibleName("Podcast Episoden")
+        self.episode_list.setAccessibleName(_("Podcast Episoden"))
         episode_inner.addWidget(self.episode_list, 1)
         layout.addWidget(episode_group, 1)
 
         ctrl_row = QHBoxLayout()
-        self.episode_stream_btn = QPushButton("&Episode streamen")
+        self.episode_stream_btn = QPushButton(_("&Episode streamen"))
         self.episode_stream_btn.clicked.connect(self.on_episode_stream)
-        self.podcast_stop_btn = QPushButton("St&opp")
+        self.podcast_stop_btn = QPushButton(_("St&opp"))
         self.podcast_stop_btn.clicked.connect(self.on_stop_stream)
         self.podcast_gain = QSpinBox()
         self.podcast_gain.setRange(10, 400)
@@ -378,7 +380,7 @@ class MediaTab(QWidget):
         ctrl_row.addWidget(self.episode_stream_btn)
         ctrl_row.addWidget(self.podcast_stop_btn)
         ctrl_row.addStretch()
-        ctrl_row.addWidget(QLabel("Lautstärke:"))
+        ctrl_row.addWidget(QLabel(_("Lautstärke:")))
         ctrl_row.addWidget(self.podcast_gain)
         layout.addLayout(ctrl_row)
         return w
@@ -388,37 +390,37 @@ class MediaTab(QWidget):
         layout = QVBoxLayout(w)
 
         self.pl_list = QListWidget()
-        self.pl_list.setAccessibleName("Playlist")
+        self.pl_list.setAccessibleName(_("Playlist"))
         layout.addWidget(self.pl_list, 1)
 
         edit_row = QHBoxLayout()
-        pl_add = QPushButton("&Hinzufügen…")
+        pl_add = QPushButton(_("&Hinzufügen…"))
         pl_add.clicked.connect(self._on_pl_add)
-        pl_m3u = QPushButton("M3U &laden…")
+        pl_m3u = QPushButton(_("M3U &laden…"))
         pl_m3u.clicked.connect(self._on_pl_load_m3u)
-        pl_remove = QPushButton("&Entfernen")
+        pl_remove = QPushButton(_("&Entfernen"))
         pl_remove.clicked.connect(self._on_pl_remove)
-        pl_up = QPushButton("Nach &oben")
+        pl_up = QPushButton(_("Nach &oben"))
         pl_up.clicked.connect(self._on_pl_move_up)
-        pl_down = QPushButton("Nach &unten")
+        pl_down = QPushButton(_("Nach &unten"))
         pl_down.clicked.connect(self._on_pl_move_down)
-        pl_export = QPushButton("Als M3U e&xportieren…")
+        pl_export = QPushButton(_("Als M3U e&xportieren…"))
         pl_export.clicked.connect(self._on_pl_export)
-        pl_clear = QPushButton("&Leeren")
+        pl_clear = QPushButton(_("&Leeren"))
         pl_clear.clicked.connect(self._on_pl_clear)
         for btn in (pl_add, pl_m3u, pl_remove, pl_up, pl_down, pl_export, pl_clear):
             edit_row.addWidget(btn)
         layout.addLayout(edit_row)
 
-        self.pl_auto_next = QCheckBox("&Automatisch weiter (nächster Titel nach Ende)")
-        self.pl_auto_next.setAccessibleName("Automatisch weiter (nächster Titel nach Ende)")
+        self.pl_auto_next = QCheckBox(_("&Automatisch weiter (nächster Titel nach Ende)"))
+        self.pl_auto_next.setAccessibleName(_("Automatisch weiter (nächster Titel nach Ende)"))
         self.pl_auto_next.setChecked(True)
         layout.addWidget(self.pl_auto_next)
 
         ctrl_row = QHBoxLayout()
-        self.pl_play_btn = QPushButton("A&bspielen")
+        self.pl_play_btn = QPushButton(_("A&bspielen"))
         self.pl_play_btn.clicked.connect(self._on_pl_play)
-        self.pl_stop_btn = QPushButton("St&opp")
+        self.pl_stop_btn = QPushButton(_("St&opp"))
         self.pl_stop_btn.clicked.connect(self.on_stop_stream)
         self.pl_gain = QSpinBox()
         self.pl_gain.setRange(10, 400)
@@ -426,7 +428,7 @@ class MediaTab(QWidget):
         ctrl_row.addWidget(self.pl_play_btn)
         ctrl_row.addWidget(self.pl_stop_btn)
         ctrl_row.addStretch()
-        ctrl_row.addWidget(QLabel("Lautstärke:"))
+        ctrl_row.addWidget(QLabel(_("Lautstärke:")))
         ctrl_row.addWidget(self.pl_gain)
         layout.addLayout(ctrl_row)
         return w
@@ -436,7 +438,7 @@ class MediaTab(QWidget):
     # ------------------------------------------------------------------
 
     def _on_browse_user_rec_dir(self) -> None:
-        path = QFileDialog.getExistingDirectory(self, "Aufnahmeordner wählen")
+        path = QFileDialog.getExistingDirectory(self, _("Aufnahmeordner wählen"))
         if path:
             self.user_rec_dir.setText(path)
 
@@ -451,9 +453,9 @@ class MediaTab(QWidget):
 
     def on_rec_start(self) -> None:
         ext = "mp3" if self.rec_format.currentIndex() > 0 else "wav"
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Aufnahme speichern unter", "",
-            f"{ext.upper()} (*.{ext});;Alle Dateien (*.*)"
+        path, _flt = QFileDialog.getSaveFileName(
+            self, _("Aufnahme speichern unter"), "",
+            f"{ext.upper()} (*.{ext});;" + _("Alle Dateien (*.*)")
         )
         if not path:
             return
@@ -465,20 +467,20 @@ class MediaTab(QWidget):
             self.rec_stop_btn.setEnabled(True)
             self.window.set_status(f"Aufnahme gestartet: {path}")
         else:
-            self.window.set_status("Aufnahme konnte nicht gestartet werden")
+            self.window.set_status(_("Aufnahme konnte nicht gestartet werden"))
 
     def on_rec_stop(self) -> None:
         self.window.client.stop_recording_muxed()
         self._recording = False
         self.rec_start_btn.setEnabled(True)
         self.rec_stop_btn.setEnabled(False)
-        self.window.set_status("Aufnahme gestoppt")
+        self.window.set_status(_("Aufnahme gestoppt"))
 
     def on_user_record_apply(self) -> None:
         enabled = self.user_rec_enable.isChecked()
         folder = self.user_rec_dir.text().strip() if enabled else ""
         if enabled and not folder:
-            self.window.set_status("Bitte Zielordner wählen")
+            self.window.set_status(_("Bitte Zielordner wählen"))
             return
         pattern = self.user_rec_pattern.text().strip() if enabled else ""
         fmt = self._get_user_rec_format()
@@ -490,9 +492,9 @@ class MediaTab(QWidget):
     # ------------------------------------------------------------------
 
     def _on_browse_stream(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Mediendatei wählen", "",
-            "Mediendateien (*.mp3 *.wav *.ogg *.flac *.aac *.m4a *.mp4);;Alle Dateien (*.*)"
+        path, _flt = QFileDialog.getOpenFileName(
+            self, _("Mediendatei wählen"), "",
+            _("Mediendateien (*.mp3 *.wav *.ogg *.flac *.aac *.m4a *.mp4);;Alle Dateien (*.*)")
         )
         if path:
             self.stream_url.setText(path)
@@ -509,12 +511,12 @@ class MediaTab(QWidget):
             self._streaming = True
             self.window.set_status(f"Streaming gestartet: {url}")
         else:
-            self.window.set_status("Streaming konnte nicht gestartet werden")
+            self.window.set_status(_("Streaming konnte nicht gestartet werden"))
 
     def on_pause_stream(self) -> None:
         if self._streaming:
             self.window.client.update_streaming_media(paused=True)
-            self.window.set_status("Streaming pausiert")
+            self.window.set_status(_("Streaming pausiert"))
 
     def on_stop_stream(self) -> None:
         if self._streaming:
@@ -524,7 +526,7 @@ class MediaTab(QWidget):
                 pass
             self._streaming = False
             self._pl_streaming = False
-            self.window.set_status("Streaming gestoppt")
+            self.window.set_status(_("Streaming gestoppt"))
 
     # ------------------------------------------------------------------
     # YouTube / yt-dlp
@@ -532,7 +534,7 @@ class MediaTab(QWidget):
 
     def _on_yt_source_changed(self, idx: int) -> None:
         if 0 <= idx < len(_YT_SOURCES):
-            _, prefix = _YT_SOURCES[idx]
+            _name, prefix = _YT_SOURCES[idx]
             self.yt_search.setEnabled(prefix is not None)
             self.yt_search_btn.setEnabled(prefix is not None)
 
@@ -554,15 +556,15 @@ class MediaTab(QWidget):
         src_idx = self.yt_source.currentIndex()
         if src_idx < 0 or src_idx >= len(_YT_SOURCES):
             return
-        _, prefix = _YT_SOURCES[src_idx]
+        _name, prefix = _YT_SOURCES[src_idx]
         if not prefix:
             return
         ytdlp = self._find_yt_dlp()
         if not ytdlp:
-            self.yt_status.setText("Status: yt-dlp nicht gefunden")
+            self.yt_status.setText(_("Status: yt-dlp nicht gefunden"))
             return
         self.yt_search_btn.setEnabled(False)
-        self.yt_status.setText("Status: Suche läuft...")
+        self.yt_status.setText(_("Status: Suche läuft..."))
 
         def worker():
             from ui_qt.call_after import call_after
@@ -612,7 +614,7 @@ class MediaTab(QWidget):
 
     def _yt_search_failed(self, message: str) -> None:
         self.yt_search_btn.setEnabled(True)
-        self.yt_status.setText("Status: Suche fehlgeschlagen")
+        self.yt_status.setText(_("Status: Suche fehlgeschlagen"))
         self.window.set_status(f"yt-dlp Suche fehlgeschlagen: {message}")
 
     def _on_yt_result_selected(self, row: int) -> None:
@@ -624,14 +626,14 @@ class MediaTab(QWidget):
     def on_yt_stream(self) -> None:
         url = self.yt_url.text().strip()
         if not url:
-            self.window.set_status("Bitte Link eingeben")
+            self.window.set_status(_("Bitte Link eingeben"))
             return
         ytdlp = self._find_yt_dlp()
         if not ytdlp:
-            self.yt_status.setText("Status: yt-dlp nicht gefunden")
+            self.yt_status.setText(_("Status: yt-dlp nicht gefunden"))
             return
         self.yt_stream_btn.setEnabled(False)
-        self.yt_status.setText("Status: Stream wird vorbereitet...")
+        self.yt_status.setText(_("Status: Stream wird vorbereitet..."))
 
         def worker():
             from ui_qt.call_after import call_after
@@ -658,14 +660,14 @@ class MediaTab(QWidget):
         ok = self.window.client.start_streaming_media_to_channel(stream_url, preamp_gain=self._gain_float(self.yt_gain))
         if ok:
             self._streaming = True
-            self.yt_status.setText("Status: Stream läuft")
-            self.window.set_status("yt-dlp Streaming gestartet")
+            self.yt_status.setText(_("Status: Stream läuft"))
+            self.window.set_status(_("yt-dlp Streaming gestartet"))
         else:
-            self.yt_status.setText("Status: Streaming fehlgeschlagen")
+            self.yt_status.setText(_("Status: Streaming fehlgeschlagen"))
 
     def _yt_stream_failed(self, message: str) -> None:
         self.yt_stream_btn.setEnabled(True)
-        self.yt_status.setText("Status: Fehler")
+        self.yt_status.setText(_("Status: Fehler"))
         self.window.set_status(f"yt-dlp Streaming fehlgeschlagen: {message}")
 
     # ------------------------------------------------------------------
@@ -674,7 +676,7 @@ class MediaTab(QWidget):
 
     def _on_radio_preset_select(self, row: int) -> None:
         if 0 <= row < len(_RADIO_ENTRIES):
-            _, url = _RADIO_ENTRIES[row]
+            _name, url = _RADIO_ENTRIES[row]
             self.radio_url.setText(url)
 
     def on_radio_search(self) -> None:
@@ -682,7 +684,7 @@ class MediaTab(QWidget):
         if not term:
             return
         self.radio_search_btn.setEnabled(False)
-        self.window.set_status("Webradio-Suche läuft...")
+        self.window.set_status(_("Webradio-Suche läuft..."))
 
         def worker():
             from ui_qt.call_after import call_after
@@ -693,7 +695,7 @@ class MediaTab(QWidget):
                     data = []
                 items, parsed = [], []
                 for r in data:
-                    name = r.get("name") or "Sender"
+                    name = r.get("name") or _("Sender")
                     country = r.get("country") or ""
                     codec = r.get("codec") or ""
                     bitrate = r.get("bitrate") or ""
@@ -731,14 +733,14 @@ class MediaTab(QWidget):
     def on_radio_stream(self) -> None:
         url = self.radio_url.text().strip()
         if not url:
-            self.window.set_status("Bitte Stream-URL eingeben")
+            self.window.set_status(_("Bitte Stream-URL eingeben"))
             return
         ok = self.window.client.start_streaming_media_to_channel(url, preamp_gain=self._gain_float(self.radio_gain))
         if ok:
             self._streaming = True
-            self.window.set_status("Webradio-Streaming gestartet")
+            self.window.set_status(_("Webradio-Streaming gestartet"))
         else:
-            self.window.set_status("Webradio-Streaming konnte nicht gestartet werden")
+            self.window.set_status(_("Webradio-Streaming konnte nicht gestartet werden"))
 
     # ------------------------------------------------------------------
     # Podcasts
@@ -757,7 +759,7 @@ class MediaTab(QWidget):
                 })
                 items, parsed = [], []
                 for r in data.get("results", []):
-                    name = r.get("collectionName") or r.get("trackName") or "Podcast"
+                    name = r.get("collectionName") or r.get("trackName") or _("Podcast")
                     author = r.get("artistName") or ""
                     feed = r.get("feedUrl") or ""
                     items.append(f"{name} — {author}")
@@ -794,9 +796,9 @@ class MediaTab(QWidget):
         def worker():
             from ui_qt.call_after import call_after
             try:
-                status, xml_data, _ = self._fetch_url(feed_url)
+                status, xml_data, _url_back = self._fetch_url(feed_url)
                 if status in (401, 403, 429):
-                    status, xml_data, _ = self._fetch_url(self._proxy_url(feed_url))
+                    status, xml_data, _url_back = self._fetch_url(self._proxy_url(feed_url))
                 if status >= 400:
                     raise RuntimeError(f"HTTP {status}")
                 episodes = self._parse_feed(xml_data)
@@ -864,18 +866,18 @@ class MediaTab(QWidget):
     def on_episode_stream(self) -> None:
         row = self.episode_list.currentRow()
         if row < 0 or row >= len(self._podcast_episodes):
-            self.window.set_status("Bitte Episode auswählen")
+            self.window.set_status(_("Bitte Episode auswählen"))
             return
         url = self._podcast_episodes[row].get("url", "")
         if not url:
-            self.window.set_status("Keine Audio-URL in der Episode")
+            self.window.set_status(_("Keine Audio-URL in der Episode"))
             return
         ok = self.window.client.start_streaming_media_to_channel(url, preamp_gain=self._gain_float(self.podcast_gain))
         if ok:
             self._streaming = True
-            self.window.set_status("Podcast-Streaming gestartet")
+            self.window.set_status(_("Podcast-Streaming gestartet"))
         else:
-            self.window.set_status("Podcast-Streaming konnte nicht gestartet werden")
+            self.window.set_status(_("Podcast-Streaming konnte nicht gestartet werden"))
 
     # ------------------------------------------------------------------
     # Playlist
@@ -890,9 +892,9 @@ class MediaTab(QWidget):
             self.pl_list.addItem(self._pl_display_name(p))
 
     def _on_pl_add(self) -> None:
-        paths, _ = QFileDialog.getOpenFileNames(
-            self, "Dateien zur Playlist hinzufügen", "",
-            "Audio/Video (*.mp3 *.wav *.ogg *.flac *.m4a *.opus *.mp4);;Alle (*.*)",
+        paths, _flt = QFileDialog.getOpenFileNames(
+            self, _("Dateien zur Playlist hinzufügen"), "",
+            _("Audio/Video (*.mp3 *.wav *.ogg *.flac *.m4a *.opus *.mp4);;Alle (*.*)"),
         )
         if paths:
             self._playlist_tracks.extend(paths)
@@ -900,14 +902,14 @@ class MediaTab(QWidget):
             self.window.set_status(f"{len(paths)} Datei(en) hinzugefügt")
 
     def _on_pl_load_m3u(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self, "M3U-Datei laden", "", "M3U-Playlist (*.m3u *.m3u8);;Alle (*.*)"
+        path, _flt = QFileDialog.getOpenFileName(
+            self, _("M3U-Datei laden"), "", _("M3U-Playlist (*.m3u *.m3u8);;Alle (*.*)")
         )
         if not path:
             return
         tracks = self._parse_m3u(path)
         if not tracks:
-            QMessageBox.information(self, "M3U laden", "Keine abspielbaren Pfade gefunden.")
+            QMessageBox.information(self, _("M3U laden"), _("Keine abspielbaren Pfade gefunden."))
             return
         self._playlist_tracks = tracks
         self._pl_refresh_list()
@@ -942,10 +944,10 @@ class MediaTab(QWidget):
 
     def _on_pl_export(self) -> None:
         if not self._playlist_tracks:
-            QMessageBox.information(self, "M3U exportieren", "Playlist ist leer.")
+            QMessageBox.information(self, _("M3U exportieren"), _("Playlist ist leer."))
             return
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Playlist als M3U exportieren", "playlist.m3u", "M3U-Playlist (*.m3u)"
+        path, _flt = QFileDialog.getSaveFileName(
+            self, _("Playlist als M3U exportieren"), "playlist.m3u", _("M3U-Playlist (*.m3u)")
         )
         if path:
             self._export_m3u(path, self._playlist_tracks)
@@ -954,14 +956,14 @@ class MediaTab(QWidget):
     def _on_pl_clear(self) -> None:
         if not self._playlist_tracks:
             return
-        if QMessageBox.question(self, "Leeren", "Playlist wirklich leeren?") == QMessageBox.StandardButton.Yes:
+        if QMessageBox.question(self, _("Leeren"), _("Playlist wirklich leeren?")) == QMessageBox.StandardButton.Yes:
             self._playlist_tracks = []
             self._pl_refresh_list()
-            self.window.set_status("Playlist geleert")
+            self.window.set_status(_("Playlist geleert"))
 
     def _on_pl_play(self) -> None:
         if not self._playlist_tracks:
-            self.window.set_status("Playlist ist leer")
+            self.window.set_status(_("Playlist ist leer"))
             return
         row = self.pl_list.currentRow()
         if row < 0:
@@ -972,7 +974,7 @@ class MediaTab(QWidget):
     def _pl_play_track(self, idx: int) -> None:
         if idx < 0 or idx >= len(self._playlist_tracks):
             self._pl_streaming = False
-            self.window.set_status("Playlist beendet")
+            self.window.set_status(_("Playlist beendet"))
             return
         self._playlist_current = idx
         self.pl_list.setCurrentRow(idx)
