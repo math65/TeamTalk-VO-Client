@@ -35,7 +35,7 @@
 
 <h1>TeamTalk VoiceOver Client – Benutzerhandbuch</h1>
 <p>Barrierefreier TeamTalk-Client für VoiceOver (macOS), NVDA / JAWS (Windows) und Orca (Linux).<br>
-Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>7.8.0</strong></p>
+Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>7.8.1</strong></p>
 
 <!-- ============================================================ -->
 <div id="toc">
@@ -110,6 +110,12 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <p>Die App unterstützt vier Oberflächensprachen: <strong>Deutsch, English, Français, Español</strong>. Die Sprache kann unter <em>Einstellungen → Allgemein → App-Sprache</em> gewechselt werden; die App startet dann neu.</p>
 
 <h2>Was ist neu</h2>
+<div class="new">
+<strong>v7.8.1 (2026-05-27):</strong>
+<ul>
+  <li><strong>VoiceOver-Patches refaktoriert</strong> <span class="platform mac">macOS</span>: Accessibility-Patches nutzen jetzt <code>objc.Category</code> statt <code>classAddMethod</code> – Methoden pro Klasse gruppiert, kein Boilerplate. Verhalten identisch zu v7.8.0. Empfehlung von <strong>@ronaldoussoren</strong> (PyObjC).</li>
+</ul>
+</div>
 <div class="new">
 <strong>v7.8.0 (2026-05-26):</strong>
 <ul>

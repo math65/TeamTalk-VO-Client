@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2026-05-27 (v7.8.1)
+Barrierefreiheits-Codepflege: objc.Category-Pattern für VoiceOver-Patches
+
+- VoiceOver-Patches (macOS) nutzen jetzt objc.Category statt classAddMethod.
+  Alle Accessibility-Methoden einer Klasse sind jetzt gruppiert – besser lesbar,
+  kein @objc.typedSelector-Boilerplate mehr. Verhalten und Laufzeiteffekt
+  identisch zu v7.8.0. Empfehlung von Ronald Oussoren (@ronaldoussoren, PyObjC).
+
 2026-05-26 (v7.8.0)
 WASAPI Per-App Audio, i18n-Vollständigkeit, PTT-Guard, UI-Entschlackung
 
