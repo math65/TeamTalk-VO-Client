@@ -72,9 +72,10 @@ from video_manager import VideoStatsCollector, VideoRecorder
 from analytics import UsageAnalytics
 from health_check import HealthChecker, check_disk_space, check_event_bus, check_settings_db
 from platform_info import platform_info, capabilities, feature_summary
+import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "7.8.1"
+APP_VERSION = "8.0.0"
 
 def _upd_tok() -> str:
     import base64 as _b

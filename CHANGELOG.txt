@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-05-27 (v8.0.0)
+SRAL-Integration: einheitlicher Screen-Reader-Output-Layer (Sprache + Braille)
+
+- SRAL (Screen Reader Abstraction Library) als neuer SR-Output-Layer integriert.
+  Einheitliche API: sr_output.speak() / sr_output.braille() / sr_output.output().
+  Windows: SRAL (NVDA / JAWS / SAPI / Narrator) + Braille via BRLTTY.
+  Linux: SRAL mit Speech Dispatcher + libbrlapi.
+  macOS: weiterhin NSAccessibilityPostNotificationWithUserInfo (höhere Qualität
+  als SRAL/VoiceOver.mm, da Priorität gesetzt wird); Braille automatisch via VO.
+- screen_reader.py (Windows tolk/NVDA/SAPI) bleibt als Fallback wenn SRAL.dll
+  nicht geladen werden kann.
+- sr_output.py ist die neue kanonische Schnittstelle für SR-Ausgaben im gesamten
+  Projekt (app_wx.py und app_qt.py).
+- SRAL: universal binary (arm64 + x86_64) auf macOS, x64 auf Windows (CI).
+  Basiert auf SRAL v0.3 von m1maker (MIT-Lizenz).
+
 2026-05-27 (v7.8.1)
 Barrierefreiheits-Codepflege: objc.Category-Pattern für VoiceOver-Patches
 

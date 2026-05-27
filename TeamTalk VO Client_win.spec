@@ -27,10 +27,13 @@ a = Analysis(
         ('src/sounds', 'sounds'),
         ('src/screen_reader.py', '.'),
         ('third_party/tolk', 'tolk'),
+        ('third_party/sral/windows/SRAL.dll', 'sral/windows'),
+        ('third_party/sral/sral.py', 'sral'),
     ],
     hiddenimports=[
         'app_qt',
         'screen_reader',
+        'sr_output',
         'teamtalk_client', 'teamtalk_client.tt', 'teamtalk_client.client',
         'ui.tabs.system', 'ui_qt.tabs.system', 'platform_paths', 'sound_manager',
         'chat_history', 'global_hotkeys', 'i18n',

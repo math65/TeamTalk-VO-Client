@@ -69,9 +69,9 @@ from tls_verify import CertPinStore
 from analytics import UsageAnalytics
 from health_check import HealthChecker, check_disk_space, check_event_bus, check_settings_db
 from platform_info import platform_info
-from screen_reader import ScreenReaderAnnouncer
+import sr_output
 
-APP_VERSION = "7.8.1"
+APP_VERSION = "8.0.0"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -258,8 +258,6 @@ class MainWindow(QMainWindow):
         self.tts.settings.channel_rate = getattr(_ts, "tts_channel_rate", 0) or 0
         self.tts.settings.chat_voice = getattr(_ts, "tts_chat_voice", "") or ""
         self.tts.settings.system_voice = getattr(_ts, "tts_system_voice", "") or ""
-
-        self._screen_reader = ScreenReaderAnnouncer()
 
         self.sound_manager = SoundManager()
         self.sound_manager.set_pack_dir(getattr(_ts, "sound_pack_dir", "") or "")
@@ -800,14 +798,15 @@ class MainWindow(QMainWindow):
         self._status_bar.showMessage(text)
         if hasattr(self, "system_tab"):
             self.system_tab.append_system(text)
-        if hasattr(self, "_screen_reader"):
-            self._screen_reader.speak(text)
+        try:
+            sr_output.speak(text)
+        except Exception:
+            pass
 
     def _sr_announce(self, text: str) -> None:
-        """Sendet Text als NVDA-Live-Region (unterbricht nicht, reiht ein)."""
+        """Sendet Text an aktiven Screen Reader (SRAL → tolk/NVDA/SAPI Fallback)."""
         try:
-            if hasattr(self, "_screen_reader") and self._screen_reader.active:
-                self._screen_reader.speak(text, interrupt=False)
+            sr_output.output(text)
         except Exception:
             pass
 
@@ -4575,7 +4574,7 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
         try:
-            self._screen_reader.stop()
+            sr_output.stop()
         except Exception:
             pass
         try:

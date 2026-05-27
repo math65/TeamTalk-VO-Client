@@ -25,6 +25,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements_windows.txt
 
+      - name: SRAL bauen (SRAL.dll)
+        run: |
+          git clone https://github.com/m1maker/SRAL C:\SRAL
+          cmake C:\SRAL -B C:\SRAL\build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
+          cmake --build C:\SRAL\build --config Release
+          New-Item -ItemType Directory -Force -Path "third_party\sral\windows"
+          Copy-Item "C:\SRAL\build\Release\SRAL.dll" "third_party\sral\windows\SRAL.dll"
+          Copy-Item "C:\SRAL\Bindings\Python\sral.py" "third_party\sral\sral.py"
+
       - name: Version aus app.py lesen
         id: version
         shell: python
