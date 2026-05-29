@@ -57,15 +57,14 @@ def patch_list_row_accessibility() -> None:
         from AppKit import NSAccessibilityListRole  # noqa: PLC0415
 
         # 1. wxNSTableView global als AXList deklarieren
+        # accessibilityRoleDescription wird absichtlich nicht überschrieben —
+        # VoiceOver lokalisiert die Rollenbeschreibung selbst korrekt.
         try:
             wxNSTableView = objc.lookUpClass("wxNSTableView")
 
             class wxNSTableView(objc.Category(wxNSTableView)):
                 def accessibilityRole(self):
                     return NSAccessibilityListRole
-
-                def accessibilityRoleDescription(self):
-                    return "Liste"
         except Exception:
             pass
 
@@ -109,9 +108,10 @@ def patch_list_row_accessibility() -> None:
 
 
 def patch_control_accessibility() -> None:
-    """Swizzelt wxNSSlider, wxNSTextField, wxNSTextView und NSProgressIndicator,
-    damit VoiceOver deutsche Rollenbeschreibungen ansagt.
+    """Korrigiert AX-Rollen für wxNSSlider, wxNSTextField und wxNSTextView.
 
+    accessibilityRoleDescription wird bewusst nicht überschrieben — VoiceOver
+    lokalisiert die Rollenbeschreibungen selbst korrekt in der Systemsprache.
     Muss einmal beim Programmstart aufgerufen werden (nach wx.App-Erstellung).
     """
     if sys.platform != "darwin":
@@ -125,64 +125,38 @@ def patch_control_accessibility() -> None:
             NSAccessibilityTextAreaRole,
         )
 
-        # --- wxNSSlider → "Regler" ---
+        # --- wxNSSlider ---
         try:
             wxNSSlider = objc.lookUpClass("wxNSSlider")
 
             class wxNSSlider(objc.Category(wxNSSlider)):
                 def accessibilityRole(self):
                     return NSAccessibilitySliderRole
-
-                def accessibilityRoleDescription(self):
-                    return "Regler"
         except Exception:
             pass
 
-        # --- wxNSTextField (single-line TextCtrl) → "Textfeld" ---
+        # --- wxNSTextField (single-line TextCtrl) ---
         try:
             wxNSTextField = objc.lookUpClass("wxNSTextField")
 
             class wxNSTextField(objc.Category(wxNSTextField)):
                 def accessibilityRole(self):
                     return NSAccessibilityTextFieldRole
-
-                def accessibilityRoleDescription(self):
-                    return "Textfeld"
         except Exception:
             pass
 
-        # --- wxNSTextView (multiline wx.TextCtrl) → "Textbereich" ---
+        # --- wxNSTextView (multiline wx.TextCtrl) ---
         try:
             wxNSTextView = objc.lookUpClass("wxNSTextView")
 
             class wxNSTextView(objc.Category(wxNSTextView)):
                 def accessibilityRole(self):
                     return NSAccessibilityTextAreaRole
-
-                def accessibilityRoleDescription(self):
-                    return "Textbereich"
         except Exception:
             pass
 
-        # --- wxNSOutlineView (TreeCtrl) → "Baumansicht" ---
-        try:
-            wxNSOutlineView = objc.lookUpClass("wxNSOutlineView")
-
-            class wxNSOutlineView(objc.Category(wxNSOutlineView)):
-                def accessibilityRoleDescription(self):
-                    return "Baumansicht"
-        except Exception:
-            pass
-
-        # --- NSProgressIndicator (wx.Gauge) → "Fortschrittsanzeige" ---
-        try:
-            NSProgressIndicator = objc.lookUpClass("NSProgressIndicator")
-
-            class NSProgressIndicator(objc.Category(NSProgressIndicator)):
-                def accessibilityRoleDescription(self):
-                    return "Fortschrittsanzeige"
-        except Exception:
-            pass
+        # wxNSOutlineView und NSProgressIndicator: keine Rolle-Override nötig,
+        # accessibilityRoleDescription entfernt (VoiceOver lokalisiert selbst).
 
     except Exception:
         pass
@@ -211,6 +185,8 @@ def patch_button_accessibility() -> None:
         # bezelStyle != 0  →  normaler Button / Taste
         wxNSButton = objc.lookUpClass("wxNSButton")
 
+        # accessibilityRoleDescription wird bei allen Button-Typen nicht überschrieben —
+        # VoiceOver lokalisiert "Taste"/"Bouton"/"Button" selbst korrekt.
         class wxNSButton(objc.Category(wxNSButton)):
             def accessibilityRole(self):
                 try:
@@ -222,31 +198,19 @@ def patch_button_accessibility() -> None:
                 except Exception:
                     return NSAccessibilityButtonRole
 
-            def accessibilityRoleDescription(self):
-                try:
-                    return "Schalter" if self.bezelStyle() == 0 else "Taste"
-                except Exception:
-                    return "Taste"
-
-        # --- wxNSPopUpButton: Auswahlmenü (wx.Choice) ---
+        # --- wxNSPopUpButton (wx.Choice) ---
         wxNSPopUpButton = objc.lookUpClass("wxNSPopUpButton")
 
         class wxNSPopUpButton(objc.Category(wxNSPopUpButton)):
             def accessibilityRole(self):
                 return NSAccessibilityPopUpButtonRole
 
-            def accessibilityRoleDescription(self):
-                return "Auswahlmenü"
-
-        # --- wxNSComboBox: Kombinationsfeld (wx.ComboBox) ---
+        # --- wxNSComboBox (wx.ComboBox) ---
         wxNSComboBox = objc.lookUpClass("wxNSComboBox")
 
         class wxNSComboBox(objc.Category(wxNSComboBox)):
             def accessibilityRole(self):
                 return NSAccessibilityComboBoxRole
-
-            def accessibilityRoleDescription(self):
-                return "Kombinationsfeld"
 
         # --- NSStepper (wxSpinCtrl): numerischen Wert statt "X% Stepper" ansagen ---
         # VoiceOver berechnet den Prozentwert aus dem internen NSStepper-Bereich (oft 0-100 mit
@@ -268,9 +232,6 @@ def patch_button_accessibility() -> None:
                     except Exception:
                         pass
                     return str(int(self.doubleValue()))
-
-                def accessibilityRoleDescription(self):
-                    return "Regler"
         except Exception:
             pass
 

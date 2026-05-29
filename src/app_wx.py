@@ -75,7 +75,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "8.0.0"
+APP_VERSION = "8.0.1"
 
 def _upd_tok() -> str:
     import base64 as _b

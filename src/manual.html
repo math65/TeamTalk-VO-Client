@@ -35,7 +35,7 @@
 
 <h1>TeamTalk VoiceOver Client – Benutzerhandbuch</h1>
 <p>Barrierefreier TeamTalk-Client für VoiceOver (macOS), NVDA / JAWS (Windows) und Orca (Linux).<br>
-Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>8.0.0</strong></p>
+Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>8.0.1</strong></p>
 
 <!-- ============================================================ -->
 <div id="toc">
@@ -110,6 +110,14 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <p>Die App unterstützt vier Oberflächensprachen: <strong>Deutsch, English, Français, Español</strong>. Die Sprache kann unter <em>Einstellungen → Allgemein → App-Sprache</em> gewechselt werden; die App startet dann neu.</p>
 
 <h2>Was ist neu</h2>
+<div class="new">
+<strong>v8.0.1 (2026-05-29):</strong>
+<ul>
+  <li><strong>VoiceOver-Sprache auf FR/ES-Systemen korrigiert</strong> <span class="platform mac">macOS</span>: Die App erkennt die macOS-Systemsprache jetzt korrekt über <code>NSLocale.preferredLanguages</code>. Auf FR-Systemen öffnet sich die App direkt auf Französisch und VoiceOver spricht mit der französischen Stimme. Gleiches gilt für ES und EN.</li>
+  <li><strong>Bundle-Lokalisierung korrigiert</strong> <span class="platform mac">macOS</span>: <code>de/en/fr/es.lproj</code>-Verzeichnisse werden jetzt beim Build erzeugt. Ohne diese Stubs ignorierte macOS <code>CFBundleLocalizations</code> vollständig.</li>
+  <li><strong>Gemischte Ansagen behoben</strong> <span class="platform mac">macOS</span>: Hardcodierte deutsche Rollenbeschreibungen ("Taste", "Regler" usw.) entfernt — VoiceOver spricht auf FR-Systemen jetzt "bouton"/"curseur" statt "Taste"/"Regler". Gemeldet von <strong>@math65</strong> (Issue #27).</li>
+</ul>
+</div>
 <div class="new">
 <strong>v8.0.0 (2026-05-27):</strong>
 <ul>

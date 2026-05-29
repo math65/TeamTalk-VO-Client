@@ -1,6 +1,23 @@
 Changelog
 =========
 
+2026-05-29 (v8.0.1)
+i18n-Bugfix: VoiceOver spricht jetzt die korrekte Systemsprache (FR/ES/EN)
+
+- macOS Sprachkennung korrigiert: detect_system_language() nutzt jetzt
+  NSLocale.preferredLanguages (PyObjC) statt locale.getlocale(). In .app-Bundles
+  liefert locale.getlocale() immer (None,None) oder 'en_US' — die macOS-API ist
+  die einzig zuverlässige Quelle für die tatsächliche UI-Sprache des Nutzers.
+- Bundle-Lokalisierung korrigiert: .spec erstellt jetzt de/en/fr/es.lproj-
+  Verzeichnisse mit InfoPlist.strings nach dem Build. Ohne diese Stubs ignoriert
+  macOS CFBundleLocalizations und VoiceOver wählt immer die englische Stimme.
+- Redundante deutsche Rollenbeschreibungen entfernt: accessibilityRoleDescription-
+  Overrides in a11y.py durch hardcodierte DE-Strings ("Taste", "Regler" etc.)
+  gestrichen. VoiceOver lokalisiert diese Rollen selbst korrekt in FR/ES/EN.
+  Die accessibilityRole-Overrides (AXButton, AXList etc.) bleiben erhalten.
+  accessibilityValue-Fix auf NSStepper (numerischer Wert) bleibt ebenfalls.
+- Gemeldet von @math65 (Issue #27). Reproduzierbar auf macOS 15.5 / FR-System.
+
 2026-05-27 (v8.0.0)
 SRAL-Integration: einheitlicher Screen-Reader-Output-Layer (Sprache + Braille)
 

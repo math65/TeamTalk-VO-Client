@@ -48,10 +48,22 @@ app = BUNDLE(
     icon=None,
     bundle_identifier=None,
     info_plist={
-        'CFBundleShortVersionString': '8.0.0',
-        'CFBundleVersion': '8.0.0',
+        'CFBundleShortVersionString': '8.0.1',
+        'CFBundleVersion': '8.0.1',
         'NSMicrophoneUsageDescription': 'Der TeamTalk VO Client benötigt Zugriff auf das Mikrofon, um Sprache übertragen zu können.',
         'CFBundleDevelopmentRegion': 'de',
         'CFBundleLocalizations': ['de', 'en', 'fr', 'es'],
     },
 )
+
+# Lokalisierungs-Stub: ohne .lproj-Verzeichnisse behandelt macOS den Bundle als
+# Englisch-only und VoiceOver ignoriert CFBundleLocalizations vollständig.
+import os as _os
+for _lang in ('de', 'en', 'fr', 'es'):
+    _lproj = _os.path.join('dist', 'TeamTalk VO Client.app',
+                           'Contents', 'Resources', f'{_lang}.lproj')
+    _os.makedirs(_lproj, exist_ok=True)
+    _strings = _os.path.join(_lproj, 'InfoPlist.strings')
+    if not _os.path.exists(_strings):
+        with open(_strings, 'w', encoding='utf-8') as _f:
+            _f.write('"CFBundleName" = "TeamTalk VO Client";\n')

@@ -4869,6 +4869,15 @@ def _extract_lang_code(raw: str) -> str:
 def _iter_locale_candidates() -> list[str]:
     """Sammelt mögliche Locale-Strings in Prioritätsreihenfolge."""
     candidates: list[str] = []
+    # macOS .app bundles erben kein aussagekräftiges LC_*/LANG — die kanonische
+    # API für die vom Nutzer gewählte UI-Sprache ist NSLocale.preferredLanguages.
+    if sys.platform == "darwin":
+        try:
+            import AppKit  # noqa: PLC0415
+            for raw in AppKit.NSLocale.preferredLanguages() or []:
+                candidates.append(str(raw))
+        except Exception:
+            pass
     try:
         lc = locale.getlocale()
         if lc and lc[0]:
