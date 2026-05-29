@@ -56,31 +56,19 @@ def patch_list_row_accessibility() -> None:
         import objc  # noqa: PLC0415
         from AppKit import NSAccessibilityListRole  # noqa: PLC0415
 
-        # ------------------------------------------------------------------
         # 1. wxNSTableView global als AXList deklarieren
-        #    (wird von wx.ListBox verwendet; ohne diesen Patch: "Tabelle")
-        # ------------------------------------------------------------------
+        # accessibilityRoleDescription wird absichtlich nicht überschrieben —
+        # VoiceOver lokalisiert die Rollenbeschreibung selbst korrekt.
         try:
-            cls_tv = objc.lookUpClass("wxNSTableView")
+            wxNSTableView = objc.lookUpClass("wxNSTableView")
 
-            @objc.typedSelector(b"@@:")
-            def _tv_role(self):
-                return NSAccessibilityListRole
-
-            @objc.typedSelector(b"@@:")
-            def _tv_role_desc(self):
-                return "Liste"
-
-            objc.classAddMethod(cls_tv, b"accessibilityRole", _tv_role)
-            objc.classAddMethod(cls_tv, b"accessibilityRoleDescription", _tv_role_desc)
+            class wxNSTableView(objc.Category(wxNSTableView)):
+                def accessibilityRole(self):
+                    return NSAccessibilityListRole
         except Exception:
             pass
 
-        # ------------------------------------------------------------------
         # 2. NSTableRow: Elementtext vorlesen, "Zeile N" unterdrücken
-        # ------------------------------------------------------------------
-        cls_row = objc.lookUpClass("NSTableRow")
-
         def _cell_text(row):
             try:
                 children = row.accessibilityAttributeValue_("AXChildren")
@@ -92,46 +80,38 @@ def patch_list_row_accessibility() -> None:
                 pass
             return ""
 
-        @objc.typedSelector(b"@@:")
-        def _row_label(self):
-            return _cell_text(self)
+        _cls_row = objc.lookUpClass("NSTableRow")
+        _orig_attr_value = _cls_row.instanceMethodForSelector_(b"accessibilityAttributeValue:")
 
-        @objc.typedSelector(b"@@:")
-        def _row_value(self):
-            return _cell_text(self)
+        class NSTableRow(objc.Category(_cls_row)):
+            def accessibilityLabel(self):
+                return _cell_text(self)
 
-        # Rollenbeschreibung leer lassen → VoiceOver sagt nicht "Zeile" / "row"
-        @objc.typedSelector(b"@@:")
-        def _row_role_desc(self):
-            return ""
+            def accessibilityValue(self):
+                return _cell_text(self)
 
-        _orig_attr_value = cls_row.instanceMethodForSelector_(
-            b"accessibilityAttributeValue:"
-        )
-
-        @objc.typedSelector(b"@@:@")
-        def _row_attr_value(self, attr):
-            if attr in ("AXTitle", "AXLabel", "AXDescription", "AXValue"):
-                txt = _cell_text(self)
-                if txt:
-                    return txt
-            if attr == "AXRoleDescription":
+            def accessibilityRoleDescription(self):
                 return ""
-            return _orig_attr_value(self, attr)
 
-        objc.classAddMethod(cls_row, b"accessibilityLabel", _row_label)
-        objc.classAddMethod(cls_row, b"accessibilityValue", _row_value)
-        objc.classAddMethod(cls_row, b"accessibilityRoleDescription", _row_role_desc)
-        objc.classAddMethod(cls_row, b"accessibilityAttributeValue:", _row_attr_value)
+            @objc.typedSelector(b"@@:@")
+            def accessibilityAttributeValue_(self, attr):
+                if attr in ("AXTitle", "AXLabel", "AXDescription", "AXValue"):
+                    txt = _cell_text(self)
+                    if txt:
+                        return txt
+                if attr == "AXRoleDescription":
+                    return ""
+                return _orig_attr_value(self, attr)
 
     except Exception:
         pass
 
 
 def patch_control_accessibility() -> None:
-    """Swizzelt wxNSSlider, wxNSTextField, wxNSTextView und NSProgressIndicator,
-    damit VoiceOver deutsche Rollenbeschreibungen ansagt.
+    """Korrigiert AX-Rollen für wxNSSlider, wxNSTextField und wxNSTextView.
 
+    accessibilityRoleDescription wird bewusst nicht überschrieben — VoiceOver
+    lokalisiert die Rollenbeschreibungen selbst korrekt in der Systemsprache.
     Muss einmal beim Programmstart aufgerufen werden (nach wx.App-Erstellung).
     """
     if sys.platform != "darwin":
@@ -145,80 +125,38 @@ def patch_control_accessibility() -> None:
             NSAccessibilityTextAreaRole,
         )
 
-        # --- wxNSSlider → "Regler" ---
+        # --- wxNSSlider ---
         try:
-            cls_slider = objc.lookUpClass("wxNSSlider")
+            wxNSSlider = objc.lookUpClass("wxNSSlider")
 
-            @objc.typedSelector(b"@@:")
-            def _slider_role(self):
-                return NSAccessibilitySliderRole
-
-            @objc.typedSelector(b"@@:")
-            def _slider_role_desc(self):
-                return "Regler"
-
-            objc.classAddMethod(cls_slider, b"accessibilityRole", _slider_role)
-            objc.classAddMethod(cls_slider, b"accessibilityRoleDescription", _slider_role_desc)
+            class wxNSSlider(objc.Category(wxNSSlider)):
+                def accessibilityRole(self):
+                    return NSAccessibilitySliderRole
         except Exception:
             pass
 
-        # --- wxNSTextField (single-line TextCtrl) → "Textfeld" ---
+        # --- wxNSTextField (single-line TextCtrl) ---
         try:
-            cls_tf = objc.lookUpClass("wxNSTextField")
+            wxNSTextField = objc.lookUpClass("wxNSTextField")
 
-            @objc.typedSelector(b"@@:")
-            def _tf_role(self):
-                return NSAccessibilityTextFieldRole
-
-            @objc.typedSelector(b"@@:")
-            def _tf_role_desc(self):
-                return "Textfeld"
-
-            objc.classAddMethod(cls_tf, b"accessibilityRole", _tf_role)
-            objc.classAddMethod(cls_tf, b"accessibilityRoleDescription", _tf_role_desc)
+            class wxNSTextField(objc.Category(wxNSTextField)):
+                def accessibilityRole(self):
+                    return NSAccessibilityTextFieldRole
         except Exception:
             pass
 
-        # --- wxNSTextView (multiline wx.TextCtrl) → "Textbereich" ---
+        # --- wxNSTextView (multiline wx.TextCtrl) ---
         try:
-            cls_tv = objc.lookUpClass("wxNSTextView")
+            wxNSTextView = objc.lookUpClass("wxNSTextView")
 
-            @objc.typedSelector(b"@@:")
-            def _tv_role(self):
-                return NSAccessibilityTextAreaRole
-
-            @objc.typedSelector(b"@@:")
-            def _tv_role_desc(self):
-                return "Textbereich"
-
-            objc.classAddMethod(cls_tv, b"accessibilityRole", _tv_role)
-            objc.classAddMethod(cls_tv, b"accessibilityRoleDescription", _tv_role_desc)
+            class wxNSTextView(objc.Category(wxNSTextView)):
+                def accessibilityRole(self):
+                    return NSAccessibilityTextAreaRole
         except Exception:
             pass
 
-        # --- wxNSOutlineView (TreeCtrl) → "Baumansicht" ---
-        try:
-            cls_outline = objc.lookUpClass("wxNSOutlineView")
-
-            @objc.typedSelector(b"@@:")
-            def _outline_role_desc(self):
-                return "Baumansicht"
-
-            objc.classAddMethod(cls_outline, b"accessibilityRoleDescription", _outline_role_desc)
-        except Exception:
-            pass
-
-        # --- NSProgressIndicator (wx.Gauge) → "Fortschrittsanzeige" ---
-        try:
-            cls_prog = objc.lookUpClass("NSProgressIndicator")
-
-            @objc.typedSelector(b"@@:")
-            def _prog_role_desc(self):
-                return "Fortschrittsanzeige"
-
-            objc.classAddMethod(cls_prog, b"accessibilityRoleDescription", _prog_role_desc)
-        except Exception:
-            pass
+        # wxNSOutlineView und NSProgressIndicator: keine Rolle-Override nötig,
+        # accessibilityRoleDescription entfernt (VoiceOver lokalisiert selbst).
 
     except Exception:
         pass
@@ -243,59 +181,59 @@ def patch_button_accessibility() -> None:
         )
 
         # --- wxNSButton: normale Taste oder Schalter (CheckBox) ---
-        cls_btn = objc.lookUpClass("wxNSButton")
-
         # bezelStyle == 0  →  CheckBox / Schalter
         # bezelStyle != 0  →  normaler Button / Taste
+        wxNSButton = objc.lookUpClass("wxNSButton")
 
-        @objc.typedSelector(b"@@:")
-        def _btn_role(self):
-            try:
-                return (
-                    NSAccessibilityCheckBoxRole
-                    if self.bezelStyle() == 0
-                    else NSAccessibilityButtonRole
-                )
-            except Exception:
-                return NSAccessibilityButtonRole
+        # accessibilityRoleDescription wird bei allen Button-Typen nicht überschrieben —
+        # VoiceOver lokalisiert "Taste"/"Bouton"/"Button" selbst korrekt.
+        class wxNSButton(objc.Category(wxNSButton)):
+            def accessibilityRole(self):
+                try:
+                    return (
+                        NSAccessibilityCheckBoxRole
+                        if self.bezelStyle() == 0
+                        else NSAccessibilityButtonRole
+                    )
+                except Exception:
+                    return NSAccessibilityButtonRole
 
-        @objc.typedSelector(b"@@:")
-        def _btn_role_desc(self):
-            try:
-                return "Schalter" if self.bezelStyle() == 0 else "Taste"
-            except Exception:
-                return "Taste"
+        # --- wxNSPopUpButton (wx.Choice) ---
+        wxNSPopUpButton = objc.lookUpClass("wxNSPopUpButton")
 
-        objc.classAddMethod(cls_btn, b"accessibilityRole", _btn_role)
-        objc.classAddMethod(cls_btn, b"accessibilityRoleDescription", _btn_role_desc)
+        class wxNSPopUpButton(objc.Category(wxNSPopUpButton)):
+            def accessibilityRole(self):
+                return NSAccessibilityPopUpButtonRole
 
-        # --- wxNSPopUpButton: Auswahlmenü (wx.Choice) ---
-        cls_popup = objc.lookUpClass("wxNSPopUpButton")
+        # --- wxNSComboBox (wx.ComboBox) ---
+        wxNSComboBox = objc.lookUpClass("wxNSComboBox")
 
-        @objc.typedSelector(b"@@:")
-        def _popup_role(self):
-            return NSAccessibilityPopUpButtonRole
+        class wxNSComboBox(objc.Category(wxNSComboBox)):
+            def accessibilityRole(self):
+                return NSAccessibilityComboBoxRole
 
-        @objc.typedSelector(b"@@:")
-        def _popup_role_desc(self):
-            return "Auswahlmenü"
+        # --- NSStepper (wxSpinCtrl): numerischen Wert statt "X% Stepper" ansagen ---
+        # VoiceOver berechnet den Prozentwert aus dem internen NSStepper-Bereich (oft 0-100 mit
+        # Standardwert 50), nicht aus dem SpinCtrl-Bereich.  Wir ersetzen accessibilityValue durch
+        # den echten numerischen Wert aus dem gepaarten NSTextField.
+        try:
+            NSStepper = objc.lookUpClass("NSStepper")
 
-        objc.classAddMethod(cls_popup, b"accessibilityRole", _popup_role)
-        objc.classAddMethod(cls_popup, b"accessibilityRoleDescription", _popup_role_desc)
-
-        # --- wxNSComboBox: Kombinationsfeld (wx.ComboBox) ---
-        cls_combo = objc.lookUpClass("wxNSComboBox")
-
-        @objc.typedSelector(b"@@:")
-        def _combo_role(self):
-            return NSAccessibilityComboBoxRole
-
-        @objc.typedSelector(b"@@:")
-        def _combo_role_desc(self):
-            return "Kombinationsfeld"
-
-        objc.classAddMethod(cls_combo, b"accessibilityRole", _combo_role)
-        objc.classAddMethod(cls_combo, b"accessibilityRoleDescription", _combo_role_desc)
+            class NSStepper(objc.Category(NSStepper)):
+                def accessibilityValue(self):
+                    try:
+                        parent = self.superview()
+                        if parent is not None:
+                            for sib in parent.subviews():
+                                if sib.__class__.__name__ in ("NSTextField", "wxNSTextField"):
+                                    txt = sib.stringValue()
+                                    if txt:
+                                        return txt
+                    except Exception:
+                        pass
+                    return str(int(self.doubleValue()))
+        except Exception:
+            pass
 
     except Exception:
         pass
